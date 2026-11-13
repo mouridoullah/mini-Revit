@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-300 -300 5600 5600" style="background-color: #f8fafc; font-family: monospace;">
+  <g id="resolved-walls">
+    <!-- Mur main (Surface: 1.500 m²) -->
+    <polygon points="0,2650 5000,2650 5000,2350 0,2350" fill="rgba(59, 130, 246, 0.35)" stroke="#1d4ed8" stroke-width="4" stroke-linejoin="round" />
+    <circle cx="0" cy="2650" r="5" fill="#1d4ed8" />
+    <circle cx="5000" cy="2650" r="5" fill="#1d4ed8" />
+    <circle cx="5000" cy="2350" r="5" fill="#1d4ed8" />
+    <circle cx="0" cy="2350" r="5" fill="#1d4ed8" />
+    <!-- Mur cross_branchA (Surface: 0.470 m²) -->
+    <polygon points="2600,5000 2600,2650 2400,2650 2400,5000" fill="rgba(16, 185, 129, 0.35)" stroke="#047857" stroke-width="4" stroke-linejoin="round" />
+    <circle cx="2600" cy="5000" r="5" fill="#047857" />
+    <circle cx="2600" cy="2650" r="5" fill="#047857" />
+    <circle cx="2400" cy="2650" r="5" fill="#047857" />
+    <circle cx="2400" cy="5000" r="5" fill="#047857" />
+    <!-- Mur cross_branchB (Surface: 0.470 m²) -->
+    <polygon points="2600,2350 2600,0 2400,0 2400,2350" fill="rgba(245, 158, 11, 0.35)" stroke="#b45309" stroke-width="4" stroke-linejoin="round" />
+    <circle cx="2600" cy="2350" r="5" fill="#b45309" />
+    <circle cx="2600" cy="0" r="5" fill="#b45309" />
+    <circle cx="2400" cy="0" r="5" fill="#b45309" />
+    <circle cx="2400" cy="2350" r="5" fill="#b45309" />
+  </g>
+  <g id="wall-axes" stroke="#475569" stroke-width="2" stroke-dasharray="8,6">
+    <line x1="0" y1="2500" x2="5000" y2="2500" />
+    <circle cx="0" cy="2500" r="4" fill="#475569" />
+    <circle cx="5000" cy="2500" r="4" fill="#475569" />
+    <line x1="2500" y1="5000" x2="2500" y2="2500" />
+    <circle cx="2500" cy="5000" r="4" fill="#475569" />
+    <circle cx="2500" cy="2500" r="4" fill="#475569" />
+    <line x1="2500" y1="2500" x2="2500" y2="0" />
+    <circle cx="2500" cy="2500" r="4" fill="#475569" />
+    <circle cx="2500" cy="0" r="4" fill="#475569" />
+  </g>
+  <g id="junction-markers">
+    <circle cx="2500" cy="2500" r="8" fill="none" stroke="#ef4444" stroke-width="3" />
+    <circle cx="2500" cy="2500" r="2" fill="#ef4444" />
+  </g>
+  <g id="labels" font-size="28" fill="#1e293b">
+    <text x="2500" y="2500" text-anchor="middle" font-weight="bold">main (1.50 m²)</text>
+    <text x="2500" y="3750" text-anchor="middle" font-weight="bold">cross_branchA (0.47 m²)</text>
+    <text x="2500" y="1250" text-anchor="middle" font-weight="bold">cross_branchB (0.47 m²)</text>
+    <text x="2515" y="2485" fill="#ef4444" font-weight="bold">X</text>
+  </g>
+</svg>

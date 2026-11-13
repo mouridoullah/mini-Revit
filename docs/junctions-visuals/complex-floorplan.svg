@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-450 -450 6900 5900" style="background-color: #f8fafc; font-family: monospace;">
+  <g id="resolved-walls">
+    <!-- Mur ext_south (Surface: 1.800 m²) -->
+    <polygon points="-150,5150 6150,5150 5850,4850 150,4850" fill="rgba(59, 130, 246, 0.35)" stroke="#1d4ed8" stroke-width="4" stroke-linejoin="round" />
+    <circle cx="-150" cy="5150" r="5" fill="#1d4ed8" />
+    <circle cx="6150" cy="5150" r="5" fill="#1d4ed8" />
+    <circle cx="5850" cy="4850" r="5" fill="#1d4ed8" />
+    <circle cx="150" cy="4850" r="5" fill="#1d4ed8" />
+    <!-- Mur ext_east (Surface: 1.500 m²) -->
+    <polygon points="6150,5150 6150,-150 5850,150 5850,4850" fill="rgba(16, 185, 129, 0.35)" stroke="#047857" stroke-width="4" stroke-linejoin="round" />
+    <circle cx="6150" cy="5150" r="5" fill="#047857" />
+    <circle cx="6150" cy="-150" r="5" fill="#047857" />
+    <circle cx="5850" cy="150" r="5" fill="#047857" />
+    <circle cx="5850" cy="4850" r="5" fill="#047857" />
+    <!-- Mur ext_north (Surface: 1.800 m²) -->
+    <polygon points="6150,-150 -150,-150 150,150 5850,150" fill="rgba(245, 158, 11, 0.35)" stroke="#b45309" stroke-width="4" stroke-linejoin="round" />
+    <circle cx="6150" cy="-150" r="5" fill="#b45309" />
+    <circle cx="-150" cy="-150" r="5" fill="#b45309" />
+    <circle cx="150" cy="150" r="5" fill="#b45309" />
+    <circle cx="5850" cy="150" r="5" fill="#b45309" />
+    <!-- Mur ext_west (Surface: 1.500 m²) -->
+    <polygon points="-150,-150 -150,5150 150,4850 150,150" fill="rgba(139, 92, 246, 0.35)" stroke="#6d28d9" stroke-width="4" stroke-linejoin="round" />
+    <circle cx="-150" cy="-150" r="5" fill="#6d28d9" />
+    <circle cx="-150" cy="5150" r="5" fill="#6d28d9" />
+    <circle cx="150" cy="4850" r="5" fill="#6d28d9" />
+    <circle cx="150" cy="150" r="5" fill="#6d28d9" />
+    <!-- Mur part_v (Surface: 0.705 m²) -->
+    <polygon points="3075,4850 3075,150 2925,150 2925,4850" fill="rgba(236, 72, 153, 0.35)" stroke="#be185d" stroke-width="4" stroke-linejoin="round" />
+    <circle cx="3075" cy="4850" r="5" fill="#be185d" />
+    <circle cx="3075" cy="150" r="5" fill="#be185d" />
+    <circle cx="2925" cy="150" r="5" fill="#be185d" />
+    <circle cx="2925" cy="4850" r="5" fill="#be185d" />
+    <!-- Mur part_h_branchA (Surface: 0.439 m²) -->
+    <polygon points="0,2575 2925,2575 2925,2425 0,2425" fill="rgba(20, 184, 166, 0.35)" stroke="#0f766e" stroke-width="4" stroke-linejoin="round" />
+    <circle cx="0" cy="2575" r="5" fill="#0f766e" />
+    <circle cx="2925" cy="2575" r="5" fill="#0f766e" />
+    <circle cx="2925" cy="2425" r="5" fill="#0f766e" />
+    <circle cx="0" cy="2425" r="5" fill="#0f766e" />
+    <!-- Mur part_h_branchB (Surface: 0.439 m²) -->
+    <polygon points="3075,2575 6000,2575 6000,2425 3075,2425" fill="rgba(59, 130, 246, 0.35)" stroke="#1d4ed8" stroke-width="4" stroke-linejoin="round" />
+    <circle cx="3075" cy="2575" r="5" fill="#1d4ed8" />
+    <circle cx="6000" cy="2575" r="5" fill="#1d4ed8" />
+    <circle cx="6000" cy="2425" r="5" fill="#1d4ed8" />
+    <circle cx="3075" cy="2425" r="5" fill="#1d4ed8" />
+  </g>
+  <g id="wall-axes" stroke="#475569" stroke-width="2" stroke-dasharray="8,6">
+    <line x1="0" y1="5000" x2="6000" y2="5000" />
+    <circle cx="0" cy="5000" r="4" fill="#475569" />
+    <circle cx="6000" cy="5000" r="4" fill="#475569" />
+    <line x1="6000" y1="5000" x2="6000" y2="0" />
+    <circle cx="6000" cy="5000" r="4" fill="#475569" />
+    <circle cx="6000" cy="0" r="4" fill="#475569" />
+    <line x1="6000" y1="0" x2="0" y2="0" />
+    <circle cx="6000" cy="0" r="4" fill="#475569" />
+    <circle cx="0" cy="0" r="4" fill="#475569" />
+    <line x1="0" y1="0" x2="0" y2="5000" />
+    <circle cx="0" cy="0" r="4" fill="#475569" />
+    <circle cx="0" cy="5000" r="4" fill="#475569" />
+    <line x1="3000" y1="5000" x2="3000" y2="0" />
+    <circle cx="3000" cy="5000" r="4" fill="#475569" />
+    <circle cx="3000" cy="0" r="4" fill="#475569" />
+    <line x1="0" y1="2500" x2="3000" y2="2500" />
+    <circle cx="0" cy="2500" r="4" fill="#475569" />
+    <circle cx="3000" cy="2500" r="4" fill="#475569" />
+    <line x1="3000" y1="2500" x2="6000" y2="2500" />
+    <circle cx="3000" cy="2500" r="4" fill="#475569" />
+    <circle cx="6000" cy="2500" r="4" fill="#475569" />
+  </g>
+  <g id="junction-markers">
+    <circle cx="3000" cy="2500" r="8" fill="none" stroke="#ef4444" stroke-width="3" />
+    <circle cx="3000" cy="2500" r="2" fill="#ef4444" />
+    <circle cx="3000" cy="5000" r="8" fill="none" stroke="#ef4444" stroke-width="3" />
+    <circle cx="3000" cy="5000" r="2" fill="#ef4444" />
+    <circle cx="3000" cy="0" r="8" fill="none" stroke="#ef4444" stroke-width="3" />
+    <circle cx="3000" cy="0" r="2" fill="#ef4444" />
+    <circle cx="0" cy="2500" r="8" fill="none" stroke="#ef4444" stroke-width="3" />
+    <circle cx="0" cy="2500" r="2" fill="#ef4444" />
+    <circle cx="6000" cy="2500" r="8" fill="none" stroke="#ef4444" stroke-width="3" />
+    <circle cx="6000" cy="2500" r="2" fill="#ef4444" />
+    <circle cx="0" cy="5000" r="8" fill="none" stroke="#ef4444" stroke-width="3" />
+    <circle cx="0" cy="5000" r="2" fill="#ef4444" />
+    <circle cx="6000" cy="5000" r="8" fill="none" stroke="#ef4444" stroke-width="3" />
+    <circle cx="6000" cy="5000" r="2" fill="#ef4444" />
+    <circle cx="6000" cy="0" r="8" fill="none" stroke="#ef4444" stroke-width="3" />
+    <circle cx="6000" cy="0" r="2" fill="#ef4444" />
+    <circle cx="0" cy="0" r="8" fill="none" stroke="#ef4444" stroke-width="3" />
+    <circle cx="0" cy="0" r="2" fill="#ef4444" />
+  </g>
+  <g id="labels" font-size="28" fill="#1e293b">
+    <text x="3000" y="5000" text-anchor="middle" font-weight="bold">ext_south (1.80 m²)</text>
+    <text x="6000" y="2500" text-anchor="middle" font-weight="bold">ext_east (1.50 m²)</text>
+    <text x="3000" y="0" text-anchor="middle" font-weight="bold">ext_north (1.80 m²)</text>
+    <text x="0" y="2500" text-anchor="middle" font-weight="bold">ext_west (1.50 m²)</text>
+    <text x="3000" y="2500" text-anchor="middle" font-weight="bold">part_v (0.70 m²)</text>
+    <text x="1500" y="2500" text-anchor="middle" font-weight="bold">part_h_branchA (0.44 m²)</text>
+    <text x="4500" y="2500" text-anchor="middle" font-weight="bold">part_h_branchB (0.44 m²)</text>
+    <text x="3015" y="2485" fill="#ef4444" font-weight="bold">X</text>
+    <text x="3015" y="4985" fill="#ef4444" font-weight="bold">T</text>
+    <text x="3015" y="-15" fill="#ef4444" font-weight="bold">T</text>
+    <text x="15" y="2485" fill="#ef4444" font-weight="bold">T</text>
+    <text x="6015" y="2485" fill="#ef4444" font-weight="bold">T</text>
+    <text x="15" y="4985" fill="#ef4444" font-weight="bold">L</text>
+    <text x="6015" y="4985" fill="#ef4444" font-weight="bold">L</text>
+    <text x="6015" y="-15" fill="#ef4444" font-weight="bold">L</text>
+    <text x="15" y="-15" fill="#ef4444" font-weight="bold">L</text>
+  </g>
+</svg>

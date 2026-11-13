@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-300 -300 4600 4600" style="background-color: #f8fafc; font-family: monospace;">
+  <g id="resolved-walls">
+    <!-- Mur w_east (Surface: 0.380 m²) -->
+    <polygon points="2100,2100 4000,2100 4000,1900 2100,1900" fill="rgba(59, 130, 246, 0.35)" stroke="#1d4ed8" stroke-width="4" stroke-linejoin="round" />
+    <circle cx="2100" cy="2100" r="5" fill="#1d4ed8" />
+    <circle cx="4000" cy="2100" r="5" fill="#1d4ed8" />
+    <circle cx="4000" cy="1900" r="5" fill="#1d4ed8" />
+    <circle cx="2100" cy="1900" r="5" fill="#1d4ed8" />
+    <!-- Mur w_north (Surface: 0.380 m²) -->
+    <polygon points="2100,1900 2100,0 1900,0 1900,1900" fill="rgba(16, 185, 129, 0.35)" stroke="#047857" stroke-width="4" stroke-linejoin="round" />
+    <circle cx="2100" cy="1900" r="5" fill="#047857" />
+    <circle cx="2100" cy="0" r="5" fill="#047857" />
+    <circle cx="1900" cy="0" r="5" fill="#047857" />
+    <circle cx="1900" cy="1900" r="5" fill="#047857" />
+    <!-- Mur w_west (Surface: 0.380 m²) -->
+    <polygon points="1900,1900 0,1900 0,2100 1900,2100" fill="rgba(245, 158, 11, 0.35)" stroke="#b45309" stroke-width="4" stroke-linejoin="round" />
+    <circle cx="1900" cy="1900" r="5" fill="#b45309" />
+    <circle cx="0" cy="1900" r="5" fill="#b45309" />
+    <circle cx="0" cy="2100" r="5" fill="#b45309" />
+    <circle cx="1900" cy="2100" r="5" fill="#b45309" />
+    <!-- Mur w_south (Surface: 0.380 m²) -->
+    <polygon points="1900,2100 1900,4000 2100,4000 2100,2100" fill="rgba(139, 92, 246, 0.35)" stroke="#6d28d9" stroke-width="4" stroke-linejoin="round" />
+    <circle cx="1900" cy="2100" r="5" fill="#6d28d9" />
+    <circle cx="1900" cy="4000" r="5" fill="#6d28d9" />
+    <circle cx="2100" cy="4000" r="5" fill="#6d28d9" />
+    <circle cx="2100" cy="2100" r="5" fill="#6d28d9" />
+  </g>
+  <g id="wall-axes" stroke="#475569" stroke-width="2" stroke-dasharray="8,6">
+    <line x1="2000" y1="2000" x2="4000" y2="2000" />
+    <circle cx="2000" cy="2000" r="4" fill="#475569" />
+    <circle cx="4000" cy="2000" r="4" fill="#475569" />
+    <line x1="2000" y1="2000" x2="2000" y2="0" />
+    <circle cx="2000" cy="2000" r="4" fill="#475569" />
+    <circle cx="2000" cy="0" r="4" fill="#475569" />
+    <line x1="2000" y1="2000" x2="0" y2="2000" />
+    <circle cx="2000" cy="2000" r="4" fill="#475569" />
+    <circle cx="0" cy="2000" r="4" fill="#475569" />
+    <line x1="2000" y1="2000" x2="2000" y2="4000" />
+    <circle cx="2000" cy="2000" r="4" fill="#475569" />
+    <circle cx="2000" cy="4000" r="4" fill="#475569" />
+  </g>
+  <g id="junction-markers">
+    <circle cx="2000" cy="2000" r="8" fill="none" stroke="#ef4444" stroke-width="3" />
+    <circle cx="2000" cy="2000" r="2" fill="#ef4444" />
+  </g>
+  <g id="labels" font-size="28" fill="#1e293b">
+    <text x="3000" y="2000" text-anchor="middle" font-weight="bold">w_east (0.38 m²)</text>
+    <text x="2000" y="1000" text-anchor="middle" font-weight="bold">w_north (0.38 m²)</text>
+    <text x="1000" y="2000" text-anchor="middle" font-weight="bold">w_west (0.38 m²)</text>
+    <text x="2000" y="3000" text-anchor="middle" font-weight="bold">w_south (0.38 m²)</text>
+    <text x="2015" y="1985" fill="#ef4444" font-weight="bold">multi</text>
+  </g>
+</svg>

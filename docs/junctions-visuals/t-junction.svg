@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-300 -300 6600 2750" style="background-color: #f8fafc; font-family: monospace;">
+  <g id="resolved-walls">
+    <!-- Mur through (Surface: 1.800 m²) -->
+    <polygon points="0,300 6000,300 6000,0 0,0" fill="rgba(59, 130, 246, 0.35)" stroke="#1d4ed8" stroke-width="4" stroke-linejoin="round" />
+    <circle cx="0" cy="300" r="5" fill="#1d4ed8" />
+    <circle cx="6000" cy="300" r="5" fill="#1d4ed8" />
+    <circle cx="6000" cy="0" r="5" fill="#1d4ed8" />
+    <circle cx="0" cy="0" r="5" fill="#1d4ed8" />
+    <!-- Mur stem (Surface: 0.370 m²) -->
+    <polygon points="3100,2150 3100,300 2900,300 2900,2150" fill="rgba(16, 185, 129, 0.35)" stroke="#047857" stroke-width="4" stroke-linejoin="round" />
+    <circle cx="3100" cy="2150" r="5" fill="#047857" />
+    <circle cx="3100" cy="300" r="5" fill="#047857" />
+    <circle cx="2900" cy="300" r="5" fill="#047857" />
+    <circle cx="2900" cy="2150" r="5" fill="#047857" />
+  </g>
+  <g id="wall-axes" stroke="#475569" stroke-width="2" stroke-dasharray="8,6">
+    <line x1="0" y1="150" x2="6000" y2="150" />
+    <circle cx="0" cy="150" r="4" fill="#475569" />
+    <circle cx="6000" cy="150" r="4" fill="#475569" />
+    <line x1="3000" y1="2150" x2="3000" y2="150" />
+    <circle cx="3000" cy="2150" r="4" fill="#475569" />
+    <circle cx="3000" cy="150" r="4" fill="#475569" />
+  </g>
+  <g id="junction-markers">
+    <circle cx="3000" cy="150" r="8" fill="none" stroke="#ef4444" stroke-width="3" />
+    <circle cx="3000" cy="150" r="2" fill="#ef4444" />
+  </g>
+  <g id="labels" font-size="28" fill="#1e293b">
+    <text x="3000" y="150" text-anchor="middle" font-weight="bold">through (1.80 m²)</text>
+    <text x="3000" y="1150" text-anchor="middle" font-weight="bold">stem (0.37 m²)</text>
+    <text x="3015" y="135" fill="#ef4444" font-weight="bold">T</text>
+  </g>
+</svg>

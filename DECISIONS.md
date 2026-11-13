@@ -20,6 +20,7 @@
 | **ADR-009** | Architecture d'Extensibilité pour les Réseaux MEP (Category Registry)                        | **Accepté** | 13/11/2026 |
 | **ADR-010** | Révision des Tolérances Numériques, Typage des Intersections et Rejet de l'Arrondi Prématuré | **Accepté** | 13/11/2026 |
 | **ADR-011** | Moteur de Jonctions de Murs Déterministe (L, T, X, Colinéaire et Multi-branches)             | **Accepté** | 13/11/2026 |
+| **ADR-012** | Directives de Robustesse Topologique et Clôture des Jonctions (Audit Approfondi Phase 1)     | **Accepté** | 13/11/2026 |
 
 ---
 
@@ -272,3 +273,30 @@ Les logiciels de dessin 2D traditionnels se contentent souvent de superposer des
 - Conservation exacte des surfaces théoriques des pièces et des métrés de murs.
 - Prévention du phénomène de z-fighting en 3D et des doubles pochés en 2D.
 - Raccordement sans faille pour le futur calcul automatique des pièces fermées.
+
+---
+
+## ADR-012 : Directives de Robustesse Topologique et Clôture des Jonctions (Audit Approfondi Phase 1)
+
+### Contexte
+
+L'audit approfondi du moteur de jonctions de murs `@mini-bim/geometry` a validé 115 tests automatisés (orientation CCW, simplicité polygonale de Jordan, invariance par rotation/translation, coordonnées à 1 km). Cependant, l'examen analytique détaillé a mis en évidence trois situations géométriques limites nécessitant un traitement renforcé avant le passage aux percements 2.5D :
+
+1. **Bevel Gap dans `solveLMiter` :** Sur angle très aigu avec biseau activé, la troncature indépendante des deux murs crée un vide géométrique triangulaire à l'angle extérieur car les murs ne partagent pas d'arête de biseau commune.
+2. **Effondrement sur angle $0^\circ$ dans `engine.ts` :** Deux murs incidents de même direction au même nœud étaient envoyés dans le solveur d'onglet L, faisant converger les sommets sur le point de nœud par parallélisme des bords.
+3. **Pincement au centre dans `multi.ts` :** Deux branches radialement consécutives séparées par $180^\circ$ provoquaient l'effondrement du sommet partagé sur le centre du nœud.
+
+### Décision
+
+1. **Adoption de la Recommandation B (Corrections ciblées préalables) :**  
+   Le passage à la Phase 1.2 (percement d'ouvertures par Sutherland-Hodgman) est subordonné à la résolution de ces trois anomalies géométriques afin de garantir l'étanchéité absolue (watertightness) des contours avant toute opération booléenne de découpe.
+2. **Règle de Clôture d'Onglet Étanche (Watertight Bisector Clamping) :**  
+   Tout biseau d'onglet doit être borné par un plan de coupe bissecteur, les deux murs se rejoignant sur une arête de contact commune $\vec{V}_{\text{int}} \to \vec{M}_{\text{bisector}}$.
+3. **Contrôle Strict des Angles Dégénérés :**  
+   Les paires de murs présentant $\vec{d}_1 \cdot \vec{d}_2 \ge 1 - \text{EPSILON\_COLLINEAR}$ sont formellement isolées et traitées comme des superpositions colinéaires à élaguer selon la priorité.
+
+### Justification & Avantages
+
+- Élimine tout risque de génération de maillages non-manifold ou troués lors de l'extrusion 3D.
+- Garantit que l'algorithme d'écrêtage 2.5D des ouvertures s'exécute sur des polygones de murs strictement convexes ou quasi-convexes continus.
+- Consolide les fondations géométriques du Mini-BIM au niveau d'exigence des meilleurs moteurs CAO professionnels.

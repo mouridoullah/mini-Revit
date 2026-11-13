@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-300 -400 3750 3200" style="background-color: #f8fafc; font-family: monospace;">
+  <g id="resolved-walls">
+    <!-- Mur w1 (Surface: 0.600 m²) -->
+    <polygon points="0,2500 3150,2500 2850,2300 0,2300" fill="rgba(59, 130, 246, 0.35)" stroke="#1d4ed8" stroke-width="4" stroke-linejoin="round" />
+    <circle cx="0" cy="2500" r="5" fill="#1d4ed8" />
+    <circle cx="3150" cy="2500" r="5" fill="#1d4ed8" />
+    <circle cx="2850" cy="2300" r="5" fill="#1d4ed8" />
+    <circle cx="0" cy="2300" r="5" fill="#1d4ed8" />
+    <!-- Mur w2 (Surface: 0.750 m²) -->
+    <polygon points="3150,2500 3150,-100 2850,-100 2850,2300" fill="rgba(16, 185, 129, 0.35)" stroke="#047857" stroke-width="4" stroke-linejoin="round" />
+    <circle cx="3150" cy="2500" r="5" fill="#047857" />
+    <circle cx="3150" cy="-100" r="5" fill="#047857" />
+    <circle cx="2850" cy="-100" r="5" fill="#047857" />
+    <circle cx="2850" cy="2300" r="5" fill="#047857" />
+  </g>
+  <g id="wall-axes" stroke="#475569" stroke-width="2" stroke-dasharray="8,6">
+    <line x1="0" y1="2400" x2="3000" y2="2400" />
+    <circle cx="0" cy="2400" r="4" fill="#475569" />
+    <circle cx="3000" cy="2400" r="4" fill="#475569" />
+    <line x1="3000" y1="2400" x2="3000" y2="-100" />
+    <circle cx="3000" cy="2400" r="4" fill="#475569" />
+    <circle cx="3000" cy="-100" r="4" fill="#475569" />
+  </g>
+  <g id="junction-markers">
+    <circle cx="3000" cy="2400" r="8" fill="none" stroke="#ef4444" stroke-width="3" />
+    <circle cx="3000" cy="2400" r="2" fill="#ef4444" />
+  </g>
+  <g id="labels" font-size="28" fill="#1e293b">
+    <text x="1500" y="2400" text-anchor="middle" font-weight="bold">w1 (0.60 m²)</text>
+    <text x="3000" y="1150" text-anchor="middle" font-weight="bold">w2 (0.75 m²)</text>
+    <text x="3015" y="2385" fill="#ef4444" font-weight="bold">L</text>
+  </g>
+</svg>

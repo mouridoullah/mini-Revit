@@ -364,3 +364,34 @@ Pour les polygones quelconques pouvant comporter des trémies (trous) :
 | **Deux ouvertures superposées**               | Chevauchement d'intervalles $[u_0, u_1]$               | Rejet de la commande d'insertion si collision d'intervalle.                   |
 | **Polygone de dalle auto-sécant**             | Échec de triangulation `earcut`                        | Validation par simplification polygonale avant extrusion.                     |
 | **Pièce non fermée (fuite de 5 mm)**          | Aucun trou ne se forme dans l'union                    | Marquage de la pièce en statut `unclosed` ; calcul d'aire suspendu.           |
+
+---
+
+## 8. Spécifications de Robustesse Topologique et Clôture des Jonctions (Audit Phase 1)
+
+À l'issue de l'audit approfondi du moteur de jonctions de murs, les règles suivantes sont intégrées à la spécification normative :
+
+### 8.1 Invariants Topologiques Obligatoires pour Tout Polygone Résolu
+
+Tout polygone résultant de `solveWallJunctions` doit satisfaire sans exception les critères formels suivants :
+
+1. **Simplicité de Jordan :** Aucune paire d'arêtes non adjacentes ne doit s'intersecter ($\forall i \neq j \pm 1, S_i \cap S_j = \emptyset$).
+2. **Orientation CCW Stricte :** Les sommets extérieurs doivent être ordonnés dans le sens trigonométrique anti-horaire, tel que l'aire signée soit strictement positive ($\text{signedArea}(P) > 0$).
+3. **Absence d'Arêtes Dégénérées :** Toute arête dont la longueur est inférieure ou égale à $\text{EPSILON\_DISTANCE} = 10^{-4}\text{ mm}$ est éliminée par `cleanPolygon`.
+4. **Conservation de Matière :** La somme des aires nettes des murs résolus doit être égale à l'aire géométrique nominale de l'enveloppe bâtie, sans vide interstitiel ni double comptage aux nœuds d'intersection.
+
+### 8.2 Spécification de Clôture Étanche des Biseaux d'Onglet (Watertight Miter Closure)
+
+Lorsque l'angle entre deux murs en L est inférieur au seuil d'onglet ($\theta < 28.96^\circ$ pour un ratio de 4.0), le prolongement extérieur dépasse la distance limite :
+$$d_{\text{ext}} > \text{MITER\_LIMIT\_RATIO} \times \max(t_1, t_2)$$
+
+Dans cette configuration :
+
+- Les deux murs ne doivent pas s'arrêter indépendamment en créant un vide triangulaire.
+- La surface extérieure du biseau doit être définie par un plan de coupe orthogonal à la bissectrice d'angle extérieur, positionné exactement à la distance limite de sécurité.
+- Les deux polygones de murs doivent partager l'arête reliant le coin intérieur $\vec{V}_{\text{int}}$ au milieu du segment de biseau $\vec{M}_{\text{bisector}}$, assurant une étanchéité géométrique 2D parfaite (zéro fissure, zéro overlap).
+
+### 8.3 Traitement des Cas Dégénérés Angulaires ($0^\circ$ et $180^\circ$)
+
+- **Angle $0^\circ$ (Murs parallèles de même sens partant du même nœud) :** Détecté par $\vec{d}_1 \cdot \vec{d}_2 \ge 1 - \text{EPSILON\_COLLINEAR}$. Ce cas correspond à une superposition anormale. Le moteur doit rejeter ou fusionner selon les priorités, et ne doit jamais tenter un onglet en L qui dégénère par parallélisme des faces.
+- **Angle $180^\circ$ dans les Jonctions Multiples :** Deux branches radialement consécutives à $180^\circ$ ont des lignes de bordure parallèles. Le raccord ne doit pas s'effondrer au centre du nœud, mais maintenir la face rectiligne continue.
