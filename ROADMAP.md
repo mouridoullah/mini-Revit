@@ -89,32 +89,47 @@ flowchart LR
   - Rendu à la demande (_Demand-Driven Rendering_) : zéro boucle RAF continue, CPU/GPU à 0% au repos.
   - Matériau PBR standard avec Backface Culling (`THREE.FrontSide`, ADR-017 / ADR-018).
   - Gestion stricte du cycle de vie et libération des ressources GPU (`dispose()`).
-- **Tests :** 11 tests automatisés (MeshAdapter, Scene3D lifecycle, render à la demande, absence de RAF).
+- **Tests :** 13 tests automatisés (MeshAdapter, Scene3D lifecycle, OrbitControls Z-up, render à la demande, absence de RAF).
 
 ---
 
-### Phase 2 — Éditeur et Double Visualisation (`@mini-bim/view-2d`, `@mini-bim/view-3d`, `@mini-bim/app`)
+### Phase 1.5 — Noyau BIM Minimal (`@mini-bim/core`) [LIVRÉ]
 
-- **Objectif :** Fournir un environnement interactif dans le navigateur permettant de tracer et manipuler des éléments géométriques dans deux vues synchronisées (2D Plan et 3D).
+- **Objectif :** Fournir la source unique de vérité du modèle BIM (état documentaire, transactions par commandes, historique Undo/Redo via Immer).
 - **Fonctionnalités :**
-  - Initialisation du monorepo pnpm avec Vite et React.
-  - `Viewport3D` : scène Three.js impérative, groupe racine Z-up, caméra orbitale (`OrbitControls`), éclairage architectural et arêtes noires (`EdgesGeometry`).
-  - `Viewport2D` : vue en plan Canvas 2D avec gestion fluide du zoom et du pan.
-  - Bus de commandes transactionnel avec support complet d'Undo/Redo.
-  - Moteur d'accrochage (`SnappingEngine`) : accrochage à la grille paramétrable, aux extrémités de segments et aux milieux.
-  - Machine à états des outils de base :
-    - `WallTool` : tracé de murs en direct avec aperçu fantôme temps réel.
-    - `SelectTool` : sélection 2D et 3D synchronisée, surbrillance bidirectionnelle.
-  - Panneau de propriétés inspectant les coordonnées et dimensions de l'élément sélectionné.
-- **Dépendances :** Phase 1 (`@mini-bim/geometry`).
-- **Livrables :** Application web fonctionnelle (`apps/web`), exécutable localement via `pnpm dev`.
-- **Tests :**
-  - Tests de régression sur les commandes (Undo/Redo ramène à l'état binaire exact).
-  - Tests d'intégration sur l'accrochage géométrique.
-- **Critères d'acceptation :**
-  - Possibilité de tracer 4 murs formant une pièce fermée à la souris.
-  - Synchronisation instantanée entre la vue 2D et la vue 3D (< 16 ms).
-  - Annulation (Ctrl+Z) et rétablissement (Ctrl+Y) sans aucun effet de bord visuel.
+  - `BimDocument` : gestionnaire central d'état documentaire immuable normalisé (`BimState`).
+  - `CommandBus` : commandes transactionnelles `AddWall`, `UpdateWall`, `DeleteWall`, `AddLevel`, etc.
+  - `HistoryStack` : Undo / Redo basé sur les patchs différentiels Immer (complexité mémoire $\mathcal{O}(k)$).
+  - Règles métier et intégrité référentielle (`rules.ts`) : protection contre la suppression de niveaux ou types en cours d'utilisation, longueur de mur $> 0$.
+  - Stratégie d'identifiants ULID (`ids.ts`, ADR-020).
+  - Sérialisation et désérialisation JSON stricte (`serialization.ts`).
+- **Tests :** 23 tests automatisés (cycle de vie, transactions, annulations multiples, intégrité, sérialisation).
+
+---
+
+### Phase 2 — Éditeur et Double Visualisation Découpée
+
+_Dépendances : Phase 1.1 à 1.3 (`@mini-bim/geometry`), Phase 1.4 (`@mini-bim/view-3d`), Phase 1.5 (`@mini-bim/core`)._
+
+#### Phase 2.1 — Package de Vue 2D (`@mini-bim/view-2d`)
+
+- Vue en plan 2D impérative (Canvas 2D API pure, sans React).
+- Rendu vectoriel des murs (lignes d'axe, contours d'emprise, hachures).
+- Système de coordonnées monde (mm) vers écran (pixels), zoom et pan fluides.
+
+#### Phase 2.2 — Application Web & Viewports React (`apps/web`)
+
+- Initialisation de `apps/web` (Vite + React + TypeScript).
+- Intégration de `BimDocument` dans le cycle de vie React.
+- Wrapper `<Viewport3D />` encapsulant `Scene3D` et rafraîchissant les maillages sur notification d'éléments modifiés (`changedIds`).
+- Wrapper `<Viewport2D />` encapsulant le canvas 2D.
+- Machine à états `WallTool` : tracé de murs à la souris émettant des `AddWallCommand`.
+
+#### Phase 2.3 — Synchronisation des Sélections 2D ↔ 3D
+
+- Sélection partagée d'éléments par `ElementId`.
+- Surbrillance synchronisée bidirectionnelle (plan 2D et rendu 3D).
+- Panneau d'inspection des propriétés de l'élément sélectionné.
 
 ---
 

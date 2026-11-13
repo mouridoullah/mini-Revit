@@ -1,0 +1,30 @@
+{
+  "name": "@mini-bim/core",
+  "version": "0.1.0",
+  "description": "Noyau métier et modèle documentaire BIM (BimDocument, Commands, Undo/Redo) pour Mini-BIM",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "rimraf dist",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@mini-bim/geometry": "workspace:*",
+    "immer": "^11.0.0",
+    "ulid": "^3.0.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.4",
+    "vitest": "^3.0.5"
+  }
+}

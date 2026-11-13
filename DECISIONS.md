@@ -454,3 +454,63 @@ Le package `@mini-bim/view-3d` introduit le moteur de rendu 3D Three.js dans Min
 - Zéro surcharge mémoire ou processeur au repos.
 - Parfaite testabilité unitaire headless (via mock ciblé de `WebGLRenderer`).
 - Le composant React `<Viewport3D />` dans `apps/web` sera un simple wrapper de cycle de vie (`useEffect` montant `new Scene3D` et appelant `scene.dispose` au démontage).
+
+---
+
+## ADR-019 : Architecture du Noyau BIM — BimDocument, CommandBus et Undo/Redo via Immer
+
+### Contexte
+
+La gestion de l'état dans un logiciel de CAO/BIM paramétrique ne peut pas être déléguée à un gestionnaire d'état UI (React `useState`, Redux, ou Zustand). Un modèle BIM requiert :
+
+- Des transactions atomiques réversibles (Undo / Redo).
+- Une intégrité référentielle stricte (un mur ne peut orpheliner son niveau ou son type).
+- Une notification granulaire des éléments modifiés (`changedIds`) pour éviter le recalcul inutile des maillages 3D.
+- Une indépendance absolue envers le framework de rendu.
+
+### Décision
+
+1. **Noyau Métier Autonome (`@mini-bim/core`) :**  
+   Le package `core` est le seul propriétaire de la structure documentaire. Il n'importe aucun composant React, Three.js, ou API DOM.
+2. **État Immuable Normalisé (`BimState`) :**  
+   L'état est structuré en dictionnaires indexés par `ElementId` (`levels`, `wallTypes`, `walls`), facilitant les accès en $\mathcal{O}(1)$.
+3. **Command Pattern Exclusif :**  
+   Toute modification est encapsulée dans une instance de `Command` (`AddWall`, `UpdateWall`, `DeleteWall`, etc.). La méthode `BimDocument.execute()` est le point d'entrée unique de mutation.
+4. **Undo/Redo Différentiel par Patchs Immer :**  
+   L'historique n'enregistre pas des copies intégrales de l'état (ce qui exploserait la mémoire sur un projet de plusieurs milliers d'éléments), mais les patchs différentiels RFC 6902 générés par `produceWithPatches` d'Immer. La complexité mémoire est $\mathcal{O}(k)$ où $k$ est le nombre d'éléments touchés par la transaction.
+5. **Règles d'Invalidation d'Historique :**  
+   Toute nouvelle commande vide immédiatement le `redoStack`. `undo()` applique les patchs inverses, `redo()` réapplique les patchs directs.
+
+### Conséquences
+
+- Séparation hermétique entre logique métier et vue.
+- Annulation / rétablissement instantanés et déterministes.
+- Émission d'événements ciblés (`subscribe`) permettant aux viewports de ne rafraîchir que les géométries affectées.
+
+---
+
+## ADR-020 : Stratégie d'Identifiants Uniques — Adoption d'ULID pour le Noyau BIM
+
+### Contexte
+
+Chaque entité du modèle architectural (niveaux, types de murs, instances de murs, ouvertures) nécessite un identifiant unique universel immuable (`ElementId`). Plusieurs approches ont été analysées :
+
+- **Entiers auto-incrémentés :** Dépendants d'une base de données centralisée, collisions inévitables en modélisation déconnectée ou distribuée.
+- **UUID v4 :** 36 caractères, chaîne longue, non triable chronologiquement.
+- **ULID :** 26 caractères, encodage Base32 Crockford, triable temporellement, générable hors-ligne.
+- **CUID2 :** Récent mais moins répandu dans les écosystèmes CAO/BIM.
+
+### Décision
+
+1. **Adoption d'ULID (Universally Unique Lexicographically Sortable Identifier) :**  
+   Tous les identifiants générés par le système (`generateId()`) utilisent la spécification ULID.
+2. **Propriétés Clés retenues pour Mini-BIM :**
+   - **Triabilité temporelle :** Les 48 premiers bits encodent le timestamp Unix en millisecondes, assurant un ordre lexicographique naturel des éléments par date de création.
+   - **Compacité et lisibilité :** 26 caractères Base32 Crockford (insensible à la casse, sans caractères ambigus comme `I`, `L`, `O`, `U`).
+   - **Sécurité anti-collision :** 80 bits d'entropie cryptographique par milliseconde.
+   - **Génération décentralisée :** Création immédiate côté client dans les outils interactifs (`WallTool`) sans appel réseau bloquant.
+
+### Conséquences
+
+- Stockage efficace en chaîne de caractères (`TEXT`) sous SQLite et PostgreSQL.
+- Ordre de sérialisation JSON stable et prédictible.
