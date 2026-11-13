@@ -422,3 +422,35 @@ Deux options architecturales se présentent pour le maillage 3D :
 
 - Le maillage agrégé d'un mur avec baies est une union disjointe de solides étanches contigus.
 - Lors de l'intégration dans Three.js (Phase 1.4), le matériau par défaut utilisera `THREE.FrontSide` (comportement standard dans Three.js).
+
+---
+
+## ADR-018 : Architecture Impérative de view-3d sans React, Rendu à la Demande et Backface Culling
+
+### Contexte
+
+Le package `@mini-bim/view-3d` introduit le moteur de rendu 3D Three.js dans Mini-BIM. Plusieurs choix structurants devaient être tranchés :
+
+1. **Couplage ou découplage avec React :** Faut-il encapsuler la scène directement dans des composants React (type `@react-three/fiber` ou composant `<Viewport3D />`) dès le package de rendu ?
+2. **Stratégie de rafraîchissement d'image :** Boucle continue 60 fps (`requestAnimationFrame`) comme dans un jeu vidéo, ou rendu événementiel à la demande ?
+3. **Repère d'orientation spatial :** Repère Y-up natif de Three.js ou repère Z-up architectural ?
+4. **Gestion du Z-fighting :** Rendu des deux faces (`DoubleSide`) ou élimination stricte (`FrontSide`) ?
+
+### Décision
+
+1. **Architecture Impérative Pure sans React :**  
+   `@mini-bim/view-3d` n'importe ni `react` ni `react-dom`. Il expose des contrôleurs impératifs (`Scene3D`, `MeshAdapter`, `createDefaultMaterial`). Le composant React `<Viewport3D />` viendra se brancher par-dessus dans le package applicatif `apps/web` (Phase 2+). Cette séparation permet d'utiliser le visualiseur 3D dans des contextes découplés (workers, tests, scripts d'export, interfaces non-React).
+2. **Rendu à la Demande (_Demand-Driven Rendering_) :**  
+   Aucune boucle `requestAnimationFrame` continue n'est lancée dans le constructeur de `Scene3D`. Le rendu est déclenché exclusivement sur événement (`OrbitControls` `'change'`) ou sur mutation géométrique (`addMesh`, `updateMesh`, `removeMesh`, `resize`). Au repos, la consommation CPU/GPU est rigoureusement nulle.
+3. **Repère Altimétrique Z-up Architectural :**  
+   La caméra perspective est orientée avec `camera.up.set(0, 0, 1)`, et la grille de sol `GridHelper` est basculée sur le plan horizontal $XY$ ($Z = 0$), en stricte conformité avec les conventions BIM (Revit, Archicad, IFC).
+4. **Backface Culling Stricte (`THREE.FrontSide`) :**  
+   Les matériaux par défaut appliquent `side: THREE.FrontSide`. Conformément à l'ADR-017, cela élimine à la source le risque de Z-fighting sur les faces de contact transversales internes entre sous-volumes contigus d'un même mur.
+5. **Nettoyage Explicite des Ressources GPU :**  
+   `Scene3D.dispose()`, `removeMesh()` et `updateMesh()` détruisent explicitement les `BufferGeometry` via `geometry.dispose()` afin d'éviter toute fuite de VBOs WebGL.
+
+### Conséquences
+
+- Zéro surcharge mémoire ou processeur au repos.
+- Parfaite testabilité unitaire headless (via mock ciblé de `WebGLRenderer`).
+- Le composant React `<Viewport3D />` dans `apps/web` sera un simple wrapper de cycle de vie (`useEffect` montant `new Scene3D` et appelant `scene.dispose` au démontage).

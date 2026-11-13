@@ -121,12 +121,14 @@ Les fichiers 3D standards suivants ont été générés dans `docs/mesh-visuals/
 
 ## 7. Limites Connues et Périmètres Différés
 
-1. **Précision Float32 aux distances extrêmes (> 10 km) :**
-   À $1\text{ km}$, la mantisse 24 bits fournit une résolution de $\sim 0.06\text{ mm}$ (largement suffisante). Si un projet s'étend au-delà de $10\text{ km}$ ou utilise des coordonnées géographiques réelles (Lambert 93, UTM), il conviendra de retrancher un offset d'origine local avant génération de maillage GPU.
-2. **Triangulation de contours avec trous intérieurs (îlots) :**
+1. **Test Float32 à 1 km sur entiers seulement (Reporté à la Phase 1.5 / Durcissement) :**
+   Le test actuel valide avec exactitude des coordonnées entières ($1\,000\,000\text{ mm} < 2^{24}$). Les entiers étant rigoureusement représentables en Float32, l'erreur mesurée est de 0. Pour mesurer la troncature réelle de la mantisse, un test avec coordonnées fractionnaires (ex. offset $1\,000\,000.1\text{ mm}$ excédant la précision de $0.0625\text{ mm}$) sera intégré lors du durcissement futur.
+2. **Mesh assemblé non watertight globalement (Faces de contact internes — ADR-017) :**
+   Chaque tranche solide (`WallPiece`) est rigoureusement étanche et 2-manifold individuellement (Euler $\chi = 2$, 0 trou, 0 non-manifold). Néanmoins, le maillage complet assemblé d'un mur multi-pièces n'est pas watertight au sens global en raison des faces de contact internes coplanaires (masquées sans Z-fighting par Backface Culling). La soudure topologique globale (B-Rep welding) est formellement planifiée pour la Phase 5 (export IFC) et la Phase 6 (opérations booléennes 3D complètes).
+3. **Triangulation de contours avec trous intérieurs (îlots) :**
    Dans le modèle 2.5D actuel, les tranches de murs ne possèdent pas d'îlots polygonaux internes (les réservations de portes et fenêtres sont découpées par tranches longitudinales ouvertes). La triangulation d'îlots libres avec trous sera introduite si nécessaire en Phase 6 (dalles et planchers percés de trémies d'escaliers).
-3. **Périmètre du package :**
-   `@mini-bim/geometry` produit des buffers typés neutres (`RawMeshData`). L'instanciation de `THREE.BufferGeometry`, l'application de shaders et l'intégration dans le graphe de scène Three.js relèvent du package `@mini-bim/view-3d`.
+4. **Périmètre du package :**
+   `@mini-bim/geometry` produit des buffers typés neutres (`RawMeshData`). L'instanciation de `THREE.BufferGeometry`, l'application de shaders et l'intégration dans le graphe de scène Three.js relèvent du package `@mini-bim/view-3d` (livré en Phase 1.4).
 
 ---
 

@@ -73,6 +73,24 @@ flowchart LR
   - Zéro dépendance vers React, Three.js ou le DOM.
   - Exécution complète des tests en moins de 1 seconde.
 
+#### Notes de durcissement reportées :
+
+- **Test Float32 à 1 km sur coordonnées fractionnaires (Phase 1.5) :** Le test actuel valide des coordonnées entières ($1\,000\,000\text{ mm} < 2^{24}$), représentées de manière exacte. Un test sur coordonnées fractionnaires (offset $1\,000\,000.1\text{ mm}$) sera ajouté pour mesurer la troncature réelle de la mantisse simple précision.
+- **Soudure topologique globale (B-Rep welding) des sous-volumes assemblés (Phase 5 IFC & Phase 6 Booléens) :** Chaque tranche solide est manifold et watertight individuellement (ADR-017). La suppression des faces internes de contact coplanaires pour former une B-Rep unifiée sera opérée lors des exports IFC ou opérations booléennes volumiques.
+
+---
+
+### Phase 1.4 — Package de Visualisation 3D Three.js (`@mini-bim/view-3d`) [LIVRÉ]
+
+- **Objectif :** Fournir le visualiseur 3D Three.js impératif consommant les `RawMeshData` issus de `@mini-bim/geometry`.
+- **Fonctionnalités :**
+  - `MeshAdapter` : conversion instantanée en `THREE.BufferGeometry` sans recalcul de normales ni de boîtes englobantes.
+  - `Scene3D` : contrôleur impératif sans React, caméra perspective Z-up, grille de sol XY ($Z=0$), contrôles orbitaux (`OrbitControls`).
+  - Rendu à la demande (_Demand-Driven Rendering_) : zéro boucle RAF continue, CPU/GPU à 0% au repos.
+  - Matériau PBR standard avec Backface Culling (`THREE.FrontSide`, ADR-017 / ADR-018).
+  - Gestion stricte du cycle de vie et libération des ressources GPU (`dispose()`).
+- **Tests :** 11 tests automatisés (MeshAdapter, Scene3D lifecycle, render à la demande, absence de RAF).
+
 ---
 
 ### Phase 2 — Éditeur et Double Visualisation (`@mini-bim/view-2d`, `@mini-bim/view-3d`, `@mini-bim/app`)

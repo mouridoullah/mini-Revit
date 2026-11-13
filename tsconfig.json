@@ -1,5 +1,5 @@
 {
   "extends": "./tsconfig.base.json",
   "files": [],
-  "references": [{ "path": "./packages/geometry" }]
+  "references": [{ "path": "./packages/geometry" }, { "path": "./packages/view-3d" }]
 }
