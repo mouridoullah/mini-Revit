@@ -411,6 +411,100 @@ describe('Découpage 2.5D d Ouvertures (slice.ts)', () => {
         expect(diff).toBeLessThan(1e-6);
       }
     });
+
+    it('propriété : exactitude absolue de V_void comparée à la formule analytique W * épaisseur * H', () => {
+      // 1. Fenêtre standard isolée (1200 × 1400, épaisseur 200)
+      const opWin: OpeningInput = {
+        id: 'win_ana',
+        hostWallId: baseWall.id,
+        u: 2000,
+        width: 1200,
+        height: 1400,
+        sillZ: 900,
+        kind: 'window',
+      };
+      const resWin = sliceWallWithOpenings(baseWall, [opWin]);
+      const expectedWinVoid = 1200 * baseWall.thickness * 1400; // 336 000 000 mm³
+      expect(Math.abs(resWin.voidVolume - expectedWinVoid)).toBeLessThan(1e-6);
+
+      // 2. Porte standard isolée (900 × 2100, épaisseur 200)
+      const opDoor: OpeningInput = {
+        id: 'door_ana',
+        hostWallId: baseWall.id,
+        u: 2000,
+        width: 900,
+        height: 2100,
+        sillZ: 0,
+        kind: 'door',
+      };
+      const resDoor = sliceWallWithOpenings(baseWall, [opDoor]);
+      const expectedDoorVoid = 900 * baseWall.thickness * 2100; // 378 000 000 mm³
+      expect(Math.abs(resDoor.voidVolume - expectedDoorVoid)).toBeLessThan(1e-6);
+
+      // 3. Deux fenêtres identiques (scénario 2 du rapport initial : 2 × 900 × 1100)
+      const winA: OpeningInput = {
+        id: 'wA_rep1',
+        hostWallId: baseWall.id,
+        u: 1000,
+        width: 900,
+        height: 1100,
+        sillZ: 900,
+        kind: 'window',
+      };
+      const winB: OpeningInput = {
+        id: 'wB_rep1',
+        hostWallId: baseWall.id,
+        u: 2500,
+        width: 900,
+        height: 1100,
+        sillZ: 900,
+        kind: 'window',
+      };
+      const resTwoWin = sliceWallWithOpenings(baseWall, [winA, winB]);
+      const expectedTwoWinVoid = 2 * (900 * baseWall.thickness * 1100); // 396 000 000 mm³
+      expect(Math.abs(resTwoWin.voidVolume - expectedTwoWinVoid)).toBeLessThan(1e-6);
+
+      // 4. Mix Porte + Fenêtre (scénario du complément : porte 900×2100 à u=1000 + fenêtre 900×1200 à u=1950)
+      const opDoorMix: OpeningInput = {
+        id: 'door_mix',
+        hostWallId: baseWall.id,
+        u: 1000,
+        width: 900,
+        height: 2100,
+        sillZ: 0,
+        kind: 'door',
+      };
+      const winC: OpeningInput = {
+        id: 'wC_comp',
+        hostWallId: baseWall.id,
+        u: 1950,
+        width: 900,
+        height: 1200,
+        sillZ: 900,
+        kind: 'window',
+      };
+      const resDoorWin = sliceWallWithOpenings(baseWall, [opDoorMix, winC]);
+      const expectedDoorWinVoid = 900 * 200 * 2100 + 900 * 200 * 1200; // 594 000 000 mm³
+      expect(Math.abs(resDoorWin.voidVolume - expectedDoorWinVoid)).toBeLessThan(1e-6);
+
+      // 5. Cas avec onglet 45° (décomposition analytique exacte avec biseau d'onglet)
+      // L'ouverture (u=550, W=1000 => [50, 1050]) mord sur l'onglet entre u=50 et u=100 :
+      // - Zone biseautée [50, 100] : trapèze d'épaisseur moyenne 175 mm x 50 mm = 8 750 mm²
+      // - Zone droite [100, 1050] : rectangle 200 mm x 950 mm = 190 000 mm²
+      // Aire totale = 198 750 mm². Avec H = 1400 => Volume = 278 250 000 mm³
+      const miterOp: OpeningInput = {
+        id: 'miter_ana',
+        hostWallId: miteredWall.id,
+        u: 550,
+        width: 1000,
+        height: 1400,
+        sillZ: 900,
+        kind: 'window',
+      };
+      const resMiter = sliceWallWithOpenings(miteredWall, [miterOp]);
+      const expectedMiterVoid = 198750 * 1400; // 278 250 000 mm³
+      expect(Math.abs(resMiter.voidVolume - expectedMiterVoid)).toBeLessThan(1e-6);
+    });
   });
 
   describe('5. Test Croisé : Intégration Mur de Jonction L résolu + Ouverture', () => {
