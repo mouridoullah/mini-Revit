@@ -31,6 +31,17 @@ export const GEOM_CONFIG = {
   EPSILON_COLLINEAR: 1e-6,
 
   /**
+   * Tolérance par défaut de capture et de fusion topologique des extrémités de murs (mm).
+   */
+  VERTEX_MERGE_TOLERANCE: 1.0,
+
+  /**
+   * Ratio de limite d'onglet par défaut (miter limit).
+   * Si la distance du coin dépasse miterLimitRatio * épaisseur, le coin est biseauté.
+   */
+  MITER_LIMIT_RATIO: 4.0,
+
+  /**
    * Longueur minimale autorisée pour un segment ou un mur (en mm).
    */
   MIN_SEGMENT_LENGTH: 50.0,

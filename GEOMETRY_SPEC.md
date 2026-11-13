@@ -231,28 +231,58 @@ flowchart TD
     NodeClassification["Classification du Nœud par Degré & Colinéarité"]
     NodeClassification -->|Degré 1| EndCap["Coupe Droite Orthogonale"]
     NodeClassification -->|Degré 2 - Angle Non-Plat| LJoin["Jonction en L : Onglet (Miter)"]
-    NodeClassification -->|Degré 2 - Angle ~180°| CollinearJoin["Jonction Continue (Pas de coupure)"]
-    NodeClassification -->|Degré 3 - Paire Colinéaire + Branche| TJoin["Jonction en T : Priorité Traversant"]
+    NodeClassification -->|Degré 2 - Angle ~180°| CollinearJoin["Jonction Continue / Aboutement"]
+    NodeClassification -->|Aboutement sur Mur Traversant| TJoin["Jonction en T : Priorité Traversant"]
+    NodeClassification -->|Croisement Intérieur| XJoin["Jonction en X : Traversant + Scission"]
     NodeClassification -->|Degré >= 3 - Général| StarJoin["Algorithme Radial en Étoile CCW"]
 ```
 
 #### A. Règle L-Join (Onglet à 2 branches)
 
-Pour deux murs incidents au nœud $O$ de directions sortantes $\vec{d}_1, \vec{d}_2$ :
+Pour deux murs incidents au nœud $O$ de directions sortantes $\vec{v}_1, \vec{v}_2$ :
 
-1. Calcul de l'intersection de la face gauche du mur 1 avec la face droite du mur 2 :
-   $$C = \text{intersect}(O + s_{\text{gauche}, 1} \vec{n}_1, \; \vec{d}_1, \; O + s_{\text{droite}, 2} \vec{n}_2, \; \vec{d}_2)$$
-2. **Contrôle de la limite d'onglet (Miter Limit) :**  
-   La distance $\|C - O\|$ vaut $\frac{T / 2}{\sin(\theta / 2)}$. Si l'angle $\theta$ devient trop aigu ($\theta < 29^\circ$), la pointe devient disproportionnée.  
-   Si $\|C - O\| > \text{MITER\_LIMIT\_RATIO} \cdot (T/2)$, basculer automatiquement sur une coupe biseautée (tronquée à la limite).
+1. Calcul des bordures latérales gauche et droite via `getWallBoundaryAtEnd`.
+2. Calcul de l'angle relatif $\Delta \theta = (\alpha_2 - \alpha_1) \pmod{2\pi}$ :
+   - Si $\Delta \theta < \pi$ : l'angle intérieur est formé par la face gauche de $W_1$ et la face droite de $W_2$. L'angle extérieur est formé par la face droite de $W_1$ et la face gauche de $W_2$.
+   - Si $\Delta \theta > \pi$ : les rôles sont inversés de façon symétrique.
+3. **Contrôle de la limite d'onglet (Miter Limit) :**  
+   La distance du coin extérieur à l'origine vaut $\|C - O\| = \frac{T / 2}{\sin(\theta / 2)}$.  
+   Si $\|C - O\| > \text{MITER\_LIMIT\_RATIO} \cdot \max(T_1, T_2)$ (avec ratio = 4.0, angle critique $\approx 14.36^\circ$), la pointe d'onglet est biseautée déterministement pour éviter une projection disproportionnée.
 
 #### B. Règle T-Join (Aboutement en T)
 
-Un mur continu traverse le nœud ; un mur secondaire vient y buter :
+Un mur secondaire $W_{\text{stem}}$ aboutit sur la face d'un mur traversant $W_{\text{through}}$ :
 
-1. Le mur traversant conserve son emprise intacte (il n'est pas sectionné).
-2. L'extrémité du mur secondaire est projetée et découpée sur la face extérieure du mur traversant qui lui fait face.
-3. Les deux sommets d'extrémité du mur secondaire sont fixés à l'intersection de ses arêtes latérales avec la droite de la face du mur porteur.
+1. Le mur traversant reste intact et conserve son emprise nominale.
+2. Détection de la face d'impact via le produit scalaire du vecteur d'approche $\vec{u}_{\text{approach}}$ et de la normale du mur traversant $\vec{n}_{\text{through}}$ :
+   - Si $\vec{u}_{\text{approach}} \cdot \vec{n}_{\text{through}} > 0 \implies$ Impact sur la **face intérieure**.
+   - Si $\vec{u}_{\text{approach}} \cdot \vec{n}_{\text{through}} < 0 \implies$ Impact sur la **face extérieure**.
+3. Les arêtes latérales du mur secondaire sont intersectées avec la droite infinie de la face ciblée, définissant ses deux sommets d'aboutement $[P_{\text{right}}, P_{\text{left}}]$ sans aucun vide ni chevauchement.
+
+#### C. Règle X-Join (Croisement de deux murs)
+
+Deux murs se croisent en un point intérieur $Q$ :
+
+1. Le mur de priorité la plus élevée (ou le premier par ordre déterministe) reste continu.
+2. Le mur secondaire est scindé en deux branches autonomes (`branchA` et `branchB`).
+3. Chaque branche est raccordée sur les faces opposées du mur traversant selon la règle du T-Join. La surface de croisement est attribuée sans doublon au mur prioritaire.
+
+#### D. Règle Colinéaire (Aboutement aligné)
+
+Deux murs d'axes colinéaires se rejoignant bout-à-bout :
+
+- Si même épaisseur : raccordement plat continu.
+- Si épaisseurs différentes : marche orthogonale sur le plan de contact.
+- Si superposition partielle : détection d'`overlap` et découpe prioritaire.
+
+#### E. Règle Multi-Murs (Étoile / Y à $\ge 3$ branches)
+
+Pour $m \ge 3$ murs arrivant au même nœud :
+
+1. Tri radial des directions sortantes $\vec{v}_k$ en ordre trigonométrique (CCW).
+2. Pour chaque paire consécutive $(k, k+1)$, intersection du bord gauche de $k$ avec le bord droit de $k+1$.
+3. Application de la limite d'onglet sur chaque angle.
+4. Attribution à chaque mur de son sommet droit et gauche, garantissant une étanchéité surfacique totale.
 
 ---
 

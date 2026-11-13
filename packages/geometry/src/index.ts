@@ -11,3 +11,4 @@ export * from './line.js';
 export * from './segment.js';
 export * from './wall-geometry.js';
 export * from './polygon.js';
+export * from './junctions/index.js';

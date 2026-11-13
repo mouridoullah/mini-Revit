@@ -19,6 +19,7 @@
 | **ADR-008** | Détection Hybride et Stabilité Sémantique des Pièces (Rooms)                                 | **Accepté** | 13/11/2026 |
 | **ADR-009** | Architecture d'Extensibilité pour les Réseaux MEP (Category Registry)                        | **Accepté** | 13/11/2026 |
 | **ADR-010** | Révision des Tolérances Numériques, Typage des Intersections et Rejet de l'Arrondi Prématuré | **Accepté** | 13/11/2026 |
+| **ADR-011** | Moteur de Jonctions de Murs Déterministe (L, T, X, Colinéaire et Multi-branches)             | **Accepté** | 13/11/2026 |
 
 ---
 
@@ -245,3 +246,29 @@ La conception initiale comportait trois écueils mathématiques :
 - Élimination des régressions géométriques silencieuses.
 - Exhaustivité du traitement des cas limites à la compilation grâce au pattern matching sur les tagged unions.
 - Stabilité mathématique prouvée des calculs d'emprise et d'intersection.
+
+---
+
+## ADR-011 : Moteur de Jonctions de Murs Déterministe (L, T, X, Colinéaire et Multi-branches)
+
+### Contexte
+
+Les logiciels de dessin 2D traditionnels se contentent souvent de superposer des polygones rectangulaires, créant des chevauchements de volumes (double comptage dans les métrés) ou des artefacts de rendu. Dans un logiciel BIM, les jonctions de murs doivent produire une géométrie continue, étanche et déterministe tout en préservant intacts les axes de référence paramétriques des éléments hôtes.
+
+### Décision
+
+1. **Découplage modulaire du moteur de jonctions :**  
+   Organisation en sous-systèmes spécialisés (`topology`, `miter`, `t-junction`, `x-junction`, `collinear`, `multi`, `engine`).
+2. **Règle de continuité et de priorité :**
+   - **Jonction en T :** Le mur traversant conserve son emprise nominale sans être tronçonné. Le mur aboutant est biseauté sur la face réelle d'impact (intérieure ou extérieure, déterminée par le signe du produit scalaire $\vec{u}_{\text{approach}} \cdot \vec{n}_{\text{through}}$).
+   - **Jonction en X :** Le mur prioritaire traverse l'intersection intact. Le mur secondaire est scindé en deux branches autonomes raccordées sur les faces opposées du mur prioritaire, éliminant tout doublon de volume.
+   - **Jonction en L :** Raccordement par onglet miter partagé, avec contrôle de la limite d'onglet (`MITER_LIMIT_RATIO = 4.0`). Sur angle très aigu ($< 14.36^\circ$), troncature biseautée automatique.
+   - **Jonctions multiples ($\ge 3$ branches) :** Algorithme radial CCW appariant le bord gauche d'un mur au bord droit de son voisin angulaire consécutif.
+3. **Invariance et Déterminisme :**  
+   Les résultats géométriques sont rigoureusement invariants par translation et rotation, et indépendants de l'ordre d'insertion des murs dans la liste.
+
+### Justification & Avantages
+
+- Conservation exacte des surfaces théoriques des pièces et des métrés de murs.
+- Prévention du phénomène de z-fighting en 3D et des doubles pochés en 2D.
+- Raccordement sans faille pour le futur calcul automatique des pièces fermées.
