@@ -129,8 +129,11 @@ describe('Validation des Ouvertures (validate.ts)', () => {
         validateOpening(opTooFar, wallL, wallH).some((i) => i.code === 'OUT_OF_WALL_BOUNDS'),
       ).toBe(true);
 
-      const opExactEnd: OpeningInput = { ...opTooFar, u: 3550.0 }; // uEnd = 3950.00 => SUCCÈS
+      const opExactEnd: OpeningInput = { ...opTooFar, u: 3550.0 }; // uEnd = 3950.00 == L - 50.00 => SUCCÈS
       expect(validateOpening(opExactEnd, wallL, wallH).length).toBe(0);
+
+      const opSafeEnd: OpeningInput = { ...opTooFar, u: 3549.99 }; // uEnd = 3949.99 < L - 50.00 => SUCCÈS
+      expect(validateOpening(opSafeEnd, wallL, wallH).length).toBe(0);
     });
   });
 

@@ -28,6 +28,17 @@ describe('Découpage 2.5D d Ouvertures (slice.ts)', () => {
     polygon: straightFootprint.vertices,
   };
 
+  // Mur avec tête en onglet à 45° à l'origine (coin intérieur (100, -100), extérieur (-100, 100))
+  const miteredPoly = [vec2(100, -100), vec2(3000, -100), vec2(3000, 100), vec2(-100, 100)];
+  const miteredWall: SlicingWallInput = {
+    id: 'miter_wall',
+    start: vec2(0, 0),
+    end: vec2(3000, 0),
+    thickness: 200,
+    height: 2800,
+    polygon: miteredPoly,
+  };
+
   describe('1. Configurations élémentaires (Fenêtre, Porte, Baie toute hauteur)', () => {
     it('mur droit + 1 fenêtre centrée standard (sillZ > 0, lintel < wallH)', () => {
       // Fenêtre 1200 × 1400, allège 900, linteau = 2300 < 2800, centrée à u = 2000
@@ -129,9 +140,12 @@ describe('Découpage 2.5D d Ouvertures (slice.ts)', () => {
     it('mur sans ouverture -> renvoie 1 unique pièce pleine hauteur', () => {
       const result = sliceWallWithOpenings(baseWall, []);
       expect(result.pieces.length).toBe(1);
-      expect(result.pieces[0]!.role).toBe('full');
-      expect(result.pieces[0]!.z0).toBe(0);
-      expect(result.pieces[0]!.z1).toBe(wallHeight);
+      const piece0 = result.pieces[0];
+      expect(piece0).toBeDefined();
+      if (!piece0) return;
+      expect(piece0.role).toBe('full');
+      expect(piece0.z0).toBe(0);
+      expect(piece0.z1).toBe(wallHeight);
       expect(result.solidVolume).toBe(result.wallVolume);
       expect(result.voidVolume).toBe(0);
     });
@@ -174,8 +188,9 @@ describe('Découpage 2.5D d Ouvertures (slice.ts)', () => {
         (p) => p.role === 'full' && p.uInterval[0] === 1400 && p.uInterval[1] === 2200,
       );
       expect(interPiece).toBeDefined();
-      expect(interPiece!.z0).toBe(0);
-      expect(interPiece!.z1).toBe(wallHeight);
+      if (!interPiece) return;
+      expect(interPiece.z0).toBe(0);
+      expect(interPiece.z1).toBe(wallHeight);
 
       expect(result.solidVolume + result.voidVolume).toBeCloseTo(result.wallVolume, 2);
     });
@@ -183,20 +198,6 @@ describe('Découpage 2.5D d Ouvertures (slice.ts)', () => {
 
   describe('3. Cas Limites Complexes Post-Audit (Onglet 45°, Trémie au ras de la garde)', () => {
     it('résout une ouverture à la clearance exacte (50 mm) d un coin en onglet à 45°', () => {
-      // Mur avec tête en onglet à 45° à l'origine (comme résolu par une jonction en L)
-      // Décalage de miter à l'extrémité gauche :
-      // coin intérieur à (100, -100), coin extérieur à (-100, 100)
-      const miteredPoly = [vec2(100, -100), vec2(3000, -100), vec2(3000, 100), vec2(-100, 100)];
-
-      const miteredWall: SlicingWallInput = {
-        id: 'miter_wall',
-        start: vec2(0, 0),
-        end: vec2(3000, 0),
-        thickness: 200,
-        height: 2800,
-        polygon: miteredPoly,
-      };
-
       // Ouverture commençant à la clearance exacte : uStart = 50 mm.
       // Largeur = 1000 mm => uEnd = 1050 mm. u = 550 mm.
       const opNearMiter: OpeningInput = {
@@ -221,7 +222,9 @@ describe('Découpage 2.5D d Ouvertures (slice.ts)', () => {
       expect(result.solidVolume + result.voidVolume).toBeCloseTo(result.wallVolume, 2);
 
       // La tranche 0 (avant l'ouverture) doit conserver la tête d'onglet inclinée
-      const slice0 = result.pieces[0]!;
+      const slice0 = result.pieces[0];
+      expect(slice0).toBeDefined();
+      if (!slice0) return;
       expect(slice0.poly2D.some((v) => v.x < 0)).toBe(true); // Englobe le coin (-100, 100)
     });
 
@@ -307,15 +310,72 @@ describe('Découpage 2.5D d Ouvertures (slice.ts)', () => {
       const resAB = sliceWallWithOpenings(baseWall, [winA, winB]);
       const resBA = sliceWallWithOpenings(baseWall, [winB, winA]);
 
-      expect(resBA.pieces.length).toBe(resAB.pieces.length);
-      for (let i = 0; i < resAB.pieces.length; i++) {
-        expect(resBA.pieces[i]!.role).toBe(resAB.pieces[i]!.role);
-        expect(resBA.pieces[i]!.area2D).toBeCloseTo(resAB.pieces[i]!.area2D, 4);
-      }
+      // Égalité structurelle et géométrique stricte indépendante de l'ordre d'insertion
+      expect(resBA).toEqual(resAB);
     });
 
-    it('propriété : étanchéité volumique exacte sur 10 configurations paramétriques aléatoires', () => {
-      // Test de partition de matière sur 10 variations d'ouvertures et d'allèges
+    it('propriété : conservation d aire exacte à des altitudes Z explicites (z = 100, 1000, 2000, 2700 mm)', () => {
+      // Cas 1 : Mur avec Fenêtre (sillZ = 900, height = 1200 => vide actif dans [900, 2100])
+      const winOp: OpeningInput = {
+        id: 'win_z',
+        hostWallId: baseWall.id,
+        u: 2000,
+        width: 1200,
+        height: 1200,
+        sillZ: 900,
+        kind: 'window',
+      };
+      const resWin = sliceWallWithOpenings(baseWall, [winOp]);
+
+      // Cas 2 : Mur avec Porte (sillZ = 0, height = 2100 => vide actif dans [0, 2100])
+      const doorOp: OpeningInput = {
+        id: 'door_z',
+        hostWallId: baseWall.id,
+        u: 2000,
+        width: 900,
+        height: 2100,
+        sillZ: 0,
+        kind: 'door',
+      };
+      const resDoor = sliceWallWithOpenings(baseWall, [doorOp]);
+
+      // Cas 3 : Mur en Onglet 45° et Fenêtre (sillZ = 900, height = 1400 => vide actif dans [900, 2300])
+      const miterOp: OpeningInput = {
+        id: 'miter_win_z',
+        hostWallId: miteredWall.id,
+        u: 550,
+        width: 1000,
+        height: 1400,
+        sillZ: 900,
+        kind: 'window',
+      };
+      const resMiter = sliceWallWithOpenings(miteredWall, [miterOp]);
+
+      const zTestLevels = [100, 1000, 2000, 2700];
+
+      const verifyZLevels = (res: typeof resWin) => {
+        for (const z of zTestLevels) {
+          const activeSolids = res.pieces.filter((p) => p.role !== 'void' && z >= p.z0 && z < p.z1);
+          const activeVoids = res.pieces.filter((p) => p.role === 'void' && z >= p.z0 && z < p.z1);
+
+          const sumSolidArea = activeSolids.reduce((acc, p) => acc + p.area2D, 0);
+          const sumVoidArea = activeVoids.reduce((acc, p) => acc + p.area2D, 0);
+
+          const expectedSolidArea = res.totalArea2D - sumVoidArea;
+          const diff = Math.abs(sumSolidArea - expectedSolidArea);
+
+          // Tolérance stricte 1e-6 mm²
+          expect(diff).toBeLessThan(1e-6);
+        }
+      };
+
+      verifyZLevels(resWin);
+      verifyZLevels(resDoor);
+      verifyZLevels(resMiter);
+    });
+
+    it('propriété : étanchéité volumique exacte sur configurations paramétriques', () => {
+      // Test de partition de matière sur variations d'ouvertures et d'allèges
       const testCases = [
         { u: 800, w: 600, h: 1000, sill: 1000 },
         { u: 1500, w: 1000, h: 1500, sill: 800 },
@@ -325,7 +385,8 @@ describe('Découpage 2.5D d Ouvertures (slice.ts)', () => {
       ];
 
       for (let i = 0; i < testCases.length; i++) {
-        const c = testCases[i]!;
+        const c = testCases[i];
+        if (!c) continue;
         const op: OpeningInput = {
           id: `rand_op_${i}`,
           hostWallId: baseWall.id,
@@ -337,8 +398,17 @@ describe('Découpage 2.5D d Ouvertures (slice.ts)', () => {
         };
 
         const res = sliceWallWithOpenings(baseWall, [op]);
-        const diff = Math.abs(res.solidVolume + res.voidVolume - res.wallVolume);
-        expect(diff).toBeLessThan(1e-4);
+
+        // Mesure empirique réelle sur les polygones produits
+        const measuredSolidVolume = res.pieces
+          .filter((p) => p.role !== 'void')
+          .reduce((sum, p) => sum + p.area2D * (p.z1 - p.z0), 0);
+        const measuredVoidVolume = res.pieces
+          .filter((p) => p.role === 'void')
+          .reduce((sum, p) => sum + p.area2D * (p.z1 - p.z0), 0);
+
+        const diff = Math.abs(measuredSolidVolume + measuredVoidVolume - res.wallVolume);
+        expect(diff).toBeLessThan(1e-6);
       }
     });
   });
