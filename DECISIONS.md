@@ -1,0 +1,247 @@
+# REGISTRE DES DÉCISIONS D'ARCHITECTURE (ADR) — MINI-BIM
+
+**Statut global :** Registre Officiel de Décisions Techniques  
+**Dernière mise à jour :** 13 novembre 2026
+
+---
+
+## Sommaire des ADRs
+
+| Réf.        | Titre de la Décision                                                                         |   Statut    |    Date    |
+| :---------- | :------------------------------------------------------------------------------------------- | :---------: | :--------: |
+| **ADR-001** | Modèle BIM comme Source de Vérité Unique (Géométrie = Cache Dérivé)                          | **Accepté** | 13/11/2026 |
+| **ADR-002** | Découplage Impératif des Moteurs de Vues (Canvas 2D / Three.js vs React)                     | **Accepté** | 13/11/2026 |
+| **ADR-003** | Standardisation des Unités et Repères Spatiaux (Millimètres Float64 & Z-Up)                  | **Accepté** | 13/11/2026 |
+| **ADR-004** | Découpe d'Ouvertures par Tranches 2.5D (Sutherland-Hodgman)                                  | **Accepté** | 13/11/2026 |
+| **ADR-005** | Résolution Topologique des Jonctions de Murs et Limites d'Onglet                             | **Accepté** | 13/11/2026 |
+| **ADR-006** | Gestion des Mutations et Undo/Redo par Command Pattern Typé                                  | **Accepté** | 13/11/2026 |
+| **ADR-007** | Stratégie de Persistance Hybride (JSON Versionné puis SQLite WASM/OPFS)                      | **Accepté** | 13/11/2026 |
+| **ADR-008** | Détection Hybride et Stabilité Sémantique des Pièces (Rooms)                                 | **Accepté** | 13/11/2026 |
+| **ADR-009** | Architecture d'Extensibilité pour les Réseaux MEP (Category Registry)                        | **Accepté** | 13/11/2026 |
+| **ADR-010** | Révision des Tolérances Numériques, Typage des Intersections et Rejet de l'Arrondi Prématuré | **Accepté** | 13/11/2026 |
+
+---
+
+## ADR-001 : Modèle BIM comme Source de Vérité Unique (Géométrie = Cache Dérivé)
+
+### Contexte
+
+Dans les logiciels de modélisation 3D génériques (SketchUp, Blender), la géométrie polygonale (arêtes, polygones, normales) constitue la donnée primaire. Dans un logiciel d'architecture BIM (Revit, Archicad), l'utilisateur manipule des entités conceptuelles (un mur d'un axe $A \to B$ avec une épaisseur, une hauteur et un type de matériau). Si la géométrie 3D devient la source de données, la sémantique architecturale se perd, rendant impossibles les métrés automatiques, la propagation des modifications et l'interopérabilité IFC.
+
+### Décision
+
+Le modèle BIM sémantique (dictionnaires d'entités typées en mémoire) est l'unique source de vérité.  
+Les représentations géométriques 2D (tracés en plan) et 3D (maillages Three.js `BufferGeometry`) sont des **caches dérivés temporaires**, totalement destructibles et recalculés à la demande par le moteur de régénération. Aucun maillage 3D n'est jamais sauvegardé dans le fichier de projet.
+
+### Justification & Avantages
+
+- Fichiers de projet ultra-légers (quelques kilo-octets pour une maison entière).
+- Fichiers entièrement diffables dans Git et compatibles avec des formats d'échange textuels clairs.
+- Garantie d'absence de désynchronisation entre les vues 2D, les vues 3D et les tableaux de quantités.
+
+### Alternatives Rejetées
+
+- _Stockage des géométries 3D sérialisées (objets Three.js sérialisés) :_ Rejeté car source de désynchronisation fatale et gonflement inutile des fichiers.
+
+---
+
+## ADR-002 : Découplage Impératif des Moteurs de Vues (Canvas 2D / Three.js vs React)
+
+### Contexte
+
+L'interface utilisateur de Mini-BIM comprend des composants applicatifs riches (arborescence du projet, inspecteur de propriétés, tableaux de métrés dynamiques) et deux fenêtres de dessin intensives (vue en plan 2D et vue 3D). Utiliser un modèle déclaratif React complet (comme React Three Fiber pour la 3D ou des composants SVG React pour la 2D) pour les fenêtres graphiques entraîne des re-rendus massifs et des allocations mémoire excessives lors des manipulations continues à la souris (pointermove, glisser-déplacer).
+
+### Décision
+
+React est strictement confiné à l'interface applicative (UI chrome, panneaux, fenêtres de dialogue, tableaux).  
+Les viewports graphiques (`Viewport2D` et `Viewport3D`) sont des classes TypeScript impératives instanciées une seule fois et montées sur un `<canvas>`. Ils s'abonnent directement aux événements de patch du moteur BIM (`doc.on('patch', ...)`), avec une boucle de rendu cadencée à la demande (on-demand rendering).
+
+### Justification & Avantages
+
+- Cadence d'affichage fluide garantie ($\ge 60$ FPS) sans aucune interférence avec le cycle de réconciliation de React.
+- Absence d'allocations de ramasse-miettes (`garbage collection`) lors des déplacements de curseur.
+- Contrôle fin des ressources graphiques Three.js (appel explicite à `dispose()` sur les géométries et matériaux obsolètes).
+
+### Alternatives Rejetées
+
+- _React Three Fiber (R3F) pour le viewport 3D :_ Rejeté pour le viewport d'édition principal en raison de la surcharge du reconciler déclaratif lors de mutations géométriques fréquentes.
+
+---
+
+## ADR-003 : Standardisation des Unités et Repères Spatiaux (Millimètres Float64 & Z-Up)
+
+### Contexte
+
+La coexistence d'unités multiples (mètres pour Three.js, millimètres pour la construction, centimètres pour certains composants) et de conventions de repères opposées (Z-up en BIM/IFC vs Y-up dans Three.js et WebGL) est la première cause de régressions dans les outils de CAO.
+
+### Décision
+
+1. Une seule unité interne universelle : **millimètres (`mm`)** en nombres flottants 64 bits (`float64`).
+2. Repère mondial cartésien direct **Z-up** ($+X$ = Est, $+Y$ = Nord, $+Z$ = Zénith / Hauteur).
+3. La conversion vers le repère Three.js ($Y$-up, mètres) est strictement isolée au niveau d'un nœud racine Three.js unique (`modelRoot`), configuré avec une rotation fixe $R_x(-\pi/2)$ et un facteur d'échelle uniforme $0,001$. Aucune coordonnée interne n'est convertie en mètres avant l'étape de rendu.
+
+### Justification & Avantages
+
+- Précision millimétrique exacte pour le bâtiment sans accumulation d'erreurs d'arrondi décimales.
+- Alignement natif avec les schémas IFC (`IfcCartesianPoint` standardisé en mm pour les profils et le placement d'étages).
+- Zéro coût de calcul sur le thread principal pour la conversion de repère.
+
+---
+
+## ADR-004 : Découpe d'Ouvertures par Tranches 2.5D (Sutherland-Hodgman)
+
+### Contexte
+
+L'insertion de portes et fenêtres nécessite de percer des trémies précises dans les murs porteurs. Les bibliothèques génériques de géométrie constructive solide (CSG) en 3D (ex: Three-CSG ou Manifold-3D) souffrent d'une grande lourdeur binaire (WASM de plusieurs mégaoctets), de lenteur relative et d'instabilités numériques fréquentes sur les faces coplanaires.
+
+### Décision
+
+Pour tous les murs droits verticaux, la soustraction des ouvertures rectangulaires s'effectue par **découpe en tranches verticales 2.5D** le long de l'axe du mur via l'algorithme d'écrêtage de Sutherland-Hodgman.  
+Un mur percé de $N$ ouvertures est découpé en tranches pleines hauteurs, allèges (sous les fenêtres) et linteaux (au-dessus des portes/fenêtres).
+
+### Justification & Avantages
+
+- Algorithme ultra-robuste de moins de 50 lignes de code, déterministe et sans division flottante instable.
+- Vitesse d'exécution quasi-instantanée ($< 0.1$ ms par mur percé).
+- Triangulation directe en quadrilatères convexes sans recours à des bibliothèques externes lourdes.
+- Possibilité d'introduire ultérieurement `manifold-3d` en Phase 6 uniquement pour les réservations complexes non rectangulaires (ex: traversées de gaines circulaires obliques).
+
+---
+
+## ADR-005 : Résolution Topologique des Jonctions de Murs et Limites d'Onglet
+
+### Contexte
+
+Lorsque plusieurs murs se rencontrent en un nœud (angles en L, aboutements en T, carrefours en croix), leurs emprises volumiques ne doivent ni se chevaucher (ce qui fausserait les métrés et produirait des artefacts graphiques de z-fighting) ni laisser de vide. L'algorithme en étoile proposé initialement échoue sur les murs colinéaires et les intersections en T.
+
+### Décision
+
+Mettre en place un **modèle topologique explicite de classification de nœuds** :
+
+1. _Degré 1 :_ Bout libre avec coupe droite orthogonale.
+2. _Degré 2 (Angle non plat) :_ Coupe en onglet (miter) avec intersection des arêtes de face. Une **limite d'onglet** (`MITER_LIMIT_RATIO = 4.0`) est appliquée : si l'angle est trop aigu ($< 29^\circ$), la pointe est automatiquement tronquée par un biseau orthogonal.
+3. _Degré 2 (Colinéaire) :_ Murs continus sans coupure d'extrémité.
+4. _Degré 3 (T-junction) :_ Le mur traversant est déclaré prioritaire et reste continu ; l'extrémité du mur secondaire incident est découpée pour venir buter exactement sur la face latérale du mur porteur.
+
+### Justification & Avantages
+
+- Rendu architectural impeccable des plans 2D et des solides 3D sans chevauchement.
+- Respect strict des calculs de quantités de matériaux.
+- Élimination des artefacts d'explosion géométrique sur les angles aigus.
+
+---
+
+## ADR-006 : Gestion des Mutations et Undo/Redo par Command Pattern Typé
+
+### Contexte
+
+L'utilisation de patchs JSON bruts non typés (Immer `produceWithPatches`) enregistrés sans discernement à chaque micro-action provoque une consommation mémoire incontrôlée, ne donne aucune sémantique métier à l'historique et rend complexe la validation d'invariants lors de l'annulation.
+
+### Décision
+
+Toute modification du modèle passe par une **classe de Commande transactionnelle typée** (`AddWallCommand`, `MoveWallCommand`, `InsertDoorCommand`, `DeleteElementCommand`).  
+Chaque commande :
+
+1. Valide les pré-conditions et invariants métier.
+2. Produit un enregistrement de transaction contenant son delta inverse explicite.
+3. S'enregistre dans une pile d'historique bornée (Undo/Redo Stack).
+   Immer est utilisé comme outil technique interne dans les fonctions d'application de transition d'état, mais l'API de haut niveau reste strictement régie par le bus de commandes.
+
+### Justification & Avantages
+
+- Historique descriptif compréhensible pour l'utilisateur ("Annuler : Insertion Porte").
+- Réversibilité atomique et déterministe garantie.
+- Sérialisation aisée du journal d'opérations pour audit et collaboration future.
+
+---
+
+## ADR-007 : Stratégie de Persistance Hybride (JSON Versionné puis SQLite WASM/OPFS)
+
+### Contexte
+
+Un logiciel BIM a besoin d'une persistance fiable, portable et rapide. Introduire immédiatement un serveur de base de données distant (PostgreSQL) imposerait une latence réseau inacceptable lors de l'édition et une complexité d'infrastructure inutile au démarrage.
+
+### Décision
+
+1. **Étape 1 (MVP) :** Modèle normalisé en mémoire, persisté sous forme de fichier JSON unifié avec numéro de version de schéma explicite (`schema_version: 1`) et validation Zod au chargement.
+2. **Étape 2 (Consolidation) :** Persistance locale transactionnelle via **SQLite compilé en WASM** exploitant l'OPFS (Origin Private File System) du navigateur. Le schéma SQLite utilise des colonnes typées pour les requêtes relationnelles et une colonne JSON pour les paramètres extensibles.
+3. **Étape 3 (Serveur / Post-MVP) :** Réplication vers PostgreSQL utilisant le schéma relationnel identique défini pour SQLite.
+
+### Justification & Avantages
+
+- Démarrage immédiat sans friction d'infrastructure.
+- Évolution sans rupture : le modèle de données SQLite est rigoureusement aligné sur le modèle JSON en mémoire.
+
+---
+
+## ADR-008 : Détection Hybride et Stabilité Sémantique des Pièces (Rooms)
+
+### Contexte
+
+La détection de pièces par simple union booléenne d'emprises de murs fait disparaître une pièce dès qu'un interstice de 1 mm apparaît (fuite de contour). De plus, une pièce ne doit pas perdre son nom, son numéro ou son identifiant lorsque l'utilisateur déplace légèrement une cloison.
+
+### Décision
+
+1. Une pièce est définie de manière persistante par son identité (`id`, `name`, `number`) et son point d'ancrage (`seedPoint`).
+2. Lors de la régénération, les polygones de pièces sont recalculés à partir des limites fermées. Un test de point dans le polygone associe chaque contour reconstruit au `Room` correspondant à son `seedPoint`.
+3. Si un interstice empêche la fermeture, le contour est marqué comme non étanche (`unclosed`), et un avertissement visuel surligne les arêtes ouvertes pour guider l'utilisateur.
+
+### Justification & Avantages
+
+- Stabilité des identifiants et des annotations de pièces lors de l'édition architecturale.
+- Détection des erreurs de saisie pour l'architecte.
+
+---
+
+## ADR-009 : Extensibilité du Modèle pour les Réseaux MEP (Category Registry)
+
+### Contexte
+
+L'extension future du logiciel vers les réseaux techniques MEP (plomberie, ventilation, électricité) ne doit pas déstabiliser ni polluer le noyau architectural initial.
+
+### Décision
+
+Mettre en place dans `@mini-bim/core` un registre d'extensions par catégories (`CategoryDef`). Le noyau ne code en dur que les catégories architecturales de base (`wall`, `door`, `window`, `slab`, `roof`, `room`).  
+Le futur module MEP (`@mini-bim/mep`) enregistrera ses propres catégories (`pipeSegment`, `ductSegment`, `mepFitting`) et définira ses algorithmes de balayage géométrique (`sweep`), ses connecteurs (ports) et ses classes IFC sans modification du code de base.
+
+### Justification & Avantages
+
+- Respect total du principe Ouvert/Fermé (Open/Closed Principle de SOLID).
+- Isolation complète du code architectural et du code réseau.
+
+---
+
+## ADR-010 : Révision des Tolérances Numériques, Typage des Intersections et Rejet de l'Arrondi Prématuré
+
+### Contexte
+
+La conception initiale comportait trois écueils mathématiques :
+
+1. Une proposition d'arrondi systématique des coordonnées à $1\text{ mm}$ avant les calculs booléens.
+2. Une confusion potentielle entre le zéro calculatoire, la coïncidence géométrique continue et la tolérance de fusion topologique des murs.
+3. Des résultats d'intersections représentés par des valeurs binaires ou des points optionnels (`Vec2 | null`), incapables de discriminer le parallélisme, la colinéarité sans contact, le contact en un sommet, le chevauchement sur un sous-segment et les cas dégénérés.
+
+### Décision
+
+1. **Rejet formel de l'arrondi systématique à 1 mm :** Le noyau géométrique `@mini-bim/geometry` calcule strictement en espace continu IEEE 754 float64. L'arrondi au millimètre est proscrit dans les calculs bas niveau car il introduit des distorsions d'épaisseur ($\approx +0.82\text{ mm}$ à $45^\circ$) et déplace les intersections de plusieurs centimètres sur les angles aigus.
+2. **Pyramide des tolérances :**
+   - $\text{EPSILON\_NUMERICAL} = 10^{-9}$ (déterminants, normalisation, zéro arithmétique).
+   - $\text{EPSILON\_DISTANCE} = 10^{-4}\text{ mm}$ ($0.1\ \mu m$, seuil de coïncidence géométrique continue, situé $450\,000 \times$ au-dessus du bruit d'arrondi machine et $1\,000 \times$ plus fin que la tolérance de construction).
+   - $\text{EPSILON\_COLLINEAR} = 10^{-6}\text{ rad}$ (tolérance angulaire).
+   - $\text{VERTEX\_MERGE_TOLERANCE} = 1.0\text{ mm}$ : Confiné exclusivement à la couche topologique applicative (`@mini-bim/core`), strictement interdit dans `@mini-bim/geometry`.
+3. **Typage discriminant exhaustif des intersections :**  
+   Définition de `LineIntersectionResult` et `SegmentIntersectionResult` sous forme de tagged unions TypeScript représentant sans ambiguïté :
+   - `point` (avec paramètres scalaires $t, u$)
+   - `none` (disjoints)
+   - `parallel` (droites parallèles non confondues)
+   - `collinear` (droites confondues)
+   - `overlap` (segments colinéaires avec sous-segment de chevauchement et intervalles $[t_{min}, t_{max}], [u_{min}, u_{max}]$)
+   - `degenerate` (segments ou vecteurs directeurs de longueur nulle).
+4. **Comportement déterministe sur les cas dégénérés :**  
+   `normalize` sur un vecteur nul retourne `{ x: 0, y: 0 }` sans lancer d'exception et sans propager de `NaN` ou `Infinity`.
+
+### Justification & Avantages
+
+- Élimination des régressions géométriques silencieuses.
+- Exhaustivité du traitement des cas limites à la compilation grâce au pattern matching sur les tagged unions.
+- Stabilité mathématique prouvée des calculs d'emprise et d'intersection.
