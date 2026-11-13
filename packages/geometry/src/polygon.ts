@@ -1,4 +1,5 @@
-import { type Vec2, vec2 } from './vec2.js';
+import { type Vec2, vec2, dot, sub, add, mul, distance } from './vec2.js';
+import { GEOM_CONFIG } from './constants.js';
 
 /**
  * Calcule l'aire signée d'un polygone 2D via la formule du lacet de Gauss (Shoelace formula).
@@ -93,4 +94,72 @@ export function centroid(vertices: readonly Vec2[]): Vec2 {
 
   const coeff = 1 / (6 * area);
   return vec2(cx * coeff, cy * coeff);
+}
+
+/**
+ * Découpe un polygone 2D par un demi-plan défini par un point d'origine et une normale intérieure.
+ * Implémente l'algorithme d'écrêtage de Sutherland-Hodgman.
+ *
+ * Le demi-plan conservé est l'ensemble des points P tels que :
+ * dot(P - origin, normal) >= -tolerance
+ *
+ * @param vertices Sommets du polygone 2D
+ * @param origin Point de passage de la droite séparatrice
+ * @param normal Normale unitaire pointant vers l'intérieur du demi-plan conservé
+ * @param tolerance Seuil de tolérance numérique (par défaut EPSILON_DISTANCE)
+ * @returns Polygone découpé (vide si entièrement hors du demi-plan ou dégénéré)
+ */
+export function clipPolygonWithHalfPlane(
+  vertices: readonly Vec2[],
+  origin: Vec2,
+  normal: Vec2,
+  tolerance: number = GEOM_CONFIG.EPSILON_DISTANCE,
+): Vec2[] {
+  const n = vertices.length;
+  if (n < 3) return [];
+
+  const out: Vec2[] = [];
+
+  for (let i = 0; i < n; i++) {
+    const cur = vertices[i];
+    const next = vertices[(i + 1) % n];
+    if (!cur || !next) continue;
+
+    const dCur = dot(sub(cur, origin), normal);
+    const dNext = dot(sub(next, origin), normal);
+
+    const curInside = dCur >= -tolerance;
+    const nextInside = dNext >= -tolerance;
+
+    if (curInside) {
+      if (nextInside) {
+        out.push(next);
+      } else {
+        const denom = dCur - dNext;
+        const t = Math.abs(denom) > GEOM_CONFIG.EPSILON_NUMERICAL ? dCur / denom : 0;
+        out.push(add(cur, mul(sub(next, cur), Math.max(0, Math.min(1, t)))));
+      }
+    } else {
+      if (nextInside) {
+        const denom = dCur - dNext;
+        const t = Math.abs(denom) > GEOM_CONFIG.EPSILON_NUMERICAL ? dCur / denom : 0;
+        out.push(add(cur, mul(sub(next, cur), Math.max(0, Math.min(1, t)))));
+        out.push(next);
+      }
+    }
+  }
+
+  // Élimination des sommets consécutifs quasi-identiques
+  const cleaned: Vec2[] = [];
+  const m = out.length;
+  for (let i = 0; i < m; i++) {
+    const p = out[i];
+    const q = out[(i + 1) % m];
+    if (p && q && distance(p, q) > tolerance) {
+      cleaned.push(p);
+    }
+  }
+
+  if (cleaned.length < 3) return [];
+  return cleaned;
 }

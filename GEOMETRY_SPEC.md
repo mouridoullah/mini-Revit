@@ -288,28 +288,87 @@ Pour $m \ge 3$ murs arrivant au même nœud :
 
 ## 4. Soustraction des Ouvertures (Découpe en Tranches 2.5D)
 
-Pour éviter les instabilités numériques des moteurs booléens 3D généralistes (CSG), le découpage d'ouvertures rectangulaires dans des murs droits s'effectue par **tranches verticales** via l'algorithme de Sutherland-Hodgman.
+Pour éviter les instabilités numériques et la lenteur des moteurs booléens 3D généralistes (CSG), le découpage d'ouvertures rectangulaires (portes et fenêtres) dans des murs s'effectue par **partition longitudinale en tranches 2.5D** via l'algorithme d'écrêtage de Sutherland-Hodgman.
 
-### 4.1 Algorithme de Découpage de Tranches
+### 4.1 Modèle de Données `OpeningInput`
+
+Toutes les coordonnées et grandeurs physiques sont exprimées en millimètres (`float64`) dans le repère universel Z-up :
+
+```ts
+export interface OpeningInput {
+  readonly id: string;
+  readonly hostWallId: string;
+  readonly u: number; // Abscisse du centre le long de l'axe de référence [0, L] (mm)
+  readonly width: number; // Largeur nominale de baie W > 0 (mm)
+  readonly height: number; // Hauteur nominale H > 0 (mm)
+  readonly sillZ: number; // Hauteur d'allège depuis la base du mur (mm, >= 0)
+  readonly kind: 'window' | 'door';
+  readonly swing?: {
+    readonly side: 'left' | 'right';
+    readonly direction: 'in' | 'out';
+  };
+}
+```
+
+### 4.2 Pipeline Algorithmique 2.5D
 
 ```mermaid
 flowchart LR
-    WallFootprint["Emprise 2D du Mur"] --> Slice1["Tranche 1 : Pleine hauteur avant ouverture"]
-    WallFootprint --> Slice2["Tranche 2 : Sous l'ouverture (Allège)"]
-    WallFootprint --> Slice3["Tranche 3 : Au-dessus de l'ouverture (Linteau)"]
-    WallFootprint --> Slice4["Tranche 4 : Pleine hauteur après ouverture"]
+    WallFootprint["Contour 2D Résolu (Watertight)"] --> S0["Tranche 1 : Pleine hauteur avant ouverture"]
+    WallFootprint --> S1_Sill["Tranche 2A : Allège (0 -> sillZ)"]
+    WallFootprint --> S1_Void["Tranche 2B : Réservation Vide (sillZ -> sillZ + H)"]
+    WallFootprint --> S1_Lintel["Tranche 2C : Linteau (sillZ + H -> H_mur)"]
+    WallFootprint --> S2["Tranche 3 : Pleine hauteur après ouverture"]
 ```
 
-1. Chaque ouverture définit un intervalle le long de l'axe : $[u_0, u_1]$ avec $u = \vec{d} \cdot (P - A)$, et une plage verticale $[Z_{\text{allège}}, Z_{\text{linteau}}]$.
-2. Les intervalles $[u_{0, i}, u_{1, i}]$ sont triés et fusionnés si contigus.
-3. Pour chaque intervalle :
-   - Segment avant l'ouverture : polygone extrudé de $Z_{\text{base}}$ à $Z_{\text{haut}}$ (pleine hauteur).
-   - Intervalle de l'ouverture :
-     - Si $Z_{\text{allège}} > Z_{\text{base}}$ : polygone extrudé de $Z_{\text{base}}$ à $Z_{\text{allège}}$ (allège).
-     - Si $Z_{\text{linteau}} < Z_{\text{haut}}$ : polygone extrudé de $Z_{\text{linteau}}$ à $Z_{\text{haut}}$ (linteau).
-   - Intervalle après l'ouverture : pleine hauteur.
-4. Le découpage polygonal le long des plans perpendiculaires à l'axe $\vec{d}$ utilise l'algorithme d'écrêtage par demi-plan (Sutherland-Hodgman) :
-   $$\text{Demi-plan : } \{ P \in \mathbb{R}^2 \mid (P - P_0) \cdot \vec{d} \ge 0 \}$$
+1. **Tri longitudinal :** Les $k$ ouvertures du mur sont triées par abscisse de début croissante $u_{\text{start}} = u - W/2$.
+2. **Écrêtage par demi-plan (Sutherland-Hodgman) :**  
+   Pour chaque coordonnée de coupe $u_c$, le plan vertical perpendiculaire à l'axe $\vec{d}$ définit deux demi-plans :
+   - Demi-plan aval ($u \ge u_c$) : $\{ P \in \mathbb{R}^2 \mid (P - P(u_c)) \cdot \vec{d} \ge -\epsilon \}$
+   - Demi-plan amont ($u \le u_c$) : $\{ P \in \mathbb{R}^2 \mid (P - P(u_c)) \cdot (-\vec{d}) \ge -\epsilon \}$  
+     où $P(u_c) = \vec{A} + u_c \vec{d}$.
+3. **Partition des tranches :**
+   - Tranche initiale pleine hauteur : $u \in [0, u_{\text{start}, 0}]$.
+   - Pour chaque ouverture $i \in [0, k-1]$ : bande $u \in [u_{\text{start}, i}, u_{\text{end}, i}]$ partitionnée verticalement en :
+     - Allège (`sill`) : si $Z_{\text{allège}} > 0$, de $Z = 0$ à $Z = Z_{\text{allège}}$.
+     - Réservation vide (`void`) : de $Z = Z_{\text{allège}}$ à $Z = Z_{\text{allège}} + H$.
+     - Linteau (`lintel`) : si $Z_{\text{linteau}} < H_{\text{mur}}$, de $Z = Z_{\text{linteau}}$ à $Z = H_{\text{mur}}$.
+   - Tranches pleines intermédiaires : $u \in [u_{\text{end}, i}, u_{\text{start}, i+1}]$ pour chaque paire contiguë.
+   - Tranche finale pleine hauteur : $u \in [u_{\text{end}, k-1}, L]$.
+
+### 4.3 Analyse de Complexité Formelle
+
+La complexité temporelle du partitionnement est strictement :
+$$\mathcal{O}(k \cdot m)$$
+où :
+
+- $k$ est le nombre d'ouvertures hébergées par le mur hôte ($k \in [1, 10]$ en architecture usuelle).
+- $m$ est le nombre de sommets du polygone résolu du mur ($m \in [4, 8]$ après résolution des jonctions en onglet/biseau).
+
+Chaque demi-plan coupe le polygone en temps linéaire $\mathcal{O}(m)$, et le nombre total de découpes est borné par $2k$. Pour une maison individuelle, le calcul prend moins de $0.05\text{ ms}$ par mur sur un thread CPU JavaScript standard.
+
+### 4.4 Règles de Validation et Gardes Architecturales
+
+La fonction pure `validateOpenings` applique les règles déterministes suivantes :
+
+1. **Garde minimale aux extrémités (`MIN_OPENING_CLEARANCE = 50.0 mm`) :**
+   $$u - \frac{W}{2} \ge \text{MIN\_OPENING\_CLEARANCE}$$
+   $$u + \frac{W}{2} \le L - \text{MIN\_OPENING\_CLEARANCE}$$
+2. **Rejet de sévèrement de mur (`SEVERS_WALL`) :**
+   - Si $W \ge L$ : l'ouverture détruit le mur.
+   - Si $L < W + 2 \times \text{MIN\_OPENING\_CLEARANCE}$ : mur trop court pour accueillir la baie et ses trumeaux d'extrémité.
+3. **Non-chevauchement et trumeau minimal entre baies contiguës :**
+   $$u_{\text{start}, i+1} \ge u_{\text{end}, i} + \text{MIN\_OPENING\_CLEARANCE}$$
+4. **Contrôle d'altitude linteau (`HEIGHT_EXCEEDS_WALL`) :**
+   $$Z_{\text{allège}} \ge 0 \quad \text{et} \quad Z_{\text{allège}} + H \le H_{\text{mur}}$$
+
+### 4.5 Cas Limites Validés
+
+- **Ouverture adjacente à une tête en onglet à $45^\circ$ :** La tranche 1 absorbe la pointe d'onglet biseautée sans discontinuité et présente une face d'ébrasement parfaitement orthogonale à $u = 50\text{ mm}$.
+- **Ouverture toute hauteur :** $Z_{\text{allège}} = 0$ et $H = H_{\text{mur}}$ $\implies$ les tranches d'allège et de linteau sont omises, seul le vide est généré.
+- **Porte standard :** $Z_{\text{allège}} = 0 \implies$ allège omise, linteau conservé.
+- **Conservation d'aire et de volume :**
+  $$\sum \text{Volume}(\text{solides}) = \text{Volume}(\text{mur}) - \sum \text{Volume}(\text{vides}) \quad (\pm 10^{-6}\text{ mm}^3)$$
 
 ---
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { signedArea, isCCW, perimeter, centroid } from './polygon.js';
+import { signedArea, isCCW, perimeter, centroid, clipPolygonWithHalfPlane } from './polygon.js';
 import { vec2, equals } from './vec2.js';
 
 describe('Algorithmes Polygonaux (Polygon)', () => {
@@ -56,6 +56,36 @@ describe('Algorithmes Polygonaux (Polygon)', () => {
       const c = centroid(tri);
       expect(c.x).toBeCloseTo(30, 6);
       expect(c.y).toBeCloseTo(30, 6);
+    });
+  });
+
+  describe('Écrêtage de polygone par demi-plan (Sutherland-Hodgman)', () => {
+    const square = [vec2(0, 0), vec2(100, 0), vec2(100, 100), vec2(0, 100)];
+
+    it('découpe un carré par un demi-plan vertical x >= 40', () => {
+      const clipped = clipPolygonWithHalfPlane(square, vec2(40, 0), vec2(1, 0));
+      expect(clipped.length).toBe(4);
+      expect(signedArea(clipped)).toBeCloseTo(6000, 4); // 60 * 100
+      expect(isCCW(clipped)).toBe(true);
+    });
+
+    it('isole une bande entre x = 30 et x = 70', () => {
+      const step1 = clipPolygonWithHalfPlane(square, vec2(30, 0), vec2(1, 0));
+      const step2 = clipPolygonWithHalfPlane(step1, vec2(70, 0), vec2(-1, 0));
+      expect(step2.length).toBe(4);
+      expect(signedArea(step2)).toBeCloseTo(4000, 4); // 40 * 100
+      expect(isCCW(step2)).toBe(true);
+    });
+
+    it('renvoie un polygone vide si le demi-plan est entièrement disjoint', () => {
+      const clipped = clipPolygonWithHalfPlane(square, vec2(200, 0), vec2(1, 0));
+      expect(clipped.length).toBe(0);
+    });
+
+    it('renvoie le polygone identique si le demi-plan le contient entièrement', () => {
+      const clipped = clipPolygonWithHalfPlane(square, vec2(-10, 0), vec2(1, 0));
+      expect(clipped.length).toBe(4);
+      expect(signedArea(clipped)).toBeCloseTo(10000, 4);
     });
   });
 });

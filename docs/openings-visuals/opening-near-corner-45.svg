@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1500 -1500 5900 3000" style="background-color: #f8fafc; font-family: monospace;">
+  <defs>
+    <pattern id="clearance-hatch" width="20" height="20" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+      <line x1="0" y1="0" x2="0" y2="20" stroke="#f43f5e" stroke-width="3" opacity="0.4" />
+    </pattern>
+  </defs>
+  <text x="-1470" y="-1450" font-size="28" font-weight="bold" fill="#0f172a">Ouverture à la garde exacte (50 mm) d un onglet à 45°</text>
+  <g id="wall-pieces">
+    <!-- Piece w_miter_piece_0 (full) -->
+    <polygon points="50,-100 -100,-100 50,50" fill="rgba(59, 130, 246, 0.45)" stroke="#1d4ed8" stroke-width="3"  />
+    <!-- Piece w_miter_piece_1 (sill) -->
+    <polygon points="1050,-100 50,-100 50,50 100,100 1050,100" fill="rgba(245, 158, 11, 0.35)" stroke="#b45309" stroke-width="3" stroke-dasharray="4,4" />
+    <!-- Piece w_miter_piece_2 (void) -->
+    <polygon points="1050,-100 50,-100 50,50 100,100 1050,100" fill="rgba(254, 242, 242, 0.7)" stroke="#ef4444" stroke-width="3" stroke-dasharray="8,4" />
+    <!-- Piece w_miter_piece_4 (full) -->
+    <polygon points="1050,100 3000,100 3000,-100 1050,-100" fill="rgba(59, 130, 246, 0.45)" stroke="#1d4ed8" stroke-width="3"  />
+  </g>
+  <g id="clearance-zones">
+    <polygon points="0,-110 50,-110 50,110 0,110" fill="url(#clearance-hatch)" stroke="#f43f5e" stroke-width="2" stroke-dasharray="4,4" />
+    <polygon points="2950,-110 3000,-110 3000,110 2950,110" fill="url(#clearance-hatch)" stroke="#f43f5e" stroke-width="2" stroke-dasharray="4,4" />
+  </g>
+  <line x1="0" y1="0" x2="3000" y2="0" stroke="#64748b" stroke-width="2" stroke-dasharray="8,6" />
+  <g id="openings-symbols">
+    <!-- Fenêtre win_corner -->
+    <line x1="50" y1="-20" x2="1050" y2="-20" stroke="#0284c7" stroke-width="4" />
+    <line x1="50" y1="20" x2="1050" y2="20" stroke="#0284c7" stroke-width="4" />
+    <text x="550" y="-40" text-anchor="middle" font-size="22" font-weight="bold" fill="#0369a1">win_corner (1000×1200)</text>
+  </g>
+</svg>

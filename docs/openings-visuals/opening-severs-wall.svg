@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-4600 -4700 13200 9400" style="background-color: #f8fafc; font-family: monospace;">
+  <defs>
+    <pattern id="clearance-hatch" width="20" height="20" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+      <line x1="0" y1="0" x2="0" y2="20" stroke="#f43f5e" stroke-width="3" opacity="0.4" />
+    </pattern>
+  </defs>
+  <text x="-4570" y="-4650" font-size="28" font-weight="bold" fill="#0f172a">Cas limite : Ouverture sévérant le mur (W = 4200 >= L = 4000)</text>
+  <polygon points="0,100 4000,100 4000,-100 0,-100" fill="rgba(59, 130, 246, 0.45)" stroke="#1d4ed8" stroke-width="4" />
+  <g id="clearance-zones">
+    <polygon points="0,-110 50,-110 50,110 0,110" fill="url(#clearance-hatch)" stroke="#f43f5e" stroke-width="2" stroke-dasharray="4,4" />
+    <polygon points="3950,-110 4000,-110 4000,110 3950,110" fill="url(#clearance-hatch)" stroke="#f43f5e" stroke-width="2" stroke-dasharray="4,4" />
+  </g>
+  <line x1="0" y1="0" x2="4000" y2="0" stroke="#64748b" stroke-width="2" stroke-dasharray="8,6" />
+  <g id="openings-symbols">
+    <!-- Porte door_oversized -->
+    <line x1="-100" y1="0" x2="-100" y2="-4200" stroke="#0f172a" stroke-width="5" />
+    <path d="M 4100 0 A 4200 4200 0 0 1 -100 -4200" fill="none" stroke="#64748b" stroke-width="3" stroke-dasharray="6,4" />
+    <text x="2000" y="40" text-anchor="middle" font-size="22" font-weight="bold" fill="#0f172a">door_oversized (P. 4200×2100)</text>
+  </g>
+  <g id="rejection-banner">
+    <rect x="-4580" y="4620" width="13160" height="60" rx="8" fill="#fee2e2" stroke="#dc2626" stroke-width="2" />
+    <text x="-4560" y="4658" font-size="22" font-weight="bold" fill="#b91c1c">REJET : SEVERS_WALL : largeur de baie (4200 mm) >= longueur du mur (4000 mm)</text>
+  </g>
+</svg>

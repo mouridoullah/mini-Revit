@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1200 -1300 6400 2600" style="background-color: #f8fafc; font-family: monospace;">
+  <defs>
+    <pattern id="clearance-hatch" width="20" height="20" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+      <line x1="0" y1="0" x2="0" y2="20" stroke="#f43f5e" stroke-width="3" opacity="0.4" />
+    </pattern>
+  </defs>
+  <text x="-1170" y="-1250" font-size="28" font-weight="bold" fill="#0f172a">Deux ouvertures avec trumeau minimal de 50.00 mm</text>
+  <g id="wall-pieces">
+    <!-- Piece w_door_piece_0 (full) -->
+    <polygon points="600,100 600,-100 0,-100 0,100" fill="rgba(59, 130, 246, 0.45)" stroke="#1d4ed8" stroke-width="3"  />
+    <!-- Piece w_door_piece_1 (sill) -->
+    <polygon points="1400,100 1400,-100 600,-100 600,100" fill="rgba(245, 158, 11, 0.35)" stroke="#b45309" stroke-width="3" stroke-dasharray="4,4" />
+    <!-- Piece w_door_piece_2 (void) -->
+    <polygon points="1400,100 1400,-100 600,-100 600,100" fill="rgba(254, 242, 242, 0.7)" stroke="#ef4444" stroke-width="3" stroke-dasharray="8,4" />
+    <!-- Piece w_door_piece_4 (full) -->
+    <polygon points="1450,100 1450,-100 1400,-100 1400,100" fill="rgba(59, 130, 246, 0.45)" stroke="#1d4ed8" stroke-width="3"  />
+    <!-- Piece w_door_piece_5 (sill) -->
+    <polygon points="2250,100 2250,-100 1450,-100 1450,100" fill="rgba(245, 158, 11, 0.35)" stroke="#b45309" stroke-width="3" stroke-dasharray="4,4" />
+    <!-- Piece w_door_piece_6 (void) -->
+    <polygon points="2250,100 2250,-100 1450,-100 1450,100" fill="rgba(254, 242, 242, 0.7)" stroke="#ef4444" stroke-width="3" stroke-dasharray="8,4" />
+    <!-- Piece w_door_piece_8 (full) -->
+    <polygon points="2250,100 4000,100 4000,-100 2250,-100" fill="rgba(59, 130, 246, 0.45)" stroke="#1d4ed8" stroke-width="3"  />
+  </g>
+  <g id="clearance-zones">
+    <polygon points="0,-110 50,-110 50,110 0,110" fill="url(#clearance-hatch)" stroke="#f43f5e" stroke-width="2" stroke-dasharray="4,4" />
+    <polygon points="3950,-110 4000,-110 4000,110 3950,110" fill="url(#clearance-hatch)" stroke="#f43f5e" stroke-width="2" stroke-dasharray="4,4" />
+  </g>
+  <line x1="0" y1="0" x2="4000" y2="0" stroke="#64748b" stroke-width="2" stroke-dasharray="8,6" />
+  <g id="openings-symbols">
+    <!-- Fenêtre win_A -->
+    <line x1="600" y1="-20" x2="1400" y2="-20" stroke="#0284c7" stroke-width="4" />
+    <line x1="600" y1="20" x2="1400" y2="20" stroke="#0284c7" stroke-width="4" />
+    <text x="1000" y="-40" text-anchor="middle" font-size="22" font-weight="bold" fill="#0369a1">win_A (800×1200)</text>
+    <!-- Fenêtre win_B -->
+    <line x1="1450" y1="-20" x2="2250" y2="-20" stroke="#0284c7" stroke-width="4" />
+    <line x1="1450" y1="20" x2="2250" y2="20" stroke="#0284c7" stroke-width="4" />
+    <text x="1850" y="-40" text-anchor="middle" font-size="22" font-weight="bold" fill="#0369a1">win_B (800×1200)</text>
+  </g>
+</svg>

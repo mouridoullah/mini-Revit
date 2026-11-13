@@ -45,4 +45,15 @@ export const GEOM_CONFIG = {
    * Longueur minimale autorisée pour un segment ou un mur (en mm).
    */
   MIN_SEGMENT_LENGTH: 50.0,
+
+  /**
+   * Distance minimale exigée entre une ouverture et l'extrémité d'un mur (garde / clearance en mm).
+   * Également distance minimale requise entre deux ouvertures successives (trumeau minimal).
+   */
+  MIN_OPENING_CLEARANCE: 50.0,
 } as const;
+
+/**
+ * Garde minimale d'ouverture par rapport aux extrémités du mur et entre ouvertures (en mm).
+ */
+export const MIN_OPENING_CLEARANCE = GEOM_CONFIG.MIN_OPENING_CLEARANCE;
