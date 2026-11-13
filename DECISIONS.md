@@ -329,3 +329,31 @@ Dans la continuité d'ADR-004, l'implémentation effective du moteur de percemen
 - Stabilité mathématique totale : pas de maillages troués, pas de dépendances WASM lourdes.
 - Rapidité d'exécution instantanée ($< 0.05\text{ ms}$ par mur percé).
 - Couplage parfait avec le moteur de jonctions étanche certifié en ADR-012.
+
+---
+
+## ADR-014 : Gouvernance et Traçabilité des Métriques de Rapports (CI Verbatim)
+
+### Contexte
+
+Les phases de fondation géométrique (Phase 1.1 et Phase 1.2) ont mis en évidence un risque méthodologique : la publication dans les rapports d'audit de chiffres (volumes, aires, nombres de tests) issus de scripts d'exploration ad-hoc (`node -e`) ou de brouillons préliminaires, créant des divergences apparentes avec le code de test réel exécuté par la CI.
+
+### Décision
+
+À compter de la validation de la Phase 1.2 et pour toutes les phases ultérieures du projet Mini-BIM :
+
+1. **Règle Verbatim CI :**  
+   Tout chiffre publié dans un rapport d'étape ou de clôture de phase (nombre de tests, $\Delta V$, volumes de vide, aires 2D, performances, décomptes statiques) **doit obligatoirement être extrait et copié verbatim** depuis :
+   - La sortie brute de la suite de tests (`vitest run --reporter=verbose`),
+   - Les assertions d'un test automatisé archivé dans le dépôt,
+   - Un script d'analyse statique versionné dans le dépôt sous `packages/*/src/` ou `scripts/`.
+2. **Statut des Scripts Ad-Hoc :**  
+   Les one-liners ou scripts ad-hoc (ex. `node -e "..."`, commandes shell temporaires) sont formellement restreints à l'exploration locale durant le développement. **Aucun résultat issu d'un script ad-hoc non pérennisé ne peut figurer dans un rapport de certification.**
+3. **Double Preuve Analytique Obligatoire :**  
+   Toute propriété d'invariance ou de conservation (ex: partition de matière) doit comporter un test vérifiant la valeur absolue par rapport à une formule analytique indépendante, et non uniquement une auto-cohérence relative de partition.
+
+### Conséquences
+
+- Élimine toute ambiguïté sur la provenance des chiffres.
+- Rapproche à 100% la documentation technique de la réalité testée par la CI.
+- Garantit une confiance totale pour les audits de certification actuels et futurs.
