@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { vec2 } from '@mini-bim/geometry';
-import { BimDocument, Commands } from '@mini-bim/core';
+import { BimDocument, Commands, toJSON } from '@mini-bim/core';
 import { View2D } from './View2D.js';
 import { createMockCanvas } from './test-utils.js';
 
@@ -338,5 +338,96 @@ describe('View2D (View2D.ts)', () => {
     // Dispatch d'événements après dispose : rien ne doit planter ni redessiner
     canvas.dispatchEvent(new WheelEvent('wheel', { deltaY: -100 }));
     expect(mock.calls).toHaveLength(0);
+  });
+
+  it('immutabilité stricte : un clic sur un mur ne mute pas le BimDocument (JSON identique) et n’appelle pas onCommandRequested', () => {
+    const { canvas } = createMockCanvas(800, 600);
+    const view = new View2D(canvas, {
+      transform: { origin: vec2(0, 0), scale: 0.05 },
+    });
+
+    const doc = BimDocument.createDefaultProject();
+    const state = doc.getState();
+    const typeId = Object.keys(state.wallTypes)[0]!;
+    const levelId = Object.keys(state.levels)[0]!;
+
+    doc.execute(
+      new Commands.AddWallCommand({
+        id: 'w_immutable_check',
+        category: 'wall',
+        typeId,
+        levelId,
+        start: vec2(0, 0),
+        end: vec2(4000, 0),
+      }),
+    );
+
+    // Sérialisation stricte de l'état avant tout clic
+    const jsonBefore = toJSON(doc.getState());
+
+    view.setDocument(doc);
+
+    // Enregistrement d'un espion sur onCommandRequested
+    const commandSpy = vi.fn();
+    view.onCommandRequested(commandSpy);
+
+    // Clic sur le mur au centre de l'écran (500, 300)
+    canvas.dispatchEvent(
+      new PointerEvent('pointerdown', {
+        clientX: 500,
+        clientY: 300,
+        button: 0,
+      }),
+    );
+    canvas.dispatchEvent(
+      new PointerEvent('pointerup', {
+        clientX: 500,
+        clientY: 300,
+        button: 0,
+      }),
+    );
+
+    // 1. Le mur a bien été sélectionné
+    expect(view.getSelectedIds()).toEqual(['w_immutable_check']);
+
+    // 2. RÈGLE D'OR : Le document est strictement identique (zéro mutation)
+    const jsonAfter = toJSON(doc.getState());
+    expect(jsonAfter).toBe(jsonBefore);
+    expect(JSON.parse(jsonAfter)).toEqual(JSON.parse(jsonBefore));
+
+    // 3. La sélection n'étant pas une mutation documentaire, onCommandRequested n'a été appelé 0 fois
+    expect(commandSpy).toHaveBeenCalledTimes(0);
+
+    view.dispose();
+  });
+
+  it('ResizeObserver : déconnecté proprement lors de dispose() s’il est actif dans l’environnement', () => {
+    const disconnectSpy = vi.fn();
+    const observeSpy = vi.fn();
+
+    // Mock temporaire global de ResizeObserver
+    class MockResizeObserver {
+      public observe = observeSpy;
+      public unobserve = vi.fn();
+      public disconnect = disconnectSpy;
+    }
+
+    const originalRO = globalThis.ResizeObserver;
+    // @ts-expect-error Mock ResizeObserver pour test d'environnement
+    globalThis.ResizeObserver = MockResizeObserver;
+
+    try {
+      const { canvas } = createMockCanvas(800, 600);
+      const view = new View2D(canvas);
+
+      expect(observeSpy).toHaveBeenCalledWith(canvas);
+
+      view.dispose();
+
+      // Vérification que disconnect a bien été appelé lors du dispose
+      expect(disconnectSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      globalThis.ResizeObserver = originalRO;
+    }
   });
 });

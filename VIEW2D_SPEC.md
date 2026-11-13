@@ -46,14 +46,19 @@ flowchart TD
     subgraph View2D ["@mini-bim/view-2d"]
         T2D["Transform2D<br/>- worldToScreen (Y-up -> Y-down)<br/>- screenToWorld (Inversion)<br/>- zoomAt(point) & panByScreen()"]
         REND["renderer.ts (Fonctions pures)<br/>- clearCanvas()<br/>- drawGrid() (Adaptive)<br/>- drawWall() (Poché + Contour + Axe)<br/>- renderPlanView()"]
-        V2D["View2D (Contrôleur Impératif)<br/>- Gestionnaire Canvas 2D<br/>- Demand-Driven Rendering<br/>- Hit-Testing & Sélection<br/>- onCommandRequested(cb)"]
+        HIT["hit-test.ts (Module Découplé)<br/>- findWallAtScreen()<br/>- hitTestWall()<br/>- isPointInsideOrNearFootprint()"]
+        V2D["View2D (Contrôleur Impératif)<br/>- Gestionnaire Canvas 2D<br/>- Demand-Driven Rendering<br/>- Sélection & Events<br/>- onCommandRequested(cb)"]
     end
 
     BD -->|Lecture de l'état| V2D
+    BD -->|Lecture de l'état| HIT
     FP -->|Calcul d'emprise| REND
+    FP -->|Calcul d'emprise| HIT
     VEC --> T2D
     T2D --> REND
+    T2D --> HIT
     REND --> V2D
+    HIT --> V2D
     V2D -.->|Émet sans muter| CMD
 ```
 
@@ -168,9 +173,11 @@ export interface View2DOptions {
 | `emitCommand(command)` | Émet une commande vers les écouteurs sans JAMAIS muter le document. |
 | `dispose()` | Libère tous les écouteurs d'événements DOM et observateurs de redimensionnement. |
 
-### 5.3 Algorithme de Hit-Testing
+### 5.3 Module de Hit-Testing Découplé (`hit-test.ts`)
 
-La détection d'un clic sur un mur combine deux critères complémentaires :
+Conformément aux principes de modularité, la logique de détection de clic est extraite dans un module pur et indépendant (`hit-test.ts`), exporté par l'API publique du package pour être directement réutilisé par les outils interactifs (`WallTool`) en Phase 2.2 sans aucune duplication de code.
+
+La détection combine deux critères géométriques rigoureux :
 1. **Distance au segment d'axe :** Calcul via `distancePointToSegment` de `@mini-bim/geometry`. Le clic est pré-sélectionné si $\text{dist} \le \frac{e}{2} + \text{toleranceMm}$.
 2. **Inclusion dans l'emprise polygonale (Poché) :** Test des 4 demi-plans CCW formés par les sommets $[V_0, V_1, V_2, V_3]$ du rectangle d'emprise issu de `computeWallFootprint2d`.
 3. **Ordre de parcours :** Les murs sont testés en ordre inverse de création (du plus récent au plus ancien) pour sélectionner l'élément visible au premier plan.
@@ -179,8 +186,9 @@ La détection d'un clic sur un mur combine deux critères complémentaires :
 
 ## 6. Couverture de Tests Automatisés
 
-Le package est validé à 100% en environnement headless Vitest / JSDOM (29 tests unitaires et d'intégration) :
-- `transform.test.ts` (11 tests) : inversion mathématique $\Delta < 10^{-9}$, Y-up $\to$ Y-down, zoom centré invariant, zoomToFit, pan, limites d'échelle.
-- `renderer.test.ts` (8 tests) : clearCanvas, grille adaptative, axes, poché, contour, axe pointillé, surbrillance de sélection, filtre de niveau.
-- `View2D.test.ts` (10 tests) : initialisation, rendu à la demande, hit-testing, sélection interactive, règle d'or d'émission de commande sans mutation de document, molette, pan, zoomToFit, resize, dispose.
+Le package est validé à 100% en environnement headless Vitest / JSDOM (35 tests unitaires et d'intégration) :
+- `transform.test.ts` (12 tests) : inversion mathématique $\Delta < 10^{-9}$, Y-up $\to$ Y-down, bijection sur cas asymétriques (+Y, -Y, +X/+Y, -X/-Y), zoom centré invariant, zoomToFit, pan, limites d'échelle.
+- `hit-test.test.ts` (3 tests) : test de footprint polygonale, hitTestWall, findWallAtScreen avec filtre de niveau.
+- `renderer.test.ts` (8 tests) : clearCanvas, grille adaptative avec seuil anti-saturation, axes, poché, contour, axe pointillé, surbrillance de sélection, filtre de niveau.
+- `View2D.test.ts` (12 tests) : initialisation, rendu à la demande, hit-testing, sélection interactive, règle d'or d'émission de commande sans mutation de document, immutabilité stricte du document au clic (`doc.toJSON()` invariant), molette, pan, zoomToFit, resize, dispose, déconnexion du ResizeObserver.
 $$

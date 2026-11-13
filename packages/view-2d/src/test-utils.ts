@@ -13,7 +13,19 @@ export interface MockCanvasContext {
 }
 
 /**
- * Crée un mock de contexte CanvasRenderingContext2D pour environnement de test headless Vitest/jsdom.
+ * Validateur d'arguments numériques finis conforme à la spécification W3C HTML Canvas 2D Context.
+ */
+function assertFiniteNumber(val: unknown, paramName: string, method: string): void {
+  if (typeof val !== 'number' || !Number.isFinite(val)) {
+    throw new TypeError(
+      `CanvasRenderingContext2D.${method}: Le paramètre '${paramName}' doit être un nombre fini (reçu : ${String(val)})`,
+    );
+  }
+}
+
+/**
+ * Crée un mock robuste de contexte CanvasRenderingContext2D avec validation stricte
+ * des signatures et types de paramètres (détection des NaN, undefined et arguments non finis).
  */
 export function createMockCanvas(
   width: number = 800,
@@ -36,25 +48,82 @@ export function createMockCanvas(
     lineWidth: 1,
     lineJoin: 'miter' as CanvasLineJoin,
 
-    save: vi.fn(() => record('save', [])),
-    restore: vi.fn(() => record('restore', [])),
-    beginPath: vi.fn(() => record('beginPath', [])),
-    closePath: vi.fn(() => record('closePath', [])),
-    moveTo: vi.fn((x: number, y: number) => record('moveTo', [x, y])),
-    lineTo: vi.fn((x: number, y: number) => record('lineTo', [x, y])),
-    stroke: vi.fn(() => record('stroke', [])),
-    fill: vi.fn(() => record('fill', [])),
-    fillRect: vi.fn((x: number, y: number, w: number, h: number) =>
-      record('fillRect', [x, y, w, h]),
-    ),
-    clearRect: vi.fn((x: number, y: number, w: number, h: number) =>
-      record('clearRect', [x, y, w, h]),
-    ),
+    save: vi.fn(() => {
+      record('save', []);
+    }),
+
+    restore: vi.fn(() => {
+      record('restore', []);
+    }),
+
+    beginPath: vi.fn(() => {
+      record('beginPath', []);
+    }),
+
+    closePath: vi.fn(() => {
+      record('closePath', []);
+    }),
+
+    moveTo: vi.fn((x: number, y: number) => {
+      assertFiniteNumber(x, 'x', 'moveTo');
+      assertFiniteNumber(y, 'y', 'moveTo');
+      record('moveTo', [x, y]);
+    }),
+
+    lineTo: vi.fn((x: number, y: number) => {
+      assertFiniteNumber(x, 'x', 'lineTo');
+      assertFiniteNumber(y, 'y', 'lineTo');
+      record('lineTo', [x, y]);
+    }),
+
+    stroke: vi.fn(() => {
+      record('stroke', []);
+    }),
+
+    fill: vi.fn(() => {
+      record('fill', []);
+    }),
+
+    fillRect: vi.fn((x: number, y: number, w: number, h: number) => {
+      assertFiniteNumber(x, 'x', 'fillRect');
+      assertFiniteNumber(y, 'y', 'fillRect');
+      assertFiniteNumber(w, 'width', 'fillRect');
+      assertFiniteNumber(h, 'height', 'fillRect');
+      if (w < 0 || h < 0) {
+        throw new RangeError(
+          `CanvasRenderingContext2D.fillRect: width et height doivent être >= 0 (reçu: ${w}x${h})`,
+        );
+      }
+      record('fillRect', [x, y, w, h]);
+    }),
+
+    clearRect: vi.fn((x: number, y: number, w: number, h: number) => {
+      assertFiniteNumber(x, 'x', 'clearRect');
+      assertFiniteNumber(y, 'y', 'clearRect');
+      assertFiniteNumber(w, 'width', 'clearRect');
+      assertFiniteNumber(h, 'height', 'clearRect');
+      record('clearRect', [x, y, w, h]);
+    }),
+
     setLineDash: vi.fn((segments: number[]) => {
+      if (!Array.isArray(segments)) {
+        throw new TypeError(
+          'CanvasRenderingContext2D.setLineDash: Le paramètre doit être un tableau.',
+        );
+      }
+      for (let i = 0; i < segments.length; i++) {
+        const seg = segments[i];
+        if (typeof seg !== 'number' || !Number.isFinite(seg) || seg < 0) {
+          throw new TypeError(
+            `CanvasRenderingContext2D.setLineDash: Chaque segment doit être un nombre fini positif (reçu: ${String(seg)})`,
+          );
+        }
+      }
       lineDash.length = 0;
       lineDash.push(...segments);
       record('setLineDash', [segments]);
     }),
+
     getLineDash: vi.fn(() => [...lineDash]),
   } as unknown as CanvasRenderingContext2D;
 

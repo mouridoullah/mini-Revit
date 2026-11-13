@@ -63,6 +63,54 @@ describe('Transform2D (transform.ts)', () => {
     expect(eastPt.y).toBe(300);
   });
 
+  it('bijection Y-up / Y-down sur configurations asymétriques (+Y, -Y, +X/+Y, -X/-Y)', () => {
+    const t = new Transform2D({
+      origin: vec2(0, 0),
+      scale: 0.1, // 100 px pour 1000 mm -> 1 px = 10 mm
+      viewportWidth: 800,
+      viewportHeight: 600,
+    });
+    // Centre écran : cx = 400, cy = 300
+
+    // 1. Point avec Y positif seul (0, 500) -> monte à l'écran (ys diminue sous cy = 300)
+    const pYPos = vec2(0, 500);
+    const sYPos = t.worldToScreen(pYPos);
+    expect(sYPos.x).toBe(400);
+    expect(sYPos.y).toBe(250); // 300 - 50 = 250 (< 300)
+    expect(sYPos.y).toBeLessThan(300);
+    const rYPos = t.screenToWorld(sYPos);
+    expect(Math.abs(rYPos.x - pYPos.x)).toBeLessThan(1e-6);
+    expect(Math.abs(rYPos.y - pYPos.y)).toBeLessThan(1e-6);
+
+    // 2. Point avec Y négatif seul (0, -500) -> descend à l'écran (ys augmente au-dessus de cy = 300)
+    const pYNeg = vec2(0, -500);
+    const sYNeg = t.worldToScreen(pYNeg);
+    expect(sYNeg.x).toBe(400);
+    expect(sYNeg.y).toBe(350); // 300 + 50 = 350 (> 300)
+    expect(sYNeg.y).toBeGreaterThan(300);
+    const rYNeg = t.screenToWorld(sYNeg);
+    expect(Math.abs(rYNeg.x - pYNeg.x)).toBeLessThan(1e-6);
+    expect(Math.abs(rYNeg.y - pYNeg.y)).toBeLessThan(1e-6);
+
+    // 3. Point asymétrique (+X, +Y) : (100, 200) -> xs = 410, ys = 280
+    const pXYPos = vec2(100, 200);
+    const sXYPos = t.worldToScreen(pXYPos);
+    expect(sXYPos.x).toBe(410); // 400 + 10
+    expect(sXYPos.y).toBe(280); // 300 - 20
+    const rXYPos = t.screenToWorld(sXYPos);
+    expect(Math.abs(rXYPos.x - pXYPos.x)).toBeLessThan(1e-6);
+    expect(Math.abs(rXYPos.y - pXYPos.y)).toBeLessThan(1e-6);
+
+    // 4. Point asymétrique (-X, -Y) : (-50, -300) -> xs = 395, ys = 330
+    const pXYNeg = vec2(-50, -300);
+    const sXYNeg = t.worldToScreen(pXYNeg);
+    expect(sXYNeg.x).toBe(395); // 400 - 5
+    expect(sXYNeg.y).toBe(330); // 300 + 30
+    const rXYNeg = t.screenToWorld(sXYNeg);
+    expect(Math.abs(rXYNeg.x - pXYNeg.x)).toBeLessThan(1e-6);
+    expect(Math.abs(rXYNeg.y - pXYNeg.y)).toBeLessThan(1e-6);
+  });
+
   it('inversibilité mathématique stricte : screenToWorld(worldToScreen(P)) == P à 1e-9 mm près', () => {
     const t = new Transform2D({
       origin: vec2(1234.56, -987.65),

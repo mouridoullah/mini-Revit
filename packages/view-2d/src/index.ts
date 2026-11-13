@@ -18,3 +18,9 @@ export {
   renderPlanView,
 } from './renderer.js';
 export { View2D } from './View2D.js';
+export {
+  isPointInsideOrNearFootprint,
+  hitTestWall,
+  findWallAtScreen,
+  type HitTestOptions,
+} from './hit-test.js';

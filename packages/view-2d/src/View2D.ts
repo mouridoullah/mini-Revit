@@ -1,13 +1,8 @@
 import { type BimDocument, type Command } from '@mini-bim/core';
-import {
-  type Vec2,
-  vec2,
-  distancePointToSegment,
-  computeWallFootprint2d,
-  distance,
-} from '@mini-bim/geometry';
+import { type Vec2, vec2, distance } from '@mini-bim/geometry';
 import { Transform2D } from './transform.js';
 import { renderPlanView, DEFAULT_VIEW2D_RENDER_CONFIG } from './renderer.js';
+import { findWallAtScreen } from './hit-test.js';
 import {
   type View2DOptions,
   type View2DRenderConfig,
@@ -276,7 +271,7 @@ export class View2D {
 
   /**
    * Détecte l'élément architectural situé sous une coordonnée écran du canvas.
-   * Utilise l'épaisseur réelle du mur issue du WallType et une tolérance de sélection.
+   * Délègue à la fonction pure et partagée `findWallAtScreen` (hit-test.ts).
    *
    * @param screenPos Position en pixels dans l'espace écran du canvas.
    * @param hitTolerancePx Tolérance de clic en pixels (défaut : 6 px).
@@ -284,82 +279,10 @@ export class View2D {
    */
   public hitTest(screenPos: Vec2, hitTolerancePx: number = 6): string | null {
     if (!this.doc) return null;
-
-    const worldPos = this.transform.screenToWorld(screenPos);
-    const toleranceMm = this.transform.screenDistanceToWorld(hitTolerancePx);
-    const state = this.doc.getState();
-
-    // Parcours en sens inverse (dernier dessiné = au premier plan)
-    const walls = Object.values(state.walls);
-    for (let i = walls.length - 1; i >= 0; i--) {
-      const wall = walls[i];
-      if (!wall) continue;
-
-      if (this.activeLevelId && wall.levelId !== this.activeLevelId) {
-        continue;
-      }
-
-      const wallType = state.wallTypes[wall.typeId];
-      if (!wallType) continue;
-
-      // Distance au segment d'axe
-      const dist = distancePointToSegment(worldPos, { start: wall.start, end: wall.end });
-      const maxDistance = wallType.thickness / 2 + toleranceMm;
-
-      if (dist <= maxDistance) {
-        // Validation fine par emprise 2D
-        try {
-          const footprint = computeWallFootprint2d({
-            start: wall.start,
-            end: wall.end,
-            thickness: wallType.thickness,
-            locationLine: 'center',
-          });
-          if (this.isPointInsideOrNearPolygon(worldPos, footprint.vertices, toleranceMm)) {
-            return wall.id;
-          }
-        } catch {
-          // Si le calcul d'emprise échoue, la vérification par distance au segment suffit
-          return wall.id;
-        }
-      }
-    }
-
-    return null;
-  }
-
-  private isPointInsideOrNearPolygon(
-    pt: Vec2,
-    poly: readonly [Vec2, Vec2, Vec2, Vec2],
-    toleranceMm: number,
-  ): boolean {
-    const [v0, v1, v2, v3] = poly;
-    const edges: readonly [
-      readonly [Vec2, Vec2],
-      readonly [Vec2, Vec2],
-      readonly [Vec2, Vec2],
-      readonly [Vec2, Vec2],
-    ] = [
-      [v0, v1],
-      [v1, v2],
-      [v2, v3],
-      [v3, v0],
-    ];
-
-    // Vérification par demi-plans CCW avec tolérance
-    for (const [vCur, vNext] of edges) {
-      const edge = vec2(vNext.x - vCur.x, vNext.y - vCur.y);
-      const toPt = vec2(pt.x - vCur.x, pt.y - vCur.y);
-      // Produit vectoriel 2D (z-component) : edge.x * toPt.y - edge.y * toPt.x
-      const cross = edge.x * toPt.y - edge.y * toPt.x;
-      const edgeLen = Math.hypot(edge.x, edge.y);
-
-      // Si le point est à l'extérieur au-delà de la tolérance
-      if (cross < -toleranceMm * edgeLen) {
-        return false;
-      }
-    }
-    return true;
+    return findWallAtScreen(screenPos, this.transform, this.doc, {
+      hitTolerancePx,
+      activeLevelId: this.activeLevelId,
+    });
   }
 
   // ---------------------------------------------------------------------------
