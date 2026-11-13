@@ -147,4 +147,124 @@ describe('BimDocument & CommandBus (document.ts)', () => {
 
     expect(restoredDoc.getState()).toEqual(doc.getState());
   });
+
+  it('flux execute rejette strictement les configurations invalides via les règles métier', () => {
+    const doc = BimDocument.createDefaultProject();
+    const state = doc.getState();
+    const levelId = Object.keys(state.levels)[0]!;
+    const typeId = Object.keys(state.wallTypes)[0]!;
+
+    // 1. Longueur nulle
+    expect(() =>
+      doc.execute(
+        new Commands.AddWallCommand({
+          id: 'w_bad_len',
+          category: 'wall',
+          typeId,
+          levelId,
+          start: vec2(100, 100),
+          end: vec2(100, 100),
+        }),
+      ),
+    ).toThrowError(/INVALID_WALL_LENGTH/);
+
+    // 2. Type inexistant
+    expect(() =>
+      doc.execute(
+        new Commands.AddWallCommand({
+          id: 'w_bad_type',
+          category: 'wall',
+          typeId: 'non_existent_type',
+          levelId,
+          start: vec2(0, 0),
+          end: vec2(1000, 0),
+        }),
+      ),
+    ).toThrowError(/UNKNOWN_WALL_TYPE/);
+
+    // 3. Niveau inexistant
+    expect(() =>
+      doc.execute(
+        new Commands.AddWallCommand({
+          id: 'w_bad_lvl',
+          category: 'wall',
+          typeId,
+          levelId: 'non_existent_level',
+          start: vec2(0, 0),
+          end: vec2(1000, 0),
+        }),
+      ),
+    ).toThrowError(/UNKNOWN_LEVEL/);
+
+    // Insérer un mur valide pour tester les rejets en mise à jour et suppression
+    const wallId = 'w_valid_1';
+    doc.execute(
+      new Commands.AddWallCommand({
+        id: wallId,
+        category: 'wall',
+        typeId,
+        levelId,
+        start: vec2(0, 0),
+        end: vec2(4000, 0),
+      }),
+    );
+
+    // 4. UpdateWall rendant le mur invalide (longueur nulle)
+    expect(() =>
+      doc.execute(
+        new Commands.UpdateWallCommand(wallId, {
+          end: vec2(0, 0),
+        }),
+      ),
+    ).toThrowError(/INVALID_WALL_LENGTH/);
+
+    // 5. DeleteLevel avec mur rattaché
+    expect(() => doc.execute(new Commands.DeleteLevelCommand(levelId))).toThrowError(
+      /DELETE_LEVEL_REJECTED/,
+    );
+
+    // 6. DeleteWallType avec mur l'utilisant
+    expect(() => doc.execute(new Commands.DeleteWallTypeCommand(typeId))).toThrowError(
+      /DELETE_WALL_TYPE_REJECTED/,
+    );
+  });
+
+  it('isolation des abonnés : un subscriber défaillant qui throw ne casse pas execute ni les autres subscribers', () => {
+    const doc = BimDocument.createDefaultProject();
+    const state = doc.getState();
+    const levelId = Object.keys(state.levels)[0]!;
+    const typeId = Object.keys(state.wallTypes)[0]!;
+
+    const healthySubscriber1 = vi.fn();
+    const faultySubscriber = vi.fn(() => {
+      throw new Error('Explosion dans le subscriber UI');
+    });
+    const healthySubscriber2 = vi.fn();
+
+    // Supprimer temporairement le console.error dans ce test
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    doc.subscribe(healthySubscriber1);
+    doc.subscribe(faultySubscriber);
+    doc.subscribe(healthySubscriber2);
+
+    const wallId = 'wall_isolated';
+    const res = doc.execute(
+      new Commands.AddWallCommand({
+        id: wallId,
+        category: 'wall',
+        typeId,
+        levelId,
+        start: vec2(0, 0),
+        end: vec2(2000, 0),
+      }),
+    );
+
+    expect(res.changed).toEqual([wallId]);
+    expect(healthySubscriber1).toHaveBeenCalledWith([wallId]);
+    expect(faultySubscriber).toHaveBeenCalledWith([wallId]);
+    expect(healthySubscriber2).toHaveBeenCalledWith([wallId]);
+
+    consoleSpy.mockRestore();
+  });
 });

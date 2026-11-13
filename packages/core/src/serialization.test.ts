@@ -114,4 +114,89 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
     expect(() => fromJSON(JSON.stringify(badWallState))).toThrowError(BimValidationError);
     expect(() => fromJSON(JSON.stringify(badWallState))).toThrowError(/MALFORMED_WALL/);
   });
+
+  it('rejette un mur référençant un WallType ou un Level inexistant (intégrité référentielle)', () => {
+    const orphanTypeState = {
+      ...sampleState,
+      walls: {
+        w_orphan: {
+          id: 'w_orphan',
+          category: 'wall',
+          typeId: 'wt_unknown',
+          levelId: 'lvl_01',
+          start: { x: 0, y: 0 },
+          end: { x: 1000, y: 0 },
+        },
+      },
+    };
+    expect(() => fromJSON(JSON.stringify(orphanTypeState))).toThrowError(/UNKNOWN_WALL_TYPE/);
+
+    const orphanLevelState = {
+      ...sampleState,
+      walls: {
+        w_orphan: {
+          id: 'w_orphan',
+          category: 'wall',
+          typeId: 'wt_01',
+          levelId: 'lvl_unknown',
+          start: { x: 0, y: 0 },
+          end: { x: 1000, y: 0 },
+        },
+      },
+    };
+    expect(() => fromJSON(JSON.stringify(orphanLevelState))).toThrowError(/UNKNOWN_LEVEL/);
+  });
+
+  it('rejette un mur avec category invalide ou coordonnées non-finies / NaN', () => {
+    const badCategoryState = {
+      ...sampleState,
+      walls: {
+        w_cat: {
+          ...sampleState.walls['w_01'],
+          category: 'door',
+        },
+      },
+    };
+    expect(() => fromJSON(JSON.stringify(badCategoryState))).toThrowError(/MALFORMED_WALL/);
+
+    const nanCoordState = {
+      ...sampleState,
+      walls: {
+        w_nan: {
+          ...sampleState.walls['w_01'],
+          start: { x: Number.NaN, y: 0 },
+        },
+      },
+    };
+    expect(() => fromJSON(JSON.stringify(nanCoordState))).toThrowError(/MALFORMED_WALL/);
+  });
+
+  it('rejette une discordance entre la clé du dictionnaire et l’id interne de l’élément', () => {
+    const keyMismatchState = {
+      ...sampleState,
+      levels: {
+        key_01: {
+          id: 'internal_id_different',
+          name: 'Niveau Mismatch',
+          elevation: 0,
+        },
+      },
+    };
+    expect(() => fromJSON(JSON.stringify(keyMismatchState))).toThrowError(/MALFORMED_LEVEL/);
+  });
+
+  it('rejette un mur de longueur nulle dans le fichier sérialisé', () => {
+    const zeroLengthState = {
+      ...sampleState,
+      walls: {
+        w_zero: {
+          ...sampleState.walls['w_01'],
+          id: 'w_zero',
+          start: { x: 1000, y: 1000 },
+          end: { x: 1000, y: 1000 },
+        },
+      },
+    };
+    expect(() => fromJSON(JSON.stringify(zeroLengthState))).toThrowError(/INVALID_WALL_LENGTH/);
+  });
 });

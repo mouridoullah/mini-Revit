@@ -72,17 +72,23 @@ export function fromJSON(jsonString: string): BimState {
     );
   }
 
-  // 4. Validation des éléments constitutifs
+  // 4. Validation des éléments constitutifs et intégrité référentielle
   const levels = raw['levels'] as Record<string, unknown>;
   for (const [id, lvl] of Object.entries(levels)) {
     if (!lvl || typeof lvl !== 'object') {
       throw new BimValidationError('MALFORMED_LEVEL', `Malformed level entry at "${id}".`);
     }
     const l = lvl as Record<string, unknown>;
-    if (typeof l['name'] !== 'string' || typeof l['elevation'] !== 'number') {
+    if (l['id'] !== id) {
       throw new BimValidationError(
         'MALFORMED_LEVEL',
-        `Level "${id}" is missing required fields (name: string, elevation: number).`,
+        `Level dictionary key "${id}" does not match internal id "${String(l['id'])}".`,
+      );
+    }
+    if (typeof l['name'] !== 'string' || !Number.isFinite(l['elevation'])) {
+      throw new BimValidationError(
+        'MALFORMED_LEVEL',
+        `Level "${id}" is missing required fields (name: string, elevation: finite number).`,
       );
     }
   }
@@ -93,14 +99,22 @@ export function fromJSON(jsonString: string): BimState {
       throw new BimValidationError('MALFORMED_WALL_TYPE', `Malformed wallType entry at "${id}".`);
     }
     const t = wt as Record<string, unknown>;
+    if (t['id'] !== id) {
+      throw new BimValidationError(
+        'MALFORMED_WALL_TYPE',
+        `WallType dictionary key "${id}" does not match internal id "${String(t['id'])}".`,
+      );
+    }
     if (
       typeof t['name'] !== 'string' ||
-      typeof t['thickness'] !== 'number' ||
-      typeof t['height'] !== 'number'
+      !Number.isFinite(t['thickness']) ||
+      (t['thickness'] as number) <= 0 ||
+      !Number.isFinite(t['height']) ||
+      (t['height'] as number) <= 0
     ) {
       throw new BimValidationError(
         'MALFORMED_WALL_TYPE',
-        `WallType "${id}" is missing required fields (name, thickness, height).`,
+        `WallType "${id}" is missing required fields or has invalid dimensions.`,
       );
     }
   }
@@ -111,23 +125,66 @@ export function fromJSON(jsonString: string): BimState {
       throw new BimValidationError('MALFORMED_WALL', `Malformed wall entry at "${id}".`);
     }
     const wall = w as Record<string, unknown>;
+    if (wall['id'] !== id) {
+      throw new BimValidationError(
+        'MALFORMED_WALL',
+        `Wall dictionary key "${id}" does not match internal id "${String(wall['id'])}".`,
+      );
+    }
+    if (
+      wall['category'] !== 'wall' ||
+      typeof wall['typeId'] !== 'string' ||
+      typeof wall['levelId'] !== 'string'
+    ) {
+      throw new BimValidationError(
+        'MALFORMED_WALL',
+        `Wall "${id}" is missing required fields or has invalid category.`,
+      );
+    }
+
+    const typeId = wall['typeId'];
+    if (!wallTypes[typeId]) {
+      throw new BimValidationError(
+        'UNKNOWN_WALL_TYPE',
+        `Wall "${id}" references non-existent WallType ID: "${typeId}".`,
+      );
+    }
+
+    const levelId = wall['levelId'];
+    if (!levels[levelId]) {
+      throw new BimValidationError(
+        'UNKNOWN_LEVEL',
+        `Wall "${id}" references non-existent Level ID: "${levelId}".`,
+      );
+    }
+
     const start = wall['start'] as Record<string, unknown> | undefined;
     const end = wall['end'] as Record<string, unknown> | undefined;
 
     if (
-      wall['category'] !== 'wall' ||
-      typeof wall['typeId'] !== 'string' ||
-      typeof wall['levelId'] !== 'string' ||
       !start ||
-      typeof start['x'] !== 'number' ||
-      typeof start['y'] !== 'number' ||
+      !Number.isFinite(start['x']) ||
+      !Number.isFinite(start['y']) ||
       !end ||
-      typeof end['x'] !== 'number' ||
-      typeof end['y'] !== 'number'
+      !Number.isFinite(end['x']) ||
+      !Number.isFinite(end['y'])
     ) {
       throw new BimValidationError(
         'MALFORMED_WALL',
-        `Wall "${id}" is missing required fields (typeId, levelId, start: Vec2, end: Vec2).`,
+        `Wall "${id}" has non-finite start or end coordinates.`,
+      );
+    }
+
+    const sx = start['x'] as number;
+    const sy = start['y'] as number;
+    const ex = end['x'] as number;
+    const ey = end['y'] as number;
+    const len = Math.hypot(ex - sx, ey - sy);
+
+    if (len <= 1e-4) {
+      throw new BimValidationError(
+        'INVALID_WALL_LENGTH',
+        `Wall "${id}" has non-positive length (${len} mm).`,
       );
     }
   }
