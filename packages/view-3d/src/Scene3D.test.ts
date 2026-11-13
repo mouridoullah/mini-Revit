@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { type RawMeshData } from '@mini-bim/geometry';
 import { Scene3D } from './Scene3D.js';
 
-// Mock de THREE.WebGLRenderer pour environnement headless / CI sans GPU matériel
+// Mock ciblé de THREE.WebGLRenderer pour environnement headless / CI sans GPU matériel
 vi.mock('three', async (importOriginal) => {
   const actual = await importOriginal<typeof import('three')>();
 
@@ -13,6 +13,38 @@ vi.mock('three', async (importOriginal) => {
     public setPixelRatio = vi.fn();
     public render = vi.fn();
     public dispose = vi.fn();
+    public clear = vi.fn();
+    public clearColor = vi.fn();
+    public clearDepth = vi.fn();
+    public clearStencil = vi.fn();
+    public getPixelRatio = vi.fn(() => 1);
+    public getContext = vi.fn(() => null);
+
+    public capabilities = {
+      isWebGL2: true,
+      maxTextures: 16,
+      maxVertexTextures: 16,
+      maxTextureSize: 4096,
+      maxCubemapSize: 4096,
+      maxAttributes: 16,
+      maxVertexUniforms: 1024,
+      maxVaryings: 32,
+      maxFragmentUniforms: 1024,
+      vertexTextures: true,
+      floatFragmentTextures: true,
+      floatVertexTextures: true,
+      logarithmicDepthBuffer: false,
+    };
+
+    public info = {
+      render: { calls: 0, frame: 0, lines: 0, points: 0, triangles: 0 },
+      memory: { geometries: 0, textures: 0 },
+    };
+
+    public shadowMap = {
+      enabled: false,
+      type: 1,
+    };
 
     public constructor(parameters?: { canvas?: HTMLCanvasElement }) {
       this.domElement =
@@ -73,17 +105,68 @@ describe('Scene3D — Gestionnaire de scène 3D Three.js impératif', () => {
     expect(camera.position.y).toBeCloseTo(5000, 3);
     expect(camera.position.z).toBeCloseTo(3000, 3);
 
-    const scene = scene3d.getScene();
-    expect(scene).toBeInstanceOf(THREE.Scene);
-
     const controls = scene3d.getControls();
     expect(controls).toBeDefined();
+    expect(controls.object).toBe(camera);
+    expect(controls.object.up.z).toBe(1);
     expect(controls.target.x).toBe(1000);
     expect(controls.target.y).toBe(500);
     expect(controls.target.z).toBe(0);
 
+    // Vérification que la caméra pointe rigoureusement vers cameraTarget
+    const worldDir = new THREE.Vector3();
+    camera.getWorldDirection(worldDir);
+    const expectedDir = new THREE.Vector3(1000 - 5000, 500 - 5000, 0 - 3000).normalize();
+    expect(worldDir.dot(expectedDir)).toBeCloseTo(1.0, 4);
+
+    // Vérification que controls.getPolarAngle() est cohérent avec Z-up
+    // Vecteur cible->caméra : (4000, 4500, 3000). Angle avec +Z = acos(3000 / hypot(4000, 4500, 3000))
+    const expectedPolarAngle = Math.acos(3000 / Math.hypot(4000, 4500, 3000));
+    expect(controls.getPolarAngle()).toBeCloseTo(expectedPolarAngle, 3);
+
+    const scene = scene3d.getScene();
+    expect(scene).toBeInstanceOf(THREE.Scene);
+
     // Initialement, 0 mesh architectural
     expect(scene3d.getMeshCount()).toBe(0);
+
+    scene3d.dispose();
+  });
+
+  it('interaction OrbitControls : un événement change déclenche bien render() à la demande', () => {
+    const scene3d = new Scene3D(canvas, { width: 800, height: 600 });
+    const renderer = scene3d.getRenderer();
+    const renderSpy = vi.spyOn(renderer, 'render');
+
+    // Réinitialiser le compteur de spy après le rendu initial du constructeur
+    renderSpy.mockClear();
+    expect(renderSpy).not.toHaveBeenCalled();
+
+    // Déclencher artificiellement l'événement 'change' émis par OrbitControls
+    scene3d.getControls().dispatchEvent({ type: 'change' });
+
+    // Vérifier que le rendu à la demande a bien été déclenché
+    expect(renderSpy).toHaveBeenCalledTimes(1);
+
+    scene3d.dispose();
+  });
+
+  it('intégrité Three.js : seul WebGLRenderer est mocké, Scene, Mesh, Camera et BufferGeometry sont les vraies classes Three.js', () => {
+    const scene3d = new Scene3D(canvas, { width: 800, height: 600 });
+    const rawData = createSampleRawMesh('w_real');
+    const mesh = scene3d.addMesh(rawData);
+
+    // Vérifier que ce sont les véritables instances de classes Three.js natives
+    expect(scene3d.getScene()).toBeInstanceOf(THREE.Scene);
+    expect(scene3d.getCamera()).toBeInstanceOf(THREE.PerspectiveCamera);
+    expect(mesh).toBeInstanceOf(THREE.Mesh);
+    expect(mesh.geometry).toBeInstanceOf(THREE.BufferGeometry);
+    expect(mesh.material).toBeInstanceOf(THREE.MeshStandardMaterial);
+
+    // Méthodes prototypes Three.js natives non altérées
+    expect(typeof mesh.geometry.computeVertexNormals).toBe('function');
+    expect(typeof mesh.raycast).toBe('function');
+    expect(typeof scene3d.getScene().add).toBe('function');
 
     scene3d.dispose();
   });
