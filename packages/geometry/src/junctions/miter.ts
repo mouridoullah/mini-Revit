@@ -143,6 +143,22 @@ export function solveLMiter(
     };
   }
 
+  // Cas quasi-colinéaire de même direction (0° ou 360°)
+  if (
+    deltaAngle <= GEOM_CONFIG.EPSILON_COLLINEAR ||
+    Math.abs(deltaAngle - 2 * Math.PI) <= GEOM_CONFIG.EPSILON_COLLINEAR
+  ) {
+    const p1Right = add(nodePoint, mul(b1.leftNormal, -b1.rightOffset));
+    const p1Left = add(nodePoint, mul(b1.leftNormal, b1.leftOffset));
+    const p2Right = add(nodePoint, mul(b2.leftNormal, -b2.rightOffset));
+    const p2Left = add(nodePoint, mul(b2.leftNormal, b2.leftOffset));
+
+    return {
+      result1: { wallId: wall1.id, end: end1, vertices: [p1Right, p1Left], isBevelled: false },
+      result2: { wallId: wall2.id, end: end2, vertices: [p2Right, p2Left], isBevelled: false },
+    };
+  }
+
   let corner1: Vec2; // Coin partagé 1
   let corner2: Vec2; // Coin partagé 2
   const corner1Bevelled = false;
@@ -177,17 +193,20 @@ export function solveLMiter(
     }
 
     if (corner2Bevelled) {
-      // Troncature biseautée du coin extérieur excessif
-      // Calcul des points de coupe sur chaque face à distance maxMiterDistance
-      const d1 = b1.outgoingDir;
-      const d2 = b2.outgoingDir;
+      // Troncature biseautée étanche du coin extérieur excessif sur la bissectrice
+      const vExt = sub(corner2, nodePoint);
+      const uBisector = normalize(vExt);
+      const mBevel = add(nodePoint, mul(uBisector, maxMiterDistance));
+      const bevelLine = line2(mBevel, perp(uBisector));
 
-      const p1Cut = add(nodePoint, mul(b1.leftNormal, -b1.rightOffset));
-      const p2Cut = add(nodePoint, mul(b2.leftNormal, b2.leftOffset));
+      const b1Inter = intersectLines(b1.rightLine, bevelLine);
+      const b2Inter = intersectLines(b2.leftLine, bevelLine);
 
-      // Projection clampée
-      w1RightVerts = [add(p1Cut, mul(d1, -maxMiterDistance * 0.25))];
-      w2LeftVerts = [add(p2Cut, mul(d2, -maxMiterDistance * 0.25))];
+      const p1Cut = b1Inter.type === 'point' ? b1Inter.point : corner2;
+      const p2Cut = b2Inter.type === 'point' ? b2Inter.point : corner2;
+
+      w1RightVerts = [p1Cut, mBevel];
+      w2LeftVerts = [mBevel, p2Cut];
     } else {
       w1RightVerts = [corner2];
       w2LeftVerts = [corner2];
@@ -218,13 +237,19 @@ export function solveLMiter(
     }
 
     if (corner2Bevelled) {
-      const d1 = b1.outgoingDir;
-      const d2 = b2.outgoingDir;
-      const p1Cut = add(nodePoint, mul(b1.leftNormal, b1.leftOffset));
-      const p2Cut = add(nodePoint, mul(b2.leftNormal, -b2.rightOffset));
+      const vExt = sub(corner2, nodePoint);
+      const uBisector = normalize(vExt);
+      const mBevel = add(nodePoint, mul(uBisector, maxMiterDistance));
+      const bevelLine = line2(mBevel, perp(uBisector));
 
-      w1LeftVerts = [add(p1Cut, mul(d1, -maxMiterDistance * 0.25))];
-      w2RightVerts = [add(p2Cut, mul(d2, -maxMiterDistance * 0.25))];
+      const b1Inter = intersectLines(b1.leftLine, bevelLine);
+      const b2Inter = intersectLines(b2.rightLine, bevelLine);
+
+      const p1Cut = b1Inter.type === 'point' ? b1Inter.point : corner2;
+      const p2Cut = b2Inter.type === 'point' ? b2Inter.point : corner2;
+
+      w1LeftVerts = [mBevel, p1Cut];
+      w2RightVerts = [p2Cut, mBevel];
     } else {
       w1LeftVerts = [corner2];
       w2RightVerts = [corner2];

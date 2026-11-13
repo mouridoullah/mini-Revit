@@ -106,7 +106,16 @@ describe('Jonctions en L (Miter / Onglet)', () => {
 
     const res = solveLMiter(w1, 'end', w2, 'start', node, 4.0);
     // À 10°, la pointe d'onglet dépasse largement la limite (4 * 200 = 800 mm) et est biseautée
-    expect(res.result1.isBevelled || res.result2.isBevelled).toBe(true);
+    expect(res.result1.isBevelled && res.result2.isBevelled).toBe(true);
+    // Clôture étanche : chaque mur dispose de 3 sommets d'extrémité incluant le biseau
+    expect(res.result1.vertices.length).toBe(3);
+    expect(res.result2.vertices.length).toBe(3);
+
+    // Les deux murs partagent 2 sommets communs sur l'interface (coin intérieur + milieu du biseau)
+    const sharedCount = res.result1.vertices.filter((p1) =>
+      res.result2.vertices.some((p2) => distance(p1, p2) <= 1e-3),
+    ).length;
+    expect(sharedCount).toBe(2);
   });
 
   it('gère des murs d épaisseurs différentes (200 mm et 400 mm)', () => {

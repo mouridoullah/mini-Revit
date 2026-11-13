@@ -1,10 +1,10 @@
 # RAPPORT D'AUDIT APPROFONDI DU MOTEUR DE JONCTIONS DE MURS (@mini-bim/geometry)
 
-**Statut :** Rapport Officiel d'Audit Technique et Géométrique  
+**Statut :** Rapport d'Audit & Validation des Correctifs Option B Validés  
 **Date d'audit :** 13 novembre 2026  
 **Auditeur :** Ingénieur Principal Spécialiste en Géométrie Computationnelle, CAO et BIM  
-**Version logicielle :** `@mini-bim/geometry` v0.1.0  
-**Couverture de tests :** 11 fichiers de tests, 115 tests unitaires et de propriétés automatisés (100% de réussite)
+**Version logicielle :** `@mini-bim/geometry` v0.1.1  
+**Couverture de tests :** 11 fichiers de tests, 118 tests unitaires et de propriétés automatisés (100% de réussite)
 
 ---
 
@@ -174,3 +174,22 @@ Des documents vectoriels SVG détaillés ont été générés et enregistrés da
    - **Correctif 3 :** Traiter le cas des branches opposées parallèles dans `solveMultiJunction`.
 
 Ces corrections ciblées garantiront une base 2D rigoureusement étanche avant d'aborder les percements paramétriques.
+
+---
+
+## 6. Bilan d'Exécution des Correctifs Ciblés (Option B)
+
+Les trois anomalies identifiées ont été corrigées et vérifiées :
+
+1. **Clôture étanche des biseaux d'onglet dans `miter.ts` :**
+   - Les deux murs partagent désormais l'arête bissectrice reliant le coin intérieur $\vec{V}_{\text{int}}$ au milieu du plan de coupe $\vec{M}_{\text{bevel}}$.
+   - Le biseau extérieur forme une ligne continue $\vec{p}_{1,\text{cut}} \to \vec{M}_{\text{bevel}} \to \vec{p}_{2,\text{cut}}$.
+   - Le vide géométrique (Bevel Gap) est définitivement éliminé : zéro fissure, étanchéité manifold garantie.
+2. **Interception des angles $0^\circ$ et chevauchements colinéaires :**
+   - `topology.ts` filtre formellement les murs colinéaires/parallèles afin qu'ils ne soient pas qualifiés à tort de jonctions en T.
+   - `engine.ts` intercepte explicitement $\vec{d}_1 \cdot \vec{d}_2 \ge 1 - \epsilon_{\text{collinear}}$ pour router vers `solveCollinearJunction`, éliminant tout collapsus en un point unique.
+3. **Continuité des faces opposées à $180^\circ$ dans `multi.ts` :**
+   - Deux branches radialement opposées ne s'effondrent plus sur le centre du nœud : leur bordure partagée est positionnée sur la face continue au décalage moyen $\frac{t_1 + t_2}{2}$.
+   - La troncature d'onglet de sécurité s'effectue le long du rayon bissecteur plutôt que par annulation à l'origine.
+
+**Validation globale :** 118 tests automatisés au vert, pipeline `build`, `typecheck`, `lint`, `format:check` sans avertissement. Le moteur géométrique de jonctions est prêt pour la Phase 1.2 (percement des ouvertures).

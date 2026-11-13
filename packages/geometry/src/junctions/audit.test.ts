@@ -439,4 +439,111 @@ describe('AUDIT APPROFONDI DU MOTEUR DE JONCTIONS', () => {
       expect(svg).toContain('<polygon');
     });
   });
+
+  describe('7. Validation des Correctifs Ciblés (Option B - Robustesse Topologique)', () => {
+    it('Anomalie 1 : clôture étanche du biseau d onglet aigu (10°) sans vide ni fissure', () => {
+      const angle10 = (10 * Math.PI) / 180;
+      const node = vec2(2000, 0);
+      const walls: WallInput[] = [
+        { id: 'w1', start: vec2(0, 0), end: node, thickness: 200, locationLine: 'center' },
+        {
+          id: 'w2',
+          start: node,
+          end: vec2(2000 - 2000 * Math.cos(angle10), 2000 * Math.sin(angle10)),
+          thickness: 200,
+          locationLine: 'center',
+        },
+      ];
+
+      const sol = solveWallJunctions(walls);
+      expect(sol.walls.length).toBe(2);
+      expect(sol.junctions[0]!.type).toBe('L');
+      expect((sol.junctions[0]!.details as { isBevelled?: boolean }).isBevelled).toBe(true);
+
+      const res1 = sol.walls.find((w) => w.id === 'w1')!;
+      const res2 = sol.walls.find((w) => w.id === 'w2')!;
+
+      // Les deux polygones sont de surface strictement positive, CCW et simples
+      expect(res1.area).toBeGreaterThan(0);
+      expect(res2.area).toBeGreaterThan(0);
+      expect(isCCW(res1.polygon)).toBe(true);
+      expect(isCCW(res2.polygon)).toBe(true);
+      expect(isSimplePolygon(res1.polygon)).toBe(true);
+      expect(isSimplePolygon(res2.polygon)).toBe(true);
+      expect(hasNoZeroLengthEdges(res1.polygon)).toBe(true);
+      expect(hasNoZeroLengthEdges(res2.polygon)).toBe(true);
+
+      // Clôture étanche : les deux murs partagent au moins 2 sommets communs sur l interface de coupe
+      const sharedVertices = res1.polygon.filter((p1) =>
+        res2.polygon.some((p2) => distance(p1, p2) <= 1e-3),
+      );
+      // Le coin intérieur ET le point médian sur la bissectrice (Mbevel) sont partagés
+      expect(sharedVertices.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('Anomalie 2 : interception des angles 0° et chevauchements colinéaires au même nœud', () => {
+      const node = vec2(0, 0);
+      const walls: WallInput[] = [
+        { id: 'w1', start: node, end: vec2(3000, 0), thickness: 200, locationLine: 'center' },
+        { id: 'w2', start: node, end: vec2(2000, 0), thickness: 200, locationLine: 'center' },
+      ];
+
+      const sol = solveWallJunctions(walls);
+      expect(sol.walls.length).toBe(2);
+      expect(sol.junctions[0]!.type).toBe('collinear');
+
+      for (const w of sol.walls) {
+        expect(w.polygon.length).toBe(4);
+        expect(isCCW(w.polygon)).toBe(true);
+        expect(isSimplePolygon(w.polygon)).toBe(true);
+        expect(hasNoZeroLengthEdges(w.polygon)).toBe(true);
+        expect(w.area).toBeGreaterThan(0);
+      }
+    });
+
+    it('Anomalie 3 : continuité des faces sur branches opposées (180°) dans les jonctions multiples', () => {
+      const center = vec2(2000, 2000);
+      const walls: WallInput[] = [
+        {
+          id: 'w_east',
+          start: center,
+          end: vec2(4000, 2000),
+          thickness: 200,
+          locationLine: 'center',
+        },
+        {
+          id: 'w_north',
+          start: center,
+          end: vec2(2000, 4000),
+          thickness: 200,
+          locationLine: 'center',
+        },
+        { id: 'w_west', start: center, end: vec2(0, 2000), thickness: 200, locationLine: 'center' },
+      ];
+
+      const sol = solveWallJunctions(walls);
+      expect(sol.walls.length).toBe(3);
+      expect(sol.junctions[0]!.type).toBe('multi');
+
+      const eastWall = sol.walls.find((w) => w.id === 'w_east')!;
+      const westWall = sol.walls.find((w) => w.id === 'w_west')!;
+
+      // La face Sud continue doit se trouver à y = 1900 (2000 - 100), et non s effondrer à y = 2000
+      const eastBottomPt = eastWall.polygon.find(
+        (p) => Math.abs(p.x - 2000) < 1 && Math.abs(p.y - 1900) < 1,
+      );
+      const westBottomPt = westWall.polygon.find(
+        (p) => Math.abs(p.x - 2000) < 1 && Math.abs(p.y - 1900) < 1,
+      );
+
+      expect(eastBottomPt).toBeDefined();
+      expect(westBottomPt).toBeDefined();
+
+      for (const w of sol.walls) {
+        expect(isCCW(w.polygon)).toBe(true);
+        expect(isSimplePolygon(w.polygon)).toBe(true);
+        expect(hasNoZeroLengthEdges(w.polygon)).toBe(true);
+      }
+    });
+  });
 });

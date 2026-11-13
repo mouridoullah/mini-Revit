@@ -1,5 +1,5 @@
 import { GEOM_CONFIG } from '../constants.js';
-import { type Vec2, vec2, distance } from '../vec2.js';
+import { type Vec2, vec2, distance, sub, normalize, cross2d } from '../vec2.js';
 import { segment2, intersectSegments, projectPointOnSegment } from '../segment.js';
 import { type WallInput, type WallEnd, type WallEndRef } from './types.js';
 
@@ -107,8 +107,18 @@ export function analyzeTopology(
   const tConnections: TConnection[] = [];
 
   for (const ep of rawEndpoints) {
+    const stemWall = walls.find((w) => w.id === ep.wallId);
+    if (!stemWall) continue;
+    const stemDir = normalize(sub(stemWall.end, stemWall.start));
+
     for (const otherWall of walls) {
       if (otherWall.id === ep.wallId) continue;
+
+      const otherDir = normalize(sub(otherWall.end, otherWall.start));
+      // Deux murs colinéaires ou parallèles ne forment jamais un aboutement en T
+      if (Math.abs(cross2d(stemDir, otherDir)) <= GEOM_CONFIG.EPSILON_COLLINEAR) {
+        continue;
+      }
 
       const otherSeg = segment2(otherWall.start, otherWall.end);
       const proj = projectPointOnSegment(ep.pt, otherSeg);

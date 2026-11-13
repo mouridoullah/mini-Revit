@@ -2,8 +2,8 @@
 
 **Statut :** Matrice de Qualification Complète  
 **Date :** 13 novembre 2026  
-**Nombre total de tests :** 115 tests automatisés  
-**Taux de succès :** 100% (115/115 passing)
+**Nombre total de tests :** 118 tests automatisés  
+**Taux de succès :** 100% (118/118 passing)
 
 ---
 
@@ -21,8 +21,8 @@
 | `src/junctions/x-junction.test.ts` | Croisements sécants en X et scission en branches                  |    2     |   **PASS**    |
 | `src/junctions/collinear.test.ts`  | Jonctions colinéaires aboutées et superposées                     |    3     |   **PASS**    |
 | `src/junctions/engine.test.ts`     | Moteur global `solveWallJunctions` et intégration                 |    9     |   **PASS**    |
-| `src/junctions/audit.test.ts`      | Audit approfondi (angles, invariances, 1 km, multi-branches)      |    22    |   **PASS**    |
-| **TOTAL**                          | **Validation globale du moteur géométrique**                      | **115**  | **100% PASS** |
+| `src/junctions/audit.test.ts`      | Audit approfondi et tests de robustesse Option B                  |    25    |   **PASS**    |
+| **TOTAL**                          | **Validation globale du moteur géométrique**                      | **118**  | **100% PASS** |
 
 ---
 
@@ -96,7 +96,18 @@
 
 ---
 
-## 4. Bilan et Recommandation de Suivi
+## 4. Matrice des Tests de Non-Régression Ciblés (Option B)
 
-Toutes les exigences de test sont remplies avec succès.  
-Les 3 anomalies identifiées dans `JUNCTIONS_AUDIT.md` (Bevel gap, collapsus angle 0°, branches opposées en jonction multiple) disposent d'un diagnostic mathématique complet et feront l'objet de tests de non-régression dédiés dès leur résolution ciblée.
+| ID Test    | Cible Géométrique                                   | Configuration / Conditions                                                                 | Propriété Vérifiée                                                                    | Fichier de Test | Résultat |
+| :--------- | :-------------------------------------------------- | :----------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------ | :-------------- | :------: |
+| **FIX-01** | Biseau d'onglet aigu étanche (_Watertight Miter_)   | 2 murs à $10^\circ$, $T = 200\text{ mm}$, rapport $4.0$, limite $800\text{ mm}$            | Partage exact de l'arête bissectrice $V_{\text{int}} \to M_{\text{bevel}}$, zéro vide | `audit.test.ts` | **PASS** |
+| **FIX-02** | Interception chevauchement colinéaire $0^\circ$     | 2 murs partant du même nœud $(0,0)$ dans la même direction $(1,0)$                         | Détection `collinear`, 4 sommets par mur, aucun collapsus en point                    | `audit.test.ts` | **PASS** |
+| **FIX-03** | Continuité des branches opposées à $180^\circ$ en T | 3 branches incidentes (Est $0^\circ$, Nord $90^\circ$, Ouest $180^\circ$) à $(2000, 2000)$ | Face Sud continue à $y = 1900\text{ mm}$, zéro pincement au nœud                      | `audit.test.ts` | **PASS** |
+
+---
+
+## 5. Bilan et Qualification Finale
+
+Toutes les exigences de test sont remplies avec **118 tests au vert (100% PASS)**.  
+Les 3 anomalies identifiées ont été résolues mathématiquement et vérifiées par tests unitaires et de propriétés.  
+Le moteur de jonctions de murs est certifié étanche, manifold et déterministe pour le démarrage de la Phase 1.2 (percement des ouvertures).

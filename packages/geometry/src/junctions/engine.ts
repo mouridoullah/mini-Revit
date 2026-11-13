@@ -199,6 +199,19 @@ export function solveWallJunctions(
           point: node.point,
           wallIds: [w1.id, w2.id],
         });
+      } else if (dotVal >= 1 - GEOM_CONFIG.EPSILON_COLLINEAR) {
+        // Colinéaire chevauchant (même direction partant du même nœud)
+        const colRes = solveCollinearJunction(w1, ep1.end, w2, ep2.end, node.point);
+        getMod(w1.id)[ep1.end] = colRes.vertices1;
+        getMod(w2.id)[ep2.end] = colRes.vertices2;
+
+        detectedJunctions.push({
+          id: `junction_collinear_overlap_${detectedJunctions.length}`,
+          type: 'collinear',
+          point: node.point,
+          wallIds: [w1.id, w2.id],
+          details: { isOverlapping: true },
+        });
       } else {
         // Jonction en L
         const lRes = solveLMiter(w1, ep1.end, w2, ep2.end, node.point);
@@ -296,8 +309,8 @@ export function solveWallJunctions(
     const polyRaw: Vec2[] = [
       firstStart, // Départ intérieur
       lastEnd, // Arrivée intérieure
-      ...endVerts.slice(0, endVerts.length - 1), // Sommets d'arrivée extérieurs
-      ...startVerts.slice(1), // Sommets de départ extérieurs
+      ...endVerts.slice(0, endVerts.length - 1).reverse(), // Sommets d'arrivée extérieurs
+      ...startVerts.slice(1).reverse(), // Sommets de départ extérieurs
     ];
 
     const polyClean = cleanPolygon(polyRaw);

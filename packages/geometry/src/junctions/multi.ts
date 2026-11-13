@@ -1,5 +1,5 @@
 import { GEOM_CONFIG } from '../constants.js';
-import { type Vec2, add, mul, distance } from '../vec2.js';
+import { type Vec2, add, sub, mul, normalize, distance } from '../vec2.js';
 import { intersectLines } from '../line.js';
 import { type WallInput, type WallEnd } from './types.js';
 import { getWallBoundaryAtEnd, type WallBoundaryAtEnd } from './miter.js';
@@ -57,12 +57,16 @@ export function solveMultiJunction(
     if (inter.type === 'point') {
       cornerPt = inter.point;
       const maxT = Math.max(cur.leftOffset + cur.rightOffset, next.leftOffset + next.rightOffset);
-      if (distance(cornerPt, nodePoint) > miterLimitRatio * maxT) {
-        // Troncature de sécurité
-        cornerPt = add(nodePoint, mul(cur.outgoingDir, 0));
+      const d = distance(cornerPt, nodePoint);
+      if (d > miterLimitRatio * maxT && d > GEOM_CONFIG.EPSILON_DISTANCE) {
+        // Troncature de sécurité le long de la bissectrice
+        const dir = normalize(sub(cornerPt, nodePoint));
+        cornerPt = add(nodePoint, mul(dir, miterLimitRatio * maxT));
       }
     } else {
-      cornerPt = nodePoint;
+      // Cas de branches opposées (180°) : faces parallèles continues
+      const avgOffset = (cur.leftOffset + next.rightOffset) / 2;
+      cornerPt = add(nodePoint, mul(cur.leftNormal, avgOffset));
     }
 
     corners.push(cornerPt);
