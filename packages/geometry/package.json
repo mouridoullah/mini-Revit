@@ -19,6 +19,10 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@types/earcut": "^3.2.4",
     "vitest": "^3.0.5"
+  },
+  "dependencies": {
+    "earcut": "^3.2.4"
   }
 }

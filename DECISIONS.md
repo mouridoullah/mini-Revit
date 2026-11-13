@@ -357,3 +357,41 @@ Les phases de fondation géométrique (Phase 1.1 et Phase 1.2) ont mis en évide
 - Élimine toute ambiguïté sur la provenance des chiffres.
 - Rapproche à 100% la documentation technique de la réalité testée par la CI.
 - Garantit une confiance totale pour les audits de certification actuels et futurs.
+
+---
+
+## ADR-015 : RawMeshData et Buffers Neutres pour Rendu 3D (sans dépendance Three.js)
+
+### Contexte
+
+La Phase 1.3 nécessite de générer des maillages 3D polygonaux à partir des pièces extrudées 2.5D. L'architecture globale du projet impose une séparation stricte : le noyau de calcul géométrique `@mini-bim/geometry` ne doit pas dépendre des technologies de rendu graphique (Three.js, WebGL, React).
+
+### Décision
+
+1. **Format Neutre `RawMeshData` :**  
+   Le package géométrique produit des structures de données brutes contenant des tableaux typés natifs (`Float32Array` pour les sommets et normales, `Uint32Array` pour les indices de triangles, AABB en millimètres).
+2. **Indépendance Totale de l'UI :**  
+   Aucun import de `three`, `react`, ou `react-dom` n'est autorisé dans `@mini-bim/geometry`. Le futur package `@mini-bim/view-3d` consommera directement ces typed arrays pour instancier des `THREE.BufferGeometry` via `BufferAttribute`.
+3. **Normales Franches Déterministes :**  
+   Pour le rendu architectural BIM sans artefacts de lissage sur les arêtes vives, les sommets partagés entre faces sont dupliqués afin d'attribuer des normales exactes orthogonales à chaque facette (+Z pour le dessus, -Z pour le dessous, et normale latérale extérieure pour chaque flanc).
+4. **Agrégation Optimisée pour la Scène :**  
+   Fourniture d'une fonction `buildWallMeshAggregated` fusionnant toutes les pièces d'un mur en un seul ensemble de buffers continus, réduisant les draw calls GPU à 1 par mur dans la vue 3D.
+
+---
+
+## ADR-016 : Stratégie Hybride de Triangulation 2D (Triangle Fan O(n) + Ear Clipping earcut)
+
+### Contexte
+
+L'extrusion de chaque `WallPiece` requiert la triangulation de ses faces supérieure et inférieure. Bien que 99% des découpes issues de jonctions et d'ouvertures orthogonales soient des polygones convexes (quadrilatères, pentagones, triangles), des géométries concaves (formes en L, retraits spécifiques) peuvent survenir lors de modélisations complexes.
+
+### Décision
+
+1. **Détection de Convexité en $\mathcal{O}(n)$ :**  
+   Pour chaque polygone 2D propre orienté CCW, le signe des produits vectoriels 2D des arêtes consécutives est évalué. Si tous les virages conservent le même sens, le polygone est garanti convexe.
+2. **Triangulation Convexe par Triangle Fan $\mathcal{O}(n)$ :**  
+   Les polygones convexes sont décomposés en éventail depuis le premier sommet sans dépendance externe ni allocation dynamique complexe.
+3. **Repli Sécurisé par Ear Clipping (*earcut*) :**  
+   Pour les polygones concaves ou complexes, le moteur utilise la bibliothèque `earcut` (Mapbox), une référence industrielle ultra-testée, zéro-dépendance et purement algorithmique.
+4. **Nettoyage Préalable Systématique :**  
+   Avant triangulation, tout sommet consécutif dupliqué ($d < 10^{-4}\text{ mm}$) ou colinéaire intermédiaire est éliminé pour prévenir l'apparition de triangles dégénérés d'aire nulle.

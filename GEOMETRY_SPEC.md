@@ -454,3 +454,61 @@ Dans cette configuration :
 
 - **Angle $0^\circ$ (Murs parallèles de même sens partant du même nœud) :** Détecté par $\vec{d}_1 \cdot \vec{d}_2 \ge 1 - \text{EPSILON\_COLLINEAR}$. Ce cas correspond à une superposition anormale. Le moteur doit rejeter ou fusionner selon les priorités, et ne doit jamais tenter un onglet en L qui dégénère par parallélisme des faces.
 - **Angle $180^\circ$ dans les Jonctions Multiples :** Deux branches radialement consécutives à $180^\circ$ ont des lignes de bordure parallèles. Le raccord ne doit pas s'effondrer au centre du nœud, mais maintenir la face rectiligne continue.
+
+---
+
+# 9. Spécification de Génération de Maillages 3D (WallMeshBuilder — Phase 1.3)
+
+## 9.1 Objectif Architectural
+
+La Phase 1.3 transforme les pièces paramétriques 2.5D (`WallPiece`) produites par le découpeur d'ouvertures (Phase 1.2) en maillages 3D polygonaux fermés (`RawMeshData`), consommables directement par les moteurs de rendu temps réel (`THREE.BufferGeometry` dans `@mini-bim/view-3d`) sans qu'aucune dépendance Three.js ne soit introduite dans le package géométrique `@mini-bim/geometry`.
+
+## 9.2 Structure de Données Neutre (`RawMeshData`)
+
+Le conteneur de maillage brut est composé de typed arrays natifs :
+
+```typescript
+export interface RawMeshData {
+  readonly positions: Float32Array;      // xyz entrelacés en mm (repère Z-up)
+  readonly normals: Float32Array;        // xyz unitaires entrelacés (|n| = 1.0)
+  readonly indices: Uint32Array;         // triplets d'indices de triangles CCW
+  readonly uvs?: Float32Array;           // coordonnées de texture (u, v) en mètres
+  readonly elementId: string;            // identifiant pour le picking architectural
+  readonly role: WallPieceRole;          // 'full' | 'sill' | 'lintel'
+  readonly boundingBox: BoundingBox3D;   // AABB { min: Vec3, max: Vec3 }
+}
+```
+
+## 9.3 Pipeline d'Extrusion et Conventions Géométriques
+
+Pour chaque pièce solide (`role !== 'void'`) :
+
+1. **Filtrage et Nettoyage 2D :**
+   - Élimination des sommets dupliqués consécutifs ($d < 10^{-4}\text{ mm}$) et des sommets colinéaires superflus.
+   - Rejet immédiat des polygones d'aire $\text{area2D} < 10^{-4}\text{ mm}^2$ ou des tranches de hauteur nulle ($z_1 \le z_0$).
+   - Normalisation du polygone en sens trigonométrique anti-horaire (CCW).
+
+2. **Stratégie Hybride de Triangulation :**
+   - **Polygones convexes :** Détection en $\mathcal{O}(m)$ par constance du signe des produits vectoriels consécutifs. Triangulation en éventail (*Triangle Fan*) depuis le sommet 0 : triangles $(0, i, i+1)$ pour $i \in [1, m-2]$.
+   - **Polygones concaves :** Repli automatique vers l'algorithme d'Ear Clipping (*earcut* de Mapbox) garantissant une décomposition en $\mathcal{O}(m \log m)$ sans création de sommets de Steiner.
+
+3. **Génération des Normales Franches (Face Normals) :**
+   En rendu BIM architectural, les arêtes entre les faces supérieures, inférieures et verticales doivent être nettes (zéro lissage de normales). Les sommets géométriquement partagés sont dupliqués par face :
+   - **Face supérieure ($z = z_1$) :** normale unitaire $(0, 0, +1)$, triangles orientés CCW vus du dessus.
+   - **Face inférieure ($z = z_0$) :** normale unitaire $(0, 0, -1)$, triangles orientés CCW vus du dessous (inversion des indices $i_0, i_2, i_1$).
+   - **Flancs verticaux :** pour chaque arête $(v_i, v_{i+1})$, normale unitaire extérieure $\vec{n} = (\frac{y_{i+1}-y_i}{L}, \frac{-(x_{i+1}-x_i)}{L}, 0)$ et 2 triangles CCW vus de l'extérieur.
+
+## 9.4 Propriétés Topologiques 3D Garanties
+
+- **Étanchéité 2-Manifold :** Chaque polyèdre de pièce est une variété fermée de genre 0 sans trou (0 arête frontière) et sans pincement (0 arête partagée par 3+ triangles). Sa caractéristique d'Euler vérifie :
+  $$V_{\text{unique}} - E_{\text{unique}} + F = 2 \quad \text{et} \quad 2E = 3F$$
+- **Conservation Exacte du Volume 3D :**
+  Le volume mesuré directement sur les buffers par intégration de flux de Gauss :
+  $$V_{\text{buffer}} = \frac{1}{6} \sum_{\text{triangles}} \vec{A} \cdot (\vec{B} \times \vec{C})$$
+  est rigoureusement égal au volume théorique attendu à $\Delta V = 0.000000\text{ mm}^3$ sur coordonnées entières et $< 10^{-6}\text{ mm}^3$ sous orientation quelconque.
+
+## 9.5 Précision Numérique Float32 et Grandes Échelles
+
+Pour la consommation GPU temps réel, les coordonnées sont encodées en `Float32Array` (mantisse 24 bits $\approx 7$ chiffres significatifs). À une distance de $1\text{ km}$ ($1\,000\,000\text{ mm}$), la résolution spatiale est de :
+$$\Delta_{\text{ULP}} \approx 10^6 \times 2^{-23} \approx 0.06\text{ mm}$$
+Cette précision de $60\text{ µm}$ est largement conforme aux exigences de tolérance de construction BIM ($1\text{ mm}$). Pour des édifices géants ou des coordonnées géoréférencées (Lambert/UTM), le repère local centré sur le bâtiment doit être utilisé.
