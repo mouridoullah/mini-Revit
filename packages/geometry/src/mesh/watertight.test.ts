@@ -14,6 +14,7 @@ interface TopologyReport {
   readonly eulerCharacteristic: number;
   readonly boundaryEdgeCount: number;
   readonly nonManifoldEdgeCount: number;
+  readonly duplicateTriangleCount: number;
   readonly isWatertight: boolean;
   readonly isManifold: boolean;
 }
@@ -48,9 +49,11 @@ export function analyzeMeshTopology(mesh: RawMeshData): TopologyReport {
     vertexToUnique[i] = uId;
   }
 
-  // 2. Comptage des arêtes non-orientées et demi-arêtes orientées
+  // 2. Comptage des arêtes non-orientées, demi-arêtes et vérification des triangles dupliqués
   const edgeCountMap = new Map<string, number>();
   const halfEdgeSet = new Set<string>();
+  const canonicalTriangleSet = new Set<string>();
+  let duplicateTriangleCount = 0;
 
   for (let t = 0; t < triangleCount; t++) {
     const i0 = idx[t * 3] ?? 0;
@@ -60,6 +63,14 @@ export function analyzeMeshTopology(mesh: RawMeshData): TopologyReport {
     const u0 = vertexToUnique[i0] ?? 0;
     const u1 = vertexToUnique[i1] ?? 0;
     const u2 = vertexToUnique[i2] ?? 0;
+
+    // Vérification de duplication de triangle
+    const sortedKey = [u0, u1, u2].sort((a, b) => a - b).join('_');
+    if (canonicalTriangleSet.has(sortedKey)) {
+      duplicateTriangleCount++;
+    } else {
+      canonicalTriangleSet.add(sortedKey);
+    }
 
     const triangleEdges = [
       [u0, u1],
@@ -119,7 +130,8 @@ export function analyzeMeshTopology(mesh: RawMeshData): TopologyReport {
     eulerCharacteristic: euler,
     boundaryEdgeCount,
     nonManifoldEdgeCount,
-    isWatertight,
+    duplicateTriangleCount,
+    isWatertight: isWatertight && duplicateTriangleCount === 0,
     isManifold,
   };
 }
@@ -153,6 +165,7 @@ describe('Étanchéité et Propriétés 2-Manifold 3D (watertight.test.ts)', () 
     expect(topo.isManifold).toBe(true);
     expect(topo.boundaryEdgeCount).toBe(0);
     expect(topo.nonManifoldEdgeCount).toBe(0);
+    expect(topo.duplicateTriangleCount).toBe(0);
     expect(topo.eulerCharacteristic).toBe(2); // Topologie d'une sphère (solide fermé)
   });
 
@@ -195,6 +208,7 @@ describe('Étanchéité et Propriétés 2-Manifold 3D (watertight.test.ts)', () 
       expect(topo.isManifold).toBe(true);
       expect(topo.boundaryEdgeCount).toBe(0);
       expect(topo.nonManifoldEdgeCount).toBe(0);
+      expect(topo.duplicateTriangleCount).toBe(0);
       expect(topo.eulerCharacteristic).toBe(2);
     }
   });
@@ -236,6 +250,7 @@ describe('Étanchéité et Propriétés 2-Manifold 3D (watertight.test.ts)', () 
       expect(topo.isManifold).toBe(true);
       expect(topo.boundaryEdgeCount).toBe(0);
       expect(topo.nonManifoldEdgeCount).toBe(0);
+      expect(topo.duplicateTriangleCount).toBe(0);
       expect(topo.eulerCharacteristic).toBe(2);
     }
   });

@@ -469,13 +469,13 @@ Le conteneur de maillage brut est composé de typed arrays natifs :
 
 ```typescript
 export interface RawMeshData {
-  readonly positions: Float32Array;      // xyz entrelacés en mm (repère Z-up)
-  readonly normals: Float32Array;        // xyz unitaires entrelacés (|n| = 1.0)
-  readonly indices: Uint32Array;         // triplets d'indices de triangles CCW
-  readonly uvs?: Float32Array;           // coordonnées de texture (u, v) en mètres
-  readonly elementId: string;            // identifiant pour le picking architectural
-  readonly role: WallPieceRole;          // 'full' | 'sill' | 'lintel'
-  readonly boundingBox: BoundingBox3D;   // AABB { min: Vec3, max: Vec3 }
+  readonly positions: Float32Array; // xyz entrelacés en mm (repère Z-up)
+  readonly normals: Float32Array; // xyz unitaires entrelacés (|n| = 1.0)
+  readonly indices: Uint32Array; // triplets d'indices de triangles CCW
+  readonly uvs?: Float32Array; // coordonnées de texture (u, v) en mètres
+  readonly elementId: string; // identifiant pour le picking architectural
+  readonly role: WallPieceRole; // 'full' | 'sill' | 'lintel'
+  readonly boundingBox: BoundingBox3D; // AABB { min: Vec3, max: Vec3 }
 }
 ```
 
@@ -489,8 +489,8 @@ Pour chaque pièce solide (`role !== 'void'`) :
    - Normalisation du polygone en sens trigonométrique anti-horaire (CCW).
 
 2. **Stratégie Hybride de Triangulation :**
-   - **Polygones convexes :** Détection en $\mathcal{O}(m)$ par constance du signe des produits vectoriels consécutifs. Triangulation en éventail (*Triangle Fan*) depuis le sommet 0 : triangles $(0, i, i+1)$ pour $i \in [1, m-2]$.
-   - **Polygones concaves :** Repli automatique vers l'algorithme d'Ear Clipping (*earcut* de Mapbox) garantissant une décomposition en $\mathcal{O}(m \log m)$ sans création de sommets de Steiner.
+   - **Polygones convexes :** Détection en $\mathcal{O}(m)$ par constance du signe des produits vectoriels consécutifs. Triangulation en éventail (_Triangle Fan_) depuis le sommet 0 : triangles $(0, i, i+1)$ pour $i \in [1, m-2]$.
+   - **Polygones concaves :** Repli automatique vers l'algorithme d'Ear Clipping (_earcut_ de Mapbox) garantissant une décomposition en $\mathcal{O}(m \log m)$ sans création de sommets de Steiner.
 
 3. **Génération des Normales Franches (Face Normals) :**
    En rendu BIM architectural, les arêtes entre les faces supérieures, inférieures et verticales doivent être nettes (zéro lissage de normales). Les sommets géométriquement partagés sont dupliqués par face :

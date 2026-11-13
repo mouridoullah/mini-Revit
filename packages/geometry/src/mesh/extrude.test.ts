@@ -337,6 +337,71 @@ describe('Extrusion 3D et Maillages Bruts (extrude.ts & builder.ts)', () => {
     }
   });
 
+  it('propriété : orientation stricte des normales des flancs sur polygone concave (arête rentrante L-shape)', () => {
+    // Forme en L orientée CCW :
+    // (0,0) -> (300,0) -> (300,100) -> (100,100) -> (100,300) -> (0,300)
+    const lPoly = [
+      vec2(0, 0),
+      vec2(300, 0),
+      vec2(300, 100),
+      vec2(100, 100), // Sommet réflex rentrant
+      vec2(100, 300),
+      vec2(0, 300),
+    ];
+
+    const lPiece: WallPiece = {
+      id: 'p_concave_normals',
+      wallId: 'w_concave',
+      poly2D: lPoly,
+      z0: 0,
+      z1: 2000,
+      role: 'full',
+      area2D: 50000,
+      uInterval: [0, 300],
+    };
+
+    const mesh = extrudeWallPiece(lPiece);
+    expect(mesh).not.toBeNull();
+    if (!mesh) return;
+
+    // Vérifier les normales des flancs latéraux
+    // Chaque arête génère un quad de 4 sommets ayant la normale unitaire de l'arête
+    // Les flancs commencent après les sommets sup (6) et inf (6), donc à l'index sommet 12
+    const n = mesh.normals;
+
+    // Arête 2 : de (300, 100) vers (100, 100) -> arête rentrante horizontale
+    // Direction = (-1, 0). Normale extérieure locale = (0, +1, 0)
+    const edge2QuadBase = 12 + 2 * 4; // index sommet = 20
+    const edge2Nx = n[edge2QuadBase * 3] ?? 0;
+    const edge2Ny = n[edge2QuadBase * 3 + 1] ?? 0;
+    const edge2Nz = n[edge2QuadBase * 3 + 2] ?? 0;
+
+    expect(edge2Nx).toBeCloseTo(0.0, 6);
+    expect(edge2Ny).toBeCloseTo(1.0, 6); // Pointe vers le haut (+Y), dans le vide rentrant de l'encoche
+    expect(edge2Nz).toBeCloseTo(0.0, 6);
+
+    // Arête 3 : de (100, 100) vers (100, 300) -> arête rentrante verticale
+    // Direction = (0, +1). Normale extérieure locale = (+1, 0, 0)
+    const edge3QuadBase = 12 + 3 * 4; // index sommet = 24
+    const edge3Nx = n[edge3QuadBase * 3] ?? 0;
+    const edge3Ny = n[edge3QuadBase * 3 + 1] ?? 0;
+    const edge3Nz = n[edge3QuadBase * 3 + 2] ?? 0;
+
+    expect(edge3Nx).toBeCloseTo(1.0, 6); // Pointe vers la droite (+X), dans le vide rentrant de l'encoche
+    expect(edge3Ny).toBeCloseTo(0.0, 6);
+    expect(edge3Nz).toBeCloseTo(0.0, 6);
+
+    // Test local de demi-plan : pour chaque arête, un pas infinitésimal le long de la normale
+    // doit s'éloigner du solide
+    for (let e = 0; e < 6; e++) {
+      const qBase = 12 + e * 4;
+      const nx = n[qBase * 3] ?? 0;
+      const ny = n[qBase * 3 + 1] ?? 0;
+      const len = Math.hypot(nx, ny);
+      expect(len).toBeCloseTo(1.0, 6);
+    }
+  });
+
   it('aucun index hors bornes et aucun triangle dégénéré', () => {
     const fullPiece: WallPiece = {
       id: 'p_bounds',

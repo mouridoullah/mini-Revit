@@ -391,7 +391,34 @@ L'extrusion de chaque `WallPiece` requiert la triangulation de ses faces supéri
    Pour chaque polygone 2D propre orienté CCW, le signe des produits vectoriels 2D des arêtes consécutives est évalué. Si tous les virages conservent le même sens, le polygone est garanti convexe.
 2. **Triangulation Convexe par Triangle Fan $\mathcal{O}(n)$ :**  
    Les polygones convexes sont décomposés en éventail depuis le premier sommet sans dépendance externe ni allocation dynamique complexe.
-3. **Repli Sécurisé par Ear Clipping (*earcut*) :**  
+3. **Repli Sécurisé par Ear Clipping (_earcut_) :**  
    Pour les polygones concaves ou complexes, le moteur utilise la bibliothèque `earcut` (Mapbox), une référence industrielle ultra-testée, zéro-dépendance et purement algorithmique.
 4. **Nettoyage Préalable Systématique :**  
    Avant triangulation, tout sommet consécutif dupliqué ($d < 10^{-4}\text{ mm}$) ou colinéaire intermédiaire est éliminé pour prévenir l'apparition de triangles dégénérés d'aire nulle.
+
+---
+
+## ADR-017 : Traitement des Interfaces de Contact Internes entre Pièces Adjacentes (Modular Solid Block Model vs B-Rep Welding)
+
+### Contexte
+
+La décomposition longitudinale 2.5D d'un mur comportant des ouvertures (portes, fenêtres) produit plusieurs sous-volumes contigus (`WallPiece` : tranches pleines, allèges sous baie, linteaux sur baie). Aux plans transversaux de transition $u = u_{\text{start}}$ ou $u = u_{\text{end}}$, deux pièces adjacentes partagent une face géométrique de contact rigoureusement coplanaire.
+
+Deux options architecturales se présentent pour le maillage 3D :
+
+- **Option (a) — Soudure topologique globale (B-Rep Welding) :** Supprimer les faces internes de contact et fusionner les sommets frontières pour former un solide unique multiplement connexe.
+- **Option (b) — Modèle modulaire solide (Modular Solid Block Model) :** Conserver chaque `WallPiece` sous forme d'un solide fermé indépendant, étanche et 2-manifold (Euler $V - E + F = 2$), avec ses faces d'extrémité fermées, et laisser le GPU gérer l'affichage via le Backface Culling.
+
+### Décision
+
+1. **Adoption du modèle modulaire solide (Option b) :** Chaque tranche solide issue du découpage 2.5D est maillée comme un solide géométriquement et topologiquement complet.
+2. **Élimination du Z-fighting par Backface Culling :** Les deux faces de contact coplanaires possèdent des normales unitaire extérieures strictement opposées ($\vec{n}_1 = -\vec{n}_2$). Pour toute caméra située à l'extérieur du mur, les deux faces internes sont orientées vers l'intérieur du mur assemblé (angles $\ge 90^\circ$ par rapport au vecteur de vue). En activant le Backface Culling standard côté rendu (`material.side = THREE.FrontSide` dans Three.js), le rasterizer GPU élimine systématiquement ces triangles avant l'étape de Z-buffer testing. Il n'y a donc aucun Z-fighting visuel sur les faces de contact internes.
+3. **Avantages BIM fondamentaux :**
+   - **Métrés et quantités par rôle :** Permet d'isoler immédiatement le volume de béton ou d'isolant d'une allège par rapport à un linteau ou une portion pleine sans recalcul booléen 3D.
+   - **Multi-matériaux :** Autorise l'application ultérieure de matériaux distincts sur les sous-composants (ex. linteau préfabriqué vs maçonnerie courante).
+   - **Robustesse et déterminisme $\mathcal{O}(N)$ :** Évite les opérations booléennes 3D d'union de maillages (_mesh boolean union_), notoirement instables, lentes et sensibles aux imprécisions flottantes.
+
+### Conséquences
+
+- Le maillage agrégé d'un mur avec baies est une union disjointe de solides étanches contigus.
+- Lors de l'intégration dans Three.js (Phase 1.4), le matériau par défaut utilisera `THREE.FrontSide` (comportement standard dans Three.js).
