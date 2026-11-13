@@ -148,13 +148,12 @@ describe('BimDocument & CommandBus (document.ts)', () => {
     expect(restoredDoc.getState()).toEqual(doc.getState());
   });
 
-  it('flux execute rejette strictement les configurations invalides via les règles métier', () => {
+  it('execute(AddWallCommand) rejette un mur de longueur nulle', () => {
     const doc = BimDocument.createDefaultProject();
     const state = doc.getState();
     const levelId = Object.keys(state.levels)[0]!;
     const typeId = Object.keys(state.wallTypes)[0]!;
 
-    // 1. Longueur nulle
     expect(() =>
       doc.execute(
         new Commands.AddWallCommand({
@@ -167,8 +166,13 @@ describe('BimDocument & CommandBus (document.ts)', () => {
         }),
       ),
     ).toThrowError(/INVALID_WALL_LENGTH/);
+  });
 
-    // 2. Type inexistant
+  it('execute(AddWallCommand) rejette un mur référençant un WallType inexistant', () => {
+    const doc = BimDocument.createDefaultProject();
+    const state = doc.getState();
+    const levelId = Object.keys(state.levels)[0]!;
+
     expect(() =>
       doc.execute(
         new Commands.AddWallCommand({
@@ -181,8 +185,13 @@ describe('BimDocument & CommandBus (document.ts)', () => {
         }),
       ),
     ).toThrowError(/UNKNOWN_WALL_TYPE/);
+  });
 
-    // 3. Niveau inexistant
+  it('execute(AddWallCommand) rejette un mur référençant un Level inexistant', () => {
+    const doc = BimDocument.createDefaultProject();
+    const state = doc.getState();
+    const typeId = Object.keys(state.wallTypes)[0]!;
+
     expect(() =>
       doc.execute(
         new Commands.AddWallCommand({
@@ -195,8 +204,14 @@ describe('BimDocument & CommandBus (document.ts)', () => {
         }),
       ),
     ).toThrowError(/UNKNOWN_LEVEL/);
+  });
 
-    // Insérer un mur valide pour tester les rejets en mise à jour et suppression
+  it('execute(UpdateWallCommand) rejette une mise à jour réduisant la longueur à zéro', () => {
+    const doc = BimDocument.createDefaultProject();
+    const state = doc.getState();
+    const levelId = Object.keys(state.levels)[0]!;
+    const typeId = Object.keys(state.wallTypes)[0]!;
+
     const wallId = 'w_valid_1';
     doc.execute(
       new Commands.AddWallCommand({
@@ -209,7 +224,6 @@ describe('BimDocument & CommandBus (document.ts)', () => {
       }),
     );
 
-    // 4. UpdateWall rendant le mur invalide (longueur nulle)
     expect(() =>
       doc.execute(
         new Commands.UpdateWallCommand(wallId, {
@@ -217,16 +231,124 @@ describe('BimDocument & CommandBus (document.ts)', () => {
         }),
       ),
     ).toThrowError(/INVALID_WALL_LENGTH/);
+  });
 
-    // 5. DeleteLevel avec mur rattaché
+  it('execute(DeleteLevelCommand) rejette la suppression si des murs y sont rattachés', () => {
+    const doc = BimDocument.createDefaultProject();
+    const state = doc.getState();
+    const levelId = Object.keys(state.levels)[0]!;
+    const typeId = Object.keys(state.wallTypes)[0]!;
+
+    doc.execute(
+      new Commands.AddWallCommand({
+        id: 'w_attached',
+        category: 'wall',
+        typeId,
+        levelId,
+        start: vec2(0, 0),
+        end: vec2(3000, 0),
+      }),
+    );
+
     expect(() => doc.execute(new Commands.DeleteLevelCommand(levelId))).toThrowError(
       /DELETE_LEVEL_REJECTED/,
     );
+  });
 
-    // 6. DeleteWallType avec mur l'utilisant
+  it('execute(DeleteWallTypeCommand) rejette la suppression si des murs l’utilisent', () => {
+    const doc = BimDocument.createDefaultProject();
+    const state = doc.getState();
+    const levelId = Object.keys(state.levels)[0]!;
+    const typeId = Object.keys(state.wallTypes)[0]!;
+
+    doc.execute(
+      new Commands.AddWallCommand({
+        id: 'w_attached',
+        category: 'wall',
+        typeId,
+        levelId,
+        start: vec2(0, 0),
+        end: vec2(3000, 0),
+      }),
+    );
+
     expect(() => doc.execute(new Commands.DeleteWallTypeCommand(typeId))).toThrowError(
       /DELETE_WALL_TYPE_REJECTED/,
     );
+  });
+
+  it('execute(AddLevelCommand et UpdateLevelCommand) valide les paramètres de niveau', () => {
+    const doc = new BimDocument();
+
+    // Rejet nom vide
+    expect(() =>
+      doc.execute(new Commands.AddLevelCommand({ id: 'lvl_bad_name', name: '', elevation: 0 })),
+    ).toThrowError(/INVALID_LEVEL_NAME/);
+
+    // Rejet élévation NaN
+    expect(() =>
+      doc.execute(
+        new Commands.AddLevelCommand({ id: 'lvl_nan', name: 'Étage NaN', elevation: Number.NaN }),
+      ),
+    ).toThrowError(/INVALID_LEVEL_ELEVATION/);
+
+    // Ajout valide
+    doc.execute(new Commands.AddLevelCommand({ id: 'lvl_valid', name: 'RDC', elevation: 0 }));
+
+    // Rejet mise à jour invalide
+    expect(() =>
+      doc.execute(new Commands.UpdateLevelCommand('lvl_valid', { elevation: Number.NaN })),
+    ).toThrowError(/INVALID_LEVEL_ELEVATION/);
+  });
+
+  it('execute(AddWallTypeCommand et UpdateWallTypeCommand) valide les paramètres de type de mur', () => {
+    const doc = new BimDocument();
+
+    // Rejet nom vide
+    expect(() =>
+      doc.execute(
+        new Commands.AddWallTypeCommand({ id: 'wt_bad', name: '', thickness: 200, height: 2800 }),
+      ),
+    ).toThrowError(/INVALID_WALL_TYPE_NAME/);
+
+    // Rejet épaisseur négative
+    expect(() =>
+      doc.execute(
+        new Commands.AddWallTypeCommand({
+          id: 'wt_neg_t',
+          name: 'Négatif',
+          thickness: -10,
+          height: 2800,
+        }),
+      ),
+    ).toThrowError(/INVALID_WALL_TYPE_THICKNESS/);
+
+    // Rejet hauteur nulle
+    expect(() =>
+      doc.execute(
+        new Commands.AddWallTypeCommand({
+          id: 'wt_zero_h',
+          name: 'Zéro H',
+          thickness: 200,
+          height: 0,
+        }),
+      ),
+    ).toThrowError(/INVALID_WALL_TYPE_HEIGHT/);
+
+    // Ajout valide
+    doc.execute(
+      new Commands.AddWallTypeCommand({
+        id: 'wt_valid',
+        name: 'Mur 200',
+        thickness: 200,
+        height: 2800,
+      }),
+    );
+
+    // Rejet mise à jour invalide
+    expect(() =>
+      doc.execute(new Commands.UpdateWallTypeCommand('wt_valid', { thickness: 0 })),
+    ).toThrowError(/INVALID_WALL_TYPE_THICKNESS/);
   });
 
   it('isolation des abonnés : un subscriber défaillant qui throw ne casse pas execute ni les autres subscribers', () => {
