@@ -17,6 +17,7 @@ export type {
   DocumentListener,
 } from './types.js';
 export * as Commands from './commands.js';
+export type { Command } from './commands.js';
 export {
   BimValidationError,
   validateWall,

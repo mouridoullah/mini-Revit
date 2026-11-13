@@ -111,11 +111,15 @@ flowchart LR
 
 _Dépendances : Phase 1.1 à 1.3 (`@mini-bim/geometry`), Phase 1.4 (`@mini-bim/view-3d`), Phase 1.5 (`@mini-bim/core`)._
 
-#### Phase 2.1 — Package de Vue 2D (`@mini-bim/view-2d`)
+#### Phase 2.1 — Package de Vue 2D (`@mini-bim/view-2d`) [LIVRÉ]
 
-- Vue en plan 2D impérative (Canvas 2D API pure, sans React).
-- Rendu vectoriel des murs (lignes d'axe, contours d'emprise, hachures).
-- Système de coordonnées monde (mm) vers écran (pixels), zoom et pan fluides.
+- **Objectif :** Fournir le visualiseur en plan 2D impératif en Canvas 2D API pure (sans React, sans Three.js).
+- **Fonctionnalités :**
+  - `Transform2D` : conversion cartésienne monde (mm, Y-up) vers écran (px, Y-down) strictement inversible ($\Delta < 10^{-9}$), zoom centré sur le curseur avec point invariant, pan fluide, recadrage automatique `zoomToFit`.
+  - Moteur de rendu architectural (`renderer.ts`) : consommation obligatoire de `computeWallFootprint2d`, poché gris clair, contour d'arête vue/coupée, axe central en tirets alternés `[6, 4]`, grille adaptative anti-saturation (`minPixelSpacing`), axes X/Y distincts.
+  - Contrôleur impératif `View2D` : cycle de vie canvas, rendu à la demande (Demand-Driven Rendering), hit-testing géométrique par demi-plans CCW et distance aux axes, synchronisation de sélection (`onSelectionChanged`).
+  - **Règle d'or respectée :** Zéro mutation directe de `BimDocument`, émission d'intentions de commande via `onCommandRequested(cb)`.
+- **Tests :** 29 tests automatisés (inversion mathématique, conventions d'axes, poché, grille, surbrillance, hit-testing, zoom/pan, émission de commandes, non-mutation de document).
 
 #### Phase 2.2 — Application Web & Viewports React (`apps/web`)
 

@@ -22,6 +22,14 @@
 | **ADR-011** | Moteur de Jonctions de Murs Déterministe (L, T, X, Colinéaire et Multi-branches)             | **Accepté** | 13/11/2026 |
 | **ADR-012** | Directives de Robustesse Topologique et Clôture des Jonctions (Audit Approfondi Phase 1)     | **Accepté** | 13/11/2026 |
 | **ADR-013** | Formalisation et Validation des Percements d'Ouvertures 2.5D (Phase 1.2)                     | **Accepté** | 13/11/2026 |
+| **ADR-014** | Gouvernance et Traçabilité des Métriques de Rapports (CI Verbatim)                           | **Accepté** | 13/11/2026 |
+| **ADR-015** | RawMeshData et Buffers Neutres pour Rendu 3D (sans dépendance Three.js)                      | **Accepté** | 13/11/2026 |
+| **ADR-016** | Stratégie Hybride de Triangulation 2D (Triangle Fan O(n) + Ear Clipping earcut)              | **Accepté** | 13/11/2026 |
+| **ADR-017** | Traitement des Interfaces de Contact Internes entre Pièces Adjacentes (Modular Solid Block)  | **Accepté** | 13/11/2026 |
+| **ADR-018** | Architecture Impérative de view-3d sans React, Rendu à la Demande et Backface Culling        | **Accepté** | 13/11/2026 |
+| **ADR-019** | Architecture du Noyau BIM — BimDocument, CommandBus et Undo/Redo via Immer                   | **Accepté** | 13/11/2026 |
+| **ADR-020** | Stratégie d'Identifiants Uniques — Adoption d'ULID pour le Noyau BIM                         | **Accepté** | 13/11/2026 |
+| **ADR-021** | Architecture Impérative de view-2d sans React, Émission de Command, Conversion Y-up/Y-down   | **Accepté** | 13/11/2026 |
 
 ---
 
@@ -514,3 +522,42 @@ Chaque entité du modèle architectural (niveaux, types de murs, instances de mu
 
 - Stockage efficace en chaîne de caractères (`TEXT`) sous SQLite et PostgreSQL.
 - Ordre de sérialisation JSON stable et prédictible.
+
+---
+
+## ADR-021 : Architecture Impérative de view-2d sans React, Émission de Command via Callback, Conversion Y-up vers Y-down
+
+### Contexte
+
+La vue en plan bidimensionnelle d'un logiciel de CAO/BIM requiert des performances graphiques optimales (rafraîchissement instantané sur grands projets), un rendu rigoureusement conforme aux normes de dessin d'architecture (poché de corps de mur, arêtes vues/coupées contrastées, axes de référence en traits pointillés) et un découplage total envers la couche de présentation d'interface web (React).
+
+Deux problématiques géométriques et architecturales majeures se posent :
+
+1. **Discordance des repères 2D :** Le monde architectural BIM (Revit, Archicad, IFC ISO 16739) est défini en millimètres selon un repère cartésien **Y-up** (l'axe $+X$ va vers l'Est, $+Y$ va vers le Nord, et $Z$ est l'élévation altimétrique). En revanche, l'API native standard HTML5 Canvas 2D utilise un repère écran en pixels **Y-down** (l'origine $(0,0)$ est au coin supérieur gauche et l'axe $Y$ descend vers le bas).
+2. **Intégrité documentaire et source unique de vérité :** Conformément à l'ADR-001 et l'ADR-006 / ADR-019, le document `BimDocument` ne doit jamais être muté de manière sauvage ou concurrente par les vues.
+
+### Décision
+
+1. **Package Impératif Autonome (`@mini-bim/view-2d`) :**  
+   Le package `view-2d` est exempt de toute dépendance vers React, Three.js ou des packages DOM additionnels. Il utilise exclusivement l'API standard `HTMLCanvasElement` et `CanvasRenderingContext2D`. L'intégration React (`<Viewport2D />`) est strictement réservée à l'application web (`apps/web`).
+2. **RÈGLE D'OR : Non-Mutation Directe de `BimDocument` :**  
+   La classe `View2D` ne mute JAMAIS directement `BimDocument`. Pour toute opération requérant une modification d'état (création, mise à jour, suppression), la vue émet des intentions de mutation sous forme d'instances typées de `Command` via le callback `onCommandRequested(cb)`. Seul le contrôleur hôte est décisionnaire pour appeler `doc.execute(command)`.
+3. **Convention de Transformation 2D Inversible (`Transform2D`) :**  
+   La conversion cartésienne est assurée par la classe `Transform2D` avec inversion rigoureuse de l'axe vertical :
+   $$x_s = c_x + (x_w - x_0) \cdot s$$
+   $$y_s = c_y - (y_w - y_0) \cdot s$$
+   Et l'inversion exacte :
+   $$x_w = x_0 + \frac{x_s - c_x}{s}$$
+   $$y_w = y_0 - \frac{y_s - c_y}{s}$$
+   La bijection est prouvée et validée par tests automatisés avec une erreur résiduelle absolue $\Delta < 10^{-9}\text{ mm}$.
+4. **Rendu à la Demande (_Demand-Driven Rendering_) :**  
+   À l'instar de `Scene3D` (ADR-018), aucune boucle `requestAnimationFrame` continue ne tourne au repos. Le canvas 2D n'est repeint que lors des notifications de mise à jour du document ou des interactions utilisateur (zoom molette, pan, clic de sélection).
+5. **Consommation Neutre du Noyau Géométrique :**  
+   Le calcul de l'emprise polygonale (poché) et des segments de contour/axe est systématiquement délégué à `computeWallFootprint2d` de `@mini-bim/geometry`.
+
+### Conséquences
+
+- Indépendance architecturale totale permettant l'exécution dans des contextes headless (Node/JSDOM avec mocks de contexte).
+- Consommation CPU à 0% lorsque l'utilisateur ne manipule pas la vue.
+- Traçabilité et auditabilité intégrales des mutations grâce à la centralisation par `CommandBus`.
+- Précision géométrique et conformité visuelle absolue aux normes du dessin en plan architectural.
