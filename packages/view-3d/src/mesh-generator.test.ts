@@ -19,9 +19,25 @@ describe('mesh-generator — Générateur de maillage 3D neutre pour view-3d', (
 
     expect(mesh.elementId).toBe('w_gen_01');
     expect(mesh.role).toBe('full');
-    expect(mesh.positions.length).toBeGreaterThan(0);
-    expect(mesh.indices.length).toBeGreaterThan(0);
-    expect(mesh.normals.length).toBe(mesh.positions.length);
+
+    // 8 sommets topologiques dédoublés pour normales franches :
+    // 4 sommets fond (normal -Z) + 4 sommets couvercle (normal +Z) + 4x4 sommets flancs = 24 sommets = 72 floats
+    expect(mesh.positions.length).toBe(72);
+    expect(mesh.normals.length).toBe(72);
+    // 12 triangles (2 fond + 2 couvercle + 8 flancs) = 36 indices
+    expect(mesh.indices.length).toBe(36);
+
+    // Vérification de la présence de normales verticales +Z (couvercle) et -Z (fond)
+    let hasUpNormal = false;
+    let hasDownNormal = false;
+    for (let i = 0; i < mesh.normals.length; i += 3) {
+      const nz = mesh.normals[i + 2]!;
+      if (Math.abs(nz - 1) < 1e-4) hasUpNormal = true;
+      if (Math.abs(nz - -1) < 1e-4) hasDownNormal = true;
+    }
+    expect(hasUpNormal).toBe(true);
+    expect(hasDownNormal).toBe(true);
+
     // Hauteur Z = 2800 mm
     expect(mesh.boundingBox.min.z).toBeCloseTo(0, 1);
     expect(mesh.boundingBox.max.z).toBeCloseTo(2800, 1);

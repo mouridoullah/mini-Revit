@@ -50,6 +50,13 @@ describe('Viewport3D React Wrapper (apps/web)', () => {
       expect(meshData.role).toBe('full');
       expect(meshData.boundingBox.max.z - meshData.boundingBox.min.z).toBeCloseTo(2800, 1);
     }
+
+    // Vérification que les emprises X/Y des 4 murs sont bien distinctes dans le plan (pas de murs clonés)
+    const centroidsXY = addMeshSpy.mock.calls.map((call) => {
+      const bb = call[0].boundingBox;
+      return `${Math.round((bb.min.x + bb.max.x) / 2)},${Math.round((bb.min.y + bb.max.y) / 2)}`;
+    });
+    expect(new Set(centroidsXY).size).toBe(4);
   });
 
   it('RÈGLE D’OR 3 : un re-render React ne recrée PAS l’instance de Scene3D', () => {

@@ -225,3 +225,9 @@ export function createWallMesh(
 ```
 
 Ce module ne dépend d'aucun modèle métier (`@mini-bim/core` est absent des dépendances). Les applications fournissent directement leurs entités en exploitant le typage structurel de TypeScript.
+
+### Limites Connues et Périmètre de Phase 3
+
+1. **Footprint Isolé :** `createWallMesh` utilise `computeWallFootprint2d` (footprint isolé, PAS junction-resolved). Les murs aux coins se chevauchent visuellement (z-fighting potentiel aux arêtes coplanaires). Sera résolu en Phase 3 avec `computeJunctions`.
+2. **Pièce unique (Full) :** `createWallMesh` traite une seule pièce (`role: 'full'`). Les ouvertures/multi-pièces viendront en Phase 3.
+3. **Identifiants de pièces :** `WallPiece.id === WallPiece.wallId === wall.id`. Acceptable en Phase 2.2 (1 pièce/mur). À enrichir en Phase 3 (IDs uniques par pièce).

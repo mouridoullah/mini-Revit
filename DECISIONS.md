@@ -629,7 +629,10 @@ Une fonction utilitaire `createWallMesh` est nécessaire pour calculer l'emprise
 3. **Typage Structurel Naturel de TypeScript :**
    Les objets `Wall` et `WallType` de `@mini-bim/core` possédant structurellement ces champs (`id`, `start`, `end`, `thickness`, `height`), `apps/web` peut passer directement ses instances sans wrapper ni adaptateur verbeux.
 
-### Conséquences
+### Conséquences & Limites Documentées pour la Phase 3
 
-- Préservation stricte de la hiérarchie des couches : `geometry` $\rightarrow$ `view-3d` $\rightarrow$ `apps/web` (qui compose `core`, `view-2d` et `view-3d`).
+- **Préservation stricte de la hiérarchie des couches :** `geometry` $\rightarrow$ `view-3d` $\rightarrow$ `apps/web` (qui compose `core`, `view-2d` et `view-3d`).
 - `view-3d` reste un package de rendu purement graphique indépendant de tout modèle métier BIM.
+- **Note 1 — Footprint Isolé vs Junctions résolues :** `createWallMesh` utilise `computeWallFootprint2d` (footprint isolé, PAS junction-resolved). Les murs aux coins se chevauchent visuellement (z-fighting potentiel aux arêtes coplanaires). Sera résolu en Phase 3 avec `computeJunctions`.
+- **Note 2 — Pièce unique (Full) :** `createWallMesh` traite une seule pièce (`role: 'full'`). Les ouvertures et le découpage multi-pièces (sill/lintel) viendront en Phase 3.
+- **Note 3 — Identifiants de pièces :** `WallPiece.id === WallPiece.wallId === wall.id`. Acceptable en Phase 2.2 (1 pièce par mur). À enrichir en Phase 3 (IDs uniques par pièce dérivée).

@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, cleanup } from '@testing-library/react';
 import { StrictMode } from 'react';
+import { View2D } from '@mini-bim/view-2d';
+import { Scene3D } from '@mini-bim/view-3d';
 import { App } from './App.js';
 
 describe('App Integration & Squelette Double Viewport (apps/web)', () => {
@@ -35,6 +37,8 @@ describe('App Integration & Squelette Double Viewport (apps/web)', () => {
 
   it('supporte React.StrictMode (double-mount dev) sans fuite et avec affichage intègre', () => {
     const consoleErrorSpy = vi.spyOn(console, 'error');
+    const view2dDisposeSpy = vi.spyOn(View2D.prototype, 'dispose');
+    const scene3dDisposeSpy = vi.spyOn(Scene3D.prototype, 'dispose');
 
     const { getByTestId, unmount } = render(
       <StrictMode>
@@ -54,7 +58,17 @@ describe('App Integration & Squelette Double Viewport (apps/web)', () => {
     // 3. Aucune erreur console React levée
     expect(consoleErrorSpy).not.toHaveBeenCalled();
 
+    // 4. PREUVE FORMELLE DU DOUBLE-MOUNT STRICTMODE :
+    // Lors de l'unmount intermédiaire forcé par StrictMode, dispose() a été appelé 1 fois sur chaque viewport
+    expect(view2dDisposeSpy).toHaveBeenCalledTimes(1);
+    expect(scene3dDisposeSpy).toHaveBeenCalledTimes(1);
+
+    // 5. Lors du démontage final du test
     unmount();
+
+    // Au final, dispose() a été appelé exactement 2 fois sur chaque contrôleur graphique
+    expect(view2dDisposeSpy).toHaveBeenCalledTimes(2);
+    expect(scene3dDisposeSpy).toHaveBeenCalledTimes(2);
   });
 
   it('absence de fuite mémoire : 10 cycles consécutifs de mount / unmount s’exécutent proprement', () => {
