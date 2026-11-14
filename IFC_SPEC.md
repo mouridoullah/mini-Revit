@@ -85,3 +85,7 @@ L'export IFC a été validé selon les critères :
 - Validité syntaxique ISO 10303-21 (délimiteurs de blocs `HEADER`, `DATA`, `ENDSEC`, points-virgules finaux, format des réels).
 - GUIDs de 22 caractères encodés selon la table de conversion standard `0-9A-Za-z_$`.
 - Conformité de chargement sous les principaux visionneurs IFC OpenBIM du marché.
+
+> [!NOTE]
+> **Déterminisme des GUIDs IFC (Note Phase 6) :**
+> Les GUIDs IFC sont générés de manière aléatoire et unique à chaque export (`Math.random()`). Ils ne sont pas stables entre deux exports consécutifs. Pour un futur round-trip stable (import/re-export IFC), il conviendra de dériver le GUID de l'identifiant interne de l'élément (via un hash déterministe ou compression d'un UUID déterministe). À implémenter lors de l'introduction de l'import IFC.

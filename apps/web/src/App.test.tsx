@@ -310,7 +310,9 @@ describe('App Integration & Squelette Double Viewport (apps/web)', () => {
     globalThis.URL.createObjectURL = createObjectURLMock;
     globalThis.URL.revokeObjectURL = revokeObjectURLMock;
 
-    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click');
+    const clickSpy = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => {});
 
     const { getByTestId } = render(<App />);
     const saveBtn = getByTestId('save-btn');

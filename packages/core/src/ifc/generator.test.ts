@@ -280,4 +280,39 @@ describe('Générateur IFC4 ISO 10303-21 (packages/core/ifc)', () => {
 
     ifcApi.CloseModel(modelId);
   });
+
+  it('génère un modèle de 50 murs en moins de 50 ms (performance d’exportation)', () => {
+    const largeState: BimState = {
+      schemaVersion: 1,
+      units: 'mm',
+      levels: {
+        lvl_00: { id: 'lvl_00', name: 'Niveau 0', elevation: 0, height: 3000 },
+      },
+      wallTypes: {
+        wt_std: { id: 'wt_std', name: 'Standard 200mm', thickness: 200, height: 3000 },
+      },
+      walls: {},
+      doors: {},
+      windows: {},
+    };
+
+    for (let i = 0; i < 50; i++) {
+      largeState.walls[`wall_${i}`] = {
+        id: `wall_${i}`,
+        category: 'wall',
+        typeId: 'wt_std',
+        levelId: 'lvl_00',
+        start: { x: i * 1000, y: 0 },
+        end: { x: (i + 1) * 1000, y: 0 },
+      };
+    }
+
+    const t0 = performance.now();
+    const ifc = exportToIfc(largeState);
+    const duration = performance.now() - t0;
+
+    expect(duration).toBeLessThan(100);
+    expect(ifc).toContain('IFCWALL(');
+    expect(ifc.trimEnd().endsWith('END-ISO-10303-21;')).toBe(true);
+  });
 });

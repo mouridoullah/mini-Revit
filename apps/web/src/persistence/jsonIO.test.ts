@@ -26,7 +26,9 @@ describe('jsonIO (Persistance JSON export / import)', () => {
     globalThis.URL.createObjectURL = createObjectURLMock;
     globalThis.URL.revokeObjectURL = revokeObjectURLMock;
 
-    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click');
+    const clickSpy = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => {});
 
     exportToFile(doc, 'mon_projet.json');
 
