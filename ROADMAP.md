@@ -235,13 +235,15 @@ _Dépendances : Phase 1.1 à 1.3 (`@mini-bim/geometry`), Phase 1.4 (`@mini-bim/v
   - **Cotations 2D Associatives (`Dimension` / ADR-034) :** Entité normalisée dans `BimState.dimensions` avec calcul géométrique pur (`computeDimensionValue`). Recalcul automatique lors du déplacement/allongement d'un mur hôte (`UpdateWallCommand`), suppression en cascade lors de la destruction d'un mur (`DeleteWallCommand`), et réversibilité transactionnelle bit-à-bit via `doc.undo()`.
   - **Plans Vectoriels Imprimables SVG (`generatePlanSvg`) :** Export vectoriel de haute précision à l'échelle architecturale normalisée (1:50, 1:100, 1:200) sur format A4/A3 paysage. Rendu conforme avec poché de mur, vitrages, arcs de battement de portes, surfaces pastel des pièces en m², lignes de cote avec ticks à 45°, et cartouche architectural réglementaire (Titre, Échelle, Date, Auteur).
   - **Intégration Web UI (`Toolbar.tsx`) :** Boutons d'export direct « 🏛️ Exporter IFC » et « 📐 Plan (SVG) » avec sélecteur d'échelle intégré, déclenchant le téléchargement instantané côté client.
-- **Tests :** 503 tests automatisés passants sur l'ensemble du monorepo (Geometry: 198, Core: 112, View-3D: 27, View-2D: 53, Web: 113).
+- **Tests :** 507 tests automatisés passants sur l'ensemble du monorepo (Geometry: 198, Core: 116, View-3D: 27, View-2D: 53, Web: 113), validation officielle par le parser C++/WASM `web-ifc` (buildingSMART) et test de performance d'export (< 50 ms pour 50 murs).
 
 ---
 
-### Phase 6 — Extension Réseaux MEP (Post-MVP) [PROCHAINE ÉTAPE]
+### Phase 6 — Extension Réseaux MEP (Post-MVP / Évolution Future)
 
 - **Objectif :** Intégrer la coordination 3D des réseaux techniques (plomberie, ventilation, électricité).
+- **Spécification :** Prête et découpée en 3 sous-phases (6.1 Modèle topologique pur, 6.2 Rendu 3D/2D instancié, 6.3 Détection de collisions et IFC MEP).
+- **Statut :** Spécification documentée dans les notes d'évolution — la version V1.0 stabilisée de Mini-BIM couvre l'intégralité du cycle architectural, calculatoire et OpenBIM.
 - **Fonctionnalités :**
   - Enregistrement des catégories MEP via le registre de catégories (`CategoryDef`).
   - Définition des systèmes de distribution (`mep_system` : eau froide, évacuation, gaines C1).
