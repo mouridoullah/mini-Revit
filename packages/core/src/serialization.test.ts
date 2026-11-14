@@ -339,8 +339,9 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
       },
     };
     expect(() => fromJSON(JSON.stringify(badDimDoorState))).toThrowError(/MALFORMED_DOOR/);
+  });
 
-    // Cas 4: swing absent (undefined)
+  it('fromJSON rejette une porte dont la propriété swing est absente ou indéfinie (MALFORMED_DOOR)', () => {
     const missingSwingDoorState = {
       ...sampleState,
       doors: {

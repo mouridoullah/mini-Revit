@@ -274,4 +274,56 @@ describe('Viewport3D React Wrapper (apps/web)', () => {
     expect(removedIds).toContain('wall_south');
     expect(removedIds).toContain('door_demo');
   });
+
+  it('update propagation : quand une porte est déplacée via MoveOpeningCommand, le mur hôte est régénéré (re-calcul du perçage) et l’ancien maillage est disposé', () => {
+    const doc = createDemoDocument();
+    const createWallMeshWithOpeningsSpy = vi.spyOn(Scene3DModule, 'createWallMeshWithOpenings');
+    const updateMeshBatchSpy = vi.spyOn(Scene3DModule.Scene3D.prototype, 'updateMeshBatch');
+    const removeMeshSpy = vi.spyOn(Scene3DModule.Scene3D.prototype, 'removeMesh');
+
+    render(
+      <BimDocumentProvider initialDoc={doc}>
+        <Viewport3D />
+      </BimDocumentProvider>,
+    );
+
+    // Initialement : 4 appels à createWallMeshWithOpenings (1 par mur du demoDocument)
+    const initialWallSouthCalls = createWallMeshWithOpeningsSpy.mock.calls.filter(
+      (c) => c[0].wall.id === 'wall_south',
+    );
+    expect(initialWallSouthCalls).toHaveLength(1);
+    const firstCall = initialWallSouthCalls[0];
+    expect(firstCall).toBeDefined();
+    if (firstCall) {
+      expect(firstCall[0].openings[0]?.offsetAlong).toBe(2000);
+    }
+
+    createWallMeshWithOpeningsSpy.mockClear();
+    updateMeshBatchSpy.mockClear();
+    removeMeshSpy.mockClear();
+
+    // Déplacement de door_demo de offsetAlong 2000 mm -> 3500 mm
+    act(() => {
+      doc.execute(new Commands.MoveOpeningCommand('door_demo', 3500));
+    });
+
+    // 1. Propagation confirmée : createWallMeshWithOpenings ré-invoqué pour wall_south avec le nouvel offset 3500
+    const updatedWallSouthCalls = createWallMeshWithOpeningsSpy.mock.calls.filter(
+      (c) => c[0].wall.id === 'wall_south',
+    );
+    expect(updatedWallSouthCalls).toHaveLength(1);
+    const secondCall = updatedWallSouthCalls[0];
+    expect(secondCall).toBeDefined();
+    if (secondCall) {
+      expect(secondCall[0].openings[0]?.offsetAlong).toBe(3500);
+    }
+
+    // 2. updateMeshBatch appelé pour wall_south
+    expect(updateMeshBatchSpy).toHaveBeenCalledWith('wall_south', expect.any(Array));
+
+    // 3. removeMesh appelé pour nettoyer et disposer les anciens maillages du mur et du placeholder
+    const removedIds = removeMeshSpy.mock.calls.map((c) => c[0]);
+    expect(removedIds).toContain('wall_south');
+    expect(removedIds).toContain('door_demo');
+  });
 });

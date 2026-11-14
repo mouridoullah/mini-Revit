@@ -359,4 +359,57 @@ describe('Scene3D — Gestionnaire de scène 3D Three.js impératif', () => {
 
     scene3d.dispose();
   });
+
+  it('updateMeshBatch remplace atomiquement un ensemble de maillages multi-pièces et libère proprement les anciens', () => {
+    const scene3d = new Scene3D(canvas, { width: 800, height: 600 });
+
+    // 1. Ajout initial de 6 tronçons de mur (ex: mur percé d'une porte et d'une fenêtre)
+    const initialPieces: RawMeshData[] = [
+      createSampleRawMesh('wall_pierced', 'full'),
+      createSampleRawMesh('wall_pierced', 'lintel'),
+      createSampleRawMesh('wall_pierced', 'full'),
+      createSampleRawMesh('wall_pierced', 'sill'),
+      createSampleRawMesh('wall_pierced', 'lintel'),
+      createSampleRawMesh('wall_pierced', 'full'),
+    ];
+
+    for (const p of initialPieces) {
+      scene3d.addMesh(p);
+    }
+
+    const initialMeshes = scene3d.getMeshes('wall_pierced');
+    expect(initialMeshes).toHaveLength(6);
+
+    // Espionner dispose() sur les géométries initiales
+    const disposeSpies = initialMeshes.map((m) => vi.spyOn(m.geometry, 'dispose'));
+
+    // 2. Remplacement par 6 nouveaux tronçons via updateMeshBatch
+    const updatedPieces: RawMeshData[] = [
+      createSampleRawMesh('wall_pierced', 'full'),
+      createSampleRawMesh('wall_pierced', 'lintel'),
+      createSampleRawMesh('wall_pierced', 'full'),
+      createSampleRawMesh('wall_pierced', 'sill'),
+      createSampleRawMesh('wall_pierced', 'lintel'),
+      createSampleRawMesh('wall_pierced', 'full'),
+    ];
+
+    const newMeshes = scene3d.updateMeshBatch('wall_pierced', updatedPieces);
+    expect(newMeshes).toHaveLength(6);
+
+    // 3. Vérifications :
+    // Toutes les anciennes géométries ont été détruites
+    for (const spy of disposeSpies) {
+      expect(spy).toHaveBeenCalledTimes(1);
+    }
+
+    // Les maillages enregistrés sous l'elementId sont strictement les nouveaux
+    const currentMeshes = scene3d.getMeshes('wall_pierced');
+    expect(currentMeshes).toHaveLength(6);
+    expect(currentMeshes).toEqual(newMeshes);
+    for (let i = 0; i < 6; i++) {
+      expect(currentMeshes[i]).not.toBe(initialMeshes[i]);
+    }
+
+    scene3d.dispose();
+  });
 });

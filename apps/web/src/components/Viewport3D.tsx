@@ -110,9 +110,6 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
         })),
       ];
 
-      // Nettoyer les maillages précédents du mur
-      scene.removeMesh(wall.id);
-
       // Générer les tronçons solides découpés (murs percés 2.5D)
       const pieces = createWallMeshWithOpenings({
         wall,
@@ -121,9 +118,8 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
         elevation,
       });
 
-      for (const piece of pieces) {
-        scene.addMesh(piece);
-      }
+      // Remplacement atomique de l'ensemble des tronçons solides du mur (ancien maillage libéré)
+      scene.updateMeshBatch(wall.id, pieces);
     }
 
     // 3. Placeholders 3D des portes (boîte bois)
@@ -134,7 +130,6 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
       const level = state.levels[hostWall.levelId];
       const elevation = level?.elevation ?? 0;
 
-      scene.removeMesh(door.id);
       const placeholder = createOpeningPlaceholder(
         {
           id: door.id,
@@ -147,7 +142,7 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
         hostWall,
         elevation,
       );
-      scene.addMesh(placeholder, doorMat);
+      scene.updateMesh(placeholder, doorMat);
     }
 
     // 4. Placeholders 3D des fenêtres (boîte vitrée translucide)
@@ -158,7 +153,6 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
       const level = state.levels[hostWall.levelId];
       const elevation = level?.elevation ?? 0;
 
-      scene.removeMesh(win.id);
       const placeholder = createOpeningPlaceholder(
         {
           id: win.id,
@@ -171,7 +165,7 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
         hostWall,
         elevation,
       );
-      scene.addMesh(placeholder, winMat);
+      scene.updateMesh(placeholder, winMat);
     }
 
     renderedElementIdsRef.current = currentElementIds;

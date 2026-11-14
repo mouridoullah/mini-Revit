@@ -167,6 +167,44 @@ export class Scene3D {
   }
 
   /**
+   * Met à jour en une seule opération atomique l'ensemble des maillages associés à un elementId
+   * (ex: les 3 à 6 tronçons solides d'un mur percé d'ouvertures).
+   *
+   * Garantit que :
+   * 1. Toutes les géométries précédentes associées à elementId sont libérées via dispose().
+   * 2. L'ensemble des nouveaux tronçons est instancié et rattaché à la scène sous elementId.
+   *
+   * @param elementId Identifiant de l'élément architectural hôte
+   * @param rawDataList Liste des conteneurs géométriques à instancier
+   * @param material Matériau optionnel (par défaut: defaultMaterial)
+   * @returns La liste des nouveaux maillages THREE.Mesh créés
+   */
+  public updateMeshBatch(
+    elementId: string,
+    rawDataList: readonly RawMeshData[],
+    material?: THREE.Material,
+  ): THREE.Mesh[] {
+    if (this.isDisposed) {
+      throw new Error('[Scene3D] Cannot update mesh batch on a disposed Scene3D instance.');
+    }
+
+    // 1. Libérer et supprimer proprement tous les anciens maillages de cet elementId
+    this.removeMesh(elementId);
+
+    if (rawDataList.length === 0) {
+      return [];
+    }
+
+    // 2. Créer et ajouter tous les nouveaux maillages
+    const createdMeshes: THREE.Mesh[] = [];
+    for (const rawData of rawDataList) {
+      createdMeshes.push(this.addMesh(rawData, material));
+    }
+
+    return createdMeshes;
+  }
+
+  /**
    * Retire tous les maillages associés à un elementId et libère leur géométrie tampon.
    */
   public removeMesh(elementId: string): void {

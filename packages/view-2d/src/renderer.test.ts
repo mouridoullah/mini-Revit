@@ -295,6 +295,102 @@ describe('Renderer 2D (renderer.ts)', () => {
     expect(strokeCalls.length).toBeGreaterThanOrEqual(2);
   });
 
+  it('drawOpeningDoor vérifie les angles exacts et sens de rotation sur les 4 combinaisons (side × direction × orientation du mur)', () => {
+    const transform = new Transform2D({
+      origin: vec2(0, 0),
+      scale: 0.1, // 1000 mm = 100 px
+      viewportWidth: 800,
+      viewportHeight: 600,
+    });
+
+    const getArcParams = (
+      wall: Wall,
+      swing: { side: 'left' | 'right'; direction: 'in' | 'out' },
+    ) => {
+      const { mock } = createMockCanvas(800, 600);
+      drawOpeningDoor(
+        mock.ctx,
+        transform,
+        {
+          id: 'door_test',
+          hostWallId: wall.id,
+          offsetAlong: 1000,
+          width: 1000,
+          swing,
+        },
+        wall,
+        200,
+      );
+      const arcCall = mock.filterCalls('arc')[0];
+      expect(arcCall).toBeDefined();
+      return arcCall?.args as [number, number, number, number, number, boolean];
+    };
+
+    // 1. Mur horizontal (0°) + swing: left / in
+    const wHoriz: Wall = {
+      id: 'w_h',
+      category: 'wall',
+      typeId: 'wt1',
+      levelId: 'lvl1',
+      start: vec2(0, 0),
+      end: vec2(5000, 0),
+    };
+    const [x1, y1, r1, s1, e1, ccw1] = getArcParams(wHoriz, { side: 'left', direction: 'in' });
+    expect(x1).toBeCloseTo(500, 5); // 400 + 1000 * 0.1 = 500
+    expect(y1).toBeCloseTo(300, 5); // 300 - 0 = 300
+    expect(r1).toBeCloseTo(100, 5);
+    expect(s1).toBeCloseTo(0, 5);
+    expect(e1).toBeCloseTo(-Math.PI / 2, 5);
+    expect(ccw1).toBe(true);
+
+    // 2. Mur horizontal (0°) + swing: right / out
+    const [x2, y2, r2, s2, e2, ccw2] = getArcParams(wHoriz, { side: 'right', direction: 'out' });
+    expect(x2).toBeCloseTo(600, 5); // 400 + 2000 * 0.1 = 600 (charnière à droite)
+    expect(y2).toBeCloseTo(300, 5);
+    expect(r2).toBeCloseTo(100, 5);
+    expect(s2).toBeCloseTo(Math.PI, 5);
+    expect(e2).toBeCloseTo(Math.PI / 2, 5);
+    expect(ccw2).toBe(true);
+
+    // 3. Mur vertical (90°) + swing: left / in
+    const wVert: Wall = {
+      id: 'w_v',
+      category: 'wall',
+      typeId: 'wt1',
+      levelId: 'lvl1',
+      start: vec2(0, 0),
+      end: vec2(0, 5000),
+    };
+    const [x3, y3, r3, s3, e3, ccw3] = getArcParams(wVert, { side: 'left', direction: 'in' });
+    expect(x3).toBeCloseTo(400, 5);
+    expect(y3).toBeCloseTo(200, 5); // 300 - 1000 * 0.1 = 200
+    expect(r3).toBeCloseTo(100, 5);
+    expect(s3).toBeCloseTo(-Math.PI / 2, 5);
+    expect(e3).toBeCloseTo(Math.PI, 5);
+    expect(ccw3).toBe(true);
+
+    // 4. Mur à 45° + swing: right / in
+    const L = 5000;
+    const c = Math.SQRT1_2;
+    const w45: Wall = {
+      id: 'w_45',
+      category: 'wall',
+      typeId: 'wt1',
+      levelId: 'lvl1',
+      start: vec2(0, 0),
+      end: vec2(L * c, L * c),
+    };
+    const [x4, y4, r4, s4, e4, ccw4] = getArcParams(w45, { side: 'right', direction: 'in' });
+    // Hinge world = start + 2000 * (c, c) = (2000*c, 2000*c)
+    // Screen coords = (400 + 200*c, 300 - 200*c) ≈ (541.42, 158.58)
+    expect(x4).toBeCloseTo(400 + 200 * c, 4);
+    expect(y4).toBeCloseTo(300 - 200 * c, 4);
+    expect(r4).toBeCloseTo(100, 5);
+    expect(s4).toBeCloseTo((3 * Math.PI) / 4, 5);
+    expect(e4).toBeCloseTo((-3 * Math.PI) / 4, 5);
+    expect(ccw4).toBe(false);
+  });
+
   it('drawOpeningWindow trace l’évidement, les montants et 2 lignes parallèles de vitrage', () => {
     const { mock } = createMockCanvas(800, 600);
     const transform = new Transform2D({

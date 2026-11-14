@@ -315,8 +315,55 @@ describe('mesh-generator — Générateur de maillage 3D neutre pour view-3d', (
       measuredSolidVolume += computeMeshVolume(m);
     }
 
-    // Erreur relative < 1e-4 sur plus de 2.6 milliards de mm³
-    expect(measuredSolidVolume).toBeCloseTo(expectedSolidVolume, -2);
-    expect(Math.abs(measuredSolidVolume - expectedSolidVolume)).toBeLessThan(50);
+    // Sur un mur aligné sur les axes (coordonnées entières exactes), le résidu de volume est strictement 0.0e+0
+    expect(measuredSolidVolume).toBe(expectedSolidVolume);
+    expect(Math.abs(measuredSolidVolume - expectedSolidVolume)).toBe(0);
+  });
+
+  it('conservation des volumes sur mur orienté à 45° : résidu sous-millimétrique documenté dû aux coordonnées irrationnelles (sqrt(2))', () => {
+    const L = 6000;
+    const c = Math.SQRT1_2;
+    const wall45: WallGeometryParams = {
+      id: 'w_45_vol',
+      start: { x: 0, y: 0 },
+      end: { x: L * c, y: L * c },
+    };
+
+    const door: OpeningGeometryParams = {
+      id: 'd_45',
+      kind: 'door',
+      offsetAlong: 1000,
+      width: 900,
+      height: 2100,
+      sillHeight: 0,
+    };
+
+    const win: OpeningGeometryParams = {
+      id: 'w_45',
+      kind: 'window',
+      offsetAlong: 3000,
+      width: 1400,
+      height: 1200,
+      sillHeight: 1000,
+    };
+
+    const meshes = createWallMeshWithOpenings({
+      wall: wall45,
+      wallType: testWallType,
+      openings: [door, win],
+    });
+
+    const expectedSolidVolume = 2646000000; // 3360e6 - 378e6 - 336e6
+
+    let measuredSolidVolume = 0;
+    for (const m of meshes) {
+      measuredSolidVolume += computeMeshVolume(m);
+    }
+
+    // Le résidu brut float64 provient de la projection de sqrt(2) sur la géométrie en Float32Array
+    const residualDelta = Math.abs(measuredSolidVolume - expectedSolidVolume);
+    // Erreur relative < 2e-7 sur 2.646 milliards de mm³ (soit moins de 0.00002% d'écart global)
+    expect(residualDelta / expectedSolidVolume).toBeLessThan(2e-7);
+    expect(residualDelta).toBeLessThan(500); // 489.36 mm³ sur un volume total de 2 646 000 000 mm³
   });
 });
