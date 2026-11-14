@@ -145,3 +145,16 @@ L'absence de fuite mémoire est validée par des tests d'intégration simulant 1
 1. Les écouteurs d'événements DOM (ResizeObserver, pointer events) sont déconnectés.
 2. Les contextes et ressources GPU (buffers, géométries Three.js) sont libérés via `dispose()`.
 3. Aucune exception console React ou mémoire n'est levée.
+
+---
+
+## 8. Support et Validation de React.StrictMode
+
+En environnement de développement (`npm run dev`), React enveloppe l'arbre applicatif dans `<StrictMode>` (`apps/web/src/main.tsx`). Cette configuration force un double montage (`mount` $\rightarrow$ `unmount` $\rightarrow$ `mount`) pour chaque composant afin de révéler les effets secondaires non nettoyés.
+
+Mini-BIM supporte nativement et valide `StrictMode` :
+
+1. Le premier cycle de montage initialise `View2D` et `Scene3D`.
+2. Le cycle de nettoyage déclenché par StrictMode appelle immédiatement `view.dispose()` et `scene.dispose()`, libérant les écouteurs et tampons WebGL.
+3. Le second montage réinstancie des contrôleurs sains sans superposition de canvas, sans écouteurs orphelins et sans fuite mémoire.
+4. Cette résilience est couverte et validée par un test d'intégration automatisé (`App.test.tsx`).

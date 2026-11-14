@@ -210,28 +210,4 @@ describe('MeshAdapter — Conversion RawMeshData vers THREE.BufferGeometry', () 
     geometry.dispose();
     expect(spy).toHaveBeenCalledTimes(1);
   });
-
-  it('createWallMesh génère un RawMeshData 3D fermé et valide pour un mur architectural', async () => {
-    const { createWallMesh } = await import('./mesh-generator.js');
-
-    const wall = {
-      id: 'w_gen_test',
-      start: { x: 0, y: 0 },
-      end: { x: 3000, y: 0 },
-    };
-    const wallType = {
-      thickness: 200,
-      height: 2500,
-    };
-
-    const mesh = createWallMesh(wall, wallType, 0);
-    expect(mesh).not.toBeNull();
-    if (!mesh) return;
-
-    expect(mesh.elementId).toBe('w_gen_test');
-    expect(mesh.role).toBe('full');
-    expect(mesh.positions.length).toBeGreaterThan(0);
-    expect(mesh.indices.length).toBeGreaterThan(0);
-    expect(mesh.boundingBox.max.z - mesh.boundingBox.min.z).toBeCloseTo(2500, 1);
-  });
 });

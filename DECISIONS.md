@@ -594,3 +594,42 @@ Trois contraintes architecturales et de performance critiques se posent :
 - Zéro fuite mémoire démontrée sur des cycles consécutifs de mount / unmount.
 - Rendu fluide à 60 FPS lors des interactions sans surcoût de réconciliation React.
 - Architecture modulaire respectant les frontières des couches logicielles.
+
+---
+
+## ADR-023 : Génération de Maillages 3D dans @mini-bim/view-3d via Interfaces Géométriques Neutres
+
+### Contexte
+
+L'application web (`apps/web`) doit afficher les murs du modèle BIM dans la scène Three.js (`Scene3D`). Conformément à la Règle d'or n°2, `apps/web` n'a pas le droit d'importer `@mini-bim/geometry` directement.
+
+Une fonction utilitaire `createWallMesh` est nécessaire pour calculer l'emprise polygonale et extruder les sous-volumes en `RawMeshData`. Deux options architecturales s'opposaient :
+
+- **Option A (Rejetée) :** `createWallMesh(wall: Wall, wallType: WallType, elevation: number)` avec import de types `@mini-bim/core`. Cette option introduirait une dépendance descendante de `view-3d` vers `core`, violant l'hermétisme posé en Phase 1.4 où `view-3d` ne dépend que de `geometry` et de `three`.
+- **Option B (Adoptée) :** `createWallMesh(wall: WallGeometryParams, wallType: WallTypeGeometryParams, elevation: number)` avec des interfaces purement structurelles et neutres déclarées dans `packages/view-3d/src/mesh-generator.ts`.
+
+### Décision
+
+1. **Interfaces d'Entrée Structurelles et Neutres :**
+   `view-3d` définit ses propres interfaces d'entrée pour la géométrie de mur :
+   ```typescript
+   export interface WallGeometryParams {
+     readonly id: string;
+     readonly start: { readonly x: number; readonly y: number };
+     readonly end: { readonly x: number; readonly y: number };
+   }
+
+   export interface WallTypeGeometryParams {
+     readonly thickness: number;
+     readonly height: number;
+   }
+   ```
+2. **Absence Totale de Dépendance vers `@mini-bim/core` :**
+   `packages/view-3d/package.json` ne référence PAS `@mini-bim/core`. Le code de `mesh-generator.ts` n'importe aucun type ni symbole de `core`.
+3. **Typage Structurel Naturel de TypeScript :**
+   Les objets `Wall` et `WallType` de `@mini-bim/core` possédant structurellement ces champs (`id`, `start`, `end`, `thickness`, `height`), `apps/web` peut passer directement ses instances sans wrapper ni adaptateur verbeux.
+
+### Conséquences
+
+- Préservation stricte de la hiérarchie des couches : `geometry` $\rightarrow$ `view-3d` $\rightarrow$ `apps/web` (qui compose `core`, `view-2d` et `view-3d`).
+- `view-3d` reste un package de rendu purement graphique indépendant de tout modèle métier BIM.

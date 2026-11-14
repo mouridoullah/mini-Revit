@@ -25,8 +25,31 @@ describe('Viewport3D React Wrapper (apps/web)', () => {
 
     const canvas = getByTestId('viewport-3d-canvas');
     expect(canvas).toBeDefined();
-    // Le demoDocument comporte 4 murs -> addMesh appelé pour chaque mur
+
+    // 1. Décompte d'appels : 4 murs
     expect(addMeshSpy).toHaveBeenCalledTimes(4);
+
+    // 2. Vérification des arguments passés à addMesh
+    const calledElementIds = addMeshSpy.mock.calls.map((call) => call[0].elementId);
+    expect(calledElementIds).toHaveLength(4);
+
+    // Les 4 IDs sont distincts
+    const uniqueIds = new Set(calledElementIds);
+    expect(uniqueIds.size).toBe(4);
+
+    // Correspondance exacte avec les 4 murs du demoDocument
+    const expectedWallIds = ['wall_south', 'wall_east', 'wall_north', 'wall_west'];
+    expect([...calledElementIds].sort()).toEqual([...expectedWallIds].sort());
+
+    // Vérification de la structure et de l'intégrité géométrique de chaque RawMeshData
+    for (const call of addMeshSpy.mock.calls) {
+      const meshData = call[0];
+      expect(meshData.positions.length).toBeGreaterThan(0);
+      expect(meshData.indices.length).toBeGreaterThan(0);
+      expect(meshData.normals.length).toBe(meshData.positions.length);
+      expect(meshData.role).toBe('full');
+      expect(meshData.boundingBox.max.z - meshData.boundingBox.min.z).toBeCloseTo(2800, 1);
+    }
   });
 
   it('RÈGLE D’OR 3 : un re-render React ne recrée PAS l’instance de Scene3D', () => {

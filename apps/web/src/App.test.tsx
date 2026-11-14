@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, cleanup } from '@testing-library/react';
+import { StrictMode } from 'react';
 import { App } from './App.js';
 
 describe('App Integration & Squelette Double Viewport (apps/web)', () => {
@@ -30,6 +31,30 @@ describe('App Integration & Squelette Double Viewport (apps/web)', () => {
     expect(consoleErrorSpy).not.toHaveBeenCalled();
 
     cleanup();
+  });
+
+  it('supporte React.StrictMode (double-mount dev) sans fuite et avec affichage intègre', () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error');
+
+    const { getByTestId, unmount } = render(
+      <StrictMode>
+        <App />
+      </StrictMode>,
+    );
+
+    // 1. Les deux viewports sont bien montés et présents
+    expect(getByTestId('viewport-2d-canvas')).toBeDefined();
+    expect(getByTestId('viewport-3d-canvas')).toBeDefined();
+
+    // 2. StatusBar affiche toujours les 4 murs du demoDocument
+    const statusBar = document.querySelector('footer');
+    expect(statusBar?.textContent).toContain('Murs : 4');
+    expect(statusBar?.textContent).toContain('Niveaux : 1');
+
+    // 3. Aucune erreur console React levée
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+
+    unmount();
   });
 
   it('absence de fuite mémoire : 10 cycles consécutifs de mount / unmount s’exécutent proprement', () => {

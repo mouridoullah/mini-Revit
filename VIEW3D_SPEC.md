@@ -198,3 +198,30 @@ Contrairement aux moteurs de jeu (Unity, Unreal) qui bouclent à 60 ou 120 fps e
   3. Lors des modifications programmatiques du modèle (`addMesh`, `updateMesh`, `removeMesh`).
   4. Lors du redimensionnement de la fenêtre (`resize`).
 - Ce modèle garantit une utilisation CPU/GPU proche de $0\%$ au repos.
+
+---
+
+## 6. Générateur de Maillages Découplé (`mesh-generator.ts` — Phase 2.2)
+
+Pour permettre aux applications frontales (`apps/web`) d'instancier des géométries 3D sans violer la règle d'isolation (interdiction d'importer `@mini-bim/geometry`), `view-3d` exporte un générateur de maillages basé sur des interfaces neutres (ADR-023) :
+
+```typescript
+export interface WallGeometryParams {
+  readonly id: string;
+  readonly start: { readonly x: number; readonly y: number };
+  readonly end: { readonly x: number; readonly y: number };
+}
+
+export interface WallTypeGeometryParams {
+  readonly thickness: number;
+  readonly height: number;
+}
+
+export function createWallMesh(
+  wall: WallGeometryParams,
+  wallType: WallTypeGeometryParams,
+  elevation?: number,
+): RawMeshData | null;
+```
+
+Ce module ne dépend d'aucun modèle métier (`@mini-bim/core` est absent des dépendances). Les applications fournissent directement leurs entités en exploitant le typage structurel de TypeScript.

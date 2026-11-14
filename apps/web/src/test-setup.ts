@@ -52,10 +52,11 @@ vi.mock('three', async (importOriginal) => {
   };
 });
 
-// Mock Canvas 2D pour jsdom
+// Mock Canvas 2D et WebGL pour jsdom avec dimensions réelles
 HTMLCanvasElement.prototype.getContext = vi.fn().mockImplementation((id: string) => {
   if (id === '2d') {
     return {
+      canvas: null,
       save: vi.fn(),
       restore: vi.fn(),
       beginPath: vi.fn(),
@@ -70,6 +71,21 @@ HTMLCanvasElement.prototype.getContext = vi.fn().mockImplementation((id: string)
       getLineDash: vi.fn(() => []),
     } as unknown as CanvasRenderingContext2D;
   }
+  if (id === 'webgl' || id === 'webgl2') {
+    return {
+      canvas: null,
+      getExtension: vi.fn(() => null),
+      getParameter: vi.fn(() => null),
+      createBuffer: vi.fn(),
+      bindBuffer: vi.fn(),
+      bufferData: vi.fn(),
+      viewport: vi.fn(),
+      clearColor: vi.fn(),
+      clear: vi.fn(),
+      enable: vi.fn(),
+      disable: vi.fn(),
+    } as unknown as WebGLRenderingContext;
+  }
   return null;
 });
 
@@ -81,3 +97,51 @@ HTMLCanvasElement.prototype.getBoundingClientRect = vi.fn().mockReturnValue({
   width: 800,
   height: 600,
 } as DOMRect);
+
+// Mock des dimensions de conteneur DOM pour éviter les fallbacks 0x0 sous jsdom
+Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
+  configurable: true,
+  get() {
+    return 800;
+  },
+});
+
+Object.defineProperty(HTMLElement.prototype, 'clientHeight', {
+  configurable: true,
+  get() {
+    return 600;
+  },
+});
+
+// Mock complet et contrôlable de ResizeObserver pour les tests
+export class MockResizeObserver {
+  public static instances: MockResizeObserver[] = [];
+  public callback: ResizeObserverCallback;
+  public observedElements: Set<Element> = new Set();
+  public isDisconnected = false;
+
+  public constructor(callback: ResizeObserverCallback) {
+    this.callback = callback;
+    MockResizeObserver.instances.push(this);
+  }
+
+  public observe(target: Element): void {
+    this.observedElements.add(target);
+  }
+
+  public unobserve(target: Element): void {
+    this.observedElements.delete(target);
+  }
+
+  public disconnect(): void {
+    this.isDisconnected = true;
+    this.observedElements.clear();
+  }
+
+  public trigger(entries: Partial<ResizeObserverEntry>[]): void {
+    if (this.isDisconnected) return;
+    this.callback(entries as ResizeObserverEntry[], this as unknown as ResizeObserver);
+  }
+}
+
+globalThis.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver;

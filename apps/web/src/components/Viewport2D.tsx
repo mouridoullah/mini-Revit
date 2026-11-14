@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { View2D } from '@mini-bim/view-2d';
 import { useBimDocument } from '../hooks/useBimDocument.js';
+import { useResizeObserver } from '../hooks/useResizeObserver.js';
 
 /**
  * Wrapper React du visualiseur en plan 2D impératif.
@@ -49,24 +50,11 @@ export function Viewport2D() {
   }, [state, doc]);
 
   // Adaptation responsive de la taille du canvas
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container || typeof ResizeObserver === 'undefined') return;
-
-    const ro = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        if (entry.target === container) {
-          const { width, height } = entry.contentRect;
-          if (width > 0 && height > 0 && viewRef.current) {
-            viewRef.current.resize(width, height);
-          }
-        }
-      }
-    });
-
-    ro.observe(container);
-    return () => ro.disconnect();
-  }, []);
+  useResizeObserver(containerRef, (width, height) => {
+    if (viewRef.current) {
+      viewRef.current.resize(width, height);
+    }
+  });
 
   return (
     <div

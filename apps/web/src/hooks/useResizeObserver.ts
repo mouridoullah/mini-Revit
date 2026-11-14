@@ -1,13 +1,19 @@
-import { useEffect, type RefObject } from 'react';
+import { useEffect, useRef, type RefObject } from 'react';
 
 /**
  * Hook utilitaire surveillant les dimensions d'un élément conteneur HTML
  * pour propager les changements de résolution aux moteurs de rendu 2D/3D.
+ *
+ * Utilise useRef pour stabiliser la référence au callback onResize
+ * et éviter les reconnexions inutiles du ResizeObserver lors des re-renders.
  */
 export function useResizeObserver(
   targetRef: RefObject<HTMLElement | null>,
   onResize: (width: number, height: number) => void,
 ): void {
+  const callbackRef = useRef(onResize);
+  callbackRef.current = onResize;
+
   useEffect(() => {
     const element = targetRef.current;
     if (!element || typeof ResizeObserver === 'undefined') return;
@@ -17,7 +23,7 @@ export function useResizeObserver(
         if (entry.target === element) {
           const { width, height } = entry.contentRect;
           if (width > 0 && height > 0) {
-            onResize(width, height);
+            callbackRef.current(width, height);
           }
         }
       }
@@ -28,5 +34,5 @@ export function useResizeObserver(
     return () => {
       observer.disconnect();
     };
-  }, [targetRef, onResize]);
+  }, [targetRef]);
 }

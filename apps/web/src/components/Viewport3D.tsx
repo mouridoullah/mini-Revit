@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Scene3D, createWallMesh } from '@mini-bim/view-3d';
 import { useBimDocument } from '../hooks/useBimDocument.js';
+import { useResizeObserver } from '../hooks/useResizeObserver.js';
 
 /**
  * Wrapper React du visualiseur 3D orbital Three.js impératif.
@@ -75,24 +76,11 @@ export function Viewport3D() {
   }, [state]);
 
   // Adaptation responsive de la taille du canvas
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container || typeof ResizeObserver === 'undefined') return;
-
-    const ro = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        if (entry.target === container) {
-          const { width, height } = entry.contentRect;
-          if (width > 0 && height > 0 && sceneRef.current) {
-            sceneRef.current.resize(width, height);
-          }
-        }
-      }
-    });
-
-    ro.observe(container);
-    return () => ro.disconnect();
-  }, []);
+  useResizeObserver(containerRef, (width, height) => {
+    if (sceneRef.current) {
+      sceneRef.current.resize(width, height);
+    }
+  });
 
   return (
     <div
