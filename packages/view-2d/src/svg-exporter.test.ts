@@ -75,7 +75,9 @@ describe('Générateur de Plans SVG Imprimables (packages/view-2d/svg-exporter)'
 
     expect(svg.startsWith('<?xml version="1.0" encoding="UTF-8"?>')).toBe(true);
     expect(svg).toContain('<svg xmlns="http://www.w3.org/2000/svg"');
-    expect(svg).toContain('viewBox=');
+    expect(svg).toContain('width="297mm"');
+    expect(svg).toContain('height="210mm"');
+    expect(svg).toContain('viewBox="0 0 1123 794"');
     expect(svg).toContain('</svg>');
 
     // Calques normalisés
@@ -131,6 +133,8 @@ describe('Générateur de Plans SVG Imprimables (packages/view-2d/svg-exporter)'
     });
 
     expect(svg).toContain('Villa Méditerranée');
+    expect(svg).toContain('width="420mm"');
+    expect(svg).toContain('height="297mm"');
     expect(svg).toContain('Plan de Masse et Distribution');
     expect(svg).toContain('ÉCHELLE : 1:50');
     expect(svg).toContain('FORMAT : A3');

@@ -362,7 +362,7 @@ export function generatePlanSvg(doc: DocumentFor2D, options: PlanSvgOptions = {}
 
   return [
     `<?xml version="1.0" encoding="UTF-8"?>`,
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${widthPx}" height="${heightPx}" viewBox="0 0 ${widthPx} ${heightPx}" version="1.1">`,
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${paperWidthMm}mm" height="${paperHeightMm}mm" viewBox="0 0 ${widthPx} ${heightPx}" version="1.1">`,
     `  <rect width="100%" height="100%" fill="#ffffff" />`,
     `  <g id="rooms">\n${roomSvgParts.join('\n')}\n  </g>`,
     `  <g id="walls">\n${wallSvgParts.join('\n')}\n  </g>`,

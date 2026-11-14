@@ -100,6 +100,9 @@ importers:
       vitest:
         specifier: ^3.0.5
         version: 3.2.7(@types/node@22.20.5)(jsdom@31.0.0)(supports-color@7.2.0)
+      web-ifc:
+        specifier: ^0.0.79
+        version: 0.0.79
 
   packages/geometry:
     dependencies:
@@ -1752,6 +1755,9 @@ packages:
     resolution: {integrity: sha512-4Nsy8K5Tr6SPDH9jhKJOHf7ChDrc1zufZTVSF7x72hwuEXBqxqk9G6cK+K2NRUtB3iELRJqjXb4JPDMBjMTl2Q==}
     engines: {node: ^22.22.2 || ^24.15.0 || >=26.0.0}
 
+  web-ifc@0.0.79:
+    resolution: {integrity: sha512-g7bGXiW3ewxwnw9zJdVzZnRiRbDl+Fd3HWuFYs1rosQ5tmDRsOOM9pwKLBjWJYla3t88hPclJWD0J2mlksWFMQ==}
+
   webidl-conversions@8.0.1:
     resolution: {integrity: sha512-BMhLD/Sw+GbJC21C/UgyaZX41nPt8bUTg+jWyDeg7e7YN4xOM05YPSIXceACnXVtqyEw/LMClUQMtMZ+PGGpqQ==}
     engines: {node: '>=20'}
@@ -3217,6 +3223,8 @@ snapshots:
   w3c-xmlserializer@6.0.0:
     dependencies:
       xml-name-validator: 5.0.0
+
+  web-ifc@0.0.79: {}
 
   webidl-conversions@8.0.1: {}
 
