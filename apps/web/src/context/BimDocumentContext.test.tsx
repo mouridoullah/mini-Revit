@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
 import { BimDocument, Commands } from '@mini-bim/core';
+import { createDemoDocument } from '../demo/demoDocument.js';
 import { BimDocumentProvider } from './BimDocumentContext.js';
 import { useBimDocument } from '../hooks/useBimDocument.js';
 
@@ -101,21 +102,47 @@ describe('BimDocumentContext & useBimDocument (apps/web)', () => {
     expect(screen.getByTestId('can-undo').textContent).toBe('TRUE');
   });
 
-  it('setDocument remplace le BimDocument courant et met à jour l’état documentaire', async () => {
-    const initialDoc = BimDocument.createDefaultProject();
+  it('setDocument remplace immédiatement le BimDocument (4 murs -> 2 murs), synchronise le state et désabonne l’ancien doc', async () => {
+    // 1. Document initial avec 4 murs
+    const initialDoc = createDemoDocument();
+    expect(Object.keys(initialDoc.getState().walls).length).toBe(4);
+
+    // Espionner la désinscription sur initialDoc
+    const originalSubscribe = initialDoc.subscribe.bind(initialDoc);
+    const unsubSpy = vi.fn();
+    vi.spyOn(initialDoc, 'subscribe').mockImplementation((listener) => {
+      const realUnsub = originalSubscribe(listener);
+      return () => {
+        unsubSpy();
+        realUnsub();
+      };
+    });
+
+    // 2. Document de remplacement avec exactement 2 murs
     const replacementDoc = BimDocument.createDefaultProject();
     const levelId = Object.keys(replacementDoc.getState().levels)[0] ?? '';
     const typeId = Object.keys(replacementDoc.getState().wallTypes)[0] ?? '';
     replacementDoc.execute(
       new Commands.AddWallCommand({
-        id: 'wall_in_replacement_doc',
+        id: 'wall_rep_1',
         category: 'wall',
         typeId,
         levelId,
         start: { x: 0, y: 0 },
-        end: { x: 5000, y: 0 },
+        end: { x: 4000, y: 0 },
       }),
     );
+    replacementDoc.execute(
+      new Commands.AddWallCommand({
+        id: 'wall_rep_2',
+        category: 'wall',
+        typeId,
+        levelId,
+        start: { x: 4000, y: 0 },
+        end: { x: 4000, y: 3000 },
+      }),
+    );
+    expect(Object.keys(replacementDoc.getState().walls).length).toBe(2);
 
     render(
       <BimDocumentProvider initialDoc={initialDoc}>
@@ -123,14 +150,48 @@ describe('BimDocumentContext & useBimDocument (apps/web)', () => {
       </BimDocumentProvider>,
     );
 
-    expect(screen.getByTestId('wall-count').textContent).toBe('0');
+    // Initialement : 4 murs
+    expect(screen.getByTestId('wall-count').textContent).toBe('4');
 
-    // Remplacement du document
+    // 3. Remplacement du document via setDocument
     await act(async () => {
       screen.getByTestId('set-doc-btn').click();
     });
 
-    // L'état a été synchronisé avec replacementDoc (1 mur)
-    expect(screen.getByTestId('wall-count').textContent).toBe('1');
+    // 4. Vérification d'immédiateté : le state React reflète 2 murs SANS attendre
+    expect(screen.getByTestId('wall-count').textContent).toBe('2');
+
+    // 5. Preuve formelle de désabonnement : l'ancien document a été désinscrit
+    expect(unsubSpy).toHaveBeenCalledTimes(1);
+
+    // 6. Une mutation sur l'ancien document n'affecte PLUS le state React
+    act(() => {
+      initialDoc.execute(
+        new Commands.AddWallCommand({
+          id: 'ghost_wall_old_doc',
+          category: 'wall',
+          typeId: Object.keys(initialDoc.getState().wallTypes)[0] ?? '',
+          levelId: Object.keys(initialDoc.getState().levels)[0] ?? '',
+          start: { x: 0, y: 100 },
+          end: { x: 1000, y: 100 },
+        }),
+      );
+    });
+    expect(screen.getByTestId('wall-count').textContent).toBe('2');
+
+    // 7. Une mutation sur le nouveau document met bien à jour le state React (3 murs)
+    act(() => {
+      replacementDoc.execute(
+        new Commands.AddWallCommand({
+          id: 'new_wall_rep_3',
+          category: 'wall',
+          typeId,
+          levelId,
+          start: { x: 4000, y: 3000 },
+          end: { x: 0, y: 3000 },
+        }),
+      );
+    });
+    expect(screen.getByTestId('wall-count').textContent).toBe('3');
   });
 });

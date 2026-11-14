@@ -6,6 +6,7 @@ import * as view2dModule from '@mini-bim/view-2d';
 import { Scene3D } from '@mini-bim/view-3d';
 import { BimDocument, AddWallCommand } from '@mini-bim/core';
 import { App } from './App.js';
+import { createDemoDocument } from './demo/demoDocument.js';
 import { exportToJSON } from './persistence/jsonIO.js';
 
 describe('App Integration & Squelette Double Viewport (apps/web)', () => {
@@ -360,39 +361,65 @@ describe('App Integration & Squelette Double Viewport (apps/web)', () => {
     cleanup();
   });
 
-  it('affiche un bandeau d’erreur lors d’un import JSON corrompu sans altérer le document existant', async () => {
+  it('affiche un bandeau d’erreur lors d’un import JSON corrompu sans altérer le document existant (string equality), puis disparaît sur import valide', async () => {
+    const initialDoc = createDemoDocument();
+    const jsonBefore = initialDoc.toJSON(true);
+
     const corruptedFile = new File(['{ "bad": "content" ...'], 'invalid.json', {
       type: 'application/json',
     });
 
-    const { getByTestId, queryByTestId } = render(<App />);
+    const { getByTestId, queryByTestId } = render(<App initialDoc={initialDoc} />);
     const statusBar = document.querySelector('footer');
     expect(statusBar?.textContent).toContain('Murs : 4');
-
     expect(queryByTestId('error-banner')).toBeNull();
 
     const fileInput = getByTestId('file-input');
 
+    // 1. Déclencher un import corrompu
     await act(async () => {
       fireEvent.change(fileInput, { target: { files: [corruptedFile] } });
     });
 
+    // 2. Vérifier la présence du bandeau d'erreur dans le DOM
     await waitFor(() => {
       const banner = getByTestId('error-banner');
       expect(banner).toBeDefined();
       expect(banner.textContent).toContain('INVALID_JSON');
     });
 
-    // Le document existant est intact (4 murs)
+    // 3. PREUVE FORMELLE D'IMMUTABILITÉ : Le BimState avant et après l'import est strictement identique bit-à-bit
+    const jsonAfter = initialDoc.toJSON(true);
+    expect(jsonAfter).toBe(jsonBefore);
     expect(statusBar?.textContent).toContain('Murs : 4');
 
-    // Fermeture du bandeau
-    const closeBtn = getByTestId('close-error-banner-btn');
-    act(() => {
-      fireEvent.click(closeBtn);
+    // 4. Import d'un document valide consécutif (1 mur)
+    const validDoc = BimDocument.createDefaultProject();
+    const levelId = Object.keys(validDoc.getState().levels)[0] ?? '';
+    const typeId = Object.keys(validDoc.getState().wallTypes)[0] ?? '';
+    validDoc.execute(
+      new AddWallCommand({
+        id: 'wall-new-valid',
+        start: { x: 0, y: 0 },
+        end: { x: 3000, y: 0 },
+        typeId,
+        levelId,
+        category: 'wall',
+      }),
+    );
+    const validFile = new File([exportToJSON(validDoc, true)], 'valid.mbim.json', {
+      type: 'application/json',
     });
 
-    expect(queryByTestId('error-banner')).toBeNull();
+    await act(async () => {
+      fireEvent.change(fileInput, { target: { files: [validFile] } });
+    });
+
+    // 5. L'error-banner disparaît automatiquement et le StatusBar est mis à jour
+    await waitFor(() => {
+      expect(queryByTestId('error-banner')).toBeNull();
+      expect(statusBar?.textContent).toContain('Murs : 1');
+    });
 
     cleanup();
   });

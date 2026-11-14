@@ -751,7 +751,8 @@ Dans `<Viewport3D />`, l'utilisateur interagit avec une scène Three.js orbitale
    - Si $\Delta \le 5\text{ px}$, le geste est un clic stationnaire : le raycasting est exécuté.
 
 2. **Association Sémantique via `userData.elementId` :**  
-   Lors de l'enregistrement d'un maillage dans `Scene3D.addMesh(id, mesh)`, le contrôleur assigne `mesh.userData = { elementId: id, role: 'wall' }`.
+   Lors de l'enregistrement d'un maillage dans `Scene3D.addMesh(rawData)`, le contrôleur assigne `mesh.userData = { elementId: rawData.elementId, role: rawData.role }`.  
+   **Règle d'invariance formelle :** Le picking 3D se base sur `RawMeshData.elementId`, qui doit correspondre strictement à un `wallId` de `BimState.walls`. Lorsque des ouvertures subdivisent un mur en tranches multiples (panneau plein, allège, linteau), chaque sous-maillage conserve `elementId === wall.id`, assurant que le clic sur n'importe quel composant géométrique du mur sélectionne l'entité architecturale parente.
 
 3. **Raycasting Découplé (`Scene3D.raycast`) :**  
    `Scene3D` expose `raycast(screenX, screenY)` et `raycastNDC(ndcX, ndcY)` utilisant `THREE.Raycaster`. Les coordonnées écran du canvas sont converties en NDC (Normalized Device Coordinates $[-1, 1]$). Le premier objet intersecté portant `userData.elementId` renvoie cet identifiant (ou `null` en l'absence de hit).

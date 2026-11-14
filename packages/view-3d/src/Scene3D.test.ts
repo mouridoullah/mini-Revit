@@ -297,28 +297,41 @@ describe('Scene3D — Gestionnaire de scène 3D Three.js impératif', () => {
     const mesh2 = scene3d.addMesh(createSampleRawMesh('wall_2'));
 
     // Avant highlight : matériau standard par défaut (emissive = 0x000000)
-    const mat1Before = mesh1.material as THREE.MeshStandardMaterial;
-    expect(mat1Before.emissive.getHex()).toBe(0x000000);
+    const defaultMat1 = mesh1.material as THREE.MeshStandardMaterial;
+    const defaultMat2 = mesh2.material as THREE.MeshStandardMaterial;
+    expect(defaultMat1.emissive.getHex()).toBe(0x000000);
+    expect(defaultMat2.emissive.getHex()).toBe(0x000000);
+    expect(mesh1.material).toBe(mesh2.material); // Matériau par défaut partagé
 
-    // Application de la sélection sur wall_1 uniquement
+    // 1. Application de la sélection sur wall_1 uniquement
     scene3d.setHighlight(['wall_1']);
 
     const mat1After = mesh1.material as THREE.MeshStandardMaterial;
     const mat2After = mesh2.material as THREE.MeshStandardMaterial;
 
-    // wall_1 est en surbrillance avec émissif 0x2563eb
+    // wall_1 permute vers highlightMaterial (référence différente + émissif 0x2563eb)
+    expect(mat1After).not.toBe(defaultMat1);
     expect(mat1After.emissive.getHex()).toBe(0x2563eb);
-    // wall_2 reste non sélectionné (émissif 0x000000)
+
+    // wall_2 conserve strictement defaultMaterial (émissif 0x000000)
+    expect(mat2After).toBe(defaultMat2);
     expect(mat2After.emissive.getHex()).toBe(0x000000);
 
-    // Désélection totale
+    // 2. Désélection totale
     scene3d.setHighlight([]);
+    expect(mesh1.material).toBe(defaultMat1);
     expect((mesh1.material as THREE.MeshStandardMaterial).emissive.getHex()).toBe(0x000000);
+    expect(mesh2.material).toBe(defaultMat2);
+
+    // 3. Sélection d'un ID inexistant : aucune exception levée, matériaux inchangés
+    expect(() => scene3d.setHighlight(['id_inexistant'])).not.toThrow();
+    expect(mesh1.material).toBe(defaultMat1);
+    expect(mesh2.material).toBe(defaultMat2);
 
     scene3d.dispose();
   });
 
-  it('raycast détecte l’elementId du maillage sous le curseur ou renvoie null', () => {
+  it('raycast et raycastNDC détectent l’elementId du maillage ou renvoient null', () => {
     const scene3d = new Scene3D(canvas, { width: 800, height: 600 });
     scene3d.addMesh(createSampleRawMesh('wall_center'));
 
@@ -327,13 +340,22 @@ describe('Scene3D — Gestionnaire de scène 3D Three.js impératif', () => {
     scene3d.getCamera().lookAt(500, 100, 1400);
     scene3d.getCamera().updateMatrixWorld(true);
 
-    // Clic au centre du canvas (400, 300) -> NDC (0, 0)
-    const hitId = scene3d.raycast(400, 300);
-    expect(hitId).toBe('wall_center');
+    // 1. Raycast écran au centre du canvas (400, 300) -> NDC (0, 0)
+    const hitScreenCenter = scene3d.raycast(400, 300);
+    expect(hitScreenCenter).toBe('wall_center');
 
-    // Clic loin dans le vide
-    const missId = scene3d.raycast(10, 10);
-    expect(missId).toBeNull();
+    // 2. Raycast direct en coordonnées NDC au centre (0, 0)
+    const hitNdcCenter = scene3d.raycastNDC(0, 0);
+    expect(hitNdcCenter).toBe('wall_center');
+
+    // 3. Raycast sur les bords extrêmes de la scène (NDC ±1) : aucun maillage présent
+    expect(scene3d.raycastNDC(-1, -1)).toBeNull();
+    expect(scene3d.raycastNDC(1, 1)).toBeNull();
+    expect(scene3d.raycastNDC(-1, 1)).toBeNull();
+    expect(scene3d.raycastNDC(1, -1)).toBeNull();
+
+    // 4. Raycast écran dans le vide (10, 10)
+    expect(scene3d.raycast(10, 10)).toBeNull();
 
     scene3d.dispose();
   });

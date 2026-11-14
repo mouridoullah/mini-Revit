@@ -68,21 +68,24 @@ Le fichier projet (extension recommandée `.mbim.json` ou `.json`) est encodé e
 
 ---
 
-## 3. Matrice de Validation et Codes d'Erreur (`BimValidationError`)
+## 3. Matrice Exhaustive des Codes d'Erreur (`BimValidationError`)
 
-La méthode `BimDocument.fromJSON(jsonString)` applique une suite exhaustive de vérifications ordonnées :
+La désérialisation (`BimDocument.fromJSON` dans `serialization.ts` et `importFromFile` dans `jsonIO.ts`) applique une chaîne exhaustive de contrôles d'intégrité ordonnés, levant des exceptions typées `BimValidationError` contenant un code invariable et un message explicite :
 
-| Étape de Contrôle                    | Condition de Rejet                                                 | Code d'Erreur Typé           | Message d'Explication                                         |
-| ------------------------------------ | ------------------------------------------------------------------ | ---------------------------- | ------------------------------------------------------------- |
-| **1. Parsing JSON Syntaxique**       | Syntaxe JSON invalide (accolades non fermées, virgules orphelines) | `INVALID_JSON`               | `Failed to parse JSON string: <détail>`                       |
-| **2. Structure Racine**              | Payload non-objet, tableau ou `null`                               | `INVALID_PAYLOAD`            | `Serialized payload must be a non-null object.`               |
-| **3. Version de Schéma**             | `schemaVersion !== 1`                                              | `UNSUPPORTED_SCHEMA_VERSION` | `Unsupported schema version: <v>. Supported: 1.`              |
-| **4. Système d'Unités**              | `units !== 'mm'`                                                   | `INVALID_UNITS`              | `Unsupported units: "<units>". Only "mm" is supported.`       |
-| **5. Dictionnaires Requis**          | Clés `levels`, `wallTypes` ou `walls` absentes ou non-objets       | `MISSING_COLLECTION`         | `Payload missing required collections.`                       |
-| **6. Clés de Dictionnaire**          | Clé du dictionnaire $\ne$ `element.id`                             | `ID_MISMATCH`                | `Dictionary key "<k>" does not match entity id "<i>".`        |
-| **7. Intégrité Référentielle Level** | `wall.levelId` absent de `levels`                                  | `UNKNOWN_LEVEL`              | `Wall "<id>" refers to non-existent Level ID: "<levelId>".`   |
-| **8. Intégrité Référentielle Type**  | `wall.typeId` absent de `wallTypes`                                | `UNKNOWN_WALL_TYPE`          | `Wall "<id>" refers to non-existent WallType ID: "<typeId>".` |
-| **9. Validité Géométrique Mur**      | Coordonnées non-finies ($NaN$, $\pm\infty$) ou longueur $L = 0$    | `INVALID_WALL_GEOMETRY`      | `Wall has zero length or invalid coordinates.`                |
+|   N°   | Code d'Erreur Typé           |  Module Émetteur   | Condition Déclenchante                                                                          | Message d'Explication                                                               |
+| :----: | ---------------------------- | :----------------: | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| **1**  | `INVALID_JSON`               | `serialization.ts` | Syntaxe JSON invalide (accolades orphelines, virgule erronée, troncature).                      | `Failed to parse JSON string: <détail syntaxique>`                                  |
+| **2**  | `MALFORMED_STATE`            | `serialization.ts` | Racine du document non-objet (valeur primitive, tableau ou `null`).                             | `BIM document state must be a JSON object.`                                         |
+| **3**  | `UNSUPPORTED_SCHEMA_VERSION` | `serialization.ts` | `schemaVersion !== 1` (version future non rétrocompatible ou manquante).                        | `Unsupported schemaVersion: expected 1, got <v>.`                                   |
+| **4**  | `INVALID_UNITS`              | `serialization.ts` | Système de mesure `units !== 'mm'` (ex. 'm', 'inch').                                           | `Unsupported measurement units: expected "mm", got "<units>".`                      |
+| **5**  | `MISSING_REQUIRED_FIELDS`    | `serialization.ts` | Dictionnaire racine `levels`, `wallTypes` ou `walls` absent ou de type invalide.                | `Missing or invalid "<collection>" dictionary.`                                     |
+| **6**  | `MALFORMED_LEVEL`            | `serialization.ts` | Entrée de niveau corrompue, clé $\ne$ `id`, `name` vide ou `elevation` non-finie.               | `Level dictionary key "<k>" does not match internal id "<i>"` ou champs manquants.  |
+| **7**  | `MALFORMED_WALL_TYPE`        | `serialization.ts` | Type de mur invalide, clé $\ne$ `id`, `thickness <= 0` ou `height <= 0`.                        | `WallType dictionary key "<k>" does not match internal id` ou dimensions invalides. |
+| **8**  | `MALFORMED_WALL`             | `serialization.ts` | Instance de mur invalide, clé $\ne$ `id`, `category !== 'wall'` ou coordonnées non-finies.      | `Wall "<id>" has non-finite start or end coordinates.`                              |
+| **9**  | `UNKNOWN_WALL_TYPE`          | `serialization.ts` | Intégrité référentielle rompue : `wall.typeId` n'existe pas dans `wallTypes`.                   | `Wall "<id>" references non-existent WallType ID: "<typeId>".`                      |
+| **10** | `UNKNOWN_LEVEL`              | `serialization.ts` | Intégrité référentielle rompue : `wall.levelId` n'existe pas dans `levels`.                     | `Wall "<id>" references non-existent Level ID: "<levelId>".`                        |
+| **11** | `INVALID_WALL_LENGTH`        | `serialization.ts` | Longueur euclidienne du mur nulle ou inférieure au seuil numérique ($L \le 10^{-4}\text{ mm}$). | `Wall "<id>" has non-positive length (<len> mm).`                                   |
+| **12** | `FILE_READ_ERROR`            |    `jsonIO.ts`     | Échec I/O navigateur lors de la lecture asynchrone du Blob/File (`file.text()`).                | `Impossible de lire le fichier: <détail système>`                                   |
 
 ---
 

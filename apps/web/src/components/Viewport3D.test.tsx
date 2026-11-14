@@ -122,7 +122,7 @@ describe('Viewport3D React Wrapper (apps/web)', () => {
     expect(setHighlightSpy).toHaveBeenCalledWith([]);
   });
 
-  it('déclenche le picking 3D (raycast) sur clic stationnaire et notifie onSelectionChanged', () => {
+  it('déclenche le picking 3D (raycast) sur clic stationnaire (Δ ≤ 5px, ex: Δ ≈ 2.8px) et notifie onSelectionChanged', () => {
     const doc = createDemoDocument();
     const selectionCallback = vi.fn();
     raycastSpy.mockReturnValue('wall_south');
@@ -135,17 +135,17 @@ describe('Viewport3D React Wrapper (apps/web)', () => {
 
     const canvas = getByTestId('viewport-3d-canvas');
 
-    // Clic stationnaire (distance 0px)
+    // Clic avec micro-mouvement de 2.8px : dx=2, dy=2 => hypot(2, 2) = sqrt(8) ≈ 2.828px ≤ 5px
     act(() => {
-      fireEvent.pointerDown(canvas, { clientX: 400, clientY: 300, button: 0 });
-      fireEvent.pointerUp(canvas, { clientX: 400, clientY: 300, button: 0 });
+      fireEvent.pointerDown(canvas, { clientX: 100, clientY: 100, button: 0 });
+      fireEvent.pointerUp(canvas, { clientX: 102, clientY: 102, button: 0 });
     });
 
     expect(raycastSpy).toHaveBeenCalled();
     expect(selectionCallback).toHaveBeenCalledWith(['wall_south']);
   });
 
-  it('ignore le clic si le pointeur a été déplacé de plus de 5px (rotation caméra OrbitControls)', () => {
+  it('ignore le clic si le pointeur a été déplacé de plus de 5px (ex: Δ = 50px pour rotation caméra OrbitControls)', () => {
     const doc = createDemoDocument();
     const selectionCallback = vi.fn();
 
@@ -157,10 +157,10 @@ describe('Viewport3D React Wrapper (apps/web)', () => {
 
     const canvas = getByTestId('viewport-3d-canvas');
 
-    // Déplacement de 100px (rotation de caméra)
+    // Déplacement de 50px (rotation de caméra OrbitControls) : dx=50, dy=0 => hypot(50, 0) = 50px > 5px
     act(() => {
-      fireEvent.pointerDown(canvas, { clientX: 400, clientY: 300, button: 0 });
-      fireEvent.pointerUp(canvas, { clientX: 500, clientY: 300, button: 0 });
+      fireEvent.pointerDown(canvas, { clientX: 100, clientY: 100, button: 0 });
+      fireEvent.pointerUp(canvas, { clientX: 150, clientY: 100, button: 0 });
     });
 
     // Pas de picking sur un drag

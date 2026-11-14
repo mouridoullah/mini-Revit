@@ -48,6 +48,7 @@ export function BimDocumentProvider({ initialDoc, children }: BimDocumentProvide
   const canRedo = (): boolean => doc.canRedo();
   const setDocument = (newDoc: BimDocument): void => {
     setDoc(newDoc);
+    setState(newDoc.getState());
   };
 
   const value: BimDocumentContextValue = {
