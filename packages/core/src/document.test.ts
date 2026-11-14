@@ -547,9 +547,7 @@ describe('BimDocument & CommandBus (document.ts)', () => {
       expect(doc.getState().windows['win_cascade_1']).toBeDefined();
 
       const delRes = doc.execute(new Commands.DeleteWallCommand(wallId));
-      expect(delRes.changed).toContain(wallId);
-      expect(delRes.changed).toContain('door_cascade_1');
-      expect(delRes.changed).toContain('win_cascade_1');
+      expect(delRes.changed).toEqual([wallId, 'door_cascade_1', 'win_cascade_1']);
 
       expect(doc.getState().walls[wallId]).toBeUndefined();
       expect(doc.getState().doors['door_cascade_1']).toBeUndefined();
@@ -603,6 +601,39 @@ describe('BimDocument & CommandBus (document.ts)', () => {
       );
     });
 
+    it('execute(MoveOpeningCommand) rejette un déplacement créant un chevauchement (OPENING_OVERLAP)', () => {
+      const { doc, wallId } = setupDocWithWall();
+      doc.execute(
+        new Commands.AddDoorCommand({
+          id: 'door_fixed',
+          category: 'door',
+          kind: 'door',
+          hostWallId: wallId,
+          offsetAlong: 2500,
+          width: 900,
+          height: 2100,
+          swing: { side: 'left', direction: 'in' },
+        }),
+      );
+      doc.execute(
+        new Commands.AddDoorCommand({
+          id: 'door_moving',
+          category: 'door',
+          kind: 'door',
+          hostWallId: wallId,
+          offsetAlong: 500,
+          width: 900,
+          height: 2100,
+          swing: { side: 'left', direction: 'in' },
+        }),
+      );
+
+      // Déplacement de door_moving vers 2200 -> [2200..3100] chevauche door_fixed [2500..3400]
+      expect(() => doc.execute(new Commands.MoveOpeningCommand('door_moving', 2200))).toThrowError(
+        /OPENING_OVERLAP/,
+      );
+    });
+
     it('execute(UpdateDoorCommand et UpdateWindowCommand) modifient les propriétés avec validation', () => {
       const { doc, wallId } = setupDocWithWall();
       doc.execute(
@@ -648,6 +679,48 @@ describe('BimDocument & CommandBus (document.ts)', () => {
         }),
       );
       expect(doc.getState().windows['win_update']?.sillHeight).toBe(1100);
+    });
+
+    it('execute(UpdateDoorCommand) rejette un élargissement débordant du mur (INVALID_OPENING_POSITION)', () => {
+      const { doc, wallId } = setupDocWithWall();
+      doc.execute(
+        new Commands.AddDoorCommand({
+          id: 'door_expand',
+          category: 'door',
+          kind: 'door',
+          hostWallId: wallId,
+          offsetAlong: 500,
+          width: 900,
+          height: 2100,
+          swing: { side: 'left', direction: 'in' },
+        }),
+      );
+
+      // Mur = 5000 mm, offset = 500, width = 4800 -> 500 + 4800 = 5300 > 5000
+      expect(() =>
+        doc.execute(new Commands.UpdateDoorCommand('door_expand', { width: 4800 })),
+      ).toThrowError(/INVALID_OPENING_POSITION/);
+    });
+
+    it('execute(UpdateWindowCommand) rejette une allège excessive (INVALID_OPENING_HEIGHT)', () => {
+      const { doc, wallId } = setupDocWithWall();
+      doc.execute(
+        new Commands.AddWindowCommand({
+          id: 'win_raise',
+          category: 'window',
+          kind: 'window',
+          hostWallId: wallId,
+          offsetAlong: 1000,
+          width: 1000,
+          height: 1500,
+          sillHeight: 900,
+        }),
+      );
+
+      // Hauteur mur = 2800 mm, sillHeight 1500 + height 1500 = 3000 > 2800
+      expect(() =>
+        doc.execute(new Commands.UpdateWindowCommand('win_raise', { sillHeight: 1500 })),
+      ).toThrowError(/INVALID_OPENING_HEIGHT/);
     });
   });
 });

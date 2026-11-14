@@ -285,12 +285,13 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
     expect(() => fromJSON(JSON.stringify(stateWithGhostWindow))).toThrowError(/UNKNOWN_HOST_WALL/);
   });
 
-  it('fromJSON rejette une porte avec swing invalide ou dimensions non-positives (MALFORMED_DOOR)', () => {
-    const badSwingDoorState = {
+  it('fromJSON rejette une porte avec swing invalide (side OU direction) ou dimensions non-positives (MALFORMED_DOOR)', () => {
+    // Cas 1: side invalide
+    const badSideDoorState = {
       ...sampleState,
       doors: {
-        door_bad_swing: {
-          id: 'door_bad_swing',
+        door_bad_side: {
+          id: 'door_bad_side',
           category: 'door',
           kind: 'door',
           hostWallId: 'w_01',
@@ -301,8 +302,113 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
         },
       },
     };
+    expect(() => fromJSON(JSON.stringify(badSideDoorState))).toThrowError(/MALFORMED_DOOR/);
 
-    expect(() => fromJSON(JSON.stringify(badSwingDoorState))).toThrowError(BimValidationError);
-    expect(() => fromJSON(JSON.stringify(badSwingDoorState))).toThrowError(/MALFORMED_DOOR/);
+    // Cas 2: direction invalide
+    const badDirDoorState = {
+      ...sampleState,
+      doors: {
+        door_bad_dir: {
+          id: 'door_bad_dir',
+          category: 'door',
+          kind: 'door',
+          hostWallId: 'w_01',
+          offsetAlong: 500,
+          width: 900,
+          height: 2100,
+          swing: { side: 'left', direction: 'invalid_dir' },
+        },
+      },
+    };
+    expect(() => fromJSON(JSON.stringify(badDirDoorState))).toThrowError(/MALFORMED_DOOR/);
+
+    // Cas 3: dimensions nulles ou négatives
+    const badDimDoorState = {
+      ...sampleState,
+      doors: {
+        door_bad_dim: {
+          id: 'door_bad_dim',
+          category: 'door',
+          kind: 'door',
+          hostWallId: 'w_01',
+          offsetAlong: 500,
+          width: -100,
+          height: 2100,
+          swing: { side: 'left', direction: 'in' },
+        },
+      },
+    };
+    expect(() => fromJSON(JSON.stringify(badDimDoorState))).toThrowError(/MALFORMED_DOOR/);
+  });
+
+  it('rétrocompatibilité fromJSON sur un fichier Phase 2 réel (4 murs de demoDocument, sans clés doors/windows)', () => {
+    // JSON canonique Phase 2.4 dépourvu des clés doors et windows
+    const phase2Json = JSON.stringify({
+      schemaVersion: 1,
+      units: 'mm',
+      levels: {
+        lvl_default: { id: 'lvl_default', name: 'Niveau 0 (RDC)', elevation: 0 },
+      },
+      wallTypes: {
+        wt_default: {
+          id: 'wt_default',
+          name: 'Générique - 200mm',
+          thickness: 200,
+          height: 2800,
+        },
+      },
+      walls: {
+        wall_south: {
+          id: 'wall_south',
+          category: 'wall',
+          typeId: 'wt_default',
+          levelId: 'lvl_default',
+          start: { x: 0, y: 0 },
+          end: { x: 6000, y: 0 },
+        },
+        wall_east: {
+          id: 'wall_east',
+          category: 'wall',
+          typeId: 'wt_default',
+          levelId: 'lvl_default',
+          start: { x: 6000, y: 0 },
+          end: { x: 6000, y: 4000 },
+        },
+        wall_north: {
+          id: 'wall_north',
+          category: 'wall',
+          typeId: 'wt_default',
+          levelId: 'lvl_default',
+          start: { x: 6000, y: 4000 },
+          end: { x: 0, y: 4000 },
+        },
+        wall_west: {
+          id: 'wall_west',
+          category: 'wall',
+          typeId: 'wt_default',
+          levelId: 'lvl_default',
+          start: { x: 0, y: 4000 },
+          end: { x: 0, y: 0 },
+        },
+      },
+    });
+
+    // 1. fromJSON charge l'état avec succès
+    const loadedState = fromJSON(phase2Json);
+    expect(loadedState.schemaVersion).toBe(1);
+    expect(Object.keys(loadedState.walls)).toHaveLength(4);
+
+    // 2. Initialisation automatique de doors et windows à {}
+    expect(loadedState.doors).toEqual({});
+    expect(loadedState.windows).toEqual({});
+
+    // 3. toJSON après chargement produit un JSON contenant explicitement "doors":{} et "windows":{}
+    const reserializedJson = toJSON(loadedState);
+    expect(reserializedJson).toContain('"doors":{}');
+    expect(reserializedJson).toContain('"windows":{}');
+
+    // 4. Stabilité intégrale du round-trip
+    const reloadedState = fromJSON(reserializedJson);
+    expect(reloadedState).toEqual(loadedState);
   });
 });

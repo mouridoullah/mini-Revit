@@ -101,24 +101,37 @@ export class DeleteWallCommand implements Command {
     }
 
     // Cascade ON DELETE CASCADE : suppression de toutes les portes et fenêtres hébergées
-    this.deletedOpeningIds = [];
+    // 1. Collecte des IDs des ouvertures rattachées AVANT toute suppression
+    const doorIds: ElementId[] = [];
     if (draft.doors) {
       for (const [doorId, door] of Object.entries(draft.doors)) {
         if (door.hostWallId === this.wallId) {
-          Reflect.deleteProperty(draft.doors, doorId);
-          this.deletedOpeningIds.push(doorId);
-        }
-      }
-    }
-    if (draft.windows) {
-      for (const [windowId, win] of Object.entries(draft.windows)) {
-        if (win.hostWallId === this.wallId) {
-          Reflect.deleteProperty(draft.windows, windowId);
-          this.deletedOpeningIds.push(windowId);
+          doorIds.push(doorId);
         }
       }
     }
 
+    const windowIds: ElementId[] = [];
+    if (draft.windows) {
+      for (const [windowId, win] of Object.entries(draft.windows)) {
+        if (win.hostWallId === this.wallId) {
+          windowIds.push(windowId);
+        }
+      }
+    }
+
+    // Ordre déterministe (tri alphabétique stable des identifiants d'ouvertures)
+    this.deletedOpeningIds = [...doorIds, ...windowIds].sort();
+
+    // 2. Suppression atomique des ouvertures hébergées
+    for (const doorId of doorIds) {
+      Reflect.deleteProperty(draft.doors, doorId);
+    }
+    for (const windowId of windowIds) {
+      Reflect.deleteProperty(draft.windows, windowId);
+    }
+
+    // 3. Suppression du mur hôte
     Reflect.deleteProperty(draft.walls, this.wallId);
   }
 

@@ -268,9 +268,7 @@ describe('Gestionnaire d’Historique Transactionnel (history.ts)', () => {
 
     // Exécuter DeleteWallCommand
     const delRes = doc.execute(new Commands.DeleteWallCommand('wall_cascade_hist'));
-    expect(delRes.changed).toContain('wall_cascade_hist');
-    expect(delRes.changed).toContain('door_cascade_hist');
-    expect(delRes.changed).toContain('win_cascade_hist');
+    expect(delRes.changed).toEqual(['wall_cascade_hist', 'door_cascade_hist', 'win_cascade_hist']);
 
     expect(doc.getState().walls['wall_cascade_hist']).toBeUndefined();
     expect(doc.getState().doors['door_cascade_hist']).toBeUndefined();

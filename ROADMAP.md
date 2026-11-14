@@ -184,7 +184,7 @@ _Dépendances : Phase 1.1 à 1.3 (`@mini-bim/geometry`), Phase 1.4 (`@mini-bim/v
   - Réversibilité Undo/Redo intégrale (`history.ts`) : l'inversion des patchs Immer restaure simultanément le mur et toutes ses ouvertures hébergées en une seule transaction sans perte d'attributs.
   - Validation métier stricte (`rules.ts`) : délégation des calculs de chevauchement et de dégagement à `validateOpenings` et `MIN_OPENING_CLEARANCE` de `@mini-bim/geometry`. Contrôles de débordement 1D $[0, L_{\text{wall}}]$, hauteur sous linteau, allège positive, sens de battement valide.
   - Sérialisation et rétrocompatibilité (`serialization.ts`) : persistance JSON avec préservation de `schemaVersion: 1`, chargement sans encombre des fichiers existants (Phases 1 et 2) avec valeurs par défaut `doors: {}` et `windows: {}`.
-- **Tests :** 65 tests automatisés dans `@mini-bim/core` (+22 tests), 382 tests cumulés dans tout le monorepo.
+- **Tests :** 72 tests automatisés dans `@mini-bim/core` (+29 tests), 389 tests cumulés dans tout le monorepo.
 
 #### Phase 3.2 — Découpage Géométrique et Maillages Percés 2D/3D (`@mini-bim/geometry`, `@mini-bim/view-2d`, `@mini-bim/view-3d`) [PROCHAINE ÉTAPE]
 

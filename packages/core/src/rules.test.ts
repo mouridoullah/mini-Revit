@@ -315,6 +315,100 @@ describe('Règles Métier BIM (rules.ts)', () => {
     );
   });
 
+  it('rejette une ouverture avec dimensions nulles ou négatives (INVALID_OPENING_DIMENSIONS)', () => {
+    const zeroWidthDoor: Door = {
+      id: 'd_zero_w',
+      category: 'door',
+      kind: 'door',
+      hostWallId: 'w_host',
+      offsetAlong: 500,
+      width: 0,
+      height: 2100,
+      swing: { side: 'left', direction: 'in' },
+    };
+    expect(() => validateDoor(zeroWidthDoor, stateWithHostWall)).toThrowError(
+      /INVALID_OPENING_DIMENSIONS/,
+    );
+
+    const negHeightDoor: Door = {
+      id: 'd_neg_h',
+      category: 'door',
+      kind: 'door',
+      hostWallId: 'w_host',
+      offsetAlong: 500,
+      width: 900,
+      height: -50,
+      swing: { side: 'right', direction: 'out' },
+    };
+    expect(() => validateDoor(negHeightDoor, stateWithHostWall)).toThrowError(
+      /INVALID_OPENING_DIMENSIONS/,
+    );
+  });
+
+  it('rejette un battement de porte invalide sur side ET sur direction (INVALID_DOOR_SWING)', () => {
+    // Cas 1: side invalide
+    const badSideDoor: Door = {
+      id: 'd_bad_side',
+      category: 'door',
+      kind: 'door',
+      hostWallId: 'w_host',
+      offsetAlong: 500,
+      width: 900,
+      height: 2100,
+      swing: { side: 'center' as unknown as 'left', direction: 'in' },
+    };
+    expect(() => validateDoor(badSideDoor, stateWithHostWall)).toThrowError(/INVALID_DOOR_SWING/);
+
+    // Cas 2: direction invalide
+    const badDirectionDoor: Door = {
+      id: 'd_bad_dir',
+      category: 'door',
+      kind: 'door',
+      hostWallId: 'w_host',
+      offsetAlong: 500,
+      width: 900,
+      height: 2100,
+      swing: { side: 'left', direction: 'upwards' as unknown as 'in' },
+    };
+    expect(() => validateDoor(badDirectionDoor, stateWithHostWall)).toThrowError(
+      /INVALID_DOOR_SWING/,
+    );
+  });
+
+  it('rejette un trumeau insuffisant entre deux ouvertures (INVALID_OPENING_CLEARANCE)', () => {
+    const door1: Door = {
+      id: 'd_clear_1',
+      category: 'door',
+      kind: 'door',
+      hostWallId: 'w_host',
+      offsetAlong: 500,
+      width: 900, // [500..1400]
+      height: 2100,
+      swing: { side: 'left', direction: 'in' },
+    };
+
+    const stateWithDoor1: BimState = {
+      ...stateWithHostWall,
+      doors: { d_clear_1: door1 },
+    };
+
+    // Deuxième porte à offsetAlong = 1420 mm (trumeau = 20 mm < MIN_OPENING_CLEARANCE = 50 mm)
+    const doorTooClose: Door = {
+      id: 'd_clear_2',
+      category: 'door',
+      kind: 'door',
+      hostWallId: 'w_host',
+      offsetAlong: 1420,
+      width: 900,
+      height: 2100,
+      swing: { side: 'right', direction: 'in' },
+    };
+
+    expect(() => validateDoor(doorTooClose, stateWithDoor1)).toThrowError(
+      /INVALID_OPENING_CLEARANCE/,
+    );
+  });
+
   it('canDeleteWall autorise la suppression du mur avec cascade d’ouvertures', () => {
     const check = canDeleteWall('w_host', stateWithHostWall);
     expect(check.allowed).toBe(true);
