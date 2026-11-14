@@ -5,6 +5,7 @@
     { "path": "./packages/geometry" },
     { "path": "./packages/view-3d" },
     { "path": "./packages/core" },
-    { "path": "./packages/view-2d" }
+    { "path": "./packages/view-2d" },
+    { "path": "./apps/web" }
   ]
 }

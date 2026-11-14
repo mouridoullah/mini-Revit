@@ -561,3 +561,36 @@ Deux problématiques géométriques et architecturales majeures se posent :
 - Consommation CPU à 0% lorsque l'utilisateur ne manipule pas la vue.
 - Traçabilité et auditabilité intégrales des mutations grâce à la centralisation par `CommandBus`.
 - Précision géométrique et conformité visuelle absolue aux normes du dessin en plan architectural.
+
+---
+
+## ADR-022 : Intégration React dans apps/web — Viewports Impératifs Isolés, Contexte Documentaire et Isolation Géométrique Absolue
+
+### Contexte
+
+L'application web (`apps/web`) constitue l'interface graphique utilisateur (GUI) de Mini-BIM. Elle doit coordonner la visualisation synchronisée en double viewport (plan 2D et maquette orbitale 3D), la barre d'outils, la barre d'état et le document architectural central.
+
+Trois contraintes architecturales et de performance critiques se posent :
+
+1. **Règle d'or du cycle de vie des moteurs graphiques :** Ni Three.js (`Scene3D`) ni l'API Canvas 2D (`View2D`) ne doivent être réinstanciés ou détruits lors des cycles de réconciliation déclaratifs de React. Le coût d'instanciation WebGL et d'allocation des tampons mémoire GPU/CPU est prohibitif.
+2. **Règle d'or de pureté de l'état React :** React doit gérer l'état UI déclaratif, mais ne doit jamais cloner ou encapsuler le document impératif `BimDocument` dans un `useState` (ce qui casserait les références, déclencherait des cascades de re-renders et corromprait l'arbre transactionnel d'Immer).
+3. **Règle d'or d'isolation géométrique :** L'application web ne doit pas être couplée aux détails algorithmiques internes de `@mini-bim/geometry`.
+
+### Décision
+
+1. **Encapsulation Impérative Unique des Viewports (`useRef` + `useEffect`) :**
+   Les instances de `View2D` et `Scene3D` sont créées exclusivement dans le callback d'un hook `useEffect(..., [])` de premier montage et persistées dans des `useRef`. Les re-renders React de `<Viewport2D />` et `<Viewport3D />` ne recréent jamais les contrôleurs graphiques.
+2. **Nettoyage et Zéro Fuite Mémoire (`dispose()`) :**
+   La fonction de retour (cleanup) du hook `useEffect` appelle systématiquement `dispose()` sur `View2D` et `Scene3D`, garantissant la libération des écouteurs d'événements, des géométries tampons GPU et des textures.
+3. **Gestion du Document par Contexte Dédié (`BimDocumentProvider`) :**
+   L'instance de `BimDocument` est stockée dans un `useRef` persistant au sein du `BimDocumentProvider`. Le hook `useState` ne stocke QUE la projection immuable `BimState` obtenue via `doc.getState()`. Un abonnement `doc.subscribe()` met à jour ce state React lors de chaque transaction métier.
+4. **Interdiction Formelle d'Import Direct de `@mini-bim/geometry` :**
+   `apps/web` n'a pas `@mini-bim/geometry` dans son `package.json`. Les calculs de tessellation 3D sont encapsulés et exportés par `@mini-bim/view-3d` (`createWallMesh`), et les calculs de projection/poché 2D sont gérés par `@mini-bim/view-2d`.
+5. **Rendu à la Demande Réactif :**
+   Les viewports écoutent les transitions d'état via React ou `subscribe` et ne redessinent leurs canvas respectifs que sur changement effectif du modèle, sans boucle d'animation continue.
+
+### Conséquences
+
+- Zéro fuite mémoire démontrée sur des cycles consécutifs de mount / unmount.
+- Rendu fluide à 60 FPS lors des interactions sans surcoût de réconciliation React.
+- Architecture modulaire respectant les frontières des couches logicielles.

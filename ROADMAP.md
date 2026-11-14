@@ -122,19 +122,31 @@ _Dépendances : Phase 1.1 à 1.3 (`@mini-bim/geometry`), Phase 1.4 (`@mini-bim/v
   - **Règle d'or respectée :** Zéro mutation directe de `BimDocument`, preuve d'immutabilité stricte au clic (`toJSON()` identique), émission d'intentions de commande via `onCommandRequested(cb)`.
 - **Tests :** 35 tests automatisés (inversion mathématique Y-up/Y-down sur cas asymétriques, poché, grille, surbrillance, hit-testing découplé, zoom/pan, émission de commandes, non-mutation de document, déconnexion du ResizeObserver).
 
-#### Phase 2.2 — Application Web & Viewports React (`apps/web`)
+#### Phase 2.2 — Application Web & Squelette Double Viewport React (`apps/web`) [LIVRÉ]
 
-- Initialisation de `apps/web` (Vite + React + TypeScript).
-- Intégration de `BimDocument` dans le cycle de vie React.
-- Wrapper `<Viewport3D />` encapsulant `Scene3D` et rafraîchissant les maillages sur notification d'éléments modifiés (`changedIds`).
-- Wrapper `<Viewport2D />` encapsulant le canvas 2D.
-- Machine à états `WallTool` : tracé de murs à la souris émettant des `AddWallCommand`.
+- **Objectif :** Initialiser l'application web React / Vite et héberger les deux viewports 2D/3D côte à côte avec le document de démonstration.
+- **Fonctionnalités :**
+  - Architecture monorepo mise à jour : ajout de `apps/*` dans `pnpm-workspace.yaml`, scripts racine configurés.
+  - Contexte documentaire React (`BimDocumentContext`) : conservation de l'instance impérative de `BimDocument` dans un `useRef`, exposition exclusive du `BimState` immuable via `useState` et abonnement réactif `doc.subscribe()`.
+  - Wrapper `<Viewport2D />` : instanciation impérative unique de `View2D` dans `useEffect([], ...)`, cadrage automatique initial `zoomToFit()`, re-rendu à la demande sur notification d'état documentaire, libération propre des écouteurs et du ResizeObserver via `dispose()`.
+  - Wrapper `<Viewport3D />` : instanciation impérative unique de `Scene3D` dans `useEffect([], ...)`, conversion et ajout des maillages de murs initiaux via `createWallMesh` de `@mini-bim/view-3d`, synchronisation différentielle des maillages (add/update/remove) lors des mutations de state, libération GPU via `dispose()`.
+  - Layout d'interface applicative `<App />` : barre d'outils supérieure (`Toolbar`), grille responsive 50/50 à deux colonnes (Vue 2D plan à gauche, Vue 3D orbitale Z-up à droite), barre d'état inférieure (`StatusBar`) affichant le nombre de murs, niveaux et le niveau actif.
+  - **Règles d'or respectées :** Zéro import de `@mini-bim/geometry` dans `apps/web`, zéro réinstanciation des contrôleurs graphiques lors des re-renders React, zéro fuite mémoire démontrée sur 10 cycles consécutifs de mount / unmount.
+- **Tests :** 10 tests automatisés (cycle de vie du contexte, instanciation unique des viewports 2D/3D, libération mémoire, intégration globale de l'App).
 
-#### Phase 2.3 — Synchronisation des Sélections 2D ↔ 3D
+#### Phase 2.3 — Outils Interactifs 2D (`WallTool`, `SelectTool`)
 
-- Sélection partagée d'éléments par `ElementId`.
-- Surbrillance synchronisée bidirectionnelle (plan 2D et rendu 3D).
-- Panneau d'inspection des propriétés de l'élément sélectionné.
+- Machine à états d'interaction 2D pour `View2D` :
+  - Outil de tracé de mur `WallTool` : aperçu dynamique élastique (rubber-band) lors du déplacement de la souris, snapping angulaire (0°, 90°, 45°), émission de commandes `AddWallCommand` au clic final.
+  - Outil de sélection `SelectTool` : hit-testing via `@mini-bim/view-2d/hit-test`, sélection au clic, émission d'intentions de suppression (`DeleteWallCommand`) sur touche Suppr.
+- Intégration dans la barre d'outils React (`Toolbar`).
+
+#### Phase 2.4 — Synchronisation des Sélections 2D ↔ 3D et UI Undo/Redo
+
+- Sélection partagée d'éléments par `ElementId` dans le contexte applicatif.
+- Surbrillance synchronisée bidirectionnelle (plan 2D et rendu 3D orbital).
+- Boutons Annuler / Rétablir dans la `Toolbar` câblés sur `canUndo()`, `canRedo()`, `undo()`, `redo()`.
+- Panneau d'inspection des propriétés de l'élément sélectionné (dimensions, type de mur, niveau).
 
 ---
 
