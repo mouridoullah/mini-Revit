@@ -1,14 +1,30 @@
 import { useBimDocument } from '../hooks/useBimDocument.js';
+import { type ToolKind } from '../tools/types.js';
+
+export interface StatusBarProps {
+  readonly activeToolKind?: ToolKind;
+  readonly drawingLength?: number | null;
+}
 
 /**
- * Barre d'état inférieure affichant les métriques du projet architectural.
+ * Barre d'état inférieure affichant les métriques du projet architectural
+ * et les instructions contextuelles de l'outil actif.
  */
-export function StatusBar() {
+export function StatusBar({ activeToolKind = 'select', drawingLength }: StatusBarProps) {
   const { state } = useBimDocument();
 
   const wallCount = Object.keys(state.walls).length;
   const levelCount = Object.keys(state.levels).length;
   const activeLevel = Object.values(state.levels)[0]?.name ?? 'Aucun niveau';
+
+  let toolMessage = 'Outil : Sélectionner (S)';
+  if (activeToolKind === 'wall') {
+    if (typeof drawingLength === 'number' && Number.isFinite(drawingLength) && drawingLength > 0) {
+      toolMessage = `Outil : Tracer Mur (W) — Longueur : ${Math.round(drawingLength)} mm (Shift = snap 45°)`;
+    } else {
+      toolMessage = 'Outil : Tracer Mur (W) — Clic-glisser pour tracer (Shift = snap 45°)';
+    }
+  }
 
   return (
     <footer
@@ -25,7 +41,11 @@ export function StatusBar() {
         userSelect: 'none',
       }}
     >
-      <div style={{ display: 'flex', gap: '16px' }}>
+      <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+        <span data-testid="status-tool-info" style={{ color: '#60a5fa', fontWeight: 500 }}>
+          {toolMessage}
+        </span>
+        <span style={{ color: '#4b5563' }}>|</span>
         <span>
           Niveau actif : <strong style={{ color: '#e5e7eb' }}>{activeLevel}</strong>
         </span>

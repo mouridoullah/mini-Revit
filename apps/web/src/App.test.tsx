@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, cleanup } from '@testing-library/react';
+import { render, cleanup, fireEvent, act } from '@testing-library/react';
 import { StrictMode } from 'react';
 import { View2D } from '@mini-bim/view-2d';
 import { Scene3D } from '@mini-bim/view-3d';
@@ -76,5 +76,53 @@ describe('App Integration & Squelette Double Viewport (apps/web)', () => {
       const { unmount } = render(<App />);
       unmount();
     }
+  });
+
+  it('permet de basculer d’outil via les boutons de la Toolbar et met à jour StatusBar', () => {
+    const { getByTestId } = render(<App />);
+
+    const selectBtn = getByTestId('tool-select-btn');
+    const wallBtn = getByTestId('tool-wall-btn');
+    const statusInfo = getByTestId('status-tool-info');
+
+    // État initial : outil Sélectionner actif
+    expect(statusInfo.textContent).toContain('Sélectionner (S)');
+
+    // Clic sur Tracer Mur
+    act(() => {
+      fireEvent.click(wallBtn);
+    });
+
+    expect(statusInfo.textContent).toContain('Tracer Mur (W)');
+
+    // Clic retour sur Sélectionner
+    act(() => {
+      fireEvent.click(selectBtn);
+    });
+
+    expect(statusInfo.textContent).toContain('Sélectionner (S)');
+
+    cleanup();
+  });
+
+  it('supporte les raccourcis clavier globaux "W" et "S" pour basculer d’outil', () => {
+    const { getByTestId } = render(<App />);
+    const statusInfo = getByTestId('status-tool-info');
+
+    expect(statusInfo.textContent).toContain('Sélectionner (S)');
+
+    // Appui sur 'w'
+    act(() => {
+      fireEvent.keyDown(window, { key: 'w' });
+    });
+    expect(statusInfo.textContent).toContain('Tracer Mur (W)');
+
+    // Appui sur 's'
+    act(() => {
+      fireEvent.keyDown(window, { key: 's' });
+    });
+    expect(statusInfo.textContent).toContain('Sélectionner (S)');
+
+    cleanup();
   });
 });

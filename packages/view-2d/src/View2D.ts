@@ -9,6 +9,7 @@ import {
   type CommandCallback,
   type SelectionCallback,
   type BoundingBox2D,
+  type PreviewShape,
 } from './types.js';
 
 /**
@@ -29,6 +30,8 @@ export class View2D {
   private doc: BimDocument | null = null;
   private selectedIds: Set<string> = new Set();
   private activeLevelId: string | null = null;
+  private preview: PreviewShape | null = null;
+  private readonly enableInternalSelection: boolean;
 
   // Gestion de l'interaction pointeur
   private isPanning: boolean = false;
@@ -70,6 +73,7 @@ export class View2D {
     };
 
     this.activeLevelId = options?.activeLevelId ?? null;
+    this.enableInternalSelection = options?.enableInternalSelection ?? true;
 
     this.attachEventListeners();
     this.setupResizeObserver();
@@ -110,6 +114,28 @@ export class View2D {
     this.render();
   }
 
+  /**
+   * Alias de sélection d'éléments pour conformité avec l'API des Tools.
+   */
+  public setSelection(ids: Iterable<string>): void {
+    this.setSelectedIds(ids);
+  }
+
+  /**
+   * Définit ou efface la forme de prévisualisation temporaire (rubber-band) et rafraîchit la vue.
+   */
+  public setPreview(preview: PreviewShape | null): void {
+    this.preview = preview;
+    this.render();
+  }
+
+  /**
+   * Retourne la forme de prévisualisation courante, ou null.
+   */
+  public getPreview(): PreviewShape | null {
+    return this.preview;
+  }
+
   public getActiveLevelId(): string | null {
     return this.activeLevelId;
   }
@@ -135,9 +161,17 @@ export class View2D {
     }
 
     if (!this.doc) {
-      renderPlanView(this.ctx, this.transform, this.createEmptyPlaceholderDoc(), this.selectedIds, {
-        ...this.config,
-      });
+      renderPlanView(
+        this.ctx,
+        this.transform,
+        this.createEmptyPlaceholderDoc(),
+        this.selectedIds,
+        {
+          ...this.config,
+        },
+        null,
+        this.preview,
+      );
       return;
     }
 
@@ -148,6 +182,7 @@ export class View2D {
       this.selectedIds,
       this.config,
       this.activeLevelId,
+      this.preview,
     );
   }
 
@@ -343,8 +378,8 @@ export class View2D {
         }
       }
 
-      // Traitement du clic gauche sans déplacement (sélection)
-      if (e.button === 0 && !e.altKey && !e.shiftKey) {
+      // Traitement du clic gauche sans déplacement (sélection interne si activée)
+      if (this.enableInternalSelection && e.button === 0 && !e.altKey && !e.shiftKey) {
         const dragDist = distance(this.pointerDownPos, screenPos);
         if (dragDist < 5) {
           const hitId = this.hitTest(screenPos);

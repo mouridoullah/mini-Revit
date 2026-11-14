@@ -1,7 +1,12 @@
 import { type Wall, type WallType, type BimDocument } from '@mini-bim/core';
 import { computeWallFootprint2d, vec2 } from '@mini-bim/geometry';
 import { type Transform2D } from './transform.js';
-import { type GridConfig, type WallRenderConfig, type View2DRenderConfig } from './types.js';
+import {
+  type GridConfig,
+  type WallRenderConfig,
+  type View2DRenderConfig,
+  type PreviewShape,
+} from './types.js';
 
 /**
  * Configuration par défaut de la grille et des axes.
@@ -261,6 +266,54 @@ export function drawWalls(
 }
 
 /**
+ * Dessine une forme géométrique de prévisualisation temporaire (ex: tracé élastique d'un mur).
+ */
+export function drawPreview(
+  ctx: CanvasRenderingContext2D,
+  transform: Transform2D,
+  preview: PreviewShape,
+): void {
+  ctx.save();
+  if (preview.kind === 'line') {
+    const sStart = transform.worldToScreen(preview.start);
+    const sEnd = transform.worldToScreen(preview.end);
+
+    ctx.beginPath();
+    ctx.setLineDash([6, 6]);
+    ctx.strokeStyle = '#2563eb'; // Bleu architectural contrasté
+    ctx.lineWidth = 2;
+    ctx.moveTo(sStart.x, sStart.y);
+    ctx.lineTo(sEnd.x, sEnd.y);
+    ctx.stroke();
+
+    // Pastilles indicatrices aux extrémités du tracé
+    ctx.fillStyle = '#2563eb';
+    ctx.beginPath();
+    ctx.arc(sStart.x, sStart.y, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(sEnd.x, sEnd.y, 4, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (preview.kind === 'rect') {
+    const sMin = transform.worldToScreen(preview.min);
+    const sMax = transform.worldToScreen(preview.max);
+    const left = Math.min(sMin.x, sMax.x);
+    const top = Math.min(sMin.y, sMax.y);
+    const width = Math.abs(sMax.x - sMin.x);
+    const height = Math.abs(sMax.y - sMin.y);
+
+    ctx.beginPath();
+    ctx.setLineDash([4, 4]);
+    ctx.strokeStyle = '#2563eb';
+    ctx.lineWidth = 1.5;
+    ctx.fillStyle = 'rgba(37, 99, 235, 0.1)';
+    ctx.fillRect(left, top, width, height);
+    ctx.strokeRect(left, top, width, height);
+  }
+  ctx.restore();
+}
+
+/**
  * Fonction pure orchestrant le cycle de rendu complet d'une vue en plan 2D.
  */
 export function renderPlanView(
@@ -270,6 +323,7 @@ export function renderPlanView(
   selectedIds: ReadonlySet<string> = new Set(),
   config: Partial<View2DRenderConfig> = {},
   levelFilter?: string | null,
+  preview?: PreviewShape | null,
 ): void {
   const mergedConfig: View2DRenderConfig = {
     backgroundColor: config.backgroundColor ?? DEFAULT_VIEW2D_RENDER_CONFIG.backgroundColor,
@@ -295,4 +349,9 @@ export function renderPlanView(
     mergedConfig.wall,
     levelFilter,
   );
+
+  // 4. Forme de prévisualisation interactive (rubber-band)
+  if (preview) {
+    drawPreview(ctx, transform, preview);
+  }
 }

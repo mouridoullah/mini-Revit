@@ -430,4 +430,83 @@ describe('View2D (View2D.ts)', () => {
       globalThis.ResizeObserver = originalRO;
     }
   });
+
+  it('setPreview et getPreview : stocke et dessine la forme de prévisualisation (ligne pointillée rubber-band)', () => {
+    const { canvas, mock } = createMockCanvas(800, 600);
+    const view = new View2D(canvas);
+    expect(view.getPreview()).toBeNull();
+
+    mock.clearCalls();
+
+    view.setPreview({
+      kind: 'line',
+      start: { x: 0, y: 0 },
+      end: { x: 3000, y: 0 },
+    });
+
+    expect(view.getPreview()).toEqual({
+      kind: 'line',
+      start: { x: 0, y: 0 },
+      end: { x: 3000, y: 0 },
+    });
+
+    // Le rendu a été déclenché et a appelé setLineDash([6, 6])
+    const dashCalls = mock.filterCalls('setLineDash');
+    expect(dashCalls.length).toBeGreaterThan(0);
+
+    // Effacement du preview
+    view.setPreview(null);
+    expect(view.getPreview()).toBeNull();
+
+    view.dispose();
+  });
+
+  it('enableInternalSelection: false désactive la sélection au clic interne de View2D', () => {
+    const { canvas } = createMockCanvas(800, 600);
+    const doc = BimDocument.createDefaultProject();
+    const state = doc.getState();
+    const typeId = Object.keys(state.wallTypes)[0]!;
+    const levelId = Object.keys(state.levels)[0]!;
+
+    doc.execute(
+      new Commands.AddWallCommand({
+        id: 'wall_01',
+        category: 'wall',
+        typeId,
+        levelId,
+        start: vec2(0, 0),
+        end: vec2(4000, 0),
+      }),
+    );
+
+    const view = new View2D(canvas, { enableInternalSelection: false });
+    view.setDocument(doc);
+
+    expect(view.getSelectedIds()).toHaveLength(0);
+
+    // Clic sur l'emplacement du mur
+    canvas.dispatchEvent(
+      new PointerEvent('pointerdown', {
+        clientX: 400,
+        clientY: 300,
+        button: 0,
+      }),
+    );
+    canvas.dispatchEvent(
+      new PointerEvent('pointerup', {
+        clientX: 400,
+        clientY: 300,
+        button: 0,
+      }),
+    );
+
+    // Toujours vide car enableInternalSelection est false
+    expect(view.getSelectedIds()).toHaveLength(0);
+
+    // Mais setSelection() reste disponible pour les Tools externes
+    view.setSelection(['wall_01']);
+    expect(view.getSelectedIds()).toEqual(['wall_01']);
+
+    view.dispose();
+  });
 });

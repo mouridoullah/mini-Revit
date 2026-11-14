@@ -134,16 +134,23 @@ _Dépendances : Phase 1.1 à 1.3 (`@mini-bim/geometry`), Phase 1.4 (`@mini-bim/v
   - **Règles d'or respectées :** Zéro import de `@mini-bim/geometry` dans `apps/web`, zéro réinstanciation des contrôleurs graphiques lors des re-renders React, zéro fuite mémoire démontrée sur 10 cycles consécutifs de mount / unmount.
 - **Tests :** 10 tests automatisés (cycle de vie du contexte, instanciation unique des viewports 2D/3D, libération mémoire, intégration globale de l'App).
 
-#### Phase 2.3 — Outils Interactifs 2D (`WallTool`, `SelectTool`)
+#### Phase 2.3 — Outils Interactifs 2D (`WallTool`, `SelectTool`) [LIVRÉ]
 
-- Machine à états d'interaction 2D pour `View2D` :
-  - Outil de tracé de mur `WallTool` : aperçu dynamique élastique (rubber-band) lors du déplacement de la souris, snapping angulaire (0°, 90°, 45°), émission de commandes `AddWallCommand` au clic final.
-  - Outil de sélection `SelectTool` : hit-testing via `@mini-bim/view-2d/hit-test`, sélection au clic, émission d'intentions de suppression (`DeleteWallCommand`) sur touche Suppr.
-- Intégration dans la barre d'outils React (`Toolbar`).
+- **Objectif :** Fournir les machines à états d'interaction 2D découplées du DOM pour la sélection et le tracé interactif de murs.
+- **Fonctionnalités :**
+  - `SelectTool` : machine à états pure (`idle`, `selecting`, `selected`), hit-testing délégué à `@mini-bim/view-2d/hit-test`, sélection au clic gauche, désélection au clic dans le vide ou touche `Escape`.
+  - `WallTool` : machine à états pure (`idle`, `drawing`, `finished`), tracé par clic-glisser, prévisualisation élastique (rubber-band) en temps réel, aimantation angulaire 45° exacte via `snapAngle45` avec la touche `Shift`, contrainte de longueur minimale ($L \ge 100\text{ mm}$), validation par relâchement ou `Enter`, annulation par `Escape`, émission d'instances typées de `AddWallCommand`.
+  - `snapAngle45` : aimantation angulaire déterministe via table de vecteurs unitaires précalculés pour les 8 secteurs de 45°, éliminant toute dérive de virgule flottante ($0^\circ, 45^\circ, 90^\circ, 135^\circ, 180^\circ, -135^\circ, -90^\circ, -45^\circ$).
+  - Pont DOM normalisé (`toolGlue.ts`) : conversion rigoureuse des `PointerEvent`s et `KeyboardEvent`s en `ToolEvent`s relatifs au canvas.
+  - Hook React d'orchestration (`useActiveTool`) : gestion de l'outil actif (`'select' | 'wall'`), réinitialisation systématique de l'outil sortant.
+  - Évolution de `@mini-bim/view-2d` : support des formes temporaires de prévisualisation `PreviewShape` (`line`, `rect`), rendu dédié `drawPreview`, accesseurs `setPreview` / `getPreview`, délégation de sélection avec `enableInternalSelection: false`.
+  - Intégration UI complète : boutons actifs dans `Toolbar` avec raccourcis clavier globaux `S` et `W`, retour textuel en temps réel dans `StatusBar` (longueur millimétrique du tracé, statut), curseur adaptatif (`crosshair` vs `default`).
+  - **Règles d'or respectées :** Zéro import de `react`, `three` ou `@mini-bim/geometry` dans les classes de machines à états, nettoyage systématique des écouteurs et du preview lors du démontage ou du changement d'outil.
+- **Tests :** 48 tests automatisés dans `apps/web` (+34 tests ajoutés : 10 snap 45°, 3 toolGlue, 6 SelectTool, 8 WallTool, 2 useActiveTool, 6 Viewport2D, 5 App), 37 tests dans `view-2d` (+2 tests Preview). Total monorepo : 334 tests réussis.
 
-#### Phase 2.4 — Synchronisation des Sélections 2D ↔ 3D et UI Undo/Redo
+#### Phase 2.4 — Synchronisation des Sélections 2D ↔ 3D et UI Undo/Redo [PROCHAINE ÉTAPE]
 
-- Sélection partagée d'éléments par `ElementId` dans le contexte applicatif.
+- Sélection partagée d'éléments par `ElementId` dans le contexte applicatif (`activeSelection`).
 - Surbrillance synchronisée bidirectionnelle (plan 2D et rendu 3D orbital).
 - Boutons Annuler / Rétablir dans la `Toolbar` câblés sur `canUndo()`, `canRedo()`, `undo()`, `redo()`.
 - Panneau d'inspection des propriétés de l'élément sélectionné (dimensions, type de mur, niveau).

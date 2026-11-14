@@ -30,6 +30,9 @@
 | **ADR-019** | Architecture du Noyau BIM — BimDocument, CommandBus et Undo/Redo via Immer                   | **Accepté** | 13/11/2026 |
 | **ADR-020** | Stratégie d'Identifiants Uniques — Adoption d'ULID pour le Noyau BIM                         | **Accepté** | 13/11/2026 |
 | **ADR-021** | Architecture Impérative de view-2d sans React, Émission de Command, Conversion Y-up/Y-down   | **Accepté** | 13/11/2026 |
+| **ADR-022** | Intégration React dans apps/web — Viewports Impératifs Isolés, Contexte Documentaire         | **Accepté** | 13/11/2026 |
+| **ADR-023** | Génération de Maillages 3D dans @mini-bim/view-3d via Interfaces Géométriques Neutres        | **Accepté** | 14/11/2026 |
+| **ADR-024** | Architecture des Outils Interactifs 2D (State Machines Pures, Snapping 45° et Pont DOM)      | **Accepté** | 14/11/2026 |
 
 ---
 
@@ -636,3 +639,58 @@ Une fonction utilitaire `createWallMesh` est nécessaire pour calculer l'emprise
 - **Note 1 — Footprint Isolé vs Junctions résolues :** `createWallMesh` utilise `computeWallFootprint2d` (footprint isolé, PAS junction-resolved). Les murs aux coins se chevauchent visuellement (z-fighting potentiel aux arêtes coplanaires). Sera résolu en Phase 3 avec `computeJunctions`.
 - **Note 2 — Pièce unique (Full) :** `createWallMesh` traite une seule pièce (`role: 'full'`). Les ouvertures et le découpage multi-pièces (sill/lintel) viendront en Phase 3.
 - **Note 3 — Identifiants de pièces :** `WallPiece.id === WallPiece.wallId === wall.id`. Acceptable en Phase 2.2 (1 pièce par mur). À enrichir en Phase 3 (IDs uniques par pièce dérivée).
+
+---
+
+## ADR-024 : Architecture des Outils Interactifs 2D (State Machines Pures, Snapping Angulaire 45° et Pont DOM Découplé)
+
+### Contexte
+
+La Phase 2.3 introduit la manipulation interactive directe du plan 2D par l'utilisateur via deux outils fondamentaux :
+
+1. `SelectTool` : sélection d'éléments architecturaux au clic, gestion de la désélection (clic dans le vide, touche `Escape`).
+2. `WallTool` : tracé interactif de murs par clic-glisser (`pointerdown` $\to$ `pointermove` $\to$ `pointerup` ou `Enter`), prévisualisation dynamique d'élastique (_rubber-band_), contrainte de longueur minimale ($L \ge 100\text{ mm}$), annulation par `Escape`, et aimantation angulaire à 45° lorsque la touche `Shift` est enfoncée.
+
+Trois impératifs architecturaux guident la conception :
+
+- **Hermétisme et testabilité maximale :** Les outils doivent pouvoir être testés unitairement à 100% sans nécessiter d'environnement DOM/JSDOM lourd, ni d'émulation de composants React ou de contextes Canvas WebGL/2D.
+- **Précision trigonométrique absolue :** L'aimantation angulaire à 45° ne doit souffrir d'aucune imprécision de calcul flottant ($44.999^\circ$ ou $0.0000000000001$), afin d'éviter les murs microscopiquement obliques qui compromettraient les jointures en Phase 3.
+- **Absence de fuite et respect du cycle de vie React :** Le basculement entre outils ou le démontage d'un viewport en plein tracé ne doit laisser aucun écouteur d'événement orphelin ni de résidu de prévisualisation graphique à l'écran.
+
+### Décision
+
+1. **Machines à États Pures et Typées (`Tool`) :**  
+   Chaque outil est une classe TypeScript pure implémentant l'interface commune `Tool` :
+
+   ```typescript
+   export interface Tool {
+     readonly kind: ToolKind;
+     getState(): SelectToolState | WallToolState;
+     handle(event: ToolEvent, ctx: ToolContext): ToolOutput;
+     reset(): void;
+   }
+   ```
+
+   Les entrées sont normalisées sous forme d'événements `ToolEvent` (`pointerdown`, `pointermove`, `pointerup`, `keydown`), et les transitions émettent des intentions fonctionnelles via `ToolOutput` (`command`, `selectionChanged`, `preview`, `noop`).
+   **Règle d'or :** Zéro import de `react`, `three`, ou `@mini-bim/geometry` dans les classes de machines à états (`SelectTool`, `WallTool`, `snap`, `types`).
+
+2. **Snapping Angulaire 45° Déterministe (`snapAngle45`) :**  
+   Pour éliminer tout artefact d'arrondi trigonométrique flottant, `snapAngle45` utilise une table fixe de vecteurs directeurs unitaires précalculés pour les 8 secteurs de 45° :
+   $$u_k \in \{(1, 0), (\tfrac{\sqrt{2}}{2}, \tfrac{\sqrt{2}}{2}), (0, 1), (-\tfrac{\sqrt{2}}{2}, \tfrac{\sqrt{2}}{2}), (-1, 0), (-\tfrac{\sqrt{2}}{2}, -\tfrac{\sqrt{2}}{2}), (0, -1), (\tfrac{\sqrt{2}}{2}, -\tfrac{\sqrt{2}}{2})\}$$
+   L'index du secteur est déterminé par :
+   $$k = \left\lfloor \frac{\theta + \frac{\pi}{8}}{\frac{\pi}{4}} \right\rfloor \pmod 8$$
+   Les composantes horizontales et verticales sur les axes cardinaux sont exactement zéro ($y \equiv 0$ ou $x \equiv 0$), garantissant l'orthogonalité rigoureuse des murs dessinés.
+
+3. **Longueur Minimale et Rejet des Micro-Murs :**  
+   Une constante `MIN_WALL_LENGTH = 100` (100 mm) élimine silencieusement les clics parasites ou micro-glissements involontaires.
+
+4. **Pont DOM Normalisé et Cycle de Vie React (`toolGlue` + `useActiveTool`) :**
+   - `toolGlue.ts` convertit les `PointerEvent`s natifs en coordonnées locales précises par rapport au `getBoundingClientRect()` du canvas.
+   - `useActiveTool.ts` instancie et conserve les outils via `useRef`, gère l'outil actif via `useState`, et réinitialise systématiquement l'état (`reset()`) de l'outil sortant lors d'un basculement.
+   - Dans `<Viewport2D />`, l'option `enableInternalSelection: false` est passée à `View2D` pour confier l'autorité intégrale de sélection au `SelectTool`. Les écouteurs d'événements sont tous retirés lors du démontage ou du changement d'outil, et `view.setPreview(null)` est appelé pour garantir l'absence de résidu graphique.
+
+### Conséquences
+
+- Couverture de tests de 100% sur les outils avec tests unitaires ultrarapides en mémoire.
+- Stabilité garantie lors des basculements d'outils et résilience prouvée en cas de démontage React pendant un tracé actif.
+- Intégration transparente avec le double viewport : l'émission de la commande `AddWallCommand` met à jour automatiquement la vue 2D et la vue 3D orbitale.

@@ -1,6 +1,8 @@
 import { type Vec2 } from '@mini-bim/geometry';
 import { type Command } from '@mini-bim/core';
 
+export type { Vec2 };
+
 /**
  * Options de configuration pour le système de coordonnées et de transformation 2D.
  */
@@ -121,7 +123,20 @@ export interface View2DOptions {
   readonly renderConfig?: Partial<View2DRenderConfig>;
   /** Filtre d'affichage restreint à un niveau spécifique (ID de Level) */
   readonly activeLevelId?: string | null;
+  /**
+   * Active la gestion native interne des clics de sélection sur le canvas.
+   * Défaut : true. Passer false lorsque les interactions sont déléguées à un Tool externe.
+   */
+  readonly enableInternalSelection?: boolean;
 }
+
+/**
+ * Forme géométrique temporaire de prévisualisation (ex: élastique de tracé de mur, boîte de sélection).
+ * Coordonnées exprimées dans le repère monde architectural (mm, Y-up).
+ */
+export type PreviewShape =
+  | { readonly kind: 'line'; readonly start: Vec2; readonly end: Vec2 }
+  | { readonly kind: 'rect'; readonly min: Vec2; readonly max: Vec2 };
 
 /**
  * Callback invoqué lors de l'émission d'une intention de commande de mutation.
