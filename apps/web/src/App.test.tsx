@@ -464,7 +464,19 @@ describe('App Integration & Squelette Double Viewport (apps/web)', () => {
     const doc = createDemoDocument();
     const createMeshSpy = vi.spyOn(Scene3DModule, 'createWallMeshWithOpenings');
 
+    // Capture dynamique de l'instance View2D pour extraire sa matrice de transformation réelle (ADR-023)
+    let capturedView2D: View2D | null = null;
+    const origSetDocument = View2D.prototype.setDocument;
+    vi.spyOn(View2D.prototype, 'setDocument').mockImplementation(function (this: View2D, document) {
+      // eslint-disable-next-line @typescript-eslint/no-this-alias
+      capturedView2D = this;
+      return origSetDocument.call(this, document);
+    });
+
     const { getByTestId } = render(<App initialDoc={doc} />);
+    expect(capturedView2D).not.toBeNull();
+    if (!capturedView2D) throw new Error('View2D non initialisé');
+    const transform = capturedView2D.getTransform();
 
     // 1. État initial : wall_south va de (0, 0) à (6000, 0), door_demo est à offsetAlong = 2000
     expect(doc.getState().walls['wall_south']?.start).toEqual({ x: 0, y: 0 });
@@ -479,29 +491,34 @@ describe('App Integration & Squelette Double Viewport (apps/web)', () => {
     const statusInfo = getByTestId('status-tool-info');
     expect(statusInfo.textContent).toContain('Déplacer Mur (M)');
 
-    // 3. PointerDown sur wall_south (centre de wall_south projeté à l'écran : clientX = 400, clientY ≈ 526.67)
+    // 3. Coordonnées calculées dynamiquement à partir de la transformation réelle (zéro valeur hardcodée)
+    const wallCenterWorld = { x: (0 + 6000) / 2, y: 0 };
+    const wallCenterScreen = transform.worldToScreen(wallCenterWorld);
+    const deltaScreen = transform.worldDistanceToScreen(500); // 500 mm convertis en pixels écran réels
+
+    // PointerDown sur le centre exact du mur calculé
     const canvas2D = getByTestId('viewport-2d-canvas');
     act(() => {
       fireEvent.pointerDown(canvas2D, {
-        clientX: 400,
-        clientY: 526.67,
+        clientX: wallCenterScreen.x,
+        clientY: wallCenterScreen.y,
         button: 0,
       });
     });
 
-    // 4. Drag de +56.67 px en X (= +500 mm monde avec échelle zoomToFit ~0.1133 px/mm)
+    // 4. Drag de +500 mm en X calculé dynamiquement
     act(() => {
       fireEvent.pointerMove(canvas2D, {
-        clientX: 456.67,
-        clientY: 526.67,
+        clientX: wallCenterScreen.x + deltaScreen,
+        clientY: wallCenterScreen.y,
       });
     });
 
     // 5. PointerUp : validation de la translation
     act(() => {
       fireEvent.pointerUp(canvas2D, {
-        clientX: 456.67,
-        clientY: 526.67,
+        clientX: wallCenterScreen.x + deltaScreen,
+        clientY: wallCenterScreen.y,
         button: 0,
       });
     });
@@ -522,6 +539,53 @@ describe('App Integration & Squelette Double Viewport (apps/web)', () => {
     expect(lastCall?.[0].wall.start).toEqual({ x: 500, y: 0 });
     expect(lastCall?.[0].wall.end).toEqual({ x: 6500, y: 0 });
     expect(lastCall?.[0].openings[0]?.offsetAlong).toBe(2000);
+
+    cleanup();
+  });
+
+  it('DoorTool place une 2ème porte sur le mur sud à l’offset cliqué réel (4520 mm -> snap 4500 mm)', async () => {
+    const doc = createDemoDocument();
+    let capturedView2D: View2D | null = null;
+    const origSetDocument = View2D.prototype.setDocument;
+    vi.spyOn(View2D.prototype, 'setDocument').mockImplementation(function (this: View2D, document) {
+      // eslint-disable-next-line @typescript-eslint/no-this-alias
+      capturedView2D = this;
+      return origSetDocument.call(this, document);
+    });
+
+    const { getByTestId } = render(<App initialDoc={doc} />);
+    expect(capturedView2D).not.toBeNull();
+    if (!capturedView2D) throw new Error('View2D non initialisé');
+    const transform = capturedView2D.getTransform();
+
+    // 1. Activer DoorTool
+    const doorBtn = getByTestId('tool-door-btn');
+    act(() => {
+      fireEvent.click(doorBtn);
+    });
+
+    // 2. Clic à X = 4520 mm sur le mur sud (Y = 0) -> snap 50 mm -> 4500 mm
+    const clickWorld = { x: 4520, y: 0 };
+    const clickScreen = transform.worldToScreen(clickWorld);
+
+    const canvas2D = getByTestId('viewport-2d-canvas');
+    act(() => {
+      fireEvent.pointerDown(canvas2D, {
+        clientX: clickScreen.x,
+        clientY: clickScreen.y,
+        button: 0,
+      });
+    });
+
+    // 3. Vérification : 2 portes présentes, la 2ème est à l'offset cliqué exact 4500 mm
+    const doors = Object.values(doc.getState().doors ?? {});
+    expect(doors.length).toBe(2);
+    const initialDoor = doors.find((d) => d.id === 'door_demo');
+    const newDoor = doors.find((d) => d.id !== 'door_demo');
+
+    expect(initialDoor?.offsetAlong).toBe(2000);
+    expect(newDoor?.hostWallId).toBe('wall_south');
+    expect(newDoor?.offsetAlong).toBe(4500); // 4520 mm snappé à 4500 mm
 
     cleanup();
   });

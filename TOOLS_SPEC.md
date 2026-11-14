@@ -254,17 +254,20 @@ Pour garantir une précision parfaite sur les 8 directions ($0^\circ, 45^\circ, 
 - **Principe directeur :** « Le modèle est la source de vérité, la géométrie est un cache ».
 - **Invariant paramétrique :**  
   Lorsqu'un mur hôte est translaté par `UpdateWallCommand(wallId, { start: start + delta, end: end + delta })`, **aucune ouverture hébergée n'est altérée dans le document**. Chaque porte ou fenêtre conserve rigoureusement son `offsetAlong` paramétrique. C'est le moteur de rendu 3D (`Viewport3D.tsx`) et 2D (`Viewport2D.tsx`) qui régénère automatiquement les solides percés et replace les placeholders 3D aux nouvelles coordonnées spatiales mondes.
-- **Machine à états :**  
+- **Machine à états :**
   - `idle` : curseur libre.
   - `dragging` : clic sur un mur existant capturé via `findWallAtScreen`. Prévisualisation de l'axe translaté sous forme de `line`.
 - **Aimantation spatiale (Snap 10 mm) :**  
   Chaque composante du vecteur translation $\vec{\Delta} = (\Delta x, \Delta y)$ est aimantée sur le pas de 10 mm (ex: $105 \text{ mm} \to 100 \text{ mm}$ via banker's rounding).
 - **Suppression des commandes nulles :**  
   Si $\vec{\Delta} = (0, 0)$ (clic stationnaire), l'outil retourne `{ kind: 'preview', preview: null }` sans émettre de commande, évitant toute pollution de la pile undo/redo.
+- **Validation des contraintes géométriques et topologiques :**
+  - **Longueur invariante :** La translation applique rigoureusement le même vecteur $\vec{\Delta}$ aux deux extrémités $\mathbf{P}_{\text{start}}$ et $\mathbf{P}_{\text{end}}$ ($\|\vec{end}_{\text{new}} - \vec{start}_{\text{new}}\| \equiv \|\vec{end} - \vec{start}\| > 0$). La longueur du mur est donc strictement conservée et ne peut devenir nulle.
+  - **Limites Phase 3.3 documentées :** `MoveWallTool` ne valide pas les collisions ou chevauchements avec d'autres murs ni la topologie des jonctions (murs connectés en L ou T). Le déplacement translate rigidement le mur sans déformer automatiquement les murs adjacents. Le recalcul adaptatif des sommets connectés et la détection d'interférences seront traités en Phase 5.
 
 ### 7.3 `MoveOpeningTool` (Déplacement d'Ouvertures le Long de l'Axe)
 
-- **Machine à états :**  
+- **Machine à états :**
   - `idle` : en attente.
   - `dragging` : détection d'une porte ou fenêtre via `findOpeningAtScreen`. Glissement le long du mur hôte avec projection axiale, snap 50 mm et clamp aux gardes de rive.
 - **Propagation de recalcul :**  

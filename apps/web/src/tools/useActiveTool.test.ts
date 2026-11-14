@@ -177,4 +177,42 @@ describe('useActiveTool Hook', () => {
     expect(moveOpResetSpy).toHaveBeenCalledTimes(1);
     expect(result.current.activeTool).toBeInstanceOf(SelectTool);
   });
+
+  it('bascule successive select -> wall -> door réinitialise WallTool.reset() et purge tout état résiduel de tracé', () => {
+    const wallResetSpy = vi.spyOn(WallTool.prototype, 'reset');
+    const { result } = renderHook(() => useActiveTool('select'));
+
+    // 1. Activer wall
+    act(() => {
+      result.current.setActiveToolKind('wall');
+    });
+    expect(result.current.activeTool).toBeInstanceOf(WallTool);
+    const wallTool = result.current.activeTool as WallTool;
+
+    // Simuler un tracé en cours dans wallTool
+    const doc = BimDocument.createDefaultProject();
+    const transform = new Transform2D();
+    const ctx: ToolContext = {
+      doc,
+      transform,
+      activeLevelId: Object.keys(doc.getState().levels)[0] ?? '',
+      activeWallTypeId: Object.keys(doc.getState().wallTypes)[0] ?? '',
+    };
+    wallTool.handle(
+      { type: 'pointerdown', screen: { x: 100, y: 100 }, button: 0, shift: false, alt: false },
+      ctx,
+    );
+    expect(wallTool.getState().kind).toBe('drawing');
+
+    // 2. Basculer directement de wall vers door
+    act(() => {
+      result.current.setActiveToolKind('door');
+    });
+
+    // 3. WallTool.reset() a été appelé, l'état résiduel de tracé a disparu et DoorTool est actif
+    expect(wallResetSpy).toHaveBeenCalledTimes(1);
+    expect(wallTool.getState().kind).toBe('idle');
+    expect(result.current.activeToolKind).toBe('door');
+    expect(result.current.activeTool).toBeInstanceOf(DoorTool);
+  });
 });

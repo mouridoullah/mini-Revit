@@ -923,6 +923,7 @@ Comment connecter le pipeline géométrique de découpage d'ouvertures (`sliceWa
 ### Problème
 
 Comment permettre la modélisation et la manipulation interactive des portes, fenêtres et murs directement dans le viewport 2D tout en garantissant :
+
 1. La pureté absolue des machines à états des Tools (zéro dépendance à React, Three.js, au DOM ou à `@mini-bim/geometry`).
 2. L'invariant fondamental du BIM : « Le modèle est la source de vérité, la géométrie est un cache ». Lors du déplacement d'un mur hôte (`MoveWallTool`), les ouvertures hébergées ne doivent pas être altérées dans l'état documentaire (`offsetAlong` inchangé), mais leur représentation 2D et 3D doit suivre fidèlement et immédiatement le déplacement du mur hôte.
 3. Le snapping déterministe aux pas architecturaux : 50 mm pour les ouvertures le long de leur mur, 10 mm pour les translations de murs.

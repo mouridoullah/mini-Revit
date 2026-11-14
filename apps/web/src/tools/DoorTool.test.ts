@@ -168,4 +168,91 @@ describe('DoorTool (apps/web)', () => {
     state = tool.getState();
     expect(state.kind === 'hovering' && state.offsetAlong).toBe(4050);
   });
+
+  it('gestion des erreurs : AddDoorCommand exécutée sur un emplacement en chevauchement lève OPENING_OVERLAP', () => {
+    // 1. Ajouter une première porte à offsetAlong = 2000
+    doc.execute(
+      new Commands.AddDoorCommand({
+        id: 'door_existing',
+        category: 'door',
+        kind: 'door',
+        hostWallId: 'w_test',
+        offsetAlong: 2000,
+        width: 900,
+        height: 2100,
+        swing: { side: 'left', direction: 'in' },
+      }),
+    );
+
+    // 2. DoorTool émet une commande à offsetAlong = 2200 (chevauchement avec [2000, 2900])
+    tool.handle(
+      {
+        type: 'pointermove',
+        screen: { x: 400 + 2200 * 0.05, y: 300 },
+        shift: false,
+        alt: false,
+      },
+      ctx,
+    );
+    const out = tool.handle(
+      {
+        type: 'pointerdown',
+        screen: { x: 400 + 2200 * 0.05, y: 300 },
+        button: 0,
+        shift: false,
+        alt: false,
+      },
+      ctx,
+    );
+
+    expect(out.kind).toBe('command');
+    if (out.kind === 'command') {
+      // 3. L'exécution de la commande par le document lève l'erreur métier OPENING_OVERLAP
+      expect(() => doc.execute(out.command)).toThrowError(/OPENING_OVERLAP/);
+    }
+  });
+
+  it('rejet sans commande (noop) si le mur hôte est trop court pour accueillir la porte avec gardes', () => {
+    const typeId = Object.keys(doc.getState().wallTypes)[0] ?? '';
+    const levelId = Object.keys(doc.getState().levels)[0] ?? '';
+
+    // Mur court de 800 mm (< 900 mm porte + 100 mm gardes)
+    doc.execute(
+      new Commands.AddWallCommand({
+        id: 'w_short',
+        category: 'wall',
+        typeId,
+        levelId,
+        start: { x: 0, y: 2000 },
+        end: { x: 800, y: 2000 },
+      }),
+    );
+
+    // Clic au milieu du mur court : X monde = 400, Y monde = 2000 -> écran (400 + 20, 300 - 100) = (420, 200)
+    const outMove = tool.handle(
+      {
+        type: 'pointermove',
+        screen: { x: 420, y: 200 },
+        shift: false,
+        alt: false,
+      },
+      ctx,
+    );
+    expect(outMove.kind).toBe('preview');
+    expect(outMove.preview).toBeNull();
+    expect(tool.getState().kind).toBe('idle');
+
+    const outDown = tool.handle(
+      {
+        type: 'pointerdown',
+        screen: { x: 420, y: 200 },
+        button: 0,
+        shift: false,
+        alt: false,
+      },
+      ctx,
+    );
+    expect(outDown.kind).toBe('noop');
+    expect(tool.getState().kind).toBe('idle');
+  });
 });

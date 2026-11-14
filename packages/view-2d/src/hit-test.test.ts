@@ -174,5 +174,21 @@ describe('Hit-Test Découplé (hit-test.ts)', () => {
     // Clic au-delà de l'épaisseur du mur : monde (1450, 300) -> écran (472.5, 300 - 15)
     const farPerpHit = findOpeningAtScreen(vec2(472.5, 270), transform, doc);
     expect(farPerpHit).toBeNull();
+
+    // Clic complètement dans le vide (hors de tout mur) : écran (100, 100)
+    const voidHit = findOpeningAtScreen(vec2(100, 100), transform, doc);
+    expect(voidHit).toBeNull();
+
+    // Clic sur le bord immédiat de la porte dans la tolérance de 6 px (495 + 4 = 499 px)
+    const edgeHit = findOpeningAtScreen(vec2(499, 300), transform, doc, { hitTolerancePx: 6 });
+    expect(edgeHit).toEqual({
+      id: 'door_test_1',
+      kind: 'door',
+      hostWallId: 'w_host',
+    });
+
+    // Clic au-delà de la tolérance sur le bord (495 + 10 = 505 px) -> hors ouverture
+    const beyondTolHit = findOpeningAtScreen(vec2(505, 300), transform, doc, { hitTolerancePx: 6 });
+    expect(beyondTolHit).toBeNull();
   });
 });
