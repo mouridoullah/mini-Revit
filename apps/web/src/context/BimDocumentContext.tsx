@@ -1,4 +1,4 @@
-import { createContext, useRef, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useState, useEffect, type ReactNode } from 'react';
 import { type BimDocument, type BimState, type Command, type CommandResult } from '@mini-bim/core';
 import { createDemoDocument } from '../demo/demoDocument.js';
 
@@ -14,6 +14,7 @@ export interface BimDocumentContextValue {
   readonly redo: () => boolean;
   readonly canUndo: () => boolean;
   readonly canRedo: () => boolean;
+  readonly setDocument: (newDoc: BimDocument) => void;
 }
 
 export const BimDocumentContext = createContext<BimDocumentContextValue | null>(null);
@@ -25,19 +26,14 @@ export interface BimDocumentProviderProps {
 
 /**
  * Fournisseur de contexte pour l'état documentaire BIM dans l'arbre React.
- * Instancie et conserve une référence unique et stable de BimDocument dans un useRef.
+ * Maintient le BimDocument et synchronise réactivement le BimState immuable.
  */
 export function BimDocumentProvider({ initialDoc, children }: BimDocumentProviderProps) {
-  const docRef = useRef<BimDocument | null>(null);
-  if (!docRef.current) {
-    docRef.current = initialDoc ?? createDemoDocument();
-  }
-  const doc = docRef.current;
-
-  // Seul le BimState immuable est exposé comme état React
+  const [doc, setDoc] = useState<BimDocument>(() => initialDoc ?? createDemoDocument());
   const [state, setState] = useState<BimState>(() => doc.getState());
 
   useEffect(() => {
+    setState(doc.getState());
     // Abonnement aux modifications transactionnelles du document
     const unsubscribe = doc.subscribe(() => {
       setState(doc.getState());
@@ -50,6 +46,9 @@ export function BimDocumentProvider({ initialDoc, children }: BimDocumentProvide
   const redo = (): boolean => doc.redo();
   const canUndo = (): boolean => doc.canUndo();
   const canRedo = (): boolean => doc.canRedo();
+  const setDocument = (newDoc: BimDocument): void => {
+    setDoc(newDoc);
+  };
 
   const value: BimDocumentContextValue = {
     doc,
@@ -59,6 +58,7 @@ export function BimDocumentProvider({ initialDoc, children }: BimDocumentProvide
     redo,
     canUndo,
     canRedo,
+    setDocument,
   };
 
   return <BimDocumentContext.Provider value={value}>{children}</BimDocumentContext.Provider>;

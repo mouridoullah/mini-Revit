@@ -213,4 +213,24 @@ describe('Viewport2D React Wrapper & Tools Integration (apps/web)', () => {
     expect(wallTool.getState().kind).toBe('idle');
     expect(setPreviewSpy).toHaveBeenCalledWith(null);
   });
+
+  it('propage la sélection externe vers view.setSelection()', () => {
+    const doc = BimDocument.createDefaultProject();
+
+    const { rerender } = render(
+      <BimDocumentProvider initialDoc={doc}>
+        <Viewport2D selection={['wall_1']} />
+      </BimDocumentProvider>,
+    );
+
+    expect(setSelectionSpy).toHaveBeenCalledWith(['wall_1']);
+
+    rerender(
+      <BimDocumentProvider initialDoc={doc}>
+        <Viewport2D selection={[]} />
+      </BimDocumentProvider>,
+    );
+
+    expect(setSelectionSpy).toHaveBeenCalledWith([]);
+  });
 });

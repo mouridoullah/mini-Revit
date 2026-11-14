@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render } from '@testing-library/react';
+import { render, fireEvent, act } from '@testing-library/react';
 import * as Scene3DModule from '@mini-bim/view-3d';
 import { BimDocument } from '@mini-bim/core';
 import { createDemoDocument } from '../demo/demoDocument.js';
@@ -9,9 +9,13 @@ import { Viewport3D } from './Viewport3D.js';
 describe('Viewport3D React Wrapper (apps/web)', () => {
   const disposeSpy = vi.spyOn(Scene3DModule.Scene3D.prototype, 'dispose');
   const addMeshSpy = vi.spyOn(Scene3DModule.Scene3D.prototype, 'addMesh');
+  const setHighlightSpy = vi.spyOn(Scene3DModule.Scene3D.prototype, 'setHighlight');
+  const raycastSpy = vi.spyOn(Scene3DModule.Scene3D.prototype, 'raycast');
 
   beforeEach(() => {
     vi.clearAllMocks();
+    HTMLCanvasElement.prototype.setPointerCapture = vi.fn();
+    HTMLCanvasElement.prototype.releasePointerCapture = vi.fn();
   });
 
   it('monte le composant, instancie Scene3D et ajoute les maillages initiaux', () => {
@@ -96,5 +100,71 @@ describe('Viewport3D React Wrapper (apps/web)', () => {
     unmount();
 
     expect(disposeSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('propage la sélection externe à scene.setHighlight()', () => {
+    const doc = createDemoDocument();
+
+    const { rerender } = render(
+      <BimDocumentProvider initialDoc={doc}>
+        <Viewport3D selection={['wall_south']} />
+      </BimDocumentProvider>,
+    );
+
+    expect(setHighlightSpy).toHaveBeenCalledWith(['wall_south']);
+
+    rerender(
+      <BimDocumentProvider initialDoc={doc}>
+        <Viewport3D selection={[]} />
+      </BimDocumentProvider>,
+    );
+
+    expect(setHighlightSpy).toHaveBeenCalledWith([]);
+  });
+
+  it('déclenche le picking 3D (raycast) sur clic stationnaire et notifie onSelectionChanged', () => {
+    const doc = createDemoDocument();
+    const selectionCallback = vi.fn();
+    raycastSpy.mockReturnValue('wall_south');
+
+    const { getByTestId } = render(
+      <BimDocumentProvider initialDoc={doc}>
+        <Viewport3D onSelectionChanged={selectionCallback} />
+      </BimDocumentProvider>,
+    );
+
+    const canvas = getByTestId('viewport-3d-canvas');
+
+    // Clic stationnaire (distance 0px)
+    act(() => {
+      fireEvent.pointerDown(canvas, { clientX: 400, clientY: 300, button: 0 });
+      fireEvent.pointerUp(canvas, { clientX: 400, clientY: 300, button: 0 });
+    });
+
+    expect(raycastSpy).toHaveBeenCalled();
+    expect(selectionCallback).toHaveBeenCalledWith(['wall_south']);
+  });
+
+  it('ignore le clic si le pointeur a été déplacé de plus de 5px (rotation caméra OrbitControls)', () => {
+    const doc = createDemoDocument();
+    const selectionCallback = vi.fn();
+
+    const { getByTestId } = render(
+      <BimDocumentProvider initialDoc={doc}>
+        <Viewport3D onSelectionChanged={selectionCallback} />
+      </BimDocumentProvider>,
+    );
+
+    const canvas = getByTestId('viewport-3d-canvas');
+
+    // Déplacement de 100px (rotation de caméra)
+    act(() => {
+      fireEvent.pointerDown(canvas, { clientX: 400, clientY: 300, button: 0 });
+      fireEvent.pointerUp(canvas, { clientX: 500, clientY: 300, button: 0 });
+    });
+
+    // Pas de picking sur un drag
+    expect(raycastSpy).not.toHaveBeenCalled();
+    expect(selectionCallback).not.toHaveBeenCalled();
   });
 });

@@ -4,8 +4,8 @@ import { BimDocument, Commands } from '@mini-bim/core';
 import { BimDocumentProvider } from './BimDocumentContext.js';
 import { useBimDocument } from '../hooks/useBimDocument.js';
 
-function TestConsumer() {
-  const { doc, state, execute, undo, redo, canUndo, canRedo } = useBimDocument();
+function TestConsumer({ newDocToSet }: { readonly newDocToSet?: BimDocument }) {
+  const { doc, state, execute, undo, redo, canUndo, canRedo, setDocument } = useBimDocument();
 
   const handleAddWall = () => {
     const levelId = Object.keys(state.levels)[0];
@@ -38,6 +38,11 @@ function TestConsumer() {
       <button type="button" onClick={() => redo()} data-testid="redo-btn">
         Redo
       </button>
+      {newDocToSet && (
+        <button type="button" onClick={() => setDocument(newDocToSet)} data-testid="set-doc-btn">
+          SetDoc
+        </button>
+      )}
     </div>
   );
 }
@@ -94,5 +99,38 @@ describe('BimDocumentContext & useBimDocument (apps/web)', () => {
 
     expect(screen.getByTestId('wall-count').textContent).toBe('1');
     expect(screen.getByTestId('can-undo').textContent).toBe('TRUE');
+  });
+
+  it('setDocument remplace le BimDocument courant et met à jour l’état documentaire', async () => {
+    const initialDoc = BimDocument.createDefaultProject();
+    const replacementDoc = BimDocument.createDefaultProject();
+    const levelId = Object.keys(replacementDoc.getState().levels)[0] ?? '';
+    const typeId = Object.keys(replacementDoc.getState().wallTypes)[0] ?? '';
+    replacementDoc.execute(
+      new Commands.AddWallCommand({
+        id: 'wall_in_replacement_doc',
+        category: 'wall',
+        typeId,
+        levelId,
+        start: { x: 0, y: 0 },
+        end: { x: 5000, y: 0 },
+      }),
+    );
+
+    render(
+      <BimDocumentProvider initialDoc={initialDoc}>
+        <TestConsumer newDocToSet={replacementDoc} />
+      </BimDocumentProvider>,
+    );
+
+    expect(screen.getByTestId('wall-count').textContent).toBe('0');
+
+    // Remplacement du document
+    await act(async () => {
+      screen.getByTestId('set-doc-btn').click();
+    });
+
+    // L'état a été synchronisé avec replacementDoc (1 mur)
+    expect(screen.getByTestId('wall-count').textContent).toBe('1');
   });
 });

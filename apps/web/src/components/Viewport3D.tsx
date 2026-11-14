@@ -3,12 +3,17 @@ import { Scene3D, createWallMesh } from '@mini-bim/view-3d';
 import { useBimDocument } from '../hooks/useBimDocument.js';
 import { useResizeObserver } from '../hooks/useResizeObserver.js';
 
+export interface Viewport3DProps {
+  readonly selection?: readonly string[];
+  readonly onSelectionChanged?: (ids: readonly string[]) => void;
+}
+
 /**
  * Wrapper React du visualiseur 3D orbital Three.js impératif.
  * Règle d'or 3 : Instanciation unique dans useEffect, jamais recréé à chaque render.
  * Règle d'or 2 : Aucun import direct de @mini-bim/geometry (passe par view-3d).
  */
-export function Viewport3D() {
+export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = {}) {
   const { state } = useBimDocument();
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -72,8 +77,64 @@ export function Viewport3D() {
     }
 
     renderedWallIdsRef.current = currentWallIds;
-    scene.render();
-  }, [state]);
+    // Ré-appliquer la surbrillance sur les maillages recréés/mis à jour
+    if (selection && selection.length > 0) {
+      scene.setHighlight(selection);
+    } else {
+      scene.render();
+    }
+  }, [state, selection]);
+
+  // Synchronisation de la surbrillance (partagée 2D ↔ 3D)
+  useEffect(() => {
+    if (sceneRef.current) {
+      sceneRef.current.setHighlight(selection ?? []);
+    }
+  }, [selection]);
+
+  // Écouteur de picking 3D (clic stationnaire raycast)
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !onSelectionChanged) return;
+
+    let pointerDownPos = { x: 0, y: 0 };
+
+    const handlePointerDown = (e: PointerEvent) => {
+      if (e.button !== 0) return;
+      pointerDownPos = { x: e.clientX, y: e.clientY };
+    };
+
+    const handlePointerUp = (e: PointerEvent) => {
+      if (e.button !== 0) return;
+      const scene = sceneRef.current;
+      if (!scene) return;
+
+      // Filtrer les glissements de caméra (rotation OrbitControls > 5px)
+      const dist = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
+      if (dist >= 5) return;
+
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = rect.width > 0 ? canvas.width / rect.width : 1;
+      const scaleY = rect.height > 0 ? canvas.height / rect.height : 1;
+      const screenX = (e.clientX - rect.left) * scaleX;
+      const screenY = (e.clientY - rect.top) * scaleY;
+
+      const hitId = scene.raycast(screenX, screenY);
+      if (hitId) {
+        onSelectionChanged([hitId]);
+      } else {
+        onSelectionChanged([]);
+      }
+    };
+
+    canvas.addEventListener('pointerdown', handlePointerDown);
+    canvas.addEventListener('pointerup', handlePointerUp);
+
+    return () => {
+      canvas.removeEventListener('pointerdown', handlePointerDown);
+      canvas.removeEventListener('pointerup', handlePointerUp);
+    };
+  }, [onSelectionChanged]);
 
   // Adaptation responsive de la taille du canvas
   useResizeObserver(containerRef, (width, height) => {
@@ -110,7 +171,7 @@ export function Viewport3D() {
           pointerEvents: 'none',
         }}
       >
-        Vue 3D (Z-up)
+        Vue 3D Orbitale (Z-up)
       </div>
       <canvas
         ref={canvasRef}

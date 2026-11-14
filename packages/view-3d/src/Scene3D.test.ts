@@ -74,10 +74,13 @@ describe('Scene3D — Gestionnaire de scène 3D Three.js impératif', () => {
   function createSampleRawMesh(id: string, role: 'full' | 'sill' | 'lintel' = 'full'): RawMeshData {
     return {
       positions: new Float32Array([
-        0, 0, 0, 1000, 0, 0, 1000, 200, 0, 0, 0, 2800, 1000, 0, 2800, 1000, 200, 2800,
+        // Face avant (Y = 0)
+        0, 0, 0, 1000, 0, 0, 1000, 0, 2800, 0, 0, 2800,
+        // Face supérieure (Z = 2800)
+        0, 200, 2800, 1000, 200, 2800,
       ]),
-      normals: new Float32Array([0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, 1, 0, 0, 1, 0, 0, 1]),
-      indices: new Uint32Array([0, 1, 2, 3, 4, 5]),
+      normals: new Float32Array([0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, 0, 1, 0, 0, 1]),
+      indices: new Uint32Array([0, 1, 2, 0, 2, 3, 3, 2, 5, 3, 5, 4]),
       elementId: id,
       role,
       boundingBox: {
@@ -286,5 +289,52 @@ describe('Scene3D — Gestionnaire de scène 3D Three.js impératif', () => {
 
     // Une tentative d'opération sur une instance disposée doit lever une exception
     expect(() => scene3d.addMesh(createSampleRawMesh('late'))).toThrowError(/disposed/);
+  });
+
+  it('setHighlight bascule le matériau et met à jour la couleur émissive 0x2563eb', () => {
+    const scene3d = new Scene3D(canvas, { width: 800, height: 600 });
+    const mesh1 = scene3d.addMesh(createSampleRawMesh('wall_1'));
+    const mesh2 = scene3d.addMesh(createSampleRawMesh('wall_2'));
+
+    // Avant highlight : matériau standard par défaut (emissive = 0x000000)
+    const mat1Before = mesh1.material as THREE.MeshStandardMaterial;
+    expect(mat1Before.emissive.getHex()).toBe(0x000000);
+
+    // Application de la sélection sur wall_1 uniquement
+    scene3d.setHighlight(['wall_1']);
+
+    const mat1After = mesh1.material as THREE.MeshStandardMaterial;
+    const mat2After = mesh2.material as THREE.MeshStandardMaterial;
+
+    // wall_1 est en surbrillance avec émissif 0x2563eb
+    expect(mat1After.emissive.getHex()).toBe(0x2563eb);
+    // wall_2 reste non sélectionné (émissif 0x000000)
+    expect(mat2After.emissive.getHex()).toBe(0x000000);
+
+    // Désélection totale
+    scene3d.setHighlight([]);
+    expect((mesh1.material as THREE.MeshStandardMaterial).emissive.getHex()).toBe(0x000000);
+
+    scene3d.dispose();
+  });
+
+  it('raycast détecte l’elementId du maillage sous le curseur ou renvoie null', () => {
+    const scene3d = new Scene3D(canvas, { width: 800, height: 600 });
+    scene3d.addMesh(createSampleRawMesh('wall_center'));
+
+    // Positionner la caméra droit devant le mur (le mur est en 0..1000, 0..200, 0..2800)
+    scene3d.getCamera().position.set(500, -2000, 1400);
+    scene3d.getCamera().lookAt(500, 100, 1400);
+    scene3d.getCamera().updateMatrixWorld(true);
+
+    // Clic au centre du canvas (400, 300) -> NDC (0, 0)
+    const hitId = scene3d.raycast(400, 300);
+    expect(hitId).toBe('wall_center');
+
+    // Clic loin dans le vide
+    const missId = scene3d.raycast(10, 10);
+    expect(missId).toBeNull();
+
+    scene3d.dispose();
   });
 });

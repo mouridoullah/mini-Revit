@@ -3,7 +3,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { type RawMeshData } from '@mini-bim/geometry';
 import { type SceneOptions } from './types.js';
 import { MeshAdapter } from './MeshAdapter.js';
-import { createDefaultMaterial } from './materials.js';
+import { createDefaultMaterial, createHighlightMaterial } from './materials.js';
 
 /**
  * Gestionnaire impératif de scène 3D Three.js pour Mini-BIM.
@@ -27,6 +27,7 @@ export class Scene3D {
   private readonly ambientLight: THREE.AmbientLight;
   private readonly directionalLight: THREE.DirectionalLight;
   private readonly defaultMaterial: THREE.MeshStandardMaterial;
+  private readonly highlightMaterial: THREE.MeshStandardMaterial;
 
   /**
    * Registre des maillages architecturaux indexés par elementId.
@@ -107,8 +108,9 @@ export class Scene3D {
     this.controls.dampingFactor = 0.05;
     this.controls.update();
 
-    // 7. Matériau partagé par défaut
+    // 7. Matériaux partagés par défaut et de surbrillance
     this.defaultMaterial = createDefaultMaterial();
+    this.highlightMaterial = createHighlightMaterial();
 
     // 8. Rendu à la demande sur interaction caméra
     this.onControlsChange = () => {
@@ -132,6 +134,10 @@ export class Scene3D {
     const mat = material ?? this.defaultMaterial;
     const mesh = new THREE.Mesh(geometry, mat);
     mesh.name = rawData.elementId;
+    mesh.userData = {
+      elementId: rawData.elementId,
+      role: rawData.role,
+    };
 
     this.scene.add(mesh);
 
@@ -171,8 +177,8 @@ export class Scene3D {
     for (const mesh of meshList) {
       this.scene.remove(mesh);
       mesh.geometry.dispose();
-      // Si un matériau spécifique différent du matériau par défaut avait été instancié
-      if (mesh.material !== this.defaultMaterial) {
+      // Si un matériau spécifique différent des matériaux gérés avait été instancié
+      if (mesh.material !== this.defaultMaterial && mesh.material !== this.highlightMaterial) {
         if (Array.isArray(mesh.material)) {
           mesh.material.forEach((m) => m.dispose());
         } else {
@@ -190,6 +196,74 @@ export class Scene3D {
    */
   public getMeshes(elementId: string): readonly THREE.Mesh[] {
     return this.meshes.get(elementId) ?? [];
+  }
+
+  /**
+   * Applique ou retire la surbrillance de sélection sur les éléments spécifiés.
+   * Bascule le matériau entre defaultMaterial et highlightMaterial (#2563eb).
+   *
+   * @param ids Ensemble d'identifiants d'éléments architecturaux à surligner
+   */
+  public setHighlight(ids: Iterable<string>): void {
+    if (this.isDisposed) return;
+
+    const idSet = new Set(ids);
+    for (const [elementId, meshList] of this.meshes.entries()) {
+      const isSelected = idSet.has(elementId);
+      for (const mesh of meshList) {
+        mesh.material = isSelected ? this.highlightMaterial : this.defaultMaterial;
+      }
+    }
+    this.render();
+  }
+
+  /**
+   * Effectue un lancer de rayon (picking 3D) à partir de coordonnées écran locales.
+   *
+   * @param screenX Coordonnée X en pixels locaux relatifs au canvas (0 à width)
+   * @param screenY Coordonnée Y en pixels locaux relatifs au canvas (0 à height)
+   * @returns L'identifiant elementId du premier mur touché, ou null si clic dans le vide
+   */
+  public raycast(screenX: number, screenY: number): string | null {
+    if (this.isDisposed) return null;
+
+    const canvas = this.renderer.domElement;
+    const width = canvas.width > 0 ? canvas.width : 800;
+    const height = canvas.height > 0 ? canvas.height : 600;
+
+    // Normalisation en Device Coordinates (NDC) dans [-1, 1]
+    const ndcX = (screenX / width) * 2 - 1;
+    const ndcY = -(screenY / height) * 2 + 1;
+
+    return this.raycastNDC(ndcX, ndcY);
+  }
+
+  /**
+   * Effectue un lancer de rayon (picking 3D) à partir de coordonnées NDC normalisées dans [-1, 1].
+   *
+   * @param ndcX Coordonnée X dans [-1, 1] (-1 gauche, +1 droite)
+   * @param ndcY Coordonnée Y dans [-1, 1] (-1 bas, +1 haut)
+   * @returns L'identifiant elementId du premier mur touché, ou null
+   */
+  public raycastNDC(ndcX: number, ndcY: number): string | null {
+    if (this.isDisposed) return null;
+
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(new THREE.Vector2(ndcX, ndcY), this.camera);
+
+    const candidateMeshes: THREE.Mesh[] = [];
+    for (const meshList of this.meshes.values()) {
+      candidateMeshes.push(...meshList);
+    }
+
+    const hits = raycaster.intersectObjects(candidateMeshes, false);
+    const firstHit = hits[0];
+    if (firstHit) {
+      const userDataId = firstHit.object.userData?.elementId as string | undefined;
+      const meshName = firstHit.object.name;
+      return userDataId || meshName || null;
+    }
+    return null;
   }
 
   /**
@@ -258,8 +332,9 @@ export class Scene3D {
       this.gridHelper.material.dispose();
     }
 
-    // 4. Libérer le matériau par défaut
+    // 4. Libérer les matériaux gérés
     this.defaultMaterial.dispose();
+    this.highlightMaterial.dispose();
 
     // 5. Vider la scène Three.js
     this.scene.clear();

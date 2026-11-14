@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { type BimDocument } from '@mini-bim/core';
 import { View2D } from '@mini-bim/view-2d';
 import { useBimDocument } from '../hooks/useBimDocument.js';
 import { useResizeObserver } from '../hooks/useResizeObserver.js';
@@ -7,6 +8,8 @@ import { convertPointerEvent, convertKeyEvent } from '../tools/toolGlue.js';
 
 export interface Viewport2DProps {
   readonly tool?: Tool;
+  readonly selection?: readonly string[];
+  readonly onSelectionChanged?: (ids: readonly string[]) => void;
   readonly onDrawingLengthChange?: (length: number | null) => void;
 }
 
@@ -15,7 +18,12 @@ export interface Viewport2DProps {
  * Règle d'or 3 : Instanciation unique dans useEffect, jamais recréé à chaque render.
  * Délègue les interactions aux machines à états de Tools (SelectTool, WallTool).
  */
-export function Viewport2D({ tool, onDrawingLengthChange }: Viewport2DProps = {}) {
+export function Viewport2D({
+  tool,
+  selection,
+  onSelectionChanged,
+  onDrawingLengthChange,
+}: Viewport2DProps = {}) {
   const { doc, state } = useBimDocument();
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -49,7 +57,25 @@ export function Viewport2D({ tool, onDrawingLengthChange }: Viewport2DProps = {}
       view.dispose();
       viewRef.current = null;
     };
+  }, []);
+
+  const lastDocRef = useRef<BimDocument>(doc);
+
+  // Synchronisation du document quand doc est remplacé (ex: import JSON)
+  useEffect(() => {
+    if (lastDocRef.current !== doc && viewRef.current) {
+      lastDocRef.current = doc;
+      viewRef.current.setDocument(doc);
+      viewRef.current.zoomToFit(60);
+    }
   }, [doc]);
+
+  // Synchronisation de la sélection externe (partagée 2D ↔ 3D)
+  useEffect(() => {
+    if (viewRef.current) {
+      viewRef.current.setSelection(selection ?? []);
+    }
+  }, [selection]);
 
   // Mise à jour sur notification d'état documentaire
   useEffect(() => {
@@ -110,6 +136,7 @@ export function Viewport2D({ tool, onDrawingLengthChange }: Viewport2DProps = {}
         }
       } else if (output.kind === 'selectionChanged') {
         view.setSelection(output.ids);
+        onSelectionChanged?.(output.ids);
       }
     };
 
@@ -145,6 +172,7 @@ export function Viewport2D({ tool, onDrawingLengthChange }: Viewport2DProps = {}
         onDrawingLengthChange?.(null);
       } else if (output.kind === 'selectionChanged') {
         view.setSelection(output.ids);
+        onSelectionChanged?.(output.ids);
       }
     };
 
@@ -162,7 +190,7 @@ export function Viewport2D({ tool, onDrawingLengthChange }: Viewport2DProps = {}
       viewRef.current?.setPreview(null);
       onDrawingLengthChange?.(null);
     };
-  }, [tool, doc, onDrawingLengthChange]);
+  }, [tool, doc, onDrawingLengthChange, onSelectionChanged]);
 
   return (
     <div

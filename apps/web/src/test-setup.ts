@@ -66,9 +66,18 @@ HTMLCanvasElement.prototype.getContext = vi.fn().mockImplementation((id: string)
       stroke: vi.fn(),
       fill: vi.fn(),
       fillRect: vi.fn(),
+      strokeRect: vi.fn(),
       clearRect: vi.fn(),
+      arc: vi.fn(),
+      ellipse: vi.fn(),
+      rect: vi.fn(),
       setLineDash: vi.fn(),
       getLineDash: vi.fn(() => []),
+      setTransform: vi.fn(),
+      transform: vi.fn(),
+      translate: vi.fn(),
+      scale: vi.fn(),
+      rotate: vi.fn(),
     } as unknown as CanvasRenderingContext2D;
   }
   if (id === 'webgl' || id === 'webgl2') {

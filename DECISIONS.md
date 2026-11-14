@@ -33,6 +33,9 @@
 | **ADR-022** | Intégration React dans apps/web — Viewports Impératifs Isolés, Contexte Documentaire         | **Accepté** | 13/11/2026 |
 | **ADR-023** | Génération de Maillages 3D dans @mini-bim/view-3d via Interfaces Géométriques Neutres        | **Accepté** | 14/11/2026 |
 | **ADR-024** | Architecture des Outils Interactifs 2D (State Machines Pures, Snapping 45° et Pont DOM)      | **Accepté** | 14/11/2026 |
+| **ADR-025** | Sélection UI Partagée Bidirectionnelle (État Éphémère React vs Pureté Documentaire)          | **Accepté** | 14/11/2026 |
+| **ADR-026** | Picking 3D Déterministe via Raycasting, userData et Permutation de Matériau Partagé          | **Accepté** | 14/11/2026 |
+| **ADR-027** | Remplacement de BimDocument sans Recréation de Contexte Graphique (setDocument vs Re-Key)    | **Accepté** | 14/11/2026 |
 
 ---
 
@@ -694,3 +697,111 @@ Trois impératifs architecturaux guident la conception :
 - Couverture de tests de 100% sur les outils avec tests unitaires ultrarapides en mémoire.
 - Stabilité garantie lors des basculements d'outils et résilience prouvée en cas de démontage React pendant un tracé actif.
 - Intégration transparente avec le double viewport : l'émission de la commande `AddWallCommand` met à jour automatiquement la vue 2D et la vue 3D orbitale.
+
+---
+
+## ADR-025 : Sélection UI Partagée Bidirectionnelle (État Éphémère React vs Pureté Documentaire)
+
+### Contexte
+
+Dans une application BIM double-vue (Plan 2D et 3D Orbitale), la sélection d'un élément par l'utilisateur doit être visualisée de manière cohérente et synchrone dans les deux espaces graphiques :
+
+- Un clic sur un mur en plan 2D doit immédiatement afficher ce mur en surbrillance bleue dans la vue 3D.
+- Réciproquement, un clic orbital dans la vue 3D doit surligner ce même mur dans le plan 2D.
+- Une touche `Escape` ou un clic dans le vide doit vider la sélection simultanément dans les deux vues.
+
+La question architecturale centrale est la localisation de la vérité de cette sélection :
+
+- **Option A :** Stocker `selectedIds` dans le `BimDocument` (état persistant du document).
+- **Option B :** Stocker `selectedIds` dans l'état UI React (`useState` au niveau `AppContent`) et le distribuer par props descendantes en flux unidirectionnel vers les wrappers de viewports.
+
+### Décision
+
+Nous adoptons l'**Option B** : la sélection est un **état d'interface éphémère pur**, hébergé dans `useState<readonly string[]>([])` au niveau du composant `AppContent`.
+
+1. **Pureté du `BimDocument` :**  
+   Le `BimDocument` et son historique transactionnel (`HistoryStack`) ne sont jamais pollués par des sélections. La sélection ne génère aucune `Command`, ne crée aucun patch Immer et n'affecte pas `canUndo()` / `canRedo()`.
+2. **Distribution par Props Readonly :**  
+   `selectedIds` est passé en prop `selection={selectedIds}` aux deux composants `<Viewport2D />` et `<Viewport3D />`.
+3. **Remontée Découplée :**  
+   Les viewports émettent les changements d'intention via `onSelectionChanged: (ids: readonly string[]) => void`. Quand l'utilisateur clique en 2D (via `SelectTool`) ou en 3D (via picking stationnaire), `AppContent` met à jour `selectedIds`, déclenchant la réconciliation et propageant l'état aux deux moteurs graphiques.
+
+### Conséquences
+
+- Annuler (`undo`) ou Rétablir (`redo`) n'altère pas l'historique avec des micro-sélections.
+- L'export JSON sérialise un modèle architectural 100% propre, sans état d'interface temporaire.
+- Testabilité complète du flux bidirectionnel en isolation et dans l'arbre d'intégration React.
+
+---
+
+## ADR-026 : Picking 3D Déterministe via Raycasting, userData et Permutation de Matériau Partagé
+
+### Contexte
+
+Dans `<Viewport3D />`, l'utilisateur interagit avec une scène Three.js orbitale contrôlée par `OrbitControls`. Deux défis techniques majeurs se présentent :
+
+1. **Conflit d'Interaction avec OrbitControls :** Un geste de rotation ou de panoramique de la caméra 3D implique un clic-glisser (`pointerdown` $\to$ déplacement $\to$ `pointerup`). Si tout relâchement de souris déclenche un raycasting, chaque rotation de caméra risque de sélectionner ou désélectionner intempestivement un mur.
+2. **Performance et Allocation GPU du Highlight :** Passer un mur en surbrillance (bleu vif `#2563eb`) ne doit ni muter le matériau par défaut global (ce qui bleuirait tous les murs), ni instancier un nouveau `THREE.MeshStandardMaterial` à chaque clic (ce qui fragmenterait la mémoire GPU et forcerait des recompilations de shaders).
+
+### Décision
+
+1. **Détection de Clic Stationnaire :**  
+   `<Viewport3D />` capture les coordonnées du pointeur au `pointerdown`. Au `pointerup`, la distance euclidienne $\Delta = \sqrt{(x_2 - x_1)^2 + (y_2 - y_1)^2}$ est calculée.
+   - Si $\Delta > 5\text{ px}$, le geste est qualifié de manipulation de caméra orbitale : le raycasting est ignoré.
+   - Si $\Delta \le 5\text{ px}$, le geste est un clic stationnaire : le raycasting est exécuté.
+
+2. **Association Sémantique via `userData.elementId` :**  
+   Lors de l'enregistrement d'un maillage dans `Scene3D.addMesh(id, mesh)`, le contrôleur assigne `mesh.userData = { elementId: id, role: 'wall' }`.
+
+3. **Raycasting Découplé (`Scene3D.raycast`) :**  
+   `Scene3D` expose `raycast(screenX, screenY)` et `raycastNDC(ndcX, ndcY)` utilisant `THREE.Raycaster`. Les coordonnées écran du canvas sont converties en NDC (Normalized Device Coordinates $[-1, 1]$). Le premier objet intersecté portant `userData.elementId` renvoie cet identifiant (ou `null` en l'absence de hit).
+
+4. **Permutation de Matériaux Uniques (`defaultMaterial` vs `highlightMaterial`) :**  
+   `Scene3D` pré-instancie exactement deux matériaux à sa création :
+   - `defaultMaterial` : `MeshStandardMaterial` neutre (`roughness: 0.8`, `emissive: 0x000000`).
+   - `highlightMaterial` : `MeshStandardMaterial` lumineux (`emissive: 0x2563eb`, `emissiveIntensity: 0.5`).
+     Lors de `setHighlight(ids)`, `Scene3D` itère sur ses maillages et affecte simplement par référence de pointeur :
+     $$\text{mesh.material} = (\text{ids.has(id)}) \mathbin{?} \text{this.highlightMaterial} : \text{this.defaultMaterial}$$
+     Zéro allocation d'objet Three.js, zéro shader re-link, mise à jour immédiate au `render()`.
+
+### Conséquences
+
+- Interaction fluide et naturelle : la caméra tourne librement sans sélection parasite.
+- Zéro fuite mémoire GPU lors de sélections répétées.
+- Synchronisation instantanée entre le picking 3D et le contour 2D.
+
+---
+
+## ADR-027 : Remplacement de BimDocument sans Recréation de Contexte Graphique (setDocument vs Re-Key)
+
+### Contexte
+
+Lors du chargement d'un nouveau projet (import de fichier JSON architectural), le `BimDocument` en cours d'utilisation dans `BimDocumentProvider` doit être remplacé par la nouvelle instance issue de `BimDocument.fromJSON(...)`.
+Deux approches sont envisageables :
+
+- **Approche 1 (Re-Key React) :** Changer la clé du composant racine `<App key={projectVersion} />`, forçant un démontage/remontage complet de toute l'arborescence DOM et React.
+- **Approche 2 (Mutation Réactive Contrôlée `setDocument`) :** Conserver les conteneurs DOM et les instances existantes de `View2D` et `Scene3D`, en leur injectant le nouveau document via `setDocument(newDoc)` et en réinitialisant le cadrage via `zoomToFit(60)`.
+
+### Risques de l'Approche 1 (Re-Key) :
+
+La destruction et recréation immédiate d'éléments `<canvas>` WebGL provoque la perte du contexte WebGL (`webglcontextlost`), des flashs visuels blancs, des risques de fuites mémoires liées aux buffers Three.js mal libérés pendant le cycle de remontage, et une latence perceptible par l'utilisateur.
+
+### Décision
+
+Nous adoptons l'**Approche 2** :
+
+1. `BimDocumentContext` expose une méthode `setDocument(newDoc: BimDocument): void`.
+2. L'effet de `BimDocumentProvider` se réabonne à la nouvelle instance de document et met à jour l'état immuable `state`.
+3. `<Viewport2D />` et `<Viewport3D />` détectent le changement d'identité de `doc` via un `useRef(lastDoc)` et exécutent de manière ordonnée :
+   ```typescript
+   view.setDocument(doc);
+   view.zoomToFit(60);
+   ```
+4. Le contexte WebGL Three.js et le contexte Canvas 2D restent **vivants et stables**, préservant l'intégrité de la session graphique.
+5. L'outil interactif en cours d'utilisation est purgé (`activeTool.reset()`) et la sélection remise à zéro pour éviter tout état fantôme hérité de l'ancien projet.
+
+### Conséquences
+
+- Transitions de fichiers instantanées et parfaitement fluides sans clignotement.
+- Élimination des erreurs `webglcontextlost` et stabilité éprouvée sous Chrome et Firefox.
+- Isolation complète : en cas d'erreur lors de l'import d'un fichier corrompu, le document en cours n'est pas remplacé et l'utilisateur reçoit un avertissement visuel immédiat.

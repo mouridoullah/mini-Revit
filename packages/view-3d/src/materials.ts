@@ -16,3 +16,18 @@ export function createDefaultMaterial(): THREE.MeshStandardMaterial {
     side: THREE.FrontSide,
   });
 }
+
+/**
+ * Crée le matériau PBR de surbrillance pour les éléments architecturaux sélectionnés.
+ * Émet une composante bleutée (#2563eb) visible sous tous les angles d'éclairage.
+ */
+export function createHighlightMaterial(): THREE.MeshStandardMaterial {
+  return new THREE.MeshStandardMaterial({
+    color: 0x60a5fa,
+    emissive: new THREE.Color(0x2563eb),
+    emissiveIntensity: 0.5,
+    roughness: 0.6,
+    metalness: 0.1,
+    side: THREE.FrontSide,
+  });
+}

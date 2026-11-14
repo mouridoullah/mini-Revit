@@ -8,7 +8,7 @@
 
 export { MeshAdapter } from './MeshAdapter.js';
 export { Scene3D } from './Scene3D.js';
-export { createDefaultMaterial } from './materials.js';
+export { createDefaultMaterial, createHighlightMaterial } from './materials.js';
 export {
   createWallMesh,
   type WallGeometryParams,
