@@ -189,5 +189,125 @@ export function fromJSON(jsonString: string): BimState {
     }
   }
 
-  return raw as unknown as BimState;
+  // 5. Validation des portes (si présentes)
+  const doors = (raw['doors'] ?? {}) as Record<string, unknown>;
+  if (typeof doors !== 'object' || Array.isArray(doors)) {
+    throw new BimValidationError('MALFORMED_STATE', 'Invalid "doors" dictionary.');
+  }
+
+  for (const [id, d] of Object.entries(doors)) {
+    if (!d || typeof d !== 'object') {
+      throw new BimValidationError('MALFORMED_DOOR', `Malformed door entry at "${id}".`);
+    }
+    const door = d as Record<string, unknown>;
+    if (door['id'] !== id) {
+      throw new BimValidationError(
+        'MALFORMED_DOOR',
+        `Door dictionary key "${id}" does not match internal id "${String(door['id'])}".`,
+      );
+    }
+    if (
+      door['category'] !== 'door' ||
+      door['kind'] !== 'door' ||
+      typeof door['hostWallId'] !== 'string'
+    ) {
+      throw new BimValidationError(
+        'MALFORMED_DOOR',
+        `Door "${id}" is missing required fields or has invalid category/kind.`,
+      );
+    }
+
+    const hostWallId = door['hostWallId'];
+    if (!walls[hostWallId]) {
+      throw new BimValidationError(
+        'UNKNOWN_HOST_WALL',
+        `Door "${id}" references non-existent host wall ID: "${hostWallId}".`,
+      );
+    }
+
+    if (
+      !Number.isFinite(door['offsetAlong']) ||
+      (door['offsetAlong'] as number) < 0 ||
+      !Number.isFinite(door['width']) ||
+      (door['width'] as number) <= 0 ||
+      !Number.isFinite(door['height']) ||
+      (door['height'] as number) <= 0
+    ) {
+      throw new BimValidationError(
+        'MALFORMED_DOOR',
+        `Door "${id}" has invalid dimensions or negative offsetAlong.`,
+      );
+    }
+
+    const swing = door['swing'] as Record<string, unknown> | undefined;
+    if (
+      !swing ||
+      !['left', 'right'].includes(String(swing['side'])) ||
+      !['in', 'out'].includes(String(swing['direction']))
+    ) {
+      throw new BimValidationError(
+        'MALFORMED_DOOR',
+        `Door "${id}" has invalid swing configuration.`,
+      );
+    }
+  }
+
+  // 6. Validation des fenêtres (si présentes)
+  const windows = (raw['windows'] ?? {}) as Record<string, unknown>;
+  if (typeof windows !== 'object' || Array.isArray(windows)) {
+    throw new BimValidationError('MALFORMED_STATE', 'Invalid "windows" dictionary.');
+  }
+
+  for (const [id, w] of Object.entries(windows)) {
+    if (!w || typeof w !== 'object') {
+      throw new BimValidationError('MALFORMED_WINDOW', `Malformed window entry at "${id}".`);
+    }
+    const win = w as Record<string, unknown>;
+    if (win['id'] !== id) {
+      throw new BimValidationError(
+        'MALFORMED_WINDOW',
+        `Window dictionary key "${id}" does not match internal id "${String(win['id'])}".`,
+      );
+    }
+    if (
+      win['category'] !== 'window' ||
+      win['kind'] !== 'window' ||
+      typeof win['hostWallId'] !== 'string'
+    ) {
+      throw new BimValidationError(
+        'MALFORMED_WINDOW',
+        `Window "${id}" is missing required fields or has invalid category/kind.`,
+      );
+    }
+
+    const hostWallId = win['hostWallId'];
+    if (!walls[hostWallId]) {
+      throw new BimValidationError(
+        'UNKNOWN_HOST_WALL',
+        `Window "${id}" references non-existent host wall ID: "${hostWallId}".`,
+      );
+    }
+
+    if (
+      !Number.isFinite(win['offsetAlong']) ||
+      (win['offsetAlong'] as number) < 0 ||
+      !Number.isFinite(win['width']) ||
+      (win['width'] as number) <= 0 ||
+      !Number.isFinite(win['height']) ||
+      (win['height'] as number) <= 0 ||
+      !Number.isFinite(win['sillHeight']) ||
+      (win['sillHeight'] as number) < 0
+    ) {
+      throw new BimValidationError(
+        'MALFORMED_WINDOW',
+        `Window "${id}" has invalid dimensions, negative offsetAlong, or negative sillHeight.`,
+      );
+    }
+  }
+
+  return {
+    ...raw,
+    doors: doors as unknown as Record<string, import('./types.js').Door>,
+    windows: windows as unknown as Record<string, import('./types.js').Window>,
+  } as unknown as BimState;
 }

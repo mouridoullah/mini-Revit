@@ -33,6 +33,8 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
         heightOverride: 2800,
       },
     },
+    doors: {},
+    windows: {},
   };
 
   it('aller-retour toJSON -> fromJSON préserve l’état à l’identique (deepEqual)', () => {
@@ -198,5 +200,109 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
       },
     };
     expect(() => fromJSON(JSON.stringify(zeroLengthState))).toThrowError(/INVALID_WALL_LENGTH/);
+  });
+
+  /* =========================================================================
+   * TESTS DE SÉRIALISATION PHASE 3.1 : PORTES ET FENÊTRES
+   * ========================================================================= */
+
+  it('toJSON et fromJSON gèrent fidèlement les portes et fenêtres avec intégrité référentielle', () => {
+    const stateWithOpenings: BimState = {
+      ...sampleState,
+      doors: {
+        door_01: {
+          id: 'door_01',
+          category: 'door',
+          kind: 'door',
+          hostWallId: 'w_01',
+          offsetAlong: 500,
+          width: 900,
+          height: 2150,
+          swing: { side: 'right', direction: 'in' },
+        },
+      },
+      windows: {
+        win_01: {
+          id: 'win_01',
+          category: 'window',
+          kind: 'window',
+          hostWallId: 'w_01',
+          offsetAlong: 2000,
+          width: 1200,
+          height: 1400,
+          sillHeight: 900,
+        },
+      },
+    };
+
+    const json = toJSON(stateWithOpenings, true);
+    expect(json).toContain('"door_01"');
+    expect(json).toContain('"win_01"');
+
+    const parsed = fromJSON(json);
+    expect(parsed).toEqual(stateWithOpenings);
+  });
+
+  it('fromJSON rejette une porte référençant un hostWallId inexistant (UNKNOWN_HOST_WALL)', () => {
+    const stateWithGhostDoor = {
+      ...sampleState,
+      doors: {
+        door_orphan: {
+          id: 'door_orphan',
+          category: 'door',
+          kind: 'door',
+          hostWallId: 'non_existent_wall',
+          offsetAlong: 500,
+          width: 900,
+          height: 2100,
+          swing: { side: 'left', direction: 'in' },
+        },
+      },
+    };
+
+    expect(() => fromJSON(JSON.stringify(stateWithGhostDoor))).toThrowError(BimValidationError);
+    expect(() => fromJSON(JSON.stringify(stateWithGhostDoor))).toThrowError(/UNKNOWN_HOST_WALL/);
+  });
+
+  it('fromJSON rejette une fenêtre référençant un hostWallId inexistant (UNKNOWN_HOST_WALL)', () => {
+    const stateWithGhostWindow = {
+      ...sampleState,
+      windows: {
+        win_orphan: {
+          id: 'win_orphan',
+          category: 'window',
+          kind: 'window',
+          hostWallId: 'non_existent_wall',
+          offsetAlong: 500,
+          width: 1000,
+          height: 1200,
+          sillHeight: 900,
+        },
+      },
+    };
+
+    expect(() => fromJSON(JSON.stringify(stateWithGhostWindow))).toThrowError(BimValidationError);
+    expect(() => fromJSON(JSON.stringify(stateWithGhostWindow))).toThrowError(/UNKNOWN_HOST_WALL/);
+  });
+
+  it('fromJSON rejette une porte avec swing invalide ou dimensions non-positives (MALFORMED_DOOR)', () => {
+    const badSwingDoorState = {
+      ...sampleState,
+      doors: {
+        door_bad_swing: {
+          id: 'door_bad_swing',
+          category: 'door',
+          kind: 'door',
+          hostWallId: 'w_01',
+          offsetAlong: 500,
+          width: 900,
+          height: 2100,
+          swing: { side: 'invalid_side', direction: 'in' },
+        },
+      },
+    };
+
+    expect(() => fromJSON(JSON.stringify(badSwingDoorState))).toThrowError(BimValidationError);
+    expect(() => fromJSON(JSON.stringify(badSwingDoorState))).toThrowError(/MALFORMED_DOOR/);
   });
 });

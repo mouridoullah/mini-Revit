@@ -40,6 +40,8 @@ export class BimDocument {
       levels: {},
       wallTypes: {},
       walls: {},
+      doors: {},
+      windows: {},
     };
   }
 
@@ -70,6 +72,8 @@ export class BimDocument {
       levels: { [levelId]: defaultLevel },
       wallTypes: { [typeId]: defaultWallType },
       walls: {},
+      doors: {},
+      windows: {},
     };
 
     return new BimDocument(state);

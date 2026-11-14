@@ -806,3 +806,59 @@ Nous adoptons l'**Approche 2** :
 - Transitions de fichiers instantanées et parfaitement fluides sans clignotement.
 - Élimination des erreurs `webglcontextlost` et stabilité éprouvée sous Chrome et Firefox.
 - Isolation complète : en cas d'erreur lors de l'import d'un fichier corrompu, le document en cours n'est pas remplacé et l'utilisateur reçoit un avertissement visuel immédiat.
+
+---
+
+## ADR-028 : Modèle Paramétrique 1D des Ouvertures Hébergées, Validation Métier et Suppression en Cascade Transactionnelle
+
+### Contexte
+
+Dans la modélisation BIM de référence (Autodesk Revit, ArchiCAD), les composants d'ouverture (portes et fenêtres) ne sont pas des solides autonomes positionnés dans l'espace euclidien absolu $(X, Y, Z)$. Ce sont des entités intrinsèquement **hébergées** (_hosted elements_) par un hôte porteur (`hostWallId`).
+
+Trois questions architecturales majeures se posent pour Mini-BIM :
+
+1. **Représentation spatiale de la position :** Doit-on mémoriser des coordonnées absolues $(X, Y)$ dans le monde, ou un paramètre scalaire relatif au mur hôte ?
+2. **Cycle de vie du mur hôte :** Que doit-il se passer lorsqu'un utilisateur supprime un mur contenant des portes et fenêtres ? (Interdiction stricte, orphelins flottants, ou suppression en cascade ?)
+3. **Réversibilité transactionnelle de l'annulation (Undo/Redo) :** Comment garantir qu'une annulation d'une suppression de mur restaure fidèlement le mur ainsi que toutes ses ouvertures hébergées, sans duplication de code ni fragilité impérative ?
+
+### Décision
+
+1. **Représentation Paramétrique 1D (`offsetAlong`) :**  
+   Les portes (`Door`) et fenêtres (`Window`) héritent de `OpeningBase` et mémorisent :
+   - `hostWallId: ElementId` : référence obligatoire vers le mur hôte.
+   - `offsetAlong: number` : distance euclidienne scalaire (en millimètres) depuis le point d'origine du mur (`wall.start`) le long de son vecteur directeur.
+   - `width: number`, `height: number`.
+   - `swing: DoorSwing` (`side: 'left' | 'right'`, `direction: 'in' | 'out'`) pour les portes.
+   - `sillHeight: number` (hauteur d'allège en mm) pour les fenêtres.
+
+   **Bénéfice :** Aucun point de coordonnées monde n'est dupliqué. Si un mur est déplacé, pivoté ou allongé, l'ouverture conserve automatiquement son intégrité relationnelle sans nécessiter de calcul de synchronisation de coordonnées.
+
+2. **Délégation de Validation Métier à `@mini-bim/geometry` :**  
+   Pour respecter la séparation stricte des responsabilités et éviter toute duplication de code, `validateDoor` et `validateWindow` dans `@mini-bim/core` délèguent le contrôle géométrique à `validateOpenings` de `@mini-bim/geometry`.  
+   Les règles vérifient :
+   - L'existence du mur hôte (`UNKNOWN_HOST_WALL`).
+   - La positivité des dimensions (`INVALID_OPENING_DIMENSIONS`).
+   - Le confinement strict dans les bornes du mur $[0, L_{\text{wall}}]$ (`INVALID_OPENING_POSITION`).
+   - La hauteur sous plafond : $\text{height} \le H$ pour une porte, $\text{sillHeight} + \text{height} \le H$ pour une fenêtre (`INVALID_OPENING_HEIGHT`).
+   - Le non-chevauchement des intervalles 1D $[s_i, s_i + w_i]$ entre ouvertures d'un même mur (`OPENING_OVERLAP`).
+   - Le respect du dégagement minimal `MIN_OPENING_CLEARANCE = 50\text{ mm}` aux extrémités et entre ouvertures (`INVALID_OPENING_CLEARANCE`).
+
+3. **Suppression en Cascade Transactionnelle (`ON DELETE CASCADE`) :**  
+   Un mur peut être supprimé même s'il héberge des ouvertures (`canDeleteWall` autorise la suppression). Dans `DeleteWallCommand.apply(draft)` :
+   - Le mur est retiré de `draft.walls`.
+   - Toutes les portes de `draft.doors` dont `hostWallId === this.wallId` sont supprimées.
+   - Toutes les fenêtres de `draft.windows` dont `hostWallId === this.wallId` sont supprimées.
+   - `getChangedIds()` retourne l'ensemble unifié : `[this.wallId, ...this.deletedOpeningIds]`.
+
+4. **Restauration Intégrale via l'Algèbre de Patchs Immer :**  
+   Puisque l'état est muté au sein de `produceWithPatches`, Immer enregistre des opérations `"op": "remove"` pour le mur et chaque ouverture hébergée, et produit les `"op": "add"` correspondants dans `inversePatches`.  
+   Un simple appel à `doc.undo()` réapplique ces patchs inverses en une seule transaction atomique : le mur et toutes ses ouvertures réapparaissent instantanément avec leurs identifiants, cotes et battements d'origine sans aucune ligne de code de rollback impérative spécifique.
+
+5. **Rétrocompatibilité Totale du Format JSON (`schemaVersion: 1`) :**  
+   Le schéma de persistance v1 est préservé. Lors du chargement d'un fichier hérité (Phases 1 et 2 sans sections `doors`/`windows`), le désérialiseur initialise silencieusement `doors: {}` et `windows: {}`.
+
+### Conséquences
+
+- Modèle de données BIM robuste, fidèle aux standards de l'industrie (IFC `IfcRelFillsElement`, Revit Family Hosting).
+- Cohérence relationnelle absolue : aucune ouverture orpheline ne peut exister dans le document.
+- Prêt pour les phases suivantes : Phase 3.2 exploitera `offsetAlong`, `width`, `height`, `sillHeight` pour le découpage géométrique (`sliceWallWithOpenings`), et Phase 3.3 implémentera le placement interactif (`DoorTool`, `WindowTool`).

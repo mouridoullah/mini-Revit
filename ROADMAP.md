@@ -170,28 +170,29 @@ _Dépendances : Phase 1.1 à 1.3 (`@mini-bim/geometry`), Phase 1.4 (`@mini-bim/v
 
 ---
 
-### Phase 3 — Noyau BIM Paramétrique (`@mini-bim/core`, `@mini-bim/persistence`)
+### Phase 3 — Noyau BIM Paramétrique & Ouvertures Hébergées
 
-- **Objectif :** Transformer le système de dessin géométrique en un véritable modeleur d'objets BIM relationnel.
+- **Objectif :** Transformer le système de dessin géométrique en un véritable modeleur d'objets BIM relationnel avec ouvertures hébergées (portes et fenêtres), découpage géométrique et placement interactif.
+
+#### Phase 3.1 — Modèle BIM Relationnel des Ouvertures Hébergées (`@mini-bim/core`) [LIVRÉ]
+
+- **Objectif :** Intégrer les concepts de portes et fenêtres hébergées dans le modèle documentaire BIM, sécuriser les règles métier, fournir les commandes transactionnelles et garantir l'intégrité référentielle avec suppression en cascade.
 - **Fonctionnalités :**
-  - Modèle de données complet : `Project`, `Building`, `Level`, `ElementType`, `ElementInstance`.
-  - Gestionnaire de niveaux : création de niveaux (RDC, R+1), liaison altimétrique des murs (hauteur contrainte ou libre).
-  - Catalogue de types de murs multicouches (`WallType` : structure, isolation, finition).
-  - Hébergement d'ouvertures : outil `DoorTool` et `WindowTool`, découpage réel du mur hôte par tranches.
-  - Éléments horizontaux : dalles de sol (`Slab`) extrudées depuis un contour polygonal.
-  - Toitures simples (`Roof` : toit plat ou 2 pans avec pente et débord).
-  - Graphe de dépendances (DAG) et moteur de régénération incrémentale (`dirty set`).
-  - Persistance locale : sauvegarde/chargement au format JSON validé par schéma Zod.
-- **Dépendances :** Phase 2.
-- **Livrables :** Packages `@mini-bim/core` et `@mini-bim/persistence`.
-- **Tests :**
-  - Déplacement d'un mur hôte $\implies$ déplacement solidaire des ouvertures hébergées.
-  - Modification de l'altitude d'un niveau $\implies$ mise à jour des hauteurs de murs contraints.
-  - Cycle de sauvegarde / fermeture / restauration sans aucune altération de données.
-- **Critères d'acceptation :**
-  - Maison individuelle R+1 complète modélisée avec portes, fenêtres, dalles et toiture.
-  - Modification d'un type de mur propageant l'épaisseur à toutes ses instances.
-  - Temps de propagation d'une modification < 50 ms.
+  - Modèle paramétrique 1D (`types.ts`) : `OpeningBase` (`offsetAlong`, `width`, `height`), `Door` (`swing: { side, direction }`), `Window` (`sillHeight`), dictionnaires `doors` et `windows` dans `BimState`.
+  - Commandes transactionnelles (`commands.ts`) : `AddDoorCommand`, `AddWindowCommand`, `UpdateDoorCommand`, `UpdateWindowCommand`, `DeleteOpeningCommand`, `MoveOpeningCommand`.
+  - Suppression en cascade (`ON DELETE CASCADE`) : `DeleteWallCommand` supprime automatiquement le mur ET toutes ses portes et fenêtres hébergées, avec notification exhaustive dans `getChangedIds()`.
+  - Réversibilité Undo/Redo intégrale (`history.ts`) : l'inversion des patchs Immer restaure simultanément le mur et toutes ses ouvertures hébergées en une seule transaction sans perte d'attributs.
+  - Validation métier stricte (`rules.ts`) : délégation des calculs de chevauchement et de dégagement à `validateOpenings` et `MIN_OPENING_CLEARANCE` de `@mini-bim/geometry`. Contrôles de débordement 1D $[0, L_{\text{wall}}]$, hauteur sous linteau, allège positive, sens de battement valide.
+  - Sérialisation et rétrocompatibilité (`serialization.ts`) : persistance JSON avec préservation de `schemaVersion: 1`, chargement sans encombre des fichiers existants (Phases 1 et 2) avec valeurs par défaut `doors: {}` et `windows: {}`.
+- **Tests :** 65 tests automatisés dans `@mini-bim/core` (+22 tests), 382 tests cumulés dans tout le monorepo.
+
+#### Phase 3.2 — Découpage Géométrique et Maillages Percés 2D/3D (`@mini-bim/geometry`, `@mini-bim/view-2d`, `@mini-bim/view-3d`) [PROCHAINE ÉTAPE]
+
+- **Objectif :** Connecter `sliceWallWithOpenings` aux couches de rendu pour générer les maillages de murs percés en 3D (panneaux pleins, allèges, linteaux) et les empreintes 2D avec feuillures et arcs d'ouverture.
+
+#### Phase 3.3 — Outils Interactifs d'Ouvertures & Inspection UI (`apps/web`)
+
+- **Objectif :** Implémenter les machines à états d'outils `DoorTool` et `WindowTool`, le magnétisme le long de l'axe du mur hôte survolé, et la mise à jour des propriétés dans le panneau d'inspection.
 
 ---
 

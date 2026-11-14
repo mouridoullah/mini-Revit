@@ -1,7 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { produceWithPatches } from 'immer';
+import { vec2 } from '@mini-bim/geometry';
 import { HistoryStack } from './history.js';
-import { type BimState } from './types.js';
+import { type BimState, type Wall, type Door, type Window } from './types.js';
+import { BimDocument } from './document.js';
+import * as Commands from './commands.js';
 
 describe('Gestionnaire d’Historique Transactionnel (history.ts)', () => {
   function createBaseState(): BimState {
@@ -11,6 +14,8 @@ describe('Gestionnaire d’Historique Transactionnel (history.ts)', () => {
       levels: {},
       wallTypes: {},
       walls: {},
+      doors: {},
+      windows: {},
     };
   }
 
@@ -171,5 +176,122 @@ describe('Gestionnaire d’Historique Transactionnel (history.ts)', () => {
     expect(restored).not.toBeNull();
     if (!restored) return;
     expect(restored.nextState.levels['lvl_circ']).toBeUndefined();
+  });
+
+  it('undo/redo sur AddDoorCommand : la porte disparaît à l’annulation et réapparaît au rétablissement', () => {
+    const doc = BimDocument.createDefaultProject();
+    const state = doc.getState();
+    const levelId = Object.keys(state.levels)[0]!;
+    const typeId = Object.keys(state.wallTypes)[0]!;
+
+    doc.execute(
+      new Commands.AddWallCommand({
+        id: 'wall_host',
+        category: 'wall',
+        typeId,
+        levelId,
+        start: vec2(0, 0),
+        end: vec2(4000, 0),
+      }),
+    );
+
+    const door: Door = {
+      id: 'door_test_history',
+      category: 'door',
+      kind: 'door',
+      hostWallId: 'wall_host',
+      offsetAlong: 500,
+      width: 900,
+      height: 2100,
+      swing: { side: 'right', direction: 'in' },
+    };
+
+    doc.execute(new Commands.AddDoorCommand(door));
+    expect(doc.getState().doors['door_test_history']).toEqual(door);
+
+    // Annuler -> la porte disparaît
+    expect(doc.canUndo()).toBe(true);
+    const undoRes = doc.undo();
+    expect(undoRes).toBe(true);
+    expect(doc.getState().doors['door_test_history']).toBeUndefined();
+    expect(doc.getState().walls['wall_host']).toBeDefined();
+
+    // Rétablir -> la porte réapparaît fidèlement
+    expect(doc.canRedo()).toBe(true);
+    const redoRes = doc.redo();
+    expect(redoRes).toBe(true);
+    expect(doc.getState().doors['door_test_history']).toEqual(door);
+  });
+
+  it('undo/redo sur DeleteWallCommand avec cascade : le mur ET ses ouvertures (porte + fenêtre) sont restaurés fidèlement', () => {
+    const doc = BimDocument.createDefaultProject();
+    const state = doc.getState();
+    const levelId = Object.keys(state.levels)[0]!;
+    const typeId = Object.keys(state.wallTypes)[0]!;
+
+    const wall: Wall = {
+      id: 'wall_cascade_hist',
+      category: 'wall',
+      typeId,
+      levelId,
+      start: vec2(0, 0),
+      end: vec2(6000, 0),
+    };
+    doc.execute(new Commands.AddWallCommand(wall));
+
+    const door: Door = {
+      id: 'door_cascade_hist',
+      category: 'door',
+      kind: 'door',
+      hostWallId: 'wall_cascade_hist',
+      offsetAlong: 500,
+      width: 900,
+      height: 2100,
+      swing: { side: 'left', direction: 'out' },
+    };
+    doc.execute(new Commands.AddDoorCommand(door));
+
+    const windowElem: Window = {
+      id: 'win_cascade_hist',
+      category: 'window',
+      kind: 'window',
+      hostWallId: 'wall_cascade_hist',
+      offsetAlong: 2500,
+      width: 1200,
+      height: 1400,
+      sillHeight: 900,
+    };
+    doc.execute(new Commands.AddWindowCommand(windowElem));
+
+    // Mémoriser l'état complet avant suppression
+    const stateBeforeDelete = doc.getState();
+
+    // Exécuter DeleteWallCommand
+    const delRes = doc.execute(new Commands.DeleteWallCommand('wall_cascade_hist'));
+    expect(delRes.changed).toContain('wall_cascade_hist');
+    expect(delRes.changed).toContain('door_cascade_hist');
+    expect(delRes.changed).toContain('win_cascade_hist');
+
+    expect(doc.getState().walls['wall_cascade_hist']).toBeUndefined();
+    expect(doc.getState().doors['door_cascade_hist']).toBeUndefined();
+    expect(doc.getState().windows['win_cascade_hist']).toBeUndefined();
+
+    // 1. Undo -> Restauration intégrale
+    const undoSuccess = doc.undo();
+    expect(undoSuccess).toBe(true);
+
+    const restoredState = doc.getState();
+    expect(restoredState.walls['wall_cascade_hist']).toEqual(wall);
+    expect(restoredState.doors['door_cascade_hist']).toEqual(door);
+    expect(restoredState.windows['win_cascade_hist']).toEqual(windowElem);
+    expect(restoredState).toEqual(stateBeforeDelete);
+
+    // 2. Redo -> Suppression à nouveau du mur et de ses ouvertures en cascade
+    const redoSuccess = doc.redo();
+    expect(redoSuccess).toBe(true);
+
+    expect(doc.getState().walls['wall_cascade_hist']).toBeUndefined();
+    expect(doc.getState().doors['door_cascade_hist']).toBeUndefined();
+    expect(doc.getState().windows['win_cascade_hist']).toBeUndefined();
   });
 });

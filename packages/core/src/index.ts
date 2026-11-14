@@ -15,6 +15,13 @@ export type {
   ElementId,
   CommandResult,
   DocumentListener,
+  OpeningBase,
+  Door,
+  Window,
+  Opening,
+  DoorSwing,
+  DoorSwingSide,
+  DoorSwingDirection,
 } from './types.js';
 export * as Commands from './commands.js';
 export {
@@ -28,12 +35,21 @@ export {
   AddLevelCommand,
   UpdateLevelCommand,
   DeleteLevelCommand,
+  AddDoorCommand,
+  AddWindowCommand,
+  UpdateDoorCommand,
+  UpdateWindowCommand,
+  DeleteOpeningCommand,
+  MoveOpeningCommand,
 } from './commands.js';
 export {
   BimValidationError,
   validateWall,
   validateWallType,
   validateLevel,
+  validateDoor,
+  validateWindow,
+  canDeleteWall,
   canDeleteLevel,
   canDeleteWallType,
 } from './rules.js';

@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { vec2 } from '@mini-bim/geometry';
 import { BimDocument } from './document.js';
 import * as Commands from './commands.js';
-import { type Wall, type WallType, type Level } from './types.js';
+import { type Wall, type WallType, type Level, type Door, type Window } from './types.js';
 
 describe('BimDocument & CommandBus (document.ts)', () => {
   it('constructeur initialise un état vide valide', () => {
@@ -388,5 +388,266 @@ describe('BimDocument & CommandBus (document.ts)', () => {
     expect(healthySubscriber2).toHaveBeenCalledWith([wallId]);
 
     consoleSpy.mockRestore();
+  });
+
+  describe('Ouvertures hébergées (Doors & Windows)', () => {
+    function setupDocWithWall() {
+      const doc = BimDocument.createDefaultProject();
+      const state = doc.getState();
+      const levelId = Object.keys(state.levels)[0]!;
+      const typeId = Object.keys(state.wallTypes)[0]!;
+      const wallId = 'wall_test_openings';
+      doc.execute(
+        new Commands.AddWallCommand({
+          id: wallId,
+          category: 'wall',
+          typeId,
+          levelId,
+          start: vec2(0, 0),
+          end: vec2(5000, 0),
+        }),
+      );
+      return { doc, wallId, levelId, typeId };
+    }
+
+    it('execute(AddDoorCommand) ajoute une porte valide et notifie [doorId, hostWallId]', () => {
+      const { doc, wallId } = setupDocWithWall();
+      const doorId = 'door_01';
+      const door: Door = {
+        id: doorId,
+        category: 'door',
+        kind: 'door',
+        hostWallId: wallId,
+        offsetAlong: 500,
+        width: 900,
+        height: 2100,
+        swing: { side: 'right', direction: 'in' },
+      };
+
+      const res = doc.execute(new Commands.AddDoorCommand(door));
+      expect(res.changed).toEqual([doorId, wallId]);
+      expect(doc.getState().doors[doorId]).toEqual(door);
+    });
+
+    it('execute(AddDoorCommand) rejette un hostWallId inexistant', () => {
+      const { doc } = setupDocWithWall();
+      const door: Door = {
+        id: 'door_bad_wall',
+        category: 'door',
+        kind: 'door',
+        hostWallId: 'non_existent_wall',
+        offsetAlong: 500,
+        width: 900,
+        height: 2100,
+        swing: { side: 'left', direction: 'in' },
+      };
+
+      expect(() => doc.execute(new Commands.AddDoorCommand(door))).toThrowError(
+        /UNKNOWN_HOST_WALL/,
+      );
+    });
+
+    it('execute(AddDoorCommand) rejette un débordement en longueur (offsetAlong + width > wallLength)', () => {
+      const { doc, wallId } = setupDocWithWall();
+      const door: Door = {
+        id: 'door_overflow',
+        category: 'door',
+        kind: 'door',
+        hostWallId: wallId,
+        offsetAlong: 4500, // mur = 5000, 4500 + 900 = 5400 > 5000
+        width: 900,
+        height: 2100,
+        swing: { side: 'right', direction: 'out' },
+      };
+
+      expect(() => doc.execute(new Commands.AddDoorCommand(door))).toThrowError(
+        /INVALID_OPENING_POSITION/,
+      );
+    });
+
+    it('execute(AddDoorCommand) rejette le chevauchement avec une ouverture existante', () => {
+      const { doc, wallId } = setupDocWithWall();
+      doc.execute(
+        new Commands.AddDoorCommand({
+          id: 'door_1',
+          category: 'door',
+          kind: 'door',
+          hostWallId: wallId,
+          offsetAlong: 1000,
+          width: 900,
+          height: 2100,
+          swing: { side: 'right', direction: 'in' },
+        }),
+      );
+
+      // Deuxième porte qui chevauche door_1 [1000..1900]
+      expect(() =>
+        doc.execute(
+          new Commands.AddDoorCommand({
+            id: 'door_2',
+            category: 'door',
+            kind: 'door',
+            hostWallId: wallId,
+            offsetAlong: 1500,
+            width: 900,
+            height: 2100,
+            swing: { side: 'left', direction: 'out' },
+          }),
+        ),
+      ).toThrowError(/OPENING_OVERLAP/);
+    });
+
+    it('execute(AddWindowCommand) rejette un dépassement en hauteur (sillHeight + height > wallHeight)', () => {
+      const { doc, wallId } = setupDocWithWall();
+      // Mur par défaut a une hauteur de 2800 mm
+      expect(() =>
+        doc.execute(
+          new Commands.AddWindowCommand({
+            id: 'win_too_high',
+            category: 'window',
+            kind: 'window',
+            hostWallId: wallId,
+            offsetAlong: 1000,
+            width: 1200,
+            height: 2000,
+            sillHeight: 1000, // 1000 + 2000 = 3000 > 2800
+          }),
+        ),
+      ).toThrowError(/INVALID_OPENING_HEIGHT/);
+    });
+
+    it('execute(DeleteWallCommand) supprime le mur ET supprime en cascade toutes ses ouvertures hébergées', () => {
+      const { doc, wallId } = setupDocWithWall();
+      doc.execute(
+        new Commands.AddDoorCommand({
+          id: 'door_cascade_1',
+          category: 'door',
+          kind: 'door',
+          hostWallId: wallId,
+          offsetAlong: 500,
+          width: 900,
+          height: 2100,
+          swing: { side: 'left', direction: 'in' },
+        }),
+      );
+      const win: Window = {
+        id: 'win_cascade_1',
+        category: 'window',
+        kind: 'window',
+        hostWallId: wallId,
+        offsetAlong: 2500,
+        width: 1200,
+        height: 1400,
+        sillHeight: 900,
+      };
+      doc.execute(new Commands.AddWindowCommand(win));
+
+      expect(doc.getState().walls[wallId]).toBeDefined();
+      expect(doc.getState().doors['door_cascade_1']).toBeDefined();
+      expect(doc.getState().windows['win_cascade_1']).toBeDefined();
+
+      const delRes = doc.execute(new Commands.DeleteWallCommand(wallId));
+      expect(delRes.changed).toContain(wallId);
+      expect(delRes.changed).toContain('door_cascade_1');
+      expect(delRes.changed).toContain('win_cascade_1');
+
+      expect(doc.getState().walls[wallId]).toBeUndefined();
+      expect(doc.getState().doors['door_cascade_1']).toBeUndefined();
+      expect(doc.getState().windows['win_cascade_1']).toBeUndefined();
+    });
+
+    it('execute(DeleteOpeningCommand) supprime l’ouverture sans affecter le mur hôte', () => {
+      const { doc, wallId } = setupDocWithWall();
+      doc.execute(
+        new Commands.AddDoorCommand({
+          id: 'door_to_delete',
+          category: 'door',
+          kind: 'door',
+          hostWallId: wallId,
+          offsetAlong: 800,
+          width: 900,
+          height: 2100,
+          swing: { side: 'left', direction: 'in' },
+        }),
+      );
+
+      const delRes = doc.execute(new Commands.DeleteOpeningCommand('door_to_delete'));
+      expect(delRes.changed).toContain('door_to_delete');
+      expect(delRes.changed).toContain(wallId);
+
+      expect(doc.getState().doors['door_to_delete']).toBeUndefined();
+      expect(doc.getState().walls[wallId]).toBeDefined();
+    });
+
+    it('execute(MoveOpeningCommand) met à jour la position offsetAlong après validation', () => {
+      const { doc, wallId } = setupDocWithWall();
+      doc.execute(
+        new Commands.AddDoorCommand({
+          id: 'door_to_move',
+          category: 'door',
+          kind: 'door',
+          hostWallId: wallId,
+          offsetAlong: 500,
+          width: 900,
+          height: 2100,
+          swing: { side: 'left', direction: 'in' },
+        }),
+      );
+
+      doc.execute(new Commands.MoveOpeningCommand('door_to_move', 2000));
+      expect(doc.getState().doors['door_to_move']?.offsetAlong).toBe(2000);
+
+      // Rejet si nouveau déplacement sort du mur
+      expect(() => doc.execute(new Commands.MoveOpeningCommand('door_to_move', 4500))).toThrowError(
+        /INVALID_OPENING_POSITION/,
+      );
+    });
+
+    it('execute(UpdateDoorCommand et UpdateWindowCommand) modifient les propriétés avec validation', () => {
+      const { doc, wallId } = setupDocWithWall();
+      doc.execute(
+        new Commands.AddDoorCommand({
+          id: 'door_update',
+          category: 'door',
+          kind: 'door',
+          hostWallId: wallId,
+          offsetAlong: 500,
+          width: 900,
+          height: 2100,
+          swing: { side: 'left', direction: 'in' },
+        }),
+      );
+      doc.execute(
+        new Commands.AddWindowCommand({
+          id: 'win_update',
+          category: 'window',
+          kind: 'window',
+          hostWallId: wallId,
+          offsetAlong: 2000,
+          width: 1000,
+          height: 1200,
+          sillHeight: 900,
+        }),
+      );
+
+      doc.execute(
+        new Commands.UpdateDoorCommand('door_update', {
+          swing: { side: 'right', direction: 'out' },
+          width: 800,
+        }),
+      );
+      expect(doc.getState().doors['door_update']?.swing).toEqual({
+        side: 'right',
+        direction: 'out',
+      });
+      expect(doc.getState().doors['door_update']?.width).toBe(800);
+
+      doc.execute(
+        new Commands.UpdateWindowCommand('win_update', {
+          sillHeight: 1100,
+        }),
+      );
+      expect(doc.getState().windows['win_update']?.sillHeight).toBe(1100);
+    });
   });
 });
