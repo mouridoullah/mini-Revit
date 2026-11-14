@@ -229,5 +229,48 @@ Ce module ne dépend d'aucun modèle métier (`@mini-bim/core` est absent des d�
 ### Limites Connues et Périmètre de Phase 3
 
 1. **Footprint Isolé :** `createWallMesh` utilise `computeWallFootprint2d` (footprint isolé, PAS junction-resolved). Les murs aux coins se chevauchent visuellement (z-fighting potentiel aux arêtes coplanaires). Sera résolu en Phase 3 avec `computeJunctions`.
-2. **Pièce unique (Full) :** `createWallMesh` traite une seule pièce (`role: 'full'`). Les ouvertures/multi-pièces viendront en Phase 3.
-3. **Identifiants de pièces :** `WallPiece.id === WallPiece.wallId === wall.id`. Acceptable en Phase 2.2 (1 pièce/mur). À enrichir en Phase 3 (IDs uniques par pièce).
+2. **Pièce unique (Full) :** `createWallMesh` traite une seule pièce (`role: 'full'`). Les ouvertures/multi-pièces sont gérées par `createWallMeshWithOpenings` (Phase 3.2).
+
+---
+
+## 7. Murs Percés et Placeholders d'Ouvertures (`mesh-generator.ts` — Phase 3.2)
+
+Livré en Phase 3.2 pour connecter le pipeline géométrique 2.5D au rendu 3D Three.js :
+
+```typescript
+export interface OpeningGeometryParams {
+  readonly id: string;
+  readonly kind: 'door' | 'window';
+  readonly offsetAlong: number;
+  readonly width: number;
+  readonly height: number;
+  readonly sillHeight?: number;
+}
+
+export interface WallWithOpeningsParams {
+  readonly wall: WallGeometryParams;
+  readonly wallType: WallTypeGeometryParams;
+  readonly openings: readonly OpeningGeometryParams[];
+  readonly elevation?: number;
+}
+
+export function createWallMeshWithOpenings(params: WallWithOpeningsParams): RawMeshData[];
+
+export function createOpeningPlaceholder(
+  params: OpeningGeometryParams,
+  wall: WallGeometryParams,
+  elevation?: number,
+): RawMeshData;
+```
+
+### Invariants et Principes de Conception :
+
+1. **Règle de Sélection & Picking :**
+   - Tous les tronçons solides d'un mur percé portent `RawMeshData.elementId = wall.id`. Un clic sur n'importe quel morceau sélectionne le mur hôte complet.
+   - Les placeholders d'ouvertures portent `RawMeshData.elementId = opening.id`. Un clic sur le vantail/vitrage sélectionne l'ouverture spécifique.
+2. **Conservation Stricte du Volume :**
+   $$\sum_{i} V(\text{piece}_i) = V(\text{mur plein}) - \sum_{j} V(\text{ouverture}_j)$$
+   Vérifié par le théorème de divergence sur maillages triangulaires ($\Delta < 50\text{ mm}^3$ sur 2.6 milliards de $\text{mm}^3$).
+3. **Matériaux Dédiés :**
+   - Porte : `createDoorPlaceholderMaterial()` (bois `#8b5a2b`, boîte orientée de 50 mm).
+   - Fenêtre : `createWindowPlaceholderMaterial()` (vitrage translucide `#90caf9`, opacité 0.5, boîte orientée de 30 mm).

@@ -1,7 +1,82 @@
 import { type Vec2 } from '@mini-bim/geometry';
-import { type Command } from '@mini-bim/core';
 
 export type { Vec2 };
+
+/**
+ * Paramètres neutres d'un mur pour le moteur de vue en plan 2D.
+ */
+export interface WallFor2D {
+  readonly id: string;
+  readonly start: Vec2;
+  readonly end: Vec2;
+  readonly typeId?: string;
+  readonly levelId?: string;
+}
+
+/**
+ * Paramètres neutres d'un type de mur pour le moteur de vue en plan 2D.
+ */
+export interface WallTypeFor2D {
+  readonly thickness: number;
+}
+
+/**
+ * Battement d'une porte en vue 2D.
+ */
+export interface DoorSwingFor2D {
+  readonly side: 'left' | 'right';
+  readonly direction: 'in' | 'out';
+}
+
+/**
+ * Paramètres neutres d'une porte pour le tracé en plan 2D.
+ */
+export interface DoorFor2D {
+  readonly id: string;
+  readonly kind?: 'door';
+  readonly hostWallId: string;
+  readonly offsetAlong: number;
+  readonly width: number;
+  readonly swing: DoorSwingFor2D;
+}
+
+/**
+ * Paramètres neutres d'une fenêtre pour le tracé en plan 2D.
+ */
+export interface WindowFor2D {
+  readonly id: string;
+  readonly kind?: 'window';
+  readonly hostWallId: string;
+  readonly offsetAlong: number;
+  readonly width: number;
+  readonly sillHeight?: number;
+}
+
+/**
+ * Union neutre des ouvertures pour le visualiseur 2D.
+ */
+export type OpeningFor2D =
+  ({ readonly kind: 'door' } & DoorFor2D) | ({ readonly kind: 'window' } & WindowFor2D);
+
+/**
+ * Interface structurelle neutre d'un document pour la vue en plan 2D.
+ * Permet à View2D de consommer BimDocument sans dépendance directe ni import de @mini-bim/core.
+ */
+export interface DocumentFor2D {
+  getState(): {
+    readonly walls: Record<string, WallFor2D>;
+    readonly wallTypes: Record<string, WallTypeFor2D>;
+    readonly doors?: Record<string, DoorFor2D>;
+    readonly windows?: Record<string, WindowFor2D>;
+  };
+}
+
+/**
+ * Représentation abstraite d'une commande de mutation.
+ */
+export interface CommandLike {
+  readonly name: string;
+}
 
 /**
  * Options de configuration pour le système de coordonnées et de transformation 2D.
@@ -141,7 +216,7 @@ export type PreviewShape =
 /**
  * Callback invoqué lors de l'émission d'une intention de commande de mutation.
  */
-export type CommandCallback = (command: Command) => void;
+export type CommandCallback = (command: CommandLike) => void;
 
 /**
  * Callback invoqué lors d'un changement de sélection d'éléments.

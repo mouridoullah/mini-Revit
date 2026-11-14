@@ -31,3 +31,29 @@ export function createHighlightMaterial(): THREE.MeshStandardMaterial {
     side: THREE.FrontSide,
   });
 }
+
+/**
+ * Matériau pour les placeholders de portes (bois architectural chaud #8b5a2b).
+ */
+export function createDoorPlaceholderMaterial(): THREE.MeshStandardMaterial {
+  return new THREE.MeshStandardMaterial({
+    color: 0x8b5a2b,
+    roughness: 0.7,
+    metalness: 0.0,
+    side: THREE.FrontSide,
+  });
+}
+
+/**
+ * Matériau pour les placeholders de fenêtres (vitrage translucide bleu ciel #90caf9).
+ */
+export function createWindowPlaceholderMaterial(): THREE.MeshStandardMaterial {
+  return new THREE.MeshStandardMaterial({
+    color: 0x90caf9,
+    transparent: true,
+    opacity: 0.5,
+    roughness: 0.1,
+    metalness: 0.1,
+    side: THREE.DoubleSide,
+  });
+}

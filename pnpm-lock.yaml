@@ -116,13 +116,13 @@ importers:
 
   packages/view-2d:
     dependencies:
-      '@mini-bim/core':
-        specifier: workspace:*
-        version: link:../core
       '@mini-bim/geometry':
         specifier: workspace:*
         version: link:../geometry
     devDependencies:
+      '@mini-bim/core':
+        specifier: workspace:*
+        version: link:../core
       '@types/jsdom':
         specifier: ^30.0.0
         version: 30.0.0

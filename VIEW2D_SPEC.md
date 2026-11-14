@@ -197,11 +197,65 @@ L'introduction des machines à états de Tools en Phase 2.3 (`SelectTool`, `Wall
 
 ---
 
-## 6. Couverture de Tests Automatisés
+## 7. Rendu des Ouvertures Architecturales (Phase 3.2)
 
-Le package est validé à 100% en environnement headless Vitest / JSDOM (37 tests unitaires et d'intégration) :
+Le module `renderer.ts` implémente les représentations normalisées du dessin d'architecture 2D pour les ouvertures hébergées :
+
+```typescript
+export function drawOpeningDoor(
+  ctx: CanvasRenderingContext2D,
+  transform: Transform2D,
+  door: DoorFor2D,
+  wall: WallFor2D,
+  wallThickness: number,
+  isSelected?: boolean,
+  config?: WallRenderConfig,
+  backgroundColor?: string,
+): void;
+
+export function drawOpeningWindow(
+  ctx: CanvasRenderingContext2D,
+  transform: Transform2D,
+  window: WindowFor2D,
+  wall: WallFor2D,
+  wallThickness: number,
+  isSelected?: boolean,
+  config?: WallRenderConfig,
+  backgroundColor?: string,
+): void;
+
+export function drawOpenings(
+  ctx: CanvasRenderingContext2D,
+  transform: Transform2D,
+  walls: Record<string, WallFor2D>,
+  wallTypes: Record<string, WallTypeFor2D>,
+  openings: readonly OpeningFor2D[],
+  selectedIds: ReadonlySet<string>,
+  config?: WallRenderConfig,
+  backgroundColor?: string,
+  levelFilter?: string | null,
+): void;
+```
+
+### Détails des Tracés Normalisés :
+1. **Évidement du Poché (Cutout) :**
+   Avant de dessiner la menuiserie, un polygone correspondant à la réservation brute est rempli avec `backgroundColor` pour effacer le poché gris du mur.
+2. **Portes (`drawOpeningDoor`) :**
+   - Ébrasements transversaux fermant la baie de part et d'autre.
+   - Vantail de porte orienté à 90° par rapport au mur hôte.
+   - Arc de débattement en pointillé de 90° (rayon = largeur d'ouverture). Le sens de rotation écran (`counterclockwise`) est déterminé analytiquement pour gérer l'inversion de l'axe Y et toutes les orientations du mur.
+3. **Fenêtres (`drawOpeningWindow`) :**
+   - Ébrasements transversaux de baie.
+   - Lignes fines d'allège/appui le long des deux parements du mur.
+   - Deux lignes parallèles de vitrage bleu architectural (`#3b82f6`) au centre de l'épaisseur du mur.
+
+---
+
+## 8. Couverture de Tests Automatisés
+
+Le package est validé à 100% en environnement headless Vitest / JSDOM (41 tests unitaires et d'intégration) :
 - `transform.test.ts` (12 tests) : inversion mathématique $\Delta < 10^{-9}$, Y-up $\to$ Y-down, bijection sur cas asymétriques (+Y, -Y, +X/+Y, -X/-Y), zoom centré invariant, zoomToFit, pan, limites d'échelle.
 - `hit-test.test.ts` (3 tests) : test de footprint polygonale, hitTestWall, findWallAtScreen avec filtre de niveau.
-- `renderer.test.ts` (8 tests) : clearCanvas, grille adaptative avec seuil anti-saturation, axes, poché, contour, axe pointillé, surbrillance de sélection, filtre de niveau.
+- `renderer.test.ts` (12 tests) : clearCanvas, grille adaptative avec seuil anti-saturation, axes, poché, contour, axe pointillé, surbrillance de sélection, filtre de niveau, évidement et arc 90° pour portes, évidement et vitrage double pour fenêtres, extraction automatique des ouvertures du document, non-déclenchement sur mur plein.
 - `View2D.test.ts` (14 tests) : initialisation, rendu à la demande, hit-testing, sélection interactive (mode autonome), désactivation de la sélection interne (`enableInternalSelection: false`), prévisualisation temporaire (`setPreview` / `getPreview`), règle d'or d'émission de commande sans mutation de document, immutabilité stricte du document au clic (`doc.toJSON()` invariant), molette, pan, zoomToFit, resize, dispose, déconnexion du ResizeObserver.
 $$

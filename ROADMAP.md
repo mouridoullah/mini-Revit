@@ -186,11 +186,19 @@ _Dépendances : Phase 1.1 à 1.3 (`@mini-bim/geometry`), Phase 1.4 (`@mini-bim/v
   - Sérialisation et rétrocompatibilité (`serialization.ts`) : persistance JSON avec préservation de `schemaVersion: 1`, chargement sans encombre des fichiers existants (Phases 1 et 2) avec valeurs par défaut `doors: {}` et `windows: {}`.
 - **Tests :** 72 tests automatisés dans `@mini-bim/core` (+29 tests), 389 tests cumulés dans tout le monorepo.
 
-#### Phase 3.2 — Découpage Géométrique et Maillages Percés 2D/3D (`@mini-bim/geometry`, `@mini-bim/view-2d`, `@mini-bim/view-3d`) [PROCHAINE ÉTAPE]
+#### Phase 3.2 — Découpage Géométrique et Maillages Percés 2D/3D (`@mini-bim/view-2d`, `@mini-bim/view-3d`, `apps/web`) [LIVRÉ]
 
-- **Objectif :** Connecter `sliceWallWithOpenings` aux couches de rendu pour générer les maillages de murs percés en 3D (panneaux pleins, allèges, linteaux) et les empreintes 2D avec feuillures et arcs d'ouverture.
+- **Objectif :** Connecter `sliceWallWithOpenings` et `extrudeWallPiece` aux couches de rendu pour générer les maillages de murs percés en 3D (panneaux pleins, allèges, linteaux), les placeholders d'ouvertures (bois pour portes, vitrage translucide pour fenêtres) et les empreintes 2D avec évidement de poché, ébrasements et arcs d'ouverture.
+- **Fonctionnalités :**
+  - **Murs Percés 3D (`mesh-generator.ts`) :** Découpage 2.5D automatique des murs hôtes via `sliceWallWithOpenings` et extrusion en `RawMeshData` multi-pièces. Tous les morceaux solides portent `RawMeshData.elementId = wall.id` pour garantir un picking et une sélection unifiée du mur hôte.
+  - **Conservation Stricte du Volume :** Vérification mathématique par le théorème de divergence sur maillage triangulaire ($\sum V_i = V_{\text{plein}} - \sum V_{\text{baies}}$ avec résidu $\Delta < 50\text{ mm}^3$ sur 2.6 milliards de $\text{mm}^3$).
+  - **Placeholders 3D d'Ouvertures :** Boîtes 3D orientées de 50 mm (porte, matériau bois `#8b5a2b`) et 30 mm (fenêtre, vitrage translucide `#90caf9`, opacité 0.5) portant `elementId = opening.id`. Restauration automatique du matériau de base lors des désélections dans `Scene3D.setHighlight`.
+  - **Rendu Architectural 2D Normalisé (`renderer.ts`) :** Évidement propre du poché de mur sous la baie (`backgroundColor`), tracé des montants d'ébrasement, vantail à 90°, arc de 90° en pointillé avec calcul exact du sens de rotation écran (`counterclockwise`), et double vitrage bleu architectural.
+  - **Découplage Architectural Strict (Règles d'or) :** Zéro import de `@mini-bim/core` dans `packages/view-2d/src` et `packages/view-3d/src`. Paramètres neutres structurels (`WallFor2D`, `OpeningGeometryParams`, etc.).
+  - **Intégration Applicative Web :** Le `demoDocument` intègre 1 porte sur `wall_south` et 1 fenêtre sur `wall_north`. Synchronisation automatique dans `Viewport3D` et `Viewport2D`. Suppression en cascade reflétée dans les maillages 3D.
+- **Tests :** 403 tests automatisés dans tout le monorepo (+14 tests par rapport à Phase 3.1) : 73 dans `core`, 23 dans `view-3d` (+6), 41 dans `view-2d` (+4), 75 dans `apps/web` (+3), 191 dans `geometry`.
 
-#### Phase 3.3 — Outils Interactifs d'Ouvertures & Inspection UI (`apps/web`)
+#### Phase 3.3 — Outils Interactifs d'Ouvertures & Inspection UI (`apps/web`) [PROCHAINE ÉTAPE]
 
 - **Objectif :** Implémenter les machines à états d'outils `DoorTool` et `WindowTool`, le magnétisme le long de l'axe du mur hôte survolé, et la mise à jour des propriétés dans le panneau d'inspection.
 

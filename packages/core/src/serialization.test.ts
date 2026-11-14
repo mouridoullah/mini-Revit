@@ -339,6 +339,24 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
       },
     };
     expect(() => fromJSON(JSON.stringify(badDimDoorState))).toThrowError(/MALFORMED_DOOR/);
+
+    // Cas 4: swing absent (undefined)
+    const missingSwingDoorState = {
+      ...sampleState,
+      doors: {
+        door_no_swing: {
+          id: 'door_no_swing',
+          category: 'door',
+          kind: 'door',
+          hostWallId: 'w_01',
+          offsetAlong: 500,
+          width: 900,
+          height: 2100,
+          // swing absent
+        },
+      },
+    };
+    expect(() => fromJSON(JSON.stringify(missingSwingDoorState))).toThrowError(/MALFORMED_DOOR/);
   });
 
   it('rétrocompatibilité fromJSON sur un fichier Phase 2 réel (4 murs de demoDocument, sans clés doors/windows)', () => {

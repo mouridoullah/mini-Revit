@@ -54,5 +54,32 @@ export function createDemoDocument(): BimDocument {
     );
   }
 
+  // Phase 3.2 : 1 porte sur wall_south et 1 fenêtre sur wall_north
+  doc.execute(
+    new Commands.AddDoorCommand({
+      id: 'door_demo',
+      category: 'door',
+      kind: 'door',
+      hostWallId: 'wall_south',
+      offsetAlong: 2000,
+      width: 900,
+      height: 2100,
+      swing: { side: 'right', direction: 'in' },
+    }),
+  );
+
+  doc.execute(
+    new Commands.AddWindowCommand({
+      id: 'window_demo',
+      category: 'window',
+      kind: 'window',
+      hostWallId: 'wall_north',
+      offsetAlong: 2000,
+      width: 1200,
+      height: 1400,
+      sillHeight: 900,
+    }),
+  );
+
   return doc;
 }

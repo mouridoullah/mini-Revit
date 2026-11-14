@@ -137,6 +137,7 @@ export class Scene3D {
     mesh.userData = {
       elementId: rawData.elementId,
       role: rawData.role,
+      baseMaterial: mat,
     };
 
     this.scene.add(mesh);
@@ -177,13 +178,24 @@ export class Scene3D {
     for (const mesh of meshList) {
       this.scene.remove(mesh);
       mesh.geometry.dispose();
-      // Si un matériau spécifique différent des matériaux gérés avait été instancié
+      const baseMat = mesh.userData?.baseMaterial as THREE.Material | undefined;
+      const matsToDispose = new Set<THREE.Material>();
       if (mesh.material !== this.defaultMaterial && mesh.material !== this.highlightMaterial) {
         if (Array.isArray(mesh.material)) {
-          mesh.material.forEach((m) => m.dispose());
+          mesh.material.forEach((m) => matsToDispose.add(m));
         } else {
-          mesh.material.dispose();
+          matsToDispose.add(mesh.material);
         }
+      }
+      if (baseMat && baseMat !== this.defaultMaterial && baseMat !== this.highlightMaterial) {
+        if (Array.isArray(baseMat)) {
+          (baseMat as THREE.Material[]).forEach((m) => matsToDispose.add(m));
+        } else {
+          matsToDispose.add(baseMat);
+        }
+      }
+      for (const m of matsToDispose) {
+        m.dispose();
       }
     }
 
@@ -200,7 +212,7 @@ export class Scene3D {
 
   /**
    * Applique ou retire la surbrillance de sélection sur les éléments spécifiés.
-   * Bascule le matériau entre defaultMaterial et highlightMaterial (#2563eb).
+   * Bascule le matériau entre son matériau de base (ou defaultMaterial) et highlightMaterial (#2563eb).
    *
    * @param ids Ensemble d'identifiants d'éléments architecturaux à surligner
    */
@@ -211,7 +223,8 @@ export class Scene3D {
     for (const [elementId, meshList] of this.meshes.entries()) {
       const isSelected = idSet.has(elementId);
       for (const mesh of meshList) {
-        mesh.material = isSelected ? this.highlightMaterial : this.defaultMaterial;
+        const baseMat = (mesh.userData?.baseMaterial as THREE.Material) ?? this.defaultMaterial;
+        mesh.material = isSelected ? this.highlightMaterial : baseMat;
       }
     }
     this.render();

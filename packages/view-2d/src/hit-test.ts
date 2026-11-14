@@ -1,4 +1,3 @@
-import { type BimDocument, type Wall, type WallType } from '@mini-bim/core';
 import {
   type Vec2,
   vec2,
@@ -6,6 +5,7 @@ import {
   computeWallFootprint2d,
 } from '@mini-bim/geometry';
 import { type Transform2D } from './transform.js';
+import { type DocumentFor2D, type WallFor2D, type WallTypeFor2D } from './types.js';
 
 /**
  * Options de détection de clic (hit-testing) sur les éléments architecturaux.
@@ -61,8 +61,8 @@ export function isPointInsideOrNearFootprint(
  */
 export function hitTestWall(
   worldPos: Vec2,
-  wall: Wall,
-  wallType: WallType,
+  wall: WallFor2D,
+  wallType: WallTypeFor2D,
   toleranceMm: number = 0,
 ): boolean {
   // 1. Filtrage rapide par distance orthogonale au segment d'axe
@@ -101,7 +101,7 @@ export function hitTestWall(
 export function findWallAtScreen(
   screenPos: Vec2,
   transform: Transform2D,
-  doc: BimDocument,
+  doc: DocumentFor2D,
   options?: HitTestOptions,
 ): string | null {
   const hitTolerancePx = options?.hitTolerancePx ?? 6;
@@ -121,7 +121,7 @@ export function findWallAtScreen(
       continue;
     }
 
-    const wallType = state.wallTypes[wall.typeId];
+    const wallType = wall.typeId ? state.wallTypes[wall.typeId] : undefined;
     if (!wallType) continue;
 
     if (hitTestWall(worldPos, wall, wallType, toleranceMm)) {

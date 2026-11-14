@@ -19,10 +19,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@mini-bim/core": "workspace:*",
     "@mini-bim/geometry": "workspace:*"
   },
   "devDependencies": {
+    "@mini-bim/core": "workspace:*",
     "@types/jsdom": "^30.0.0",
     "@types/node": "^22.13.4",
     "jsdom": "^31.0.0",

@@ -15,6 +15,9 @@ export {
   drawGrid,
   drawWall,
   drawWalls,
+  drawOpeningDoor,
+  drawOpeningWindow,
+  drawOpenings,
   renderPlanView,
 } from './renderer.js';
 export { View2D } from './View2D.js';

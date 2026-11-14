@@ -7,6 +7,8 @@ import {
   drawGrid,
   drawWall,
   drawWalls,
+  drawOpeningDoor,
+  drawOpeningWindow,
   renderPlanView,
   DEFAULT_GRID_CONFIG,
   DEFAULT_WALL_RENDER_CONFIG,
@@ -226,5 +228,203 @@ describe('Renderer 2D (renderer.ts)', () => {
     // 2 murs rendus
     expect(mock.filterCalls('fill')).toHaveLength(2);
     expect(mock.filterCalls('stroke').length).toBeGreaterThanOrEqual(4);
+  });
+
+  it('drawOpeningDoor trace l’évidement du poché, les ébrasements, le vantail et l’arc de 90°', () => {
+    const { mock } = createMockCanvas(800, 600);
+    const transform = new Transform2D({
+      origin: vec2(0, 0),
+      scale: 0.1, // 0.1 px/mm -> 900 mm = 90 px
+      viewportWidth: 800,
+      viewportHeight: 600,
+    });
+
+    const wall: Wall = {
+      id: 'w1',
+      category: 'wall',
+      typeId: 'wt1',
+      levelId: 'lvl1',
+      start: vec2(0, 0),
+      end: vec2(5000, 0),
+    };
+
+    drawOpeningDoor(
+      mock.ctx,
+      transform,
+      {
+        id: 'door1',
+        hostWallId: 'w1',
+        offsetAlong: 2000,
+        width: 900,
+        swing: { side: 'right', direction: 'in' },
+      },
+      wall,
+      200,
+      false,
+      DEFAULT_WALL_RENDER_CONFIG,
+      '#ffffff',
+    );
+
+    // 1. Évidement du poché : 1 fill() avec la couleur d'arrière-plan
+    const fillCalls = mock.filterCalls('fill');
+    expect(fillCalls).toHaveLength(1);
+
+    // 2. Arc de 90° : 1 appel à ctx.arc
+    const arcCalls = mock.filterCalls('arc');
+    expect(arcCalls).toHaveLength(1);
+    const arcArgs = arcCalls[0]?.args as [number, number, number, number, number, boolean];
+    const [arcX, arcY, arcRadius, startAngle, endAngle, counterclockwise] = arcArgs;
+
+    // Rayon écran = 900 mm * 0.1 px/mm = 90 px
+    expect(arcRadius).toBeCloseTo(90, 5);
+
+    // Pour side='right', la charnière est à offsetAlong + width = 2900 mm
+    // screenX = 400 + 2900 * 0.1 = 690, screenY = 300 - 0 * 0.1 = 300
+    expect(arcX).toBeCloseTo(690, 5);
+    expect(arcY).toBeCloseTo(300, 5);
+
+    // L'arc couvre exactement 90° (PI/2 radians) sur le cercle trigonométrique
+    const angularSpan = Math.abs(
+      Math.atan2(Math.sin(endAngle - startAngle), Math.cos(endAngle - startAngle)),
+    );
+    expect(angularSpan).toBeCloseTo(Math.PI / 2, 5);
+    expect(typeof counterclockwise).toBe('boolean');
+
+    // 3. Vantail et ébrasements : plusieurs segments tracés
+    const strokeCalls = mock.filterCalls('stroke');
+    expect(strokeCalls.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('drawOpeningWindow trace l’évidement, les montants et 2 lignes parallèles de vitrage', () => {
+    const { mock } = createMockCanvas(800, 600);
+    const transform = new Transform2D({
+      origin: vec2(0, 0),
+      scale: 0.1,
+      viewportWidth: 800,
+      viewportHeight: 600,
+    });
+
+    const wall: Wall = {
+      id: 'w1',
+      category: 'wall',
+      typeId: 'wt1',
+      levelId: 'lvl1',
+      start: vec2(0, 0),
+      end: vec2(5000, 0),
+    };
+
+    drawOpeningWindow(
+      mock.ctx,
+      transform,
+      {
+        id: 'win1',
+        hostWallId: 'w1',
+        offsetAlong: 1500,
+        width: 1200,
+        sillHeight: 900,
+      },
+      wall,
+      200,
+      false,
+      DEFAULT_WALL_RENDER_CONFIG,
+      '#ffffff',
+    );
+
+    // 1. Évidement du poché
+    expect(mock.filterCalls('fill')).toHaveLength(1);
+
+    // 2. Pas d'arc de battement pour une fenêtre
+    expect(mock.filterCalls('arc')).toHaveLength(0);
+
+    // 3. Traits tracés : ébrasements (2 montants), allège (2 traits), vitrage (2 traits parallèles)
+    const strokeCalls = mock.filterCalls('stroke');
+    expect(strokeCalls.length).toBe(3); // 1 montants, 1 allège, 1 vitrage
+  });
+
+  it('renderPlanView intègre automatiquement les ouvertures du BimDocument', () => {
+    const { mock } = createMockCanvas(800, 600);
+    const transform = new Transform2D({
+      origin: vec2(0, 0),
+      scale: 0.1,
+      viewportWidth: 800,
+      viewportHeight: 600,
+    });
+
+    const doc = BimDocument.createDefaultProject();
+    const state = doc.getState();
+    const typeId = Object.keys(state.wallTypes)[0]!;
+    const levelId = Object.keys(state.levels)[0]!;
+
+    doc.execute(
+      new Commands.AddWallCommand({
+        id: 'w_open_1',
+        category: 'wall',
+        typeId,
+        levelId,
+        start: vec2(0, 0),
+        end: vec2(6000, 0),
+      }),
+    );
+    doc.execute(
+      new Commands.AddDoorCommand({
+        id: 'd_open_1',
+        category: 'door',
+        hostWallId: 'w_open_1',
+        offsetAlong: 2000,
+        width: 900,
+        height: 2100,
+        swing: { side: 'left', direction: 'in' },
+      }),
+    );
+    doc.execute(
+      new Commands.AddWindowCommand({
+        id: 'w_open_win_1',
+        category: 'window',
+        hostWallId: 'w_open_1',
+        offsetAlong: 4000,
+        width: 1200,
+        height: 1400,
+        sillHeight: 900,
+      }),
+    );
+
+    renderPlanView(mock.ctx, transform, doc, new Set());
+
+    // 1 mur rendu (1 fill) + 2 ouvertures qui épatent le poché (2 fills) = 3 fills
+    const fillCalls = mock.filterCalls('fill');
+    expect(fillCalls).toHaveLength(3);
+
+    // L'arc de la porte est bien tracé
+    const arcCalls = mock.filterCalls('arc');
+    expect(arcCalls).toHaveLength(1);
+    expect(arcCalls[0]?.args[2]).toBeCloseTo(90, 5); // 900 * 0.1 = 90 px
+  });
+
+  it('un mur sans ouvertures ne déclenche aucun tracé d’arc ni d’évidement supplémentaire', () => {
+    const { mock } = createMockCanvas(800, 600);
+    const transform = new Transform2D();
+
+    const doc = BimDocument.createDefaultProject();
+    const state = doc.getState();
+    const typeId = Object.keys(state.wallTypes)[0]!;
+    const levelId = Object.keys(state.levels)[0]!;
+
+    doc.execute(
+      new Commands.AddWallCommand({
+        id: 'w_plain',
+        category: 'wall',
+        typeId,
+        levelId,
+        start: vec2(0, 0),
+        end: vec2(4000, 0),
+      }),
+    );
+
+    renderPlanView(mock.ctx, transform, doc);
+
+    // Seulement 1 fill pour le poché du mur (aucun fill pour évidement)
+    expect(mock.filterCalls('fill')).toHaveLength(1);
+    // Aucun tracé d'arc de porte
+    expect(mock.filterCalls('arc')).toHaveLength(0);
   });
 });

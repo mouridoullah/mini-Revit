@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, fireEvent, act } from '@testing-library/react';
 import * as Scene3DModule from '@mini-bim/view-3d';
-import { BimDocument } from '@mini-bim/core';
+import { BimDocument, Commands } from '@mini-bim/core';
 import { createDemoDocument } from '../demo/demoDocument.js';
 import { BimDocumentProvider } from '../context/BimDocumentContext.js';
 import { Viewport3D } from './Viewport3D.js';
@@ -18,7 +18,7 @@ describe('Viewport3D React Wrapper (apps/web)', () => {
     HTMLCanvasElement.prototype.releasePointerCapture = vi.fn();
   });
 
-  it('monte le composant, instancie Scene3D et ajoute les maillages initiaux', () => {
+  it('monte le composant, instancie Scene3D et ajoute les maillages initiaux (murs percés et placeholders)', () => {
     const doc = createDemoDocument();
 
     const { getByTestId } = render(
@@ -30,37 +30,39 @@ describe('Viewport3D React Wrapper (apps/web)', () => {
     const canvas = getByTestId('viewport-3d-canvas');
     expect(canvas).toBeDefined();
 
-    // 1. Décompte d'appels : 4 murs
-    expect(addMeshSpy).toHaveBeenCalledTimes(4);
+    // 1. Décompte d'appels :
+    // - wall_south (avec 1 porte) : 3 pièces solides (2 pleines + 1 linteau)
+    // - wall_north (avec 1 fenêtre) : 4 pièces solides (2 pleines + 1 allège + 1 linteau)
+    // - wall_east (sans ouverture) : 1 pièce pleine
+    // - wall_west (sans ouverture) : 1 pièce pleine
+    // - door_demo : 1 placeholder (boîte bois)
+    // - window_demo : 1 placeholder (boîte vitrée)
+    // Total = 3 + 4 + 1 + 1 + 1 + 1 = 11 maillages
+    expect(addMeshSpy).toHaveBeenCalledTimes(11);
 
     // 2. Vérification des arguments passés à addMesh
     const calledElementIds = addMeshSpy.mock.calls.map((call) => call[0].elementId);
-    expect(calledElementIds).toHaveLength(4);
+    expect(calledElementIds).toHaveLength(11);
 
-    // Les 4 IDs sont distincts
+    // Les IDs distincts couvrent exactement les 4 murs + 2 ouvertures
     const uniqueIds = new Set(calledElementIds);
-    expect(uniqueIds.size).toBe(4);
+    expect(uniqueIds).toEqual(
+      new Set(['wall_south', 'wall_east', 'wall_north', 'wall_west', 'door_demo', 'window_demo']),
+    );
 
-    // Correspondance exacte avec les 4 murs du demoDocument
-    const expectedWallIds = ['wall_south', 'wall_east', 'wall_north', 'wall_west'];
-    expect([...calledElementIds].sort()).toEqual([...expectedWallIds].sort());
+    // 3. Vérification de la structure géométrique des tronçons de murs percés
+    const wallCalls = addMeshSpy.mock.calls.filter((c) =>
+      ['wall_south', 'wall_east', 'wall_north', 'wall_west'].includes(c[0].elementId),
+    );
+    expect(wallCalls).toHaveLength(9);
 
-    // Vérification de la structure et de l'intégrité géométrique de chaque RawMeshData
-    for (const call of addMeshSpy.mock.calls) {
+    for (const call of wallCalls) {
       const meshData = call[0];
       expect(meshData.positions.length).toBeGreaterThan(0);
       expect(meshData.indices.length).toBeGreaterThan(0);
       expect(meshData.normals.length).toBe(meshData.positions.length);
-      expect(meshData.role).toBe('full');
-      expect(meshData.boundingBox.max.z - meshData.boundingBox.min.z).toBeCloseTo(2800, 1);
+      expect(['full', 'sill', 'lintel']).toContain(meshData.role);
     }
-
-    // Vérification que les emprises X/Y des 4 murs sont bien distinctes dans le plan (pas de murs clonés)
-    const centroidsXY = addMeshSpy.mock.calls.map((call) => {
-      const bb = call[0].boundingBox;
-      return `${Math.round((bb.min.x + bb.max.x) / 2)},${Math.round((bb.min.y + bb.max.y) / 2)}`;
-    });
-    expect(new Set(centroidsXY).size).toBe(4);
   });
 
   it('RÈGLE D’OR 3 : un re-render React ne recrée PAS l’instance de Scene3D', () => {
@@ -72,8 +74,8 @@ describe('Viewport3D React Wrapper (apps/web)', () => {
       </BimDocumentProvider>,
     );
 
-    // Initialement 4 addMesh
-    expect(addMeshSpy).toHaveBeenCalledTimes(4);
+    // Initialement 11 addMesh
+    expect(addMeshSpy).toHaveBeenCalledTimes(11);
 
     // Déclenchement d'un re-render React
     rerender(
@@ -83,7 +85,7 @@ describe('Viewport3D React Wrapper (apps/web)', () => {
     );
 
     // addMesh n'a pas été rappelé (l'instance Scene3D est persistée dans sceneRef et le useEffect[] ne s'est pas réexécuté)
-    expect(addMeshSpy).toHaveBeenCalledTimes(4);
+    expect(addMeshSpy).toHaveBeenCalledTimes(11);
   });
 
   it('appelle scene.dispose() lors du démontage du composant (unmount)', () => {
@@ -166,5 +168,110 @@ describe('Viewport3D React Wrapper (apps/web)', () => {
     // Pas de picking sur un drag
     expect(raycastSpy).not.toHaveBeenCalled();
     expect(selectionCallback).not.toHaveBeenCalled();
+  });
+
+  it('décomptes géométriques discriminants : 3 pièces pour mur+porte, 4 pièces pour mur+fenêtre, 1 pièce par mur plein', () => {
+    const doc = createDemoDocument();
+
+    render(
+      <BimDocumentProvider initialDoc={doc}>
+        <Viewport3D />
+      </BimDocumentProvider>,
+    );
+
+    // Filtrer les pièces par elementId
+    const southPieces = addMeshSpy.mock.calls.filter((c) => c[0].elementId === 'wall_south');
+    const northPieces = addMeshSpy.mock.calls.filter((c) => c[0].elementId === 'wall_north');
+    const eastPieces = addMeshSpy.mock.calls.filter((c) => c[0].elementId === 'wall_east');
+    const westPieces = addMeshSpy.mock.calls.filter((c) => c[0].elementId === 'wall_west');
+
+    // 1. Mur Sud (avec 1 porte de h=2100 < 2800) -> 3 pièces (2 full + 1 lintel)
+    expect(southPieces).toHaveLength(3);
+    const southRoles = southPieces.map((c) => c[0].role).sort();
+    expect(southRoles).toEqual(['full', 'full', 'lintel']);
+
+    // 2. Mur Nord (avec 1 fenêtre de allège=900 + h=1400 = 2300 < 2800) -> 4 pièces (2 full + 1 sill + 1 lintel)
+    expect(northPieces).toHaveLength(4);
+    const northRoles = northPieces.map((c) => c[0].role).sort();
+    expect(northRoles).toEqual(['full', 'full', 'lintel', 'sill']);
+
+    // 3. Murs Est et Ouest (pleins sans ouverture) -> 1 pièce pleine chacun
+    expect(eastPieces).toHaveLength(1);
+    const eastCall = eastPieces[0];
+    expect(eastCall?.[0].role).toBe('full');
+    expect(westPieces).toHaveLength(1);
+    const westCall = westPieces[0];
+    expect(westCall?.[0].role).toBe('full');
+
+    // 4. Placeholders d'ouvertures (dimensions et matériaux dédiés)
+    const doorPlaceholderCall = addMeshSpy.mock.calls.find((c) => c[0].elementId === 'door_demo');
+    const winPlaceholderCall = addMeshSpy.mock.calls.find((c) => c[0].elementId === 'window_demo');
+    expect(doorPlaceholderCall).toBeDefined();
+    expect(winPlaceholderCall).toBeDefined();
+
+    if (!doorPlaceholderCall || !winPlaceholderCall) {
+      throw new Error('Les appels de placeholders doivent exister');
+    }
+
+    // Vérification de la hauteur et élévation de la porte
+    const doorBb = doorPlaceholderCall[0].boundingBox;
+    expect(doorBb.max.z - doorBb.min.z).toBeCloseTo(2100, 1);
+    expect(doorBb.min.z).toBeCloseTo(0, 1);
+    expect(doorPlaceholderCall[1]).toBeDefined(); // Matériau bois transmis
+
+    // Vérification de la hauteur et de l'allège (sillHeight) de la fenêtre
+    const winBb = winPlaceholderCall[0].boundingBox;
+    expect(winBb.max.z - winBb.min.z).toBeCloseTo(1400, 1);
+    expect(winBb.min.z).toBeCloseTo(900, 1); // sillHeight = 900
+    expect(winPlaceholderCall[1]).toBeDefined(); // Matériau vitrage transmis
+  });
+
+  it('addMesh reçoit des elementId distincts (wall_south vs door_demo)', () => {
+    const doc = createDemoDocument();
+
+    render(
+      <BimDocumentProvider initialDoc={doc}>
+        <Viewport3D />
+      </BimDocumentProvider>,
+    );
+
+    const wallSouthCalls = addMeshSpy.mock.calls.filter((c) => c[0].elementId === 'wall_south');
+    const doorCalls = addMeshSpy.mock.calls.filter((c) => c[0].elementId === 'door_demo');
+
+    expect(wallSouthCalls.length).toBeGreaterThan(0);
+    expect(doorCalls.length).toBe(1);
+
+    const firstSouth = wallSouthCalls[0];
+    const firstDoor = doorCalls[0];
+    expect(firstSouth).toBeDefined();
+    expect(firstDoor).toBeDefined();
+
+    // Vérifier l'indépendance stricte des IDs pour le raycast et la sélection
+    if (firstSouth && firstDoor) {
+      expect(firstSouth[0].elementId).not.toEqual(firstDoor[0].elementId);
+    }
+  });
+
+  it('la suppression d’un mur hôte cascade et retire tous les maillages associés (tronçons de mur ET placeholders)', () => {
+    const doc = createDemoDocument();
+    const removeMeshSpy = vi.spyOn(Scene3DModule.Scene3D.prototype, 'removeMesh');
+
+    render(
+      <BimDocumentProvider initialDoc={doc}>
+        <Viewport3D />
+      </BimDocumentProvider>,
+    );
+
+    removeMeshSpy.mockClear();
+
+    // Suppression de wall_south (qui héberge door_demo)
+    act(() => {
+      doc.execute(new Commands.DeleteWallCommand('wall_south'));
+    });
+
+    // removeMesh a été appelé pour le mur ET pour la porte en cascade
+    const removedIds = removeMeshSpy.mock.calls.map((c) => c[0]);
+    expect(removedIds).toContain('wall_south');
+    expect(removedIds).toContain('door_demo');
   });
 });

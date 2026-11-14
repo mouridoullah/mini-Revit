@@ -634,6 +634,39 @@ describe('BimDocument & CommandBus (document.ts)', () => {
       );
     });
 
+    it('execute(MoveOpeningCommand) rejette un déplacement créant un trumeau insuffisant < 50mm (INVALID_OPENING_CLEARANCE)', () => {
+      const { doc, wallId } = setupDocWithWall();
+      doc.execute(
+        new Commands.AddDoorCommand({
+          id: 'door_fixed',
+          category: 'door',
+          kind: 'door',
+          hostWallId: wallId,
+          offsetAlong: 2500,
+          width: 900,
+          height: 2100,
+          swing: { side: 'left', direction: 'in' },
+        }),
+      );
+      doc.execute(
+        new Commands.AddDoorCommand({
+          id: 'door_moving',
+          category: 'door',
+          kind: 'door',
+          hostWallId: wallId,
+          offsetAlong: 500,
+          width: 900,
+          height: 2100,
+          swing: { side: 'left', direction: 'in' },
+        }),
+      );
+
+      // Déplacement de door_moving vers 1580 -> [1580..2480], trumeau = 20 mm (< 50 mm)
+      expect(() => doc.execute(new Commands.MoveOpeningCommand('door_moving', 1580))).toThrowError(
+        /INVALID_OPENING_CLEARANCE/,
+      );
+    });
+
     it('execute(UpdateDoorCommand et UpdateWindowCommand) modifient les propriétés avec validation', () => {
       const { doc, wallId } = setupDocWithWall();
       doc.execute(

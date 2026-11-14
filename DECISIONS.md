@@ -862,3 +862,51 @@ Trois questions architecturales majeures se posent pour Mini-BIM :
 - Modèle de données BIM robuste, fidèle aux standards de l'industrie (IFC `IfcRelFillsElement`, Revit Family Hosting).
 - Cohérence relationnelle absolue : aucune ouverture orpheline ne peut exister dans le document.
 - Prêt pour les phases suivantes : Phase 3.2 exploitera `offsetAlong`, `width`, `height`, `sillHeight` pour le découpage géométrique (`sliceWallWithOpenings`), et Phase 3.3 implémentera le placement interactif (`DoorTool`, `WindowTool`).
+
+---
+
+## ADR-029 : Pipeline 2.5D branché sur les viewports 2D/3D via paramètres neutres
+
+- **Date :** 2026-11-14
+- **Statut :** Accepté
+- **Auteur :** Antigravity (Lead Software Architect & Computational Geometry Engineer)
+- **Contexte :** Phase 3.2 (Mur percé 3D et rendu 2D des ouvertures)
+
+### Problème
+
+Comment connecter le pipeline géométrique de découpage d'ouvertures (`sliceWallWithOpenings`, `extrudeWallPiece`) et les tracés architecturaux 2D aux viewports (`view-2d` et `view-3d`) sans enfreindre les règles d'or d'architecture :
+
+1. `packages/view-3d` et `packages/view-2d` ne doivent JAMAIS importer `@mini-bim/core` (découplage strict des couches de présentation).
+2. `apps/web` ne doit JAMAIS importer `@mini-bim/geometry` directement (isolation de la géométrie pure).
+3. Le picking 3D (raycast) sur n'importe quel morceau solide d'un mur percé doit retourner l'identifiant du mur hôte (`wall.id`), tandis que le clic sur une menuiserie doit retourner l'identifiant de l'ouverture (`opening.id`).
+4. La vue 2D doit afficher les conventions de tracé architectural (évidement du poché, montants, vantail à 90°, arc de 90° en pointillé, vitrage parallèle double) avec exactitude géométrique sous l'inversion d'axe écran Y-up $\to$ Y-down.
+
+### Décisions Prises
+
+1. **Paramètres Neutres Structurels dans `view-3d` et `view-2d` :**
+   - `view-3d` définit `OpeningGeometryParams` et `WallWithOpeningsParams` basés uniquement sur des primitives numériques et les vecteurs de `@mini-bim/geometry`.
+   - `view-2d` définit `WallFor2D`, `DoorFor2D`, `WindowFor2D`, `DocumentFor2D`, `CommandLike`.
+   - Dépendances directes : `view-3d` ne dépend que de `@mini-bim/geometry` et `three`. `view-2d` ne dépend que de `@mini-bim/geometry`. Zéro import de `@mini-bim/core` dans les sources `src/`.
+
+2. **Génération 3D Multi-Pièces et Conservation Stricte de Volume :**
+   - `createWallMeshWithOpenings(params)` invoque `sliceWallWithOpenings` et génère un ensemble de pièces solides extrudées (`RawMeshData[]`).
+   - Tous les tronçons solides d'un mur percé conservent `RawMeshData.elementId = wall.id`.
+   - Conservation du volume : $\sum V_i = V_{\text{plein}} - \sum V_{\text{baies}}$, vérifiée formellement via le théorème de divergence sur maillage triangulaire.
+
+3. **Placeholders d'Ouvertures Dédiés :**
+   - `createOpeningPlaceholder(params, wall, elevation)` génère une boîte orientée et centrée sur la baie avec `elementId = opening.id`.
+   - Boîte de 50 mm avec matériau bois (`#8b5a2b`) pour les portes.
+   - Boîte de 30 mm avec matériau vitrage translucide (`#90caf9`, opacité 0.5) pour les fenêtres.
+   - Restauration des matériaux d'origine lors des désélections dans `Scene3D.setHighlight`.
+
+4. **Tracé Architectural 2D et Normalisation d'Angle :**
+   - Évidement préalable du poché (`backgroundColor`).
+   - Calcul rigoureux de l'arc de débattement de 90° :
+     $$\Delta\theta = \text{atan2}(\sin(\theta_{\text{open}} - \theta_{\text{closed}}), \cos(\theta_{\text{open}} - \theta_{\text{closed}}))$$
+     `counterclockwise = deltaAngle < 0`. Garantit un arc parfait quelle que soit l'orientation du mur et le sens de battement (`in`/`out`, `left`/`right`).
+
+### Conséquences
+
+- Règle d'or d'architecture respectée à 100% : `core` n'est importé ni dans `view-2d/src`, ni dans `view-3d/src`.
+- Le double viewport affiche instantanément les murs percés et les ouvertures cohérentes en 2D et en 3D.
+- Base prête pour la Phase 3.3 (outils interactifs de placement `DoorTool` et `WindowTool`).

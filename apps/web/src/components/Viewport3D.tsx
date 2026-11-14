@@ -1,5 +1,12 @@
 import { useEffect, useRef } from 'react';
-import { Scene3D, createWallMesh } from '@mini-bim/view-3d';
+import {
+  Scene3D,
+  createWallMeshWithOpenings,
+  createOpeningPlaceholder,
+  createDoorPlaceholderMaterial,
+  createWindowPlaceholderMaterial,
+  type OpeningGeometryParams,
+} from '@mini-bim/view-3d';
 import { useBimDocument } from '../hooks/useBimDocument.js';
 import { useResizeObserver } from '../hooks/useResizeObserver.js';
 
@@ -18,7 +25,9 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sceneRef = useRef<Scene3D | null>(null);
-  const renderedWallIdsRef = useRef<Set<string>>(new Set());
+  const renderedElementIdsRef = useRef<Set<string>>(new Set());
+  const doorMaterialRef = useRef<ReturnType<typeof createDoorPlaceholderMaterial> | null>(null);
+  const windowMaterialRef = useRef<ReturnType<typeof createWindowPlaceholderMaterial> | null>(null);
 
   // Instanciation impérative unique
   useEffect(() => {
@@ -37,28 +46,40 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
     });
     sceneRef.current = scene;
 
+    doorMaterialRef.current = createDoorPlaceholderMaterial();
+    windowMaterialRef.current = createWindowPlaceholderMaterial();
+
     return () => {
       scene.dispose();
       sceneRef.current = null;
-      renderedWallIdsRef.current.clear();
+      renderedElementIdsRef.current.clear();
+      doorMaterialRef.current?.dispose();
+      windowMaterialRef.current?.dispose();
     };
   }, []); // Monté une seule fois
 
-  // Synchronisation des maillages 3D lors des mutations de state
+  // Synchronisation des maillages 3D (murs percés et placeholders d'ouvertures) lors des mutations de state
   useEffect(() => {
     const scene = sceneRef.current;
     if (!scene) return;
 
-    const currentWallIds = new Set(Object.keys(state.walls));
+    const doors = state.doors ?? {};
+    const windows = state.windows ?? {};
 
-    // 1. Suppression des maillages d'éléments supprimés
-    for (const id of renderedWallIdsRef.current) {
-      if (!currentWallIds.has(id)) {
+    const currentElementIds = new Set([
+      ...Object.keys(state.walls),
+      ...Object.keys(doors),
+      ...Object.keys(windows),
+    ]);
+
+    // 1. Suppression des maillages d'éléments supprimés (murs ou ouvertures en cascade)
+    for (const id of renderedElementIdsRef.current) {
+      if (!currentElementIds.has(id)) {
         scene.removeMesh(id);
       }
     }
 
-    // 2. Mise à jour ou ajout des murs courants
+    // 2. Mise à jour ou ajout des murs percés de leurs ouvertures
     for (const wall of Object.values(state.walls)) {
       const wallType = state.wallTypes[wall.typeId];
       if (!wallType) continue;
@@ -66,17 +87,95 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
       const level = state.levels[wall.levelId];
       const elevation = level?.elevation ?? 0;
 
-      const rawMesh = createWallMesh(wall, wallType, elevation);
-      if (rawMesh) {
-        if (renderedWallIdsRef.current.has(wall.id)) {
-          scene.updateMesh(rawMesh);
-        } else {
-          scene.addMesh(rawMesh);
-        }
+      // Rassembler toutes les ouvertures hébergées par ce mur
+      const wallDoors = Object.values(doors).filter((d) => d.hostWallId === wall.id);
+      const wallWindows = Object.values(windows).filter((w) => w.hostWallId === wall.id);
+
+      const openingParams: OpeningGeometryParams[] = [
+        ...wallDoors.map((d) => ({
+          id: d.id,
+          kind: 'door' as const,
+          offsetAlong: d.offsetAlong,
+          width: d.width,
+          height: d.height,
+          sillHeight: 0,
+        })),
+        ...wallWindows.map((w) => ({
+          id: w.id,
+          kind: 'window' as const,
+          offsetAlong: w.offsetAlong,
+          width: w.width,
+          height: w.height,
+          sillHeight: w.sillHeight,
+        })),
+      ];
+
+      // Nettoyer les maillages précédents du mur
+      scene.removeMesh(wall.id);
+
+      // Générer les tronçons solides découpés (murs percés 2.5D)
+      const pieces = createWallMeshWithOpenings({
+        wall,
+        wallType,
+        openings: openingParams,
+        elevation,
+      });
+
+      for (const piece of pieces) {
+        scene.addMesh(piece);
       }
     }
 
-    renderedWallIdsRef.current = currentWallIds;
+    // 3. Placeholders 3D des portes (boîte bois)
+    const doorMat = doorMaterialRef.current ?? undefined;
+    for (const door of Object.values(doors)) {
+      const hostWall = state.walls[door.hostWallId];
+      if (!hostWall) continue;
+      const level = state.levels[hostWall.levelId];
+      const elevation = level?.elevation ?? 0;
+
+      scene.removeMesh(door.id);
+      const placeholder = createOpeningPlaceholder(
+        {
+          id: door.id,
+          kind: 'door',
+          offsetAlong: door.offsetAlong,
+          width: door.width,
+          height: door.height,
+          sillHeight: 0,
+        },
+        hostWall,
+        elevation,
+      );
+      scene.addMesh(placeholder, doorMat);
+    }
+
+    // 4. Placeholders 3D des fenêtres (boîte vitrée translucide)
+    const winMat = windowMaterialRef.current ?? undefined;
+    for (const win of Object.values(windows)) {
+      const hostWall = state.walls[win.hostWallId];
+      if (!hostWall) continue;
+      const level = state.levels[hostWall.levelId];
+      const elevation = level?.elevation ?? 0;
+
+      scene.removeMesh(win.id);
+      const placeholder = createOpeningPlaceholder(
+        {
+          id: win.id,
+          kind: 'window',
+          offsetAlong: win.offsetAlong,
+          width: win.width,
+          height: win.height,
+          sillHeight: win.sillHeight,
+        },
+        hostWall,
+        elevation,
+      );
+      scene.addMesh(placeholder, winMat);
+    }
+
+    renderedElementIdsRef.current = currentElementIds;
+
     // Ré-appliquer la surbrillance sur les maillages recréés/mis à jour
     if (selection && selection.length > 0) {
       scene.setHighlight(selection);

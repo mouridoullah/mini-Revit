@@ -161,7 +161,7 @@ Toute violation de règle métier lève immédiatement une exception explicite `
    - Deux ouvertures sur un même mur hôte ne peuvent se chevaucher en 1D :
      $$[\text{offset}_i, \text{offset}_i + w_i] \cap [\text{offset}_j, \text{offset}_j + w_j] = \emptyset$$
      (`OPENING_OVERLAP`).
-   - Les trumeaux minimaux et dégagements respectent `validateOpenings` et `MIN_OPENING_CLEARANCE = 50\text{ mm}` (`INVALID_OPENING_CLEARANCE`).
+   - Les trumeaux minimaux et dégagements respectent la fonction `validateOpenings` de `@mini-bim/geometry` (signature complète à 4 paramètres : `validateOpenings(wall: WallInput, openings: readonly OpeningInput[], minClearance?: number, options?: ValidationOptions)`) et `MIN_OPENING_CLEARANCE = 50\text{ mm}` (`INVALID_OPENING_CLEARANCE`).
 7. **Protection de suppression :**
    - Un `Level` ne peut être supprimé tant que des murs y sont rattachés (`canDeleteLevel`).
    - Un `WallType` ne peut être supprimé tant qu'il est instancié par au moins un mur (`canDeleteWallType`).

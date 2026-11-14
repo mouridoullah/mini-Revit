@@ -1,4 +1,3 @@
-import { type BimDocument, type Command } from '@mini-bim/core';
 import { type Vec2, vec2, distance } from '@mini-bim/geometry';
 import { Transform2D } from './transform.js';
 import { renderPlanView, DEFAULT_VIEW2D_RENDER_CONFIG } from './renderer.js';
@@ -10,6 +9,9 @@ import {
   type SelectionCallback,
   type BoundingBox2D,
   type PreviewShape,
+  type DocumentFor2D,
+  type CommandLike,
+  type OpeningFor2D,
 } from './types.js';
 
 /**
@@ -17,17 +19,19 @@ import {
  *
  * Principes architecturaux stricts :
  * 1. Zéro dépendance vers React, Three.js ou tout framework UI.
- * 2. Utilisation exclusive de la standard Canvas 2D API (`HTMLCanvasElement`, `CanvasRenderingContext2D`).
- * 3. Ne mute JAMAIS le `BimDocument` en direct : émet des intentions de mutation (`Command`)
+ * 2. Zéro dépendance directe vers @mini-bim/core (consomme des interfaces neutres).
+ * 3. Utilisation exclusive de la standard Canvas 2D API (`HTMLCanvasElement`, `CanvasRenderingContext2D`).
+ * 4. Ne mute JAMAIS le modèle en direct : émet des intentions de mutation (`CommandLike`)
  *    via le système de callback `onCommandRequested`.
- * 4. Rendu à la demande (Demand-Driven Rendering) : zéro boucle RAF continue consommant du CPU au repos.
+ * 5. Rendu à la demande (Demand-Driven Rendering) : zéro boucle RAF continue consommant du CPU au repos.
  */
 export class View2D {
   private readonly canvas: HTMLCanvasElement;
   private readonly ctx: CanvasRenderingContext2D;
   private readonly transform: Transform2D;
   private config: View2DRenderConfig;
-  private doc: BimDocument | null = null;
+  private doc: DocumentFor2D | null = null;
+  private openings: OpeningFor2D[] = [];
   private selectedIds: Set<string> = new Set();
   private activeLevelId: string | null = null;
   private preview: PreviewShape | null = null;
@@ -95,13 +99,29 @@ export class View2D {
     return this.transform;
   }
 
-  public getDocument(): BimDocument | null {
+  public getDocument(): DocumentFor2D | null {
     return this.doc;
   }
 
-  public setDocument(doc: BimDocument | null): void {
+  public setDocument(doc: DocumentFor2D | null): void {
     this.doc = doc;
     this.render();
+  }
+
+  /**
+   * Définit explicitement les ouvertures à afficher en 2D (portes et fenêtres).
+   * Si non défini, les ouvertures sont automatiquement extraites de `doc.getState().doors/windows`.
+   */
+  public setOpenings(openings: Iterable<OpeningFor2D>): void {
+    this.openings = Array.from(openings);
+    this.render();
+  }
+
+  /**
+   * Retourne la liste des ouvertures actuellement configurées explicitement.
+   */
+  public getOpenings(): readonly OpeningFor2D[] {
+    return this.openings;
   }
 
   public getSelectedIds(): readonly string[] {
@@ -152,7 +172,7 @@ export class View2D {
   /**
    * Rafraîchit immédiatement l'affichage sur le Canvas 2D.
    */
-  public render(doc?: BimDocument, selectedIds?: Iterable<string>): void {
+  public render(doc?: DocumentFor2D, selectedIds?: Iterable<string>): void {
     if (doc !== undefined) {
       this.doc = doc;
     }
@@ -160,29 +180,18 @@ export class View2D {
       this.selectedIds = new Set(selectedIds);
     }
 
-    if (!this.doc) {
-      renderPlanView(
-        this.ctx,
-        this.transform,
-        this.createEmptyPlaceholderDoc(),
-        this.selectedIds,
-        {
-          ...this.config,
-        },
-        null,
-        this.preview,
-      );
-      return;
-    }
+    const effectiveDoc = this.doc ?? this.createEmptyPlaceholderDoc();
+    const effectiveOpenings = this.openings.length > 0 ? this.openings : undefined;
 
     renderPlanView(
       this.ctx,
       this.transform,
-      this.doc,
+      effectiveDoc,
       this.selectedIds,
       this.config,
       this.activeLevelId,
       this.preview,
+      effectiveOpenings,
     );
   }
 
@@ -269,7 +278,7 @@ export class View2D {
   /**
    * Émet une intention de commande vers les abonnés (le contrôleur ou l'application hôte).
    */
-  public emitCommand(command: Command): void {
+  public emitCommand(command: CommandLike): void {
     for (const listener of this.commandListeners) {
       try {
         listener(command);
@@ -433,17 +442,16 @@ export class View2D {
     }
   }
 
-  private createEmptyPlaceholderDoc(): BimDocument {
+  private createEmptyPlaceholderDoc(): DocumentFor2D {
     // Petit document factice interne utilisé uniquement si aucun doc n'a été fourni
     return {
       getState: () => ({
-        schemaVersion: '1.0.0',
-        meta: { id: '', title: '', createdAt: 0, updatedAt: 0 },
-        levels: {},
-        wallTypes: {},
         walls: {},
+        wallTypes: {},
+        doors: {},
+        windows: {},
       }),
-    } as unknown as BimDocument;
+    };
   }
 
   // ---------------------------------------------------------------------------

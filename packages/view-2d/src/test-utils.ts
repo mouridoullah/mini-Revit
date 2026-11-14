@@ -84,14 +84,23 @@ export function createMockCanvas(
       record('fill', []);
     }),
 
-    arc: vi.fn((x: number, y: number, radius: number, startAngle: number, endAngle: number) => {
-      assertFiniteNumber(x, 'x', 'arc');
-      assertFiniteNumber(y, 'y', 'arc');
-      assertFiniteNumber(radius, 'radius', 'arc');
-      assertFiniteNumber(startAngle, 'startAngle', 'arc');
-      assertFiniteNumber(endAngle, 'endAngle', 'arc');
-      record('arc', [x, y, radius, startAngle, endAngle]);
-    }),
+    arc: vi.fn(
+      (
+        x: number,
+        y: number,
+        radius: number,
+        startAngle: number,
+        endAngle: number,
+        counterclockwise: boolean = false,
+      ) => {
+        assertFiniteNumber(x, 'x', 'arc');
+        assertFiniteNumber(y, 'y', 'arc');
+        assertFiniteNumber(radius, 'radius', 'arc');
+        assertFiniteNumber(startAngle, 'startAngle', 'arc');
+        assertFiniteNumber(endAngle, 'endAngle', 'arc');
+        record('arc', [x, y, radius, startAngle, endAngle, counterclockwise]);
+      },
+    ),
 
     strokeRect: vi.fn((x: number, y: number, w: number, h: number) => {
       assertFiniteNumber(x, 'x', 'strokeRect');
