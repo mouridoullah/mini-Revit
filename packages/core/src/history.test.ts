@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { produceWithPatches } from 'immer';
 import { vec2 } from '@mini-bim/geometry';
 import { HistoryStack } from './history.js';
-import { type BimState, type Wall, type Door, type Window } from './types.js';
+import { type BimState, type Wall, type Door, type Window, type Room } from './types.js';
 import { BimDocument } from './document.js';
 import * as Commands from './commands.js';
 
@@ -291,5 +291,92 @@ describe('Gestionnaire d’Historique Transactionnel (history.ts)', () => {
     expect(doc.getState().walls['wall_cascade_hist']).toBeUndefined();
     expect(doc.getState().doors['door_cascade_hist']).toBeUndefined();
     expect(doc.getState().windows['win_cascade_hist']).toBeUndefined();
+  });
+
+  it('undo/redo sur DeleteWallCommand avec cascade de Room (ADR-032) : le mur ET la Room sont restaurés fidèlement', () => {
+    const doc = BimDocument.createDefaultProject();
+    const state = doc.getState();
+    const levelId = Object.keys(state.levels)[0] ?? '';
+    const typeId = Object.keys(state.wallTypes)[0] ?? '';
+
+    // 4 murs formant une pièce fermée rectangulaire 4m × 3m
+    const wallSouth: Wall = {
+      id: 'w_hist_s',
+      category: 'wall',
+      typeId,
+      levelId,
+      start: vec2(0, 0),
+      end: vec2(4000, 0),
+    };
+    const wallEast: Wall = {
+      id: 'w_hist_e',
+      category: 'wall',
+      typeId,
+      levelId,
+      start: vec2(4000, 0),
+      end: vec2(4000, 3000),
+    };
+    const wallNorth: Wall = {
+      id: 'w_hist_n',
+      category: 'wall',
+      typeId,
+      levelId,
+      start: vec2(4000, 3000),
+      end: vec2(0, 3000),
+    };
+    const wallWest: Wall = {
+      id: 'w_hist_w',
+      category: 'wall',
+      typeId,
+      levelId,
+      start: vec2(0, 3000),
+      end: vec2(0, 0),
+    };
+
+    doc.execute(new Commands.AddWallCommand(wallSouth));
+    doc.execute(new Commands.AddWallCommand(wallEast));
+    doc.execute(new Commands.AddWallCommand(wallNorth));
+    doc.execute(new Commands.AddWallCommand(wallWest));
+
+    // Ajout d'une Room déclarée
+    const room: Room = {
+      id: 'room_hist_cascade',
+      category: 'room',
+      levelId,
+      seed: vec2(2000, 1500),
+      name: 'Salon Principal',
+    };
+    doc.execute(new Commands.AddRoomCommand(room));
+    expect(doc.getState().rooms['room_hist_cascade']).toEqual(room);
+
+    // Mémoriser l'état complet avant suppression
+    const stateBeforeDelete = doc.getState();
+
+    // Suppression du mur Ouest : la pièce n'est plus close -> cascade Option B
+    const delRes = doc.execute(new Commands.DeleteWallCommand('w_hist_w'));
+    expect(delRes.changed).toEqual(['w_hist_w', 'room_hist_cascade']);
+
+    // 1. Invariant de cascade : le mur ET la Room ont disparu du state
+    expect(doc.getState().walls['w_hist_w']).toBeUndefined();
+    expect(doc.getState().rooms['room_hist_cascade']).toBeUndefined();
+
+    // 2. Undo -> Restauration intégrale bit-à-bit du mur ET de la Room
+    const undoRes = doc.undo();
+    expect(undoRes).toBe(true);
+
+    const restoredState = doc.getState();
+    expect(restoredState.walls['w_hist_w']).toEqual(wallWest);
+    expect(restoredState.rooms['room_hist_cascade']).toEqual(room);
+    expect(restoredState.rooms['room_hist_cascade']?.id).toBe('room_hist_cascade');
+    expect(restoredState.rooms['room_hist_cascade']?.seed).toEqual(vec2(2000, 1500));
+    expect(restoredState.rooms['room_hist_cascade']?.name).toBe('Salon Principal');
+    expect(restoredState).toEqual(stateBeforeDelete);
+
+    // 3. Redo -> Suppression à nouveau du mur et de la Room en cascade
+    const redoRes = doc.redo();
+    expect(redoRes).toBe(true);
+
+    expect(doc.getState().walls['w_hist_w']).toBeUndefined();
+    expect(doc.getState().rooms['room_hist_cascade']).toBeUndefined();
   });
 });

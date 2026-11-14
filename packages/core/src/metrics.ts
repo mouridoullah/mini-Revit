@@ -88,17 +88,23 @@ export interface RoomMetrics {
 }
 
 /**
- * Calcule les métriques d'une pièce à partir de sa géométrie détectée et de la hauteur de niveau.
+ * Calcule les métriques d'une pièce à partir de sa géométrie détectée et de la hauteur sous plafond.
+ *
+ * Règle de priorité pour la hauteur utilisée dans volume = area * height :
+ * 1. `level.height` si explicité sur le niveau architectural (convention BIM / IfcBuildingStorey),
+ * 2. sinon `fallbackHeightMm` (hauteur nominale des murs bordant la pièce : `wall.heightOverride` ou `wallType.height`),
+ * 3. sinon 2800 mm par défaut.
  */
 export function computeRoomMetrics(
   room: Room,
   detectedRoom: DetectedRoom,
-  _level?: Level,
-  roomHeightMm: number = 2800,
+  level?: Level,
+  fallbackHeightMm: number = 2800,
 ): RoomMetrics {
+  const heightMm = level?.height ?? fallbackHeightMm;
   const areaMm2 = detectedRoom.areaMm2;
   const perimeterMm = detectedRoom.perimeterMm;
-  const volumeMm3 = areaMm2 * roomHeightMm;
+  const volumeMm3 = areaMm2 * heightMm;
 
   return {
     roomId: room.id,
@@ -165,11 +171,12 @@ export function computeLevelMetrics(state: BimState, levelId: ElementId): LevelM
   const detectedRooms = detectRooms(state, levelId);
   const roomsOnLevel = Object.values(state.rooms ?? {}).filter((r) => r.levelId === levelId);
 
-  // Hauteur de pièce par défaut : hauteur du premier type de mur présent ou 2800 mm
-  const defaultHeightMm =
+  // Hauteur de pièce : priorité 1 = level.height, priorité 2 = wallType.height / heightOverride, priorité 3 = 2800 mm
+  const wallHeight =
     wallsOnLevel[0] && state.wallTypes[wallsOnLevel[0].typeId]
       ? (wallsOnLevel[0].heightOverride ?? state.wallTypes[wallsOnLevel[0].typeId]?.height ?? 2800)
       : 2800;
+  const effectiveHeightMm = level?.height ?? wallHeight;
 
   const roomMetricsList: RoomMetrics[] = [];
   let totalRoomAreaMm2 = 0;
@@ -188,7 +195,7 @@ export function computeLevelMetrics(state: BimState, levelId: ElementId): LevelM
     const detected = matchedIndex !== -1 ? detectedRooms[matchedIndex] : undefined;
     if (detected) {
       matchedDetectedIndices.add(matchedIndex);
-      const rm = computeRoomMetrics(room, detected, level, defaultHeightMm);
+      const rm = computeRoomMetrics(room, detected, level, effectiveHeightMm);
       roomMetricsList.push(rm);
       totalRoomAreaMm2 += rm.areaMm2;
     } else {
@@ -212,7 +219,7 @@ export function computeLevelMetrics(state: BimState, levelId: ElementId): LevelM
         name: `Pièce ${idx + 1}`,
         areaMm2: det.areaMm2,
         perimeterMm: det.perimeterMm,
-        volumeMm3: det.areaMm2 * defaultHeightMm,
+        volumeMm3: det.areaMm2 * effectiveHeightMm,
       };
       roomMetricsList.push(rm);
       totalRoomAreaMm2 += rm.areaMm2;

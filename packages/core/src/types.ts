@@ -14,6 +14,7 @@ export interface Level {
   readonly id: ElementId;
   readonly name: string;
   readonly elevation: number; // en mm (altimétrie Z)
+  readonly height?: number; // hauteur nominale sous plafond en mm (> 0)
 }
 
 /**

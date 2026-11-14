@@ -173,6 +173,87 @@ describe('Détection des Pièces et Modèle Room (core)', () => {
       expect(room.areaMm2).toBeCloseTo(10640000 - 400 * 400, -2);
     });
 
+    it('pièce 5m × 4m avec poteau central 0.4m × 0.4m : surface intérieure exacte 18.24 - 0.16 = 18.08 m²', () => {
+      // 4 murs orthogonaux d'axe 5000 × 4000 mm, épaisseur 200 mm
+      const wS: Wall = {
+        id: 'w_5m_s',
+        category: 'wall',
+        typeId,
+        levelId,
+        start: vec2(0, 0),
+        end: vec2(5000, 0),
+      };
+      const wE: Wall = {
+        id: 'w_5m_e',
+        category: 'wall',
+        typeId,
+        levelId,
+        start: vec2(5000, 0),
+        end: vec2(5000, 4000),
+      };
+      const wN: Wall = {
+        id: 'w_5m_n',
+        category: 'wall',
+        typeId,
+        levelId,
+        start: vec2(5000, 4000),
+        end: vec2(0, 4000),
+      };
+      const wW: Wall = {
+        id: 'w_5m_w',
+        category: 'wall',
+        typeId,
+        levelId,
+        start: vec2(0, 4000),
+        end: vec2(0, 0),
+      };
+
+      doc.execute(new AddWallCommand(wS));
+      doc.execute(new AddWallCommand(wE));
+      doc.execute(new AddWallCommand(wN));
+      doc.execute(new AddWallCommand(wW));
+
+      // Poteau central 400 × 400 mm (0.16 m²)
+      const pillarTypeId = 'wt_pillar_400';
+      doc.execute(
+        new AddWallTypeCommand({
+          id: pillarTypeId,
+          name: 'Poteau Béton 400x400',
+          thickness: 400,
+          height: 2800,
+        }),
+      );
+
+      const pillar: Wall = {
+        id: 'w_pillar_central',
+        category: 'wall',
+        typeId: pillarTypeId,
+        levelId,
+        start: vec2(2300, 2000),
+        end: vec2(2700, 2000),
+      };
+      doc.execute(new AddWallCommand(pillar));
+
+      const rooms = detectRooms(doc.getState(), levelId);
+      expect(rooms.length).toBe(1);
+
+      const room = rooms[0];
+      expect(room).toBeDefined();
+      if (!room) return;
+
+      // 1. Le contour extérieur contient bien 1 trou d'îlot
+      expect(room.holes).toBeDefined();
+      expect(room.holes?.length).toBe(1);
+
+      // 2. Vérification numérique exacte : 18.24 m² - 0.16 m² = 18.08 m² (18 080 000 mm²)
+      const grossHoleArea = 4800 * 3800; // 18 240 000 mm²
+      const pillarArea = 400 * 400; // 160 000 mm²
+      const expectedNetArea = grossHoleArea - pillarArea; // 18 080 000 mm²
+
+      expect(expectedNetArea).toBe(18080000);
+      expect(room.areaMm2).toBe(18080000);
+    });
+
     it('renvoie 0 pièce pour un contour non fermé (mur manquant)', () => {
       // 3 murs en U (manque le mur Ouest)
       const wallSouth: Wall = {

@@ -61,6 +61,14 @@ $$\text{Volume utile chauffé} : V_{\text{pièce}} = S_{\text{pièce}} \times H_
   $$P_{\text{int}} = 2 \times (3,8 + 2,8) = 13,20\text{ m}$$
   $$V_{\text{int}} = 10,640\text{ m}^2 \times 2,8\text{ m} = 29,792\text{ m}^3 = 29\,792\,000\,000\text{ mm}^3$$
 
+### 2.3 Règle d'Arbitrage de la Hauteur Sous Plafond pour le Volume de Pièce
+
+Dans la modélisation BIM de référence (ISO 16739 / IFC / Revit), la hauteur utilisée pour évaluer le volume habité ($V = S \times H$) obéit à la règle de priorité hiérarchique suivante :
+
+1. **Priorité 1 : `level.height`** — Si le niveau architectural spécifie une hauteur nominale sous plafond (`level.height`, ex: $2\,800\text{ mm}$), cette hauteur s'applique universellement à toutes les pièces du niveau. Elle prévaut même si certains murs porteurs ou façades montent plus haut (ex: $3\,000\text{ mm}$ jusqu'à un acrotère ou une retombée de poutre).
+2. **Priorité 2 : Hauteur des murs bordants** — Si le niveau ne porte pas de champ `height`, le système dérive la hauteur sous plafond à partir de la hauteur des murs bordants (`wall.heightOverride` ou `wallType.height`, ex: $3\,000\text{ mm}$).
+3. **Priorité 3 : Constante de repli** — $2\,800\text{ mm}$ en l'absence totale de typage de mur.
+
 ---
 
 ## 3. Schéma et Spécification de l'Export CSV

@@ -128,6 +128,43 @@ describe('Calculs de Surfaces et Métrés (metrics.ts)', () => {
       // Volume = 10 640 000 * 2800 = 29 792 000 000 mm³ = 29.792 m³
       expect(metrics.volumeMm3).toBe(29792000000);
     });
+
+    it('arbitrage de hauteur : utilise level.height si spécifié (2800 mm) même si wallType.height vaut 3000 mm', () => {
+      const room: Room = {
+        id: 'room_height_test',
+        category: 'room',
+        levelId: 'lvl_custom',
+        seed: vec2(2000, 1500),
+        name: 'Bureau',
+      };
+
+      const detected: DetectedRoom = {
+        polygon: [vec2(100, 100), vec2(3900, 100), vec2(3900, 2900), vec2(100, 2900)],
+        areaMm2: 10640000, // 10.64 m²
+        perimeterMm: 13200,
+        seed: vec2(2000, 1500),
+      };
+
+      const levelWithHeight: Level = {
+        id: 'lvl_custom',
+        name: 'Étage',
+        elevation: 0,
+        height: 2800, // Hauteur sous plafond conventionnelle BIM
+      };
+
+      // Cas 1 : level.height = 2800 mm prime sur wallTypeHeight = 3000 mm
+      const metricsWithLevel = computeRoomMetrics(room, detected, levelWithHeight, 3000);
+      expect(metricsWithLevel.volumeMm3).toBe(10640000 * 2800); // 29.792 m³
+
+      // Cas 2 : level sans height (undefined) -> repli sur la hauteur des murs (3000 mm)
+      const levelWithoutHeight: Level = {
+        id: 'lvl_no_h',
+        name: 'Étage sans h',
+        elevation: 0,
+      };
+      const metricsWithoutLevelH = computeRoomMetrics(room, detected, levelWithoutHeight, 3000);
+      expect(metricsWithoutLevelH.volumeMm3).toBe(10640000 * 3000); // 31.92 m³
+    });
   });
 
   describe('computeLevelMetrics() — Synthèse globale agrégée', () => {
