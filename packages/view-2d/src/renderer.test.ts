@@ -8,12 +8,14 @@ import {
   drawWall,
   drawWalls,
   drawRooms,
+  drawDimensions,
   drawOpeningDoor,
   drawOpeningWindow,
   renderPlanView,
   DEFAULT_GRID_CONFIG,
   DEFAULT_WALL_RENDER_CONFIG,
   DEFAULT_VIEW2D_RENDER_CONFIG,
+  DEFAULT_DIMENSION_RENDER_CONFIG,
 } from './renderer.js';
 import { createMockCanvas } from './test-utils.js';
 
@@ -616,6 +618,79 @@ describe('Renderer 2D (renderer.ts)', () => {
       const fillCalls = mock.filterCalls('fill');
       expect(fillCalls).toHaveLength(1);
       expect(fillCalls[0]?.args[0]).toBe('evenodd');
+    });
+  });
+
+  describe('Cotations 2D (drawDimensions)', () => {
+    it('drawDimensions trace les lignes de rappel, la ligne de cote, les ticks à 45° et le texte', () => {
+      const { mock } = createMockCanvas(800, 600);
+      const transform = new Transform2D({
+        origin: vec2(3000, 2000),
+        scale: 0.1,
+        viewportWidth: 800,
+        viewportHeight: 600,
+      });
+
+      const walls = {
+        w_south: {
+          id: 'w_south',
+          start: vec2(0, 0),
+          end: vec2(6000, 0),
+        },
+      };
+
+      const dimensions = [
+        {
+          id: 'dim_01',
+          type: 'linear' as const,
+          references: ['w_south'],
+          offset: -500,
+          value: 6000,
+        },
+      ];
+
+      drawDimensions(mock.ctx, transform, dimensions, walls, DEFAULT_DIMENSION_RENDER_CONFIG);
+
+      // Traçage des lignes (lignes de rappel, ligne de cote, ticks)
+      const strokeCalls = mock.filterCalls('stroke');
+      expect(strokeCalls.length).toBeGreaterThanOrEqual(3);
+
+      // Écriture de la valeur textuelle "6.00 m"
+      const fillTextCalls = mock.filterCalls('fillText');
+      expect(fillTextCalls).toHaveLength(1);
+      expect(fillTextCalls[0]?.args[0]).toBe('6.00 m');
+    });
+
+    it('drawDimensions filtre par niveau actif', () => {
+      const { mock } = createMockCanvas(800, 600);
+      const transform = new Transform2D();
+
+      const walls = {
+        w1: { id: 'w1', start: vec2(0, 0), end: vec2(4000, 0) },
+      };
+
+      const dimensions = [
+        {
+          id: 'dim_lvl1',
+          levelId: 'lvl_01',
+          type: 'linear' as const,
+          references: ['w1'],
+          offset: 400,
+          value: 4000,
+        },
+      ];
+
+      // Filtrer sur lvl_02 -> rien ne doit être tracé
+      drawDimensions(
+        mock.ctx,
+        transform,
+        dimensions,
+        walls,
+        DEFAULT_DIMENSION_RENDER_CONFIG,
+        'lvl_02',
+      );
+      expect(mock.filterCalls('stroke')).toHaveLength(0);
+      expect(mock.filterCalls('fillText')).toHaveLength(0);
     });
   });
 });

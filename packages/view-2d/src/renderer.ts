@@ -13,6 +13,8 @@ import {
   type OpeningFor2D,
   type DetectedRoomFor2D,
   type RoomRenderConfig,
+  type DimensionFor2D,
+  type DimensionRenderConfig,
 } from './types.js';
 
 /**
@@ -56,6 +58,18 @@ export const DEFAULT_ROOM_RENDER_CONFIG: RoomRenderConfig = Object.freeze({
 });
 
 /**
+ * Configuration stylistique par défaut des cotations 2D.
+ */
+export const DEFAULT_DIMENSION_RENDER_CONFIG: DimensionRenderConfig = Object.freeze({
+  lineColor: '#1f2937',
+  textColor: '#111827',
+  tickColor: '#1f2937',
+  font: 'bold 11px sans-serif',
+  lineWidth: 1,
+  tickSize: 6,
+});
+
+/**
  * Configuration globale par défaut du rendu 2D.
  */
 export const DEFAULT_VIEW2D_RENDER_CONFIG: View2DRenderConfig = Object.freeze({
@@ -64,6 +78,7 @@ export const DEFAULT_VIEW2D_RENDER_CONFIG: View2DRenderConfig = Object.freeze({
   grid: DEFAULT_GRID_CONFIG,
   wall: DEFAULT_WALL_RENDER_CONFIG,
   room: DEFAULT_ROOM_RENDER_CONFIG,
+  dimension: DEFAULT_DIMENSION_RENDER_CONFIG,
 });
 
 /**
@@ -661,6 +676,123 @@ export function drawRooms(
 }
 
 /**
+ * Dessine les cotations linéaires 2D (lignes de rappel, ligne de cote, traits obliques 45° et valeur).
+ */
+export function drawDimensions(
+  ctx: CanvasRenderingContext2D,
+  transform: Transform2D,
+  dimensions: readonly DimensionFor2D[],
+  walls: Record<string, WallFor2D>,
+  config: DimensionRenderConfig = DEFAULT_DIMENSION_RENDER_CONFIG,
+  levelFilter?: string | null,
+): void {
+  if (dimensions.length === 0) return;
+
+  ctx.save();
+  ctx.lineWidth = config.lineWidth;
+  ctx.strokeStyle = config.lineColor;
+  ctx.fillStyle = config.textColor;
+  ctx.font = config.font;
+
+  for (const dim of dimensions) {
+    if (levelFilter && dim.levelId && dim.levelId !== levelFilter) {
+      continue;
+    }
+
+    let p1: { x: number; y: number } | null = null;
+    let p2: { x: number; y: number } | null = null;
+
+    const ref0 = dim.references[0];
+    const ref1 = dim.references[1];
+
+    if (dim.references.length === 1 && ref0) {
+      const wall = walls[ref0];
+      if (!wall) continue;
+      p1 = { x: wall.start.x, y: wall.start.y };
+      p2 = { x: wall.end.x, y: wall.end.y };
+    } else if (dim.references.length >= 2 && ref0 && ref1) {
+      const w1 = walls[ref0];
+      const w2 = walls[ref1];
+      if (!w1 || !w2) continue;
+      p1 = { x: (w1.start.x + w1.end.x) / 2, y: (w1.start.y + w1.end.y) / 2 };
+      p2 = { x: (w2.start.x + w2.end.x) / 2, y: (w2.start.y + w2.end.y) / 2 };
+    }
+
+    if (!p1 || !p2) continue;
+
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
+    const len = Math.hypot(dx, dy);
+    if (len < 1e-4) continue;
+
+    // Vecteur unitaire et normale
+    const ux = dx / len;
+    const uy = dy / len;
+    const nx = -uy;
+    const ny = ux;
+
+    // Décalage perpendiculaire en coordonnées monde
+    const ox = nx * dim.offset;
+    const oy = ny * dim.offset;
+
+    const d1World = { x: p1.x + ox, y: p1.y + oy };
+    const d2World = { x: p2.x + ox, y: p2.y + oy };
+
+    const sp1 = transform.worldToScreen(p1);
+    const sp2 = transform.worldToScreen(p2);
+    const sd1 = transform.worldToScreen(d1World);
+    const sd2 = transform.worldToScreen(d2World);
+
+    // 1. Lignes de rappel (witness lines)
+    ctx.beginPath();
+    ctx.moveTo(sp1.x, sp1.y);
+    ctx.lineTo(sd1.x, sd1.y);
+    ctx.moveTo(sp2.x, sp2.y);
+    ctx.lineTo(sd2.x, sd2.y);
+    ctx.stroke();
+
+    // 2. Ligne de cote
+    ctx.beginPath();
+    ctx.moveTo(sd1.x, sd1.y);
+    ctx.lineTo(sd2.x, sd2.y);
+    ctx.stroke();
+
+    // 3. Ticks architecturaux à 45°
+    const tick = config.tickSize;
+    ctx.beginPath();
+    ctx.moveTo(sd1.x - tick / 2, sd1.y + tick / 2);
+    ctx.lineTo(sd1.x + tick / 2, sd1.y - tick / 2);
+    ctx.moveTo(sd2.x - tick / 2, sd2.y + tick / 2);
+    ctx.lineTo(sd2.x + tick / 2, sd2.y - tick / 2);
+    ctx.stroke();
+
+    // 4. Texte de cotation
+    const label =
+      dim.customLabel ??
+      (dim.value >= 1000 ? `${(dim.value / 1000).toFixed(2)} m` : `${Math.round(dim.value)} mm`);
+
+    const midScreenX = (sd1.x + sd2.x) / 2;
+    const midScreenY = (sd1.y + sd2.y) / 2;
+
+    let angle = Math.atan2(sd2.y - sd1.y, sd2.x - sd1.x);
+    // Garder le texte orienté de gauche à droite
+    if (angle > Math.PI / 2 || angle < -Math.PI / 2) {
+      angle += Math.PI;
+    }
+
+    ctx.save();
+    ctx.translate(midScreenX, midScreenY);
+    ctx.rotate(angle);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText(label, 0, -3);
+    ctx.restore();
+  }
+
+  ctx.restore();
+}
+
+/**
  * Fonction pure orchestrant le cycle de rendu complet d'une vue en plan 2D.
  */
 export function renderPlanView(
@@ -673,6 +805,7 @@ export function renderPlanView(
   preview?: PreviewShape | null,
   openings?: readonly OpeningFor2D[],
   rooms?: readonly DetectedRoomFor2D[],
+  dimensions?: readonly DimensionFor2D[],
 ): void {
   const mergedConfig: View2DRenderConfig = {
     backgroundColor: config.backgroundColor ?? DEFAULT_VIEW2D_RENDER_CONFIG.backgroundColor,
@@ -680,6 +813,7 @@ export function renderPlanView(
     grid: { ...DEFAULT_GRID_CONFIG, ...config.grid },
     wall: { ...DEFAULT_WALL_RENDER_CONFIG, ...config.wall },
     room: { ...DEFAULT_ROOM_RENDER_CONFIG, ...config.room },
+    dimension: { ...DEFAULT_DIMENSION_RENDER_CONFIG, ...config.dimension },
   };
 
   // 1. Nettoyage de l'arrière-plan
@@ -705,7 +839,7 @@ export function renderPlanView(
     levelFilter,
   );
 
-  // 4. Ouvertures architecturales (portes et fenêtres avec évidement du poché)
+  // 5. Ouvertures architecturales (portes et fenêtres avec évidement du poché)
   let effectiveOpenings: readonly OpeningFor2D[] = openings ?? [];
   if (!openings) {
     const doors = state.doors
@@ -731,7 +865,24 @@ export function renderPlanView(
     );
   }
 
-  // 5. Forme de prévisualisation interactive (rubber-band)
+  // 6. Cotations 2D associatives
+  let effectiveDimensions: readonly DimensionFor2D[] = dimensions ?? [];
+  if (!dimensions && state.dimensions) {
+    effectiveDimensions = Object.values(state.dimensions);
+  }
+
+  if (effectiveDimensions.length > 0) {
+    drawDimensions(
+      ctx,
+      transform,
+      effectiveDimensions,
+      state.walls,
+      mergedConfig.dimension,
+      levelFilter,
+    );
+  }
+
+  // 7. Forme de prévisualisation interactive (rubber-band)
   if (preview) {
     drawPreview(ctx, transform, preview);
   }

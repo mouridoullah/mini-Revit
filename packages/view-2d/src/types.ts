@@ -59,6 +59,20 @@ export type OpeningFor2D =
   ({ readonly kind: 'door' } & DoorFor2D) | ({ readonly kind: 'window' } & WindowFor2D);
 
 /**
+ * Paramètres neutres d'une cotation pour le tracé en plan 2D.
+ */
+export interface DimensionFor2D {
+  readonly id: string;
+  readonly category?: 'dimension' | undefined;
+  readonly levelId?: string | undefined;
+  readonly type: 'linear' | 'aligned';
+  readonly references: readonly string[];
+  readonly offset: number;
+  readonly value: number;
+  readonly customLabel?: string | undefined;
+}
+
+/**
  * Interface structurelle neutre d'un document pour la vue en plan 2D.
  * Permet à View2D de consommer BimDocument sans dépendance directe ni import de @mini-bim/core.
  */
@@ -66,12 +80,20 @@ export interface DocumentFor2D {
   getState(): {
     readonly walls: Record<string, WallFor2D>;
     readonly wallTypes: Record<string, WallTypeFor2D>;
-    readonly doors?: Record<string, DoorFor2D>;
-    readonly windows?: Record<string, WindowFor2D>;
-    readonly rooms?: Record<
-      string,
-      { readonly id: string; readonly name: string; readonly levelId: string; readonly seed: Vec2 }
-    >;
+    readonly doors?: Record<string, DoorFor2D> | undefined;
+    readonly windows?: Record<string, WindowFor2D> | undefined;
+    readonly rooms?:
+      | Record<
+          string,
+          {
+            readonly id: string;
+            readonly name: string;
+            readonly levelId: string;
+            readonly seed: Vec2;
+          }
+        >
+      | undefined;
+    readonly dimensions?: Record<string, DimensionFor2D> | undefined;
   };
 }
 
@@ -203,6 +225,15 @@ export interface WallRenderConfig {
   readonly selectedStrokeWidth: number;
 }
 
+export interface DimensionRenderConfig {
+  readonly lineColor: string;
+  readonly textColor: string;
+  readonly tickColor: string;
+  readonly font: string;
+  readonly lineWidth: number;
+  readonly tickSize: number;
+}
+
 /**
  * Configuration globale du moteur de rendu 2D.
  */
@@ -217,6 +248,8 @@ export interface View2DRenderConfig {
   readonly wall: WallRenderConfig;
   /** Configuration de rendu des pièces */
   readonly room?: RoomRenderConfig;
+  /** Configuration de rendu des cotations */
+  readonly dimension?: DimensionRenderConfig;
 }
 
 /**

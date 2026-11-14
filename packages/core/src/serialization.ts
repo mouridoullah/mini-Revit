@@ -346,10 +346,42 @@ export function fromJSON(jsonString: string): BimState {
     }
   }
 
+  // 8. Validation des cotations (si présentes, rétrocompatible)
+  const dimensions = (raw['dimensions'] ?? {}) as Record<string, unknown>;
+  if (typeof dimensions !== 'object' || Array.isArray(dimensions)) {
+    throw new BimValidationError('MALFORMED_STATE', 'Invalid "dimensions" dictionary.');
+  }
+
+  for (const [id, d] of Object.entries(dimensions)) {
+    if (!d || typeof d !== 'object') {
+      throw new BimValidationError('MALFORMED_DIMENSION', `Malformed dimension entry at "${id}".`);
+    }
+    const dim = d as Record<string, unknown>;
+    if (dim['id'] !== id) {
+      throw new BimValidationError(
+        'MALFORMED_DIMENSION',
+        `Dimension dictionary key "${id}" does not match internal id "${String(dim['id'])}".`,
+      );
+    }
+    if (
+      dim['category'] !== 'dimension' ||
+      typeof dim['levelId'] !== 'string' ||
+      !Array.isArray(dim['references']) ||
+      !Number.isFinite(dim['offset']) ||
+      !Number.isFinite(dim['value'])
+    ) {
+      throw new BimValidationError(
+        'MALFORMED_DIMENSION',
+        `Dimension "${id}" is missing required fields or has invalid types.`,
+      );
+    }
+  }
+
   return {
     ...raw,
     doors: doors as unknown as Record<string, import('./types.js').Door>,
     windows: windows as unknown as Record<string, import('./types.js').Window>,
     rooms: rooms as unknown as Record<string, import('./types.js').Room>,
+    dimensions: dimensions as unknown as Record<string, import('./types.js').Dimension>,
   } as unknown as BimState;
 }

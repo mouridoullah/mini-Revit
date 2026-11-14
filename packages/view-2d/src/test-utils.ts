@@ -59,6 +59,17 @@ export function createMockCanvas(
       record('restore', []);
     }),
 
+    translate: vi.fn((x: number, y: number) => {
+      assertFiniteNumber(x, 'x', 'translate');
+      assertFiniteNumber(y, 'y', 'translate');
+      record('translate', [x, y]);
+    }),
+
+    rotate: vi.fn((angle: number) => {
+      assertFiniteNumber(angle, 'angle', 'rotate');
+      record('rotate', [angle]);
+    }),
+
     beginPath: vi.fn(() => {
       record('beginPath', []);
     }),

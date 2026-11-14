@@ -11,18 +11,21 @@ export {
   DEFAULT_GRID_CONFIG,
   DEFAULT_WALL_RENDER_CONFIG,
   DEFAULT_ROOM_RENDER_CONFIG,
+  DEFAULT_DIMENSION_RENDER_CONFIG,
   DEFAULT_VIEW2D_RENDER_CONFIG,
   clearCanvas,
   drawGrid,
   drawWall,
   drawWalls,
   drawRooms,
+  drawDimensions,
   drawOpeningDoor,
   drawOpeningWindow,
   drawOpenings,
   renderPlanView,
 } from './renderer.js';
 export { View2D } from './View2D.js';
+export { generatePlanSvg, type PlanSvgOptions } from './svg-exporter.js';
 export {
   isPointInsideOrNearFootprint,
   hitTestWall,

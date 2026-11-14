@@ -8,7 +8,8 @@ import { Viewport2D } from './components/Viewport2D.js';
 import { Viewport3D } from './components/Viewport3D.js';
 import { useActiveTool } from './tools/useActiveTool.js';
 import { exportToFile, importFromFile } from './persistence/jsonIO.js';
-import { type BimDocument } from '@mini-bim/core';
+import { type BimDocument, exportToIfc, detectRooms } from '@mini-bim/core';
+import { generatePlanSvg } from '@mini-bim/view-2d';
 
 export interface AppProps {
   readonly initialDoc?: BimDocument;
@@ -75,6 +76,68 @@ function AppContent() {
     exportToFile(doc, 'project.mbim.json');
   }, [doc]);
 
+  const handleExportIfc = useCallback(() => {
+    try {
+      const ifcContent = exportToIfc(doc.getState(), {
+        projectName: 'Projet Mini-BIM',
+        filename: 'mini-bim-model.ifc',
+        author: 'Mini-BIM Architect',
+      });
+      const blob = new Blob([ifcContent], { type: 'model/ifc;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'mini-bim-model.ifc';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : 'Erreur lors de l’exportation IFC4.');
+    }
+  }, [doc]);
+
+  const handleExportSvg = useCallback(
+    (scale: 50 | 100 | 200) => {
+      try {
+        const docState = doc.getState();
+        const activeLevelId = Object.keys(docState.levels)[0] ?? '';
+        const levelName = activeLevelId ? docState.levels[activeLevelId]?.name : 'Étage';
+        const detected = activeLevelId ? detectRooms(docState, activeLevelId) : [];
+        const roomsForSvg = detected.map((d) => ({
+          polygon: d.polygon,
+          areaMm2: d.areaMm2,
+          seed: d.seed,
+          name: (d.existingRoomId && docState.rooms[d.existingRoomId]?.name) || 'Pièce',
+        }));
+
+        const svgContent = generatePlanSvg(doc, {
+          scale,
+          title: `Plan d’Étage - ${levelName}`,
+          project: 'Projet Mini-BIM',
+          author: 'Mini-BIM Architect',
+          levelId: activeLevelId,
+          rooms: roomsForSvg,
+        });
+
+        const blob = new Blob([svgContent], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `plan-etage-1-${scale}.svg`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        setErrorMessage(
+          err instanceof Error ? err.message : 'Erreur lors de l’exportation du plan SVG.',
+        );
+      }
+    },
+    [doc],
+  );
+
   const handleLoadFile = useCallback(
     async (file: File) => {
       try {
@@ -115,6 +178,8 @@ function AppContent() {
         onRedo={() => redo()}
         onSave={handleSave}
         onLoadFile={handleLoadFile}
+        onExportIfc={handleExportIfc}
+        onExportSvg={handleExportSvg}
       />
 
       {/* Bannière de notification d'erreur (ex. import corrompu) */}

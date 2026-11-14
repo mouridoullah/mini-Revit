@@ -13,6 +13,7 @@ import {
   type CommandLike,
   type OpeningFor2D,
   type DetectedRoomFor2D,
+  type DimensionFor2D,
 } from './types.js';
 
 /**
@@ -34,6 +35,7 @@ export class View2D {
   private doc: DocumentFor2D | null = null;
   private openings: OpeningFor2D[] = [];
   private rooms: DetectedRoomFor2D[] = [];
+  private dimensions: DimensionFor2D[] = [];
   private selectedIds: Set<string> = new Set();
   private activeLevelId: string | null = null;
   private preview: PreviewShape | null = null;
@@ -145,6 +147,18 @@ export class View2D {
     return this.rooms;
   }
 
+  /**
+   * Configure les cotations 2D explicites à afficher en plan.
+   */
+  public setDimensions(dimensions: readonly DimensionFor2D[]): void {
+    this.dimensions = [...dimensions];
+    this.render();
+  }
+
+  public getDimensions(): readonly DimensionFor2D[] {
+    return this.dimensions;
+  }
+
   public getSelectedIds(): readonly string[] {
     return Array.from(this.selectedIds);
   }
@@ -204,6 +218,7 @@ export class View2D {
     const effectiveDoc = this.doc ?? this.createEmptyPlaceholderDoc();
     const effectiveOpenings = this.openings.length > 0 ? this.openings : undefined;
     const effectiveRooms = this.rooms.length > 0 ? this.rooms : undefined;
+    const effectiveDimensions = this.dimensions.length > 0 ? this.dimensions : undefined;
 
     renderPlanView(
       this.ctx,
@@ -215,6 +230,7 @@ export class View2D {
       this.preview,
       effectiveOpenings,
       effectiveRooms,
+      effectiveDimensions,
     );
   }
 

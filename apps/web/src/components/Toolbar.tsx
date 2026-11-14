@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ChangeEvent } from 'react';
+import { useState, useEffect, useRef, type ChangeEvent } from 'react';
 import { type ToolKind } from '../tools/types.js';
 
 export interface ToolbarProps {
@@ -10,12 +10,14 @@ export interface ToolbarProps {
   readonly onRedo: () => void;
   readonly onSave: () => void;
   readonly onLoadFile: (file: File) => void;
+  readonly onExportIfc?: () => void;
+  readonly onExportSvg?: (scale: 50 | 100 | 200) => void;
 }
 
 /**
  * Barre d'outils supérieure de l'application Mini-BIM.
- * Intègre les outils interactifs, l'historique transactionnel (Undo/Redo)
- * et la persistance JSON (Sauvegarder/Charger).
+ * Intègre les outils interactifs, l'historique transactionnel (Undo/Redo),
+ * la persistance JSON, et les exports BIM (IFC4 & Plans vectoriels SVG).
  */
 export function Toolbar({
   activeToolKind,
@@ -26,8 +28,11 @@ export function Toolbar({
   onRedo,
   onSave,
   onLoadFile,
+  onExportIfc,
+  onExportSvg,
 }: ToolbarProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [planScale, setPlanScale] = useState<50 | 100 | 200>(100);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -95,7 +100,7 @@ export function Toolbar({
             color: '#9ca3af',
           }}
         >
-          Phase 3.3 — Outils & Déplacement
+          Phase 5 — IFC, Cotations 2D & Plans SVG
         </span>
       </div>
 
@@ -308,6 +313,77 @@ export function Toolbar({
             onChange={handleFileInputChange}
             style={{ display: 'none' }}
           />
+        </div>
+
+        <div style={{ width: '1px', height: '24px', backgroundColor: '#4b5563' }} />
+
+        {/* Groupe Exports BIM & Plans (Phase 5) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <button
+            type="button"
+            data-testid="export-ifc-btn"
+            onClick={onExportIfc}
+            title="Exporter la maquette numérique au standard IFC4 (ISO 10303-21)"
+            style={{
+              padding: '6px 10px',
+              fontSize: '12px',
+              borderRadius: '4px',
+              backgroundColor: '#4f46e5',
+              color: '#ffffff',
+              border: '1px solid #6366f1',
+              cursor: 'pointer',
+              fontWeight: 500,
+              transition: 'all 0.15s ease-in-out',
+            }}
+          >
+            🏛️ Exporter IFC
+          </button>
+
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <button
+              type="button"
+              data-testid="export-svg-btn"
+              onClick={() => onExportSvg?.(planScale)}
+              title="Exporter le plan d'étage vectoriel imprimable (SVG)"
+              style={{
+                padding: '6px 10px',
+                fontSize: '12px',
+                borderTopLeftRadius: '4px',
+                borderBottomLeftRadius: '4px',
+                borderTopRightRadius: 0,
+                borderBottomRightRadius: 0,
+                backgroundColor: '#2563eb',
+                color: '#ffffff',
+                border: '1px solid #3b82f6',
+                borderRight: 'none',
+                cursor: 'pointer',
+                fontWeight: 500,
+                transition: 'all 0.15s ease-in-out',
+              }}
+            >
+              📐 Plan (SVG)
+            </button>
+            <select
+              data-testid="export-svg-scale-select"
+              value={planScale}
+              onChange={(e) => setPlanScale(Number(e.target.value) as 50 | 100 | 200)}
+              style={{
+                padding: '5px 4px',
+                fontSize: '11px',
+                borderTopRightRadius: '4px',
+                borderBottomRightRadius: '4px',
+                backgroundColor: '#1d4ed8',
+                color: '#ffffff',
+                border: '1px solid #3b82f6',
+                cursor: 'pointer',
+                outline: 'none',
+              }}
+            >
+              <option value={50}>1:50</option>
+              <option value={100}>1:100</option>
+              <option value={200}>1:200</option>
+            </select>
+          </div>
         </div>
       </div>
     </header>

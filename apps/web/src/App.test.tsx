@@ -326,6 +326,73 @@ describe('App Integration & Squelette Double Viewport (apps/web)', () => {
     cleanup();
   });
 
+  it('exporte la maquette au format IFC4 lors du clic sur Exporter IFC', () => {
+    let capturedBlob: Blob | null = null;
+    let capturedDownloadName: string | null = null;
+
+    const createObjectURLMock = vi.fn().mockImplementation((blob: Blob) => {
+      capturedBlob = blob;
+      return 'blob:mock-ifc';
+    });
+    const revokeObjectURLMock = vi.fn();
+    globalThis.URL.createObjectURL = createObjectURLMock;
+    globalThis.URL.revokeObjectURL = revokeObjectURLMock;
+
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+      this: HTMLAnchorElement,
+    ) {
+      capturedDownloadName = this.download;
+    });
+
+    const { getByTestId } = render(<App />);
+    const ifcBtn = getByTestId('export-ifc-btn');
+
+    act(() => {
+      fireEvent.click(ifcBtn);
+    });
+
+    expect(createObjectURLMock).toHaveBeenCalledTimes(1);
+    expect(clickSpy).toHaveBeenCalledTimes(1);
+    expect(capturedDownloadName).toBe('mini-bim-model.ifc');
+    expect(capturedBlob).toBeDefined();
+
+    cleanup();
+  });
+
+  it('exporte le plan d’étage vectoriel SVG lors du clic sur Exporter Plan (SVG) avec échelle sélectionnée', () => {
+    let capturedDownloadName: string | null = null;
+
+    const createObjectURLMock = vi.fn().mockReturnValue('blob:mock-svg');
+    const revokeObjectURLMock = vi.fn();
+    globalThis.URL.createObjectURL = createObjectURLMock;
+    globalThis.URL.revokeObjectURL = revokeObjectURLMock;
+
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+      this: HTMLAnchorElement,
+    ) {
+      capturedDownloadName = this.download;
+    });
+
+    const { getByTestId } = render(<App />);
+    const scaleSelect = getByTestId('export-svg-scale-select');
+    const svgBtn = getByTestId('export-svg-btn');
+
+    // Changement de l'échelle à 1:50
+    act(() => {
+      fireEvent.change(scaleSelect, { target: { value: '50' } });
+    });
+
+    act(() => {
+      fireEvent.click(svgBtn);
+    });
+
+    expect(createObjectURLMock).toHaveBeenCalledTimes(1);
+    expect(clickSpy).toHaveBeenCalledTimes(1);
+    expect(capturedDownloadName).toBe('plan-etage-1-50.svg');
+
+    cleanup();
+  });
+
   it('importe fidèlement un fichier JSON valide et synchronise l’état global et StatusBar', async () => {
     // Créer un document avec seulement 1 mur
     const customDoc = BimDocument.createDefaultProject();

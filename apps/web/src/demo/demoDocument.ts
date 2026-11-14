@@ -92,5 +92,18 @@ export function createDemoDocument(): BimDocument {
     }),
   );
 
+  // Phase 5 : Cotation 2D associative de la façade Sud
+  doc.execute(
+    new Commands.AddDimensionCommand({
+      id: 'dim_demo_south',
+      category: 'dimension',
+      levelId,
+      type: 'linear',
+      references: ['wall_south'],
+      offset: -600,
+      value: 6000,
+    }),
+  );
+
   return doc;
 }

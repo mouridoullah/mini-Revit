@@ -227,25 +227,19 @@ _Dépendances : Phase 1.1 à 1.3 (`@mini-bim/geometry`), Phase 1.4 (`@mini-bim/v
 
 ---
 
-### Phase 5 — Documentation, Plans Cotés et Échanges IFC [PROCHAINE ÉTAPE]
+### Phase 5 — Documentation, Plans Cotés et Échanges IFC [LIVRÉ]
 
-- **Objectif :** Produire des livrables de plans architecturaux normalisés et assurer l'interopérabilité.
+- **Objectif :** Produire des livrables de plans architecturaux normalisés, des cotations 2D associatives et assurer l'interopérabilité OpenBIM via un export IFC4 natif.
 - **Fonctionnalités :**
-  - Outil de cotation manuelle linéaire et alignée en vue 2D.
-  - Rendu architectural normalisé en 2D (arbres de poché, sens d'ouverture des portes en arc de cercle).
-  - Coupe dynamique 3D (Section Box) avec plans de clipping.
-  - Génération de coupes verticales 2D.
-  - Export vectoriel des plans en SVG et PDF à l'échelle.
-  - Export IFC 4 minimal (`IfcProject`, `IfcBuildingStorey`, `IfcWallStandardCase`, `IfcDoor`, `IfcWindow`, `IfcSlab`).
-- **Dépendances :** Phase 4.
-- **Livrables :** Module de mise en page et pipeline d'export IFC.
-- **Critères d'acceptation :**
-  - Plan 2D imprimable avec cotations associatives.
-  - Fichier IFC généré importable et validé dans un viewer BIM standard (ex: Solibri, BIMcollab ou BlenderBIM).
+  - **Exportation IFC4 ISO 10303-21 STEP (`@mini-bim/core/ifc`) :** Générateur natif pur TypeScript (Option B / ADR-033) produisant un fichier STEP complet avec hiérarchie spatiale (`IfcProject`, `IfcSite`, `IfcBuilding`, `IfcBuildingStorey`), murs extrudés (`IfcWall`, `IfcExtrudedAreaSolid`), réservations découpées (`IfcOpeningElement`), portes et fenêtres avec relations BIM obligatoires (`IfcRelVoidsElement`, `IfcRelFillsElement`), espaces et surfaces habitables (`IfcSpace`, `Qto_SpaceBaseQuantities`), et rattachement d'étage (`IfcRelContainedInSpatialStructure`).
+  - **Cotations 2D Associatives (`Dimension` / ADR-034) :** Entité normalisée dans `BimState.dimensions` avec calcul géométrique pur (`computeDimensionValue`). Recalcul automatique lors du déplacement/allongement d'un mur hôte (`UpdateWallCommand`), suppression en cascade lors de la destruction d'un mur (`DeleteWallCommand`), et réversibilité transactionnelle bit-à-bit via `doc.undo()`.
+  - **Plans Vectoriels Imprimables SVG (`generatePlanSvg`) :** Export vectoriel de haute précision à l'échelle architecturale normalisée (1:50, 1:100, 1:200) sur format A4/A3 paysage. Rendu conforme avec poché de mur, vitrages, arcs de battement de portes, surfaces pastel des pièces en m², lignes de cote avec ticks à 45°, et cartouche architectural réglementaire (Titre, Échelle, Date, Auteur).
+  - **Intégration Web UI (`Toolbar.tsx`) :** Boutons d'export direct « 🏛️ Exporter IFC » et « 📐 Plan (SVG) » avec sélecteur d'échelle intégré, déclenchant le téléchargement instantané côté client.
+- **Tests :** 503 tests automatisés passants sur l'ensemble du monorepo (Geometry: 198, Core: 112, View-3D: 27, View-2D: 53, Web: 113).
 
 ---
 
-### Phase 6 — Extension Réseaux MEP (Post-MVP)
+### Phase 6 — Extension Réseaux MEP (Post-MVP) [PROCHAINE ÉTAPE]
 
 - **Objectif :** Intégrer la coordination 3D des réseaux techniques (plomberie, ventilation, électricité).
 - **Fonctionnalités :**

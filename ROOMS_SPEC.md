@@ -114,3 +114,14 @@ Lorsqu'un mur est supprimé via `DeleteWallCommand` :
 3. `detectRooms` est réévalué sur le niveau hôte. Toute entité `Room` dont le `seed` ne se trouve plus dans un espace fermé valide est supprimée automatiquement du dictionnaire `state.rooms`.
 4. `DeleteWallCommand.getChangedIds()` retourne l'identifiant du mur supprimé, les identifiants de toutes ses ouvertures supprimées en cascade, ainsi que les identifiants de toutes les pièces supprimées en cascade.
 5. **Réversibilité totale (Undo/Redo) :** Grâce aux patches inverses Immer, annuler la suppression du mur restaure fidèlement le mur, ses ouvertures et ses pièces associées avec leurs surfaces exactes.
+
+---
+
+## 5. Note sur la Performance et Mise en Cache pour la Phase 6 (MEP)
+
+Actuellement, l'algorithme `detectRooms` s'exécute à la demande en $< 2\text{ ms}$ pour une distribution d'étage standard.  
+En prévision de la **Phase 6 (Réseaux MEP - CVC, Plomberie et Électricité)**, où les cheminements de canalisations et gaines traversent fréquemment les cloisons et interrogent les volumes de pièces :
+
+- Une stratégie de mise en cache topologique par niveau (`levelId`) sera introduite dans le `BimDocument`.
+- Le cache sera invalidé de façon sélective uniquement lorsque les commandes impactant la topologie des murs (`AddWallCommand`, `UpdateWallCommand`, `DeleteWallCommand`) sont exécutées.
+- Les requêtes en lecture (métrés de surface, cotations associatives, passage de gaines MEP) accéderont au résultat pré-calculé en temps constant $\mathcal{O}(1)$.

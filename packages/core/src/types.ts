@@ -121,6 +121,27 @@ export interface Room {
 }
 
 /**
+ * Type de cotation architecturale 2D.
+ */
+export type DimensionType = 'linear' | 'aligned';
+
+/**
+ * Entité de cotation associative 2D (Dimension).
+ * Rattachée à un niveau, elle référence un ou deux éléments architecturaux (murs)
+ * et recalcule automatiquement sa valeur lors de tout déplacement paramétrique.
+ */
+export interface Dimension {
+  readonly id: ElementId;
+  readonly category: 'dimension';
+  readonly levelId: ElementId;
+  readonly type: DimensionType;
+  readonly references: readonly ElementId[]; // [wallId] (longueur) ou [wallId1, wallId2] (distance)
+  readonly offset: number; // distance de décalage perpendiculaire de la ligne de cote en mm
+  readonly value: number; // valeur calculée/recalculée en mm
+  readonly customLabel?: string;
+}
+
+/**
  * État documentaire immuable complet du projet Mini-BIM.
  * Normalisé sous forme de dictionnaires indexés par ElementId.
  */
@@ -133,6 +154,7 @@ export interface BimState {
   readonly doors: Record<ElementId, Door>;
   readonly windows: Record<ElementId, Window>;
   readonly rooms: Record<ElementId, Room>;
+  readonly dimensions: Record<ElementId, Dimension>;
 }
 
 /**

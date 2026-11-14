@@ -36,6 +36,7 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
     doors: {},
     windows: {},
     rooms: {},
+    dimensions: {},
   };
 
   it('aller-retour toJSON -> fromJSON préserve l’état à l’identique (deepEqual)', () => {

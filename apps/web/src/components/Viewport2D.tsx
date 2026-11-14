@@ -105,6 +105,9 @@ export function Viewport2D({
         });
         viewRef.current.setRooms(roomsFor2D);
       }
+      if (docState.dimensions) {
+        viewRef.current.setDimensions(Object.values(docState.dimensions));
+      }
       viewRef.current.render(doc);
     }
   }, [state, doc]);

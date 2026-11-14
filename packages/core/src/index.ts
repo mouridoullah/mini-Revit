@@ -23,6 +23,8 @@ export type {
   DoorSwingSide,
   DoorSwingDirection,
   Room,
+  Dimension,
+  DimensionType,
 } from './types.js';
 export * as Commands from './commands.js';
 export {
@@ -45,6 +47,9 @@ export {
   AddRoomCommand,
   UpdateRoomCommand,
   DeleteRoomCommand,
+  AddDimensionCommand,
+  UpdateDimensionCommand,
+  DeleteDimensionCommand,
 } from './commands.js';
 export {
   BimValidationError,
@@ -54,6 +59,7 @@ export {
   validateDoor,
   validateWindow,
   validateRoom,
+  validateDimension,
   canDeleteWall,
   canDeleteLevel,
   canDeleteWallType,
@@ -63,3 +69,5 @@ export { toJSON, fromJSON } from './serialization.js';
 export { HistoryStack, type HistoryEntry } from './history.js';
 export * from './rooms/index.js';
 export * from './metrics.js';
+export { computeDimensionValue } from './dimensions/index.js';
+export { exportToIfc, type IfcExportOptions } from './ifc/generator.js';

@@ -5,6 +5,7 @@ import {
   type Door,
   type Window,
   type Room,
+  type Dimension,
   type BimState,
   type ElementId,
 } from './types.js';
@@ -15,11 +16,13 @@ import {
   validateDoor,
   validateWindow,
   validateRoom,
+  validateDimension,
   canDeleteLevel,
   canDeleteWallType,
   BimValidationError,
 } from './rules.js';
 import { detectRooms } from './rooms/detect.js';
+import { computeDimensionValue } from './dimensions/index.js';
 import { isPointInPolygon } from '@mini-bim/geometry';
 
 /**
@@ -59,6 +62,7 @@ export class AddWallCommand implements Command {
 
 export class UpdateWallCommand implements Command {
   public readonly name = 'UpdateWall';
+  private impactedDimensionIds: ElementId[] = [];
 
   public constructor(
     public readonly wallId: ElementId,
@@ -83,10 +87,26 @@ export class UpdateWallCommand implements Command {
 
     validateWall(updatedWall, draft as BimState);
     draft.walls[this.wallId] = updatedWall;
+
+    // Mise à jour associative des cotations qui référencent ce mur
+    const impacted: ElementId[] = [];
+    if (draft.dimensions) {
+      for (const [dimId, dim] of Object.entries(draft.dimensions)) {
+        if (dim.references.includes(this.wallId)) {
+          const newVal = computeDimensionValue(dim, draft as BimState);
+          draft.dimensions[dimId] = {
+            ...dim,
+            value: newVal,
+          };
+          impacted.push(dimId);
+        }
+      }
+    }
+    this.impactedDimensionIds = impacted.sort();
   }
 
   public getChangedIds(): readonly ElementId[] {
-    return [this.wallId];
+    return [this.wallId, ...this.impactedDimensionIds];
   }
 }
 
@@ -94,6 +114,7 @@ export class DeleteWallCommand implements Command {
   public readonly name = 'DeleteWall';
   private deletedOpeningIds: ElementId[] = [];
   private deletedRoomIds: ElementId[] = [];
+  private deletedDimensionIds: ElementId[] = [];
 
   public constructor(public readonly wallId: ElementId) {}
 
@@ -161,10 +182,27 @@ export class DeleteWallCommand implements Command {
       }
     }
     this.deletedRoomIds = cascadedRooms.sort();
+
+    // 5. Cascade ADR-034 : Suppression des cotations associatives référençant ce mur
+    const cascadedDims: ElementId[] = [];
+    if (draft.dimensions) {
+      for (const [dimId, dim] of Object.entries(draft.dimensions)) {
+        if (dim.references.includes(this.wallId)) {
+          Reflect.deleteProperty(draft.dimensions, dimId);
+          cascadedDims.push(dimId);
+        }
+      }
+    }
+    this.deletedDimensionIds = cascadedDims.sort();
   }
 
   public getChangedIds(): readonly ElementId[] {
-    return [this.wallId, ...this.deletedOpeningIds, ...this.deletedRoomIds];
+    return [
+      this.wallId,
+      ...this.deletedOpeningIds,
+      ...this.deletedRoomIds,
+      ...this.deletedDimensionIds,
+    ];
   }
 }
 
@@ -594,5 +632,92 @@ export class DeleteRoomCommand implements Command {
 
   public getChangedIds(): readonly ElementId[] {
     return [this.roomId];
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Commandes relatives aux Cotations (Dimensions)
+// ---------------------------------------------------------------------------
+
+export class AddDimensionCommand implements Command {
+  public readonly name = 'AddDimension';
+
+  public constructor(public readonly dimension: Dimension) {}
+
+  public apply(draft: BimState): void {
+    if (draft.dimensions && draft.dimensions[this.dimension.id]) {
+      throw new BimValidationError(
+        'ELEMENT_ALREADY_EXISTS',
+        `A dimension with ID "${this.dimension.id}" already exists.`,
+      );
+    }
+    validateDimension(this.dimension, draft as BimState);
+    const computedValue = computeDimensionValue(this.dimension, draft as BimState);
+    const dimToStore: Dimension = {
+      ...this.dimension,
+      value: computedValue,
+    };
+    draft.dimensions[this.dimension.id] = dimToStore;
+  }
+
+  public getChangedIds(): readonly ElementId[] {
+    return [this.dimension.id];
+  }
+}
+
+export class UpdateDimensionCommand implements Command {
+  public readonly name = 'UpdateDimension';
+
+  public constructor(
+    public readonly dimensionId: ElementId,
+    public readonly patch: Partial<Omit<Dimension, 'id' | 'category'>>,
+  ) {}
+
+  public apply(draft: BimState): void {
+    const existing = draft.dimensions?.[this.dimensionId];
+    if (!existing) {
+      throw new BimValidationError(
+        'ELEMENT_NOT_FOUND',
+        `Cannot update dimension: ID "${this.dimensionId}" not found.`,
+      );
+    }
+
+    const updated: Dimension = {
+      ...existing,
+      ...this.patch,
+      id: existing.id,
+      category: 'dimension',
+    };
+
+    validateDimension(updated, draft as BimState);
+    const finalUpdated: Dimension = {
+      ...updated,
+      value: computeDimensionValue(updated, draft as BimState),
+    };
+    draft.dimensions[this.dimensionId] = finalUpdated;
+  }
+
+  public getChangedIds(): readonly ElementId[] {
+    return [this.dimensionId];
+  }
+}
+
+export class DeleteDimensionCommand implements Command {
+  public readonly name = 'DeleteDimension';
+
+  public constructor(public readonly dimensionId: ElementId) {}
+
+  public apply(draft: BimState): void {
+    if (!draft.dimensions?.[this.dimensionId]) {
+      throw new BimValidationError(
+        'ELEMENT_NOT_FOUND',
+        `Cannot delete dimension: ID "${this.dimensionId}" not found.`,
+      );
+    }
+    Reflect.deleteProperty(draft.dimensions, this.dimensionId);
+  }
+
+  public getChangedIds(): readonly ElementId[] {
+    return [this.dimensionId];
   }
 }

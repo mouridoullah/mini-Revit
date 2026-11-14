@@ -5,6 +5,7 @@ import {
   type Door,
   type Window,
   type Room,
+  type Dimension,
   type BimState,
   type ElementId,
 } from './types.js';
@@ -486,4 +487,43 @@ export function canDeleteWall(
     return { allowed: false, reason: `Wall "${wallId}" does not exist.` };
   }
   return { allowed: true };
+}
+
+/**
+ * Valide l'intégrité métier et référentielle d'une cotation 2D (Dimension).
+ */
+export function validateDimension(dim: Dimension, state: BimState): void {
+  // 1. Niveau existant
+  if (!state.levels[dim.levelId]) {
+    throw new BimValidationError(
+      'UNKNOWN_LEVEL',
+      `Dimension refers to non-existent Level ID: "${dim.levelId}".`,
+    );
+  }
+
+  // 2. Au moins une référence valide
+  if (!dim.references || dim.references.length === 0) {
+    throw new BimValidationError(
+      'INVALID_DIMENSION_REFERENCES',
+      'Dimension must reference at least one architectural element.',
+    );
+  }
+
+  // 3. Toutes les références doivent être des murs existants
+  for (const refId of dim.references) {
+    if (!state.walls[refId]) {
+      throw new BimValidationError(
+        'UNKNOWN_DIMENSION_REFERENCE',
+        `Dimension references non-existent wall ID: "${refId}".`,
+      );
+    }
+  }
+
+  // 4. Décalage numérique fini
+  if (!Number.isFinite(dim.offset)) {
+    throw new BimValidationError(
+      'INVALID_DIMENSION_OFFSET',
+      'Dimension offset must be a finite number.',
+    );
+  }
 }
