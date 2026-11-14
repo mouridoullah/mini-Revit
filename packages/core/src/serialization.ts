@@ -305,9 +305,51 @@ export function fromJSON(jsonString: string): BimState {
     }
   }
 
+  // 7. Validation des pièces (si présentes, rétrocompatible)
+  const rooms = (raw['rooms'] ?? {}) as Record<string, unknown>;
+  if (typeof rooms !== 'object' || Array.isArray(rooms)) {
+    throw new BimValidationError('MALFORMED_STATE', 'Invalid "rooms" dictionary.');
+  }
+
+  for (const [id, r] of Object.entries(rooms)) {
+    if (!r || typeof r !== 'object') {
+      throw new BimValidationError('MALFORMED_ROOM', `Malformed room entry at "${id}".`);
+    }
+    const rm = r as Record<string, unknown>;
+    if (rm['id'] !== id) {
+      throw new BimValidationError(
+        'MALFORMED_ROOM',
+        `Room dictionary key "${id}" does not match internal id "${String(rm['id'])}".`,
+      );
+    }
+    if (
+      rm['category'] !== 'room' ||
+      typeof rm['name'] !== 'string' ||
+      typeof rm['levelId'] !== 'string'
+    ) {
+      throw new BimValidationError(
+        'MALFORMED_ROOM',
+        `Room "${id}" is missing required fields or has invalid category.`,
+      );
+    }
+    const seed = rm['seed'] as Record<string, unknown> | undefined;
+    if (
+      !seed ||
+      typeof seed !== 'object' ||
+      !Number.isFinite(seed['x']) ||
+      !Number.isFinite(seed['y'])
+    ) {
+      throw new BimValidationError(
+        'MALFORMED_ROOM',
+        `Room "${id}" has invalid or missing seed coordinates.`,
+      );
+    }
+  }
+
   return {
     ...raw,
     doors: doors as unknown as Record<string, import('./types.js').Door>,
     windows: windows as unknown as Record<string, import('./types.js').Window>,
+    rooms: rooms as unknown as Record<string, import('./types.js').Room>,
   } as unknown as BimState;
 }

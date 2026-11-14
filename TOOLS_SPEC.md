@@ -277,3 +277,10 @@ Pour garantir une précision parfaite sur les 8 directions ($0^\circ, 45^\circ, 
 
 > [!NOTE] Espionnage sur exports nommés en ESM
 > L'espionnage Vitest via `vi.spyOn(Module, 'namedFunction')` nécessite en ECMAScript natif un import namespace (`import * as Scene3DModule from '@mini-bim/view-3d'`) afin que les références d'export soient mutables via le module loader de Vitest 3+. Les tests d'intégration d'`apps/web` appliquent systématiquement cette convention architecturale.
+
+### 7.5 Capture de l'Instance `View2D` dans les Tests d'Intégration (Note 3 de Revue)
+
+> [!IMPORTANT] Dépendance au cycle d'instanciation de `View2D`
+> Les tests d'intégration d'`apps/web` nécessitant la `Transform2D` réelle (notamment le test de crédibilité du BIM et les tests d'aimantation fine de `DoorTool`) capturent l'instance de `View2D` via un spy sur sa méthode prototype : `vi.spyOn(View2D.prototype, 'setDocument')`.  
+> Ce pattern fonctionne parce que le composant React `<Viewport2D />` appelle systématiquement `view.setDocument(doc)` dans son hook `useEffect` lors du chargement initial.  
+> **Contrat de maintenance :** Si l'implémentation de `<Viewport2D />` venait à injecter le document directement à la construction (`new View2D(canvas, { doc })`) sans appel explicite à `setDocument`, ce spy ne capturerait plus l'instance (`capturedView2D` resterait `null`). Dans ce cas, les tests d'intégration devront adapter leur mécanisme de capture (par exemple en espionnant le constructeur ou en exposant un hook de diagnostic).

@@ -3,6 +3,7 @@ import {
   createWallMesh,
   createWallMeshWithOpenings,
   createOpeningPlaceholder,
+  createRoomFloorMesh,
   type WallGeometryParams,
   type WallTypeGeometryParams,
   type OpeningGeometryParams,
@@ -365,5 +366,34 @@ describe('mesh-generator — Générateur de maillage 3D neutre pour view-3d', (
     // Erreur relative < 2e-7 sur 2.646 milliards de mm³ (soit moins de 0.00002% d'écart global)
     expect(residualDelta / expectedSolidVolume).toBeLessThan(2e-7);
     expect(residualDelta).toBeLessThan(500); // 489.36 mm³ sur un volume total de 2 646 000 000 mm³
+  });
+
+  it('createRoomFloorMesh génère une dalle 3D plate à z = elevation avec 1 mm d épaisseur', () => {
+    const roomPoly = [
+      { x: 100, y: 100 },
+      { x: 3900, y: 100 },
+      { x: 3900, y: 2900 },
+      { x: 100, y: 2900 },
+    ];
+
+    const elevation = 2800;
+    const mesh = createRoomFloorMesh({
+      id: 'room_slab_01',
+      polygon: roomPoly,
+      elevation,
+    });
+
+    expect(mesh).not.toBeNull();
+    if (!mesh) return;
+
+    expect(mesh.elementId).toBe('room_slab_01');
+    expect(mesh.boundingBox.min.z).toBeCloseTo(2800, 4);
+    expect(mesh.boundingBox.max.z).toBeCloseTo(2801, 4);
+
+    // Boîte englobante en plan
+    expect(mesh.boundingBox.min.x).toBeCloseTo(100, 4);
+    expect(mesh.boundingBox.max.x).toBeCloseTo(3900, 4);
+    expect(mesh.boundingBox.min.y).toBeCloseTo(100, 4);
+    expect(mesh.boundingBox.max.y).toBeCloseTo(2900, 4);
   });
 });

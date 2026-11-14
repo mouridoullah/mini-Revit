@@ -249,6 +249,30 @@ export class Scene3D {
   }
 
   /**
+   * Ajoute une dalle de sol de pièce dans la scène 3D avec un matériau pastel translucide.
+   */
+  public addRoomMesh(roomId: string, rawMesh: RawMeshData): THREE.Mesh {
+    const color = getRoomColorHex(roomId);
+    const material = new THREE.MeshStandardMaterial({
+      color,
+      roughness: 0.8,
+      metalness: 0.1,
+      transparent: true,
+      opacity: 0.5,
+      side: THREE.DoubleSide,
+    });
+    return this.addMesh({ ...rawMesh, elementId: roomId }, material);
+  }
+
+  /**
+   * Met à jour la dalle de sol d'une pièce (libère l'ancienne géométrie et remplace le mesh).
+   */
+  public updateRoomMesh(roomId: string, rawMesh: RawMeshData): THREE.Mesh {
+    this.removeMesh(roomId);
+    return this.addRoomMesh(roomId, rawMesh);
+  }
+
+  /**
    * Applique ou retire la surbrillance de sélection sur les éléments spécifiés.
    * Bascule le matériau entre son matériau de base (ou defaultMaterial) et highlightMaterial (#2563eb).
    *
@@ -410,4 +434,26 @@ export class Scene3D {
   public getScene(): THREE.Scene {
     return this.scene;
   }
+}
+
+/**
+ * Palette déterministe de teintes pastel pour la différenciation des pièces.
+ */
+function getRoomColorHex(id: string): number {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = (hash << 5) - hash + id.charCodeAt(i);
+    hash |= 0;
+  }
+  const pastelColors = [
+    0xbfdbfe, // bleu ciel
+    0xbbf7d0, // vert menthe
+    0xfef08a, // jaune doux
+    0xfbcfe8, // rose poudré
+    0xddd6fe, // lavande
+    0xfed7aa, // pêche
+    0xc7d2fe, // indigo doux
+  ];
+  const idx = Math.abs(hash) % pastelColors.length;
+  return pastelColors[idx] ?? 0xbae6fd;
 }

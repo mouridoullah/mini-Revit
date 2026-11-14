@@ -10,11 +10,13 @@ export { Transform2D } from './transform.js';
 export {
   DEFAULT_GRID_CONFIG,
   DEFAULT_WALL_RENDER_CONFIG,
+  DEFAULT_ROOM_RENDER_CONFIG,
   DEFAULT_VIEW2D_RENDER_CONFIG,
   clearCanvas,
   drawGrid,
   drawWall,
   drawWalls,
+  drawRooms,
   drawOpeningDoor,
   drawOpeningWindow,
   drawOpenings,

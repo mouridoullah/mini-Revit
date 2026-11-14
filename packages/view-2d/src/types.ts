@@ -68,7 +68,36 @@ export interface DocumentFor2D {
     readonly wallTypes: Record<string, WallTypeFor2D>;
     readonly doors?: Record<string, DoorFor2D>;
     readonly windows?: Record<string, WindowFor2D>;
+    readonly rooms?: Record<
+      string,
+      { readonly id: string; readonly name: string; readonly levelId: string; readonly seed: Vec2 }
+    >;
   };
+}
+
+/**
+ * Pièce architecturale détectée ou déclarée pour l'affichage en plan 2D.
+ */
+export interface DetectedRoomFor2D {
+  readonly id?: string | undefined;
+  readonly name?: string | undefined;
+  readonly polygon: readonly Vec2[];
+  readonly holes?: readonly (readonly Vec2[])[] | undefined;
+  readonly areaMm2: number;
+  readonly perimeterMm?: number | undefined;
+  readonly seed: Vec2;
+  readonly color?: string | undefined;
+}
+
+/**
+ * Configuration stylistique du rendu des pièces en plan (poché pastel, libellés).
+ */
+export interface RoomRenderConfig {
+  readonly fillColor: string;
+  readonly textColor: string;
+  readonly subTextColor: string;
+  readonly font: string;
+  readonly subFont: string;
 }
 
 /**
@@ -186,6 +215,8 @@ export interface View2DRenderConfig {
   readonly grid: GridConfig;
   /** Configuration de rendu des murs */
   readonly wall: WallRenderConfig;
+  /** Configuration de rendu des pièces */
+  readonly room?: RoomRenderConfig;
 }
 
 /**

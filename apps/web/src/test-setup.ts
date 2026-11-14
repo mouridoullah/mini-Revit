@@ -68,6 +68,7 @@ HTMLCanvasElement.prototype.getContext = vi.fn().mockImplementation((id: string)
       fillRect: vi.fn(),
       strokeRect: vi.fn(),
       clearRect: vi.fn(),
+      fillText: vi.fn(),
       arc: vi.fn(),
       ellipse: vi.fn(),
       rect: vi.fn(),
@@ -154,3 +155,13 @@ export class MockResizeObserver {
 }
 
 globalThis.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver;
+
+// Mock URL.createObjectURL and URL.revokeObjectURL for jsdom file downloads
+if (typeof window !== 'undefined' && window.URL) {
+  if (!window.URL.createObjectURL) {
+    window.URL.createObjectURL = vi.fn(() => 'blob:mock-url');
+  }
+  if (!window.URL.revokeObjectURL) {
+    window.URL.revokeObjectURL = vi.fn();
+  }
+}

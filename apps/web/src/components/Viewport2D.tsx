@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
-import { type BimDocument } from '@mini-bim/core';
-import { View2D } from '@mini-bim/view-2d';
+import { type BimDocument, detectRooms } from '@mini-bim/core';
+import { View2D, type DetectedRoomFor2D } from '@mini-bim/view-2d';
 import { useBimDocument } from '../hooks/useBimDocument.js';
 import { useResizeObserver } from '../hooks/useResizeObserver.js';
 import { type Tool, type ToolContext } from '../tools/types.js';
@@ -11,6 +11,7 @@ export interface Viewport2DProps {
   readonly selection?: readonly string[];
   readonly onSelectionChanged?: (ids: readonly string[]) => void;
   readonly onDrawingLengthChange?: (length: number | null) => void;
+  readonly onErrorChange?: (error: string | null) => void;
 }
 
 /**
@@ -23,6 +24,7 @@ export function Viewport2D({
   selection,
   onSelectionChanged,
   onDrawingLengthChange,
+  onErrorChange,
 }: Viewport2DProps = {}) {
   const { doc, state } = useBimDocument();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -77,9 +79,32 @@ export function Viewport2D({
     }
   }, [selection]);
 
-  // Mise à jour sur notification d'état documentaire
+  // Mise à jour sur notification d'état documentaire et rafraîchissement des pièces
   useEffect(() => {
     if (viewRef.current) {
+      const docState = doc.getState();
+      const activeLevelId = Object.keys(docState.levels)[0] ?? '';
+      if (activeLevelId) {
+        const detected = detectRooms(docState, activeLevelId);
+        const roomsFor2D: DetectedRoomFor2D[] = detected.map((d) => {
+          const roomEntity = d.existingRoomId ? docState.rooms[d.existingRoomId] : undefined;
+          const roomObj: DetectedRoomFor2D = {
+            polygon: d.polygon,
+            areaMm2: d.areaMm2,
+            perimeterMm: d.perimeterMm,
+            seed: d.seed,
+            ...(d.existingRoomId ? { id: d.existingRoomId } : {}),
+            ...(roomEntity?.name
+              ? { name: roomEntity.name }
+              : d.existingRoomId
+                ? { name: 'Pièce' }
+                : {}),
+            ...(d.holes ? { holes: d.holes } : {}),
+          };
+          return roomObj;
+        });
+        viewRef.current.setRooms(roomsFor2D);
+      }
       viewRef.current.render(doc);
     }
   }, [state, doc]);
@@ -123,7 +148,12 @@ export function Viewport2D({
 
       if (output.kind === 'command') {
         view.setPreview(null);
-        doc.execute(output.command);
+        try {
+          doc.execute(output.command);
+          onErrorChange?.(null);
+        } catch (err) {
+          onErrorChange?.(err instanceof Error ? err.message : String(err));
+        }
         onDrawingLengthChange?.(null);
       } else if (output.kind === 'preview') {
         view.setPreview(output.preview);
@@ -165,7 +195,12 @@ export function Viewport2D({
 
       if (output.kind === 'command') {
         view.setPreview(null);
-        doc.execute(output.command);
+        try {
+          doc.execute(output.command);
+          onErrorChange?.(null);
+        } catch (err) {
+          onErrorChange?.(err instanceof Error ? err.message : String(err));
+        }
         onDrawingLengthChange?.(null);
       } else if (output.kind === 'preview') {
         view.setPreview(output.preview);

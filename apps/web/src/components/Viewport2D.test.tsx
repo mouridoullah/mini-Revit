@@ -33,6 +33,7 @@ describe('Viewport2D React Wrapper & Tools Integration (apps/web)', () => {
           fill: vi.fn(),
           fillRect: vi.fn(),
           clearRect: vi.fn(),
+          fillText: vi.fn(),
           setLineDash: vi.fn(),
           getLineDash: vi.fn(() => []),
           arc: vi.fn(),

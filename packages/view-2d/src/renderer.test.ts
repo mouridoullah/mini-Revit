@@ -7,6 +7,7 @@ import {
   drawGrid,
   drawWall,
   drawWalls,
+  drawRooms,
   drawOpeningDoor,
   drawOpeningWindow,
   renderPlanView,
@@ -558,5 +559,63 @@ describe('Renderer 2D (renderer.ts)', () => {
     expect(mock.filterCalls('fill')).toHaveLength(1);
     // Aucun tracé d'arc de porte
     expect(mock.filterCalls('arc')).toHaveLength(0);
+  });
+
+  describe('Rendu des Pièces (drawRooms)', () => {
+    it('drawRooms remplit le polygone en pastel et écrit le nom et la surface au centre', () => {
+      const { mock } = createMockCanvas(800, 600);
+      const transform = new Transform2D({
+        origin: vec2(2000, 1500),
+        scale: 0.1,
+        viewportWidth: 800,
+        viewportHeight: 600,
+      });
+
+      const detectedRooms = [
+        {
+          id: 'room_01',
+          name: 'Séjour',
+          polygon: [vec2(100, 100), vec2(3900, 100), vec2(3900, 2900), vec2(100, 2900)],
+          areaMm2: 10640000,
+          perimeterMm: 13200,
+          seed: vec2(2000, 1500),
+        },
+      ];
+
+      drawRooms(mock.ctx, transform, detectedRooms);
+
+      // 1. Remplissage du polygone (fill)
+      const fillCalls = mock.filterCalls('fill');
+      expect(fillCalls.length).toBeGreaterThanOrEqual(1);
+
+      // 2. Écriture du nom ("Séjour") et de la surface ("10.64 m²")
+      const fillTextCalls = mock.filterCalls('fillText');
+      expect(fillTextCalls.length).toBeGreaterThanOrEqual(2);
+      expect(fillTextCalls[0]?.args[0]).toBe('Séjour');
+      expect(fillTextCalls[1]?.args[0]).toBe('10.64 m²');
+    });
+
+    it('drawRooms évide un îlot intérieur (poteau) via la règle evenodd', () => {
+      const { mock } = createMockCanvas(800, 600);
+      const transform = new Transform2D();
+
+      const roomWithHole = [
+        {
+          id: 'room_hole',
+          name: 'Hall',
+          polygon: [vec2(0, 0), vec2(4000, 0), vec2(4000, 4000), vec2(0, 4000)],
+          holes: [[vec2(1500, 1500), vec2(2500, 1500), vec2(2500, 2500), vec2(1500, 2500)]],
+          areaMm2: 15000000,
+          perimeterMm: 16000,
+          seed: vec2(800, 800),
+        },
+      ];
+
+      drawRooms(mock.ctx, transform, roomWithHole);
+
+      const fillCalls = mock.filterCalls('fill');
+      expect(fillCalls).toHaveLength(1);
+      expect(fillCalls[0]?.args[0]).toBe('evenodd');
+    });
   });
 });

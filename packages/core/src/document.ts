@@ -42,6 +42,7 @@ export class BimDocument {
       walls: {},
       doors: {},
       windows: {},
+      rooms: {},
     };
   }
 
@@ -74,6 +75,7 @@ export class BimDocument {
       walls: {},
       doors: {},
       windows: {},
+      rooms: {},
     };
 
     return new BimDocument(state);

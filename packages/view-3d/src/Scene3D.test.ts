@@ -412,4 +412,25 @@ describe('Scene3D — Gestionnaire de scène 3D Three.js impératif', () => {
 
     scene3d.dispose();
   });
+
+  it('addRoomMesh et updateRoomMesh gèrent les dalles 3D de pièces avec matériau translucide', () => {
+    const scene3d = new Scene3D(canvas, { width: 800, height: 600 });
+    const rawSlab = createSampleRawMesh('room_salon', 'full');
+
+    const mesh = scene3d.addRoomMesh('room_salon', rawSlab);
+    expect(mesh).toBeDefined();
+    expect(scene3d.getMeshes('room_salon')).toHaveLength(1);
+
+    const mat = mesh.material as THREE.MeshStandardMaterial;
+    expect(mat.transparent).toBe(true);
+    expect(mat.opacity).toBeCloseTo(0.5, 2);
+
+    // Mise à jour (remplacement) de la dalle
+    const newRawSlab = createSampleRawMesh('room_salon', 'full');
+    const updatedMesh = scene3d.updateRoomMesh('room_salon', newRawSlab);
+    expect(scene3d.getMeshes('room_salon')).toHaveLength(1);
+    expect(updatedMesh).not.toBe(mesh);
+
+    scene3d.dispose();
+  });
 });

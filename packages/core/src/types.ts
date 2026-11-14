@@ -107,6 +107,19 @@ export interface Window extends OpeningBase {
 export type Opening = Door | Window;
 
 /**
+ * Entité pièce architecturale (Room) - Élément sémantique dérivé.
+ * La géométrie (contour, surface, périmètre) est recalculée à la demande
+ * à partir de l'union des murs du niveau et du point de repère (seed).
+ */
+export interface Room {
+  readonly id: ElementId;
+  readonly category: 'room';
+  readonly levelId: ElementId;
+  readonly seed: Vec2; // point de repère pour associer le trou au Room
+  readonly name: string; // "Séjour", "Chambre 1", etc.
+}
+
+/**
  * État documentaire immuable complet du projet Mini-BIM.
  * Normalisé sous forme de dictionnaires indexés par ElementId.
  */
@@ -118,6 +131,7 @@ export interface BimState {
   readonly walls: Record<ElementId, Wall>;
   readonly doors: Record<ElementId, Door>;
   readonly windows: Record<ElementId, Window>;
+  readonly rooms: Record<ElementId, Room>;
 }
 
 /**

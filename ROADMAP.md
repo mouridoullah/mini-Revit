@@ -210,28 +210,24 @@ _Dépendances : Phase 1.1 à 1.3 (`@mini-bim/geometry`), Phase 1.4 (`@mini-bim/v
 
 ---
 
-### Phase 4 — Intelligence Architecturale et Métrés [PROCHAINE ÉTAPE]
+### Phase 4 — Intelligence Architecturale, Pièces Automatiques et Métrés [LIVRÉ]
 
-- **Objectif :** Extraire automatiquement la sémantique spatiale et les quantités constructives du modèle.
+- **Objectif :** Extraire automatiquement la sémantique spatiale et les quantités constructives du modèle, afficher les pièces en 2D/3D et fournir un tableau de métrés réactif exportable.
 - **Fonctionnalités :**
-  - Détection automatique des pièces fermées à partir de l'union des emprises de murs.
-  - Calcul en direct des aires nettes ($m^2$), périmètres ($m$) et volumes ($m^3$) des pièces.
-  - Placement automatique des étiquettes de pièces au pôle d'inaccessibilité (`polylabel`).
-  - Tableau de métrés en direct : surfaces nettes de murs (déduction des baies), cubatures de béton, surfaces d'isolant.
-  - Export des nomenclatures au format CSV.
-  - Détection et signalement visuel des pièces non fermées (« fuites » de contour).
-- **Dépendances :** Phase 3.
-- **Livrables :** Module de calcul spatial et panneau UI de métrés.
-- **Tests :**
-  - Vérification de l'aire calculée sur des formes de pièces simples et en L avec valeurs théoriques connues.
-  - Recalcul immédiat de l'aire lors du déplacement d'une cloison.
-- **Critères d'acceptation :**
-  - Déplacement d'un mur réajustant automatiquement la surface des deux pièces contiguës.
-  - Tableau de bord des quantités synchronisé en temps réel sans blocage du thread principal.
+  - **Détection Automatique des Pièces (`detectRooms`) :** Union booléenne des emprises de murs par niveau via `polygon-clipping` et extraction géométrique déterministe des trous intérieurs (surfaces fermées).
+  - **Modèle de Pièce Dérivé (`Room`) :** Stockage minimal (`id`, `category: 'room'`, `levelId`, `seed: Vec2`, `name: string`). Zéro géométrie persistée dans `BimDocument` (recalculée à la demande, ADR-001/ADR-031).
+  - **Surface Intérieure Strictement Habitable :** Vérification mathématique sur mur de 200 mm d'épaisseur : $3,8\text{ m} \times 2,8\text{ m} = 10,64\text{ m}^2$ (et non l'enveloppe brute extérieure $13,44\text{ m}^2$).
+  - **Conservation des Surfaces Nettes de Murs :** Déduction rigoureuse des baies ($S_{\text{nette}} = S_{\text{brute}} - \sum S_{\text{ouvertures}}$). Exemple de référence : mur 6m × 2.8m percé d'une porte (1.89 m²) et d'une fenêtre (1.68 m²) $\implies S_{\text{nette}} = 13,23\text{ m}^2$, $V_{\text{net}} = 2,646\text{ m}^3$.
+  - **Cycle de Vie et Cascade (Option B / ADR-032) :** Suppression en cascade des pièces dont l'enceinte est rompue lors de la suppression d'un mur porteur, avec notification complète dans `getChangedIds()` et réversibilité transactionnelle intégrale via `doc.undo()`.
+  - **Rendu Architectural 2D (`View2D`) :** Poché pastel translucide avec gestion des îlots/piliers intérieurs (`evenodd`), affichage du nom et de la surface au pôle d'inaccessibilité (`polylabel`).
+  - **Rendu 3D Sol (`Scene3D`) :** Dalle de sol plane (1 mm) extrudée à l'élévation du niveau avec palette de couleurs pastel déterministe par pièce.
+  - **Tableau de Métrés UI (`<MetricsPanel />`) :** Décompte par catégories (Murs linéaires, surface nette, volume ; Portes quantité et surface ; Fenêtres quantité et surface ; Pièces surface utile, périmètre, volume), debouncing de 200 ms, sélecteur de niveau et export CSV normalisé avec en-têtes et unités explicites (`m`, `m²`, `m³`, `u`).
+  - **StatusBar & Retours UX :** Affichage de `Surface : X m²` pour le niveau actif, et affichage immédiat de l'erreur `OPENING_OVERLAP` dans la bannière d'erreur lors d'un clic invalide de `DoorTool` (Note 1).
+- **Tests :** 474 tests automatisés passants sur l'ensemble du monorepo (Geometry: 198, Core: 91, View-3D: 27, View-2D: 47, Web: 111).
 
 ---
 
-### Phase 5 — Documentation et Échanges
+### Phase 5 — Documentation, Plans Cotés et Échanges IFC [PROCHAINE ÉTAPE]
 
 - **Objectif :** Produire des livrables de plans architecturaux normalisés et assurer l'interopérabilité.
 - **Fonctionnalités :**

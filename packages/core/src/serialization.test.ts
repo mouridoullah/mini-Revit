@@ -35,6 +35,7 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
     },
     doors: {},
     windows: {},
+    rooms: {},
   };
 
   it('aller-retour toJSON -> fromJSON préserve l’état à l’identique (deepEqual)', () => {
@@ -111,6 +112,7 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
           end: { x: 1000, y: 0 },
         },
       },
+      rooms: {},
     };
 
     expect(() => fromJSON(JSON.stringify(badWallState))).toThrowError(BimValidationError);
@@ -130,6 +132,7 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
           end: { x: 1000, y: 0 },
         },
       },
+      rooms: {},
     };
     expect(() => fromJSON(JSON.stringify(orphanTypeState))).toThrowError(/UNKNOWN_WALL_TYPE/);
 
@@ -145,6 +148,7 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
           end: { x: 1000, y: 0 },
         },
       },
+      rooms: {},
     };
     expect(() => fromJSON(JSON.stringify(orphanLevelState))).toThrowError(/UNKNOWN_LEVEL/);
   });
@@ -158,6 +162,7 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
           category: 'door',
         },
       },
+      rooms: {},
     };
     expect(() => fromJSON(JSON.stringify(badCategoryState))).toThrowError(/MALFORMED_WALL/);
 
@@ -169,6 +174,7 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
           start: { x: Number.NaN, y: 0 },
         },
       },
+      rooms: {},
     };
     expect(() => fromJSON(JSON.stringify(nanCoordState))).toThrowError(/MALFORMED_WALL/);
   });
@@ -183,6 +189,7 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
           elevation: 0,
         },
       },
+      rooms: {},
     };
     expect(() => fromJSON(JSON.stringify(keyMismatchState))).toThrowError(/MALFORMED_LEVEL/);
   });
@@ -198,6 +205,7 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
           end: { x: 1000, y: 1000 },
         },
       },
+      rooms: {},
     };
     expect(() => fromJSON(JSON.stringify(zeroLengthState))).toThrowError(/INVALID_WALL_LENGTH/);
   });
@@ -233,6 +241,7 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
           sillHeight: 900,
         },
       },
+      rooms: {},
     };
 
     const json = toJSON(stateWithOpenings, true);
@@ -258,6 +267,7 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
           swing: { side: 'left', direction: 'in' },
         },
       },
+      rooms: {},
     };
 
     expect(() => fromJSON(JSON.stringify(stateWithGhostDoor))).toThrowError(BimValidationError);
@@ -279,6 +289,7 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
           sillHeight: 900,
         },
       },
+      rooms: {},
     };
 
     expect(() => fromJSON(JSON.stringify(stateWithGhostWindow))).toThrowError(BimValidationError);
@@ -301,6 +312,7 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
           swing: { side: 'invalid_side', direction: 'in' },
         },
       },
+      rooms: {},
     };
     expect(() => fromJSON(JSON.stringify(badSideDoorState))).toThrowError(/MALFORMED_DOOR/);
 
@@ -319,6 +331,7 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
           swing: { side: 'left', direction: 'invalid_dir' },
         },
       },
+      rooms: {},
     };
     expect(() => fromJSON(JSON.stringify(badDirDoorState))).toThrowError(/MALFORMED_DOOR/);
 
@@ -337,6 +350,7 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
           swing: { side: 'left', direction: 'in' },
         },
       },
+      rooms: {},
     };
     expect(() => fromJSON(JSON.stringify(badDimDoorState))).toThrowError(/MALFORMED_DOOR/);
   });
@@ -356,6 +370,7 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
           // swing absent
         },
       },
+      rooms: {},
     };
     expect(() => fromJSON(JSON.stringify(missingSwingDoorState))).toThrowError(/MALFORMED_DOOR/);
   });

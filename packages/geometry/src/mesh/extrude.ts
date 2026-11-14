@@ -255,3 +255,28 @@ export function extrudeWallPiece(piece: WallPiece, options?: MeshBuildOptions): 
 
   return result;
 }
+
+/**
+ * Extrude un contour polygonal 2D fermé (ex. dalle de pièce ou plancher)
+ * entre deux cotes altimétriques z0 et z1.
+ */
+export function extrudePolygon(
+  poly2D: readonly import('../vec2.js').Vec2[],
+  z0: number,
+  z1: number,
+  options?: MeshBuildOptions,
+): RawMeshData | null {
+  return extrudeWallPiece(
+    {
+      id: 'slab',
+      wallId: 'slab',
+      role: 'full',
+      poly2D,
+      area2D: Math.abs(signedArea(poly2D)),
+      uInterval: [0, 0],
+      z0,
+      z1,
+    },
+    options,
+  );
+}

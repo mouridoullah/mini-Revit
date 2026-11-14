@@ -168,6 +168,9 @@ export interface View2DOptions {
 | `zoomToFit(paddingPx?)` | Cadre automatiquement la vue sur la boîte englobante de tous les murs. |
 | `resize(width, height)` | Met à jour la résolution du canvas et le viewport de transformation. |
 | `hitTest(screenPos)` | Détecte l'élément architectural sous le curseur en coordonnées écran. |
+| `getTransform()` | Retourne l'instance courante de `Transform2D` (repère monde $\leftrightarrow$ écran, échelle, pan). Méthode publique exposée pour les outils interactifs et les tests d'intégration. |
+| `setRooms(rooms)` | Définit la liste des pièces détectées (`DetectedRoomFor2D[]`) pour le tracé du poché pastel et des libellés de surface. |
+| `getRooms()` | Retourne la liste courante des pièces associées à la vue. |
 | `setSelectedIds(ids)` | Met à jour la liste des éléments sélectionnés et notifie les abonnés. |
 | `setSelection(ids)` | Alias standardisé de `setSelectedIds` pour conformité avec l'API des Tools. |
 | `setPreview(shape)` | Définit ou efface la forme de prévisualisation temporaire (`PreviewShape`). |

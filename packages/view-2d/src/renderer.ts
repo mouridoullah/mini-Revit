@@ -11,6 +11,8 @@ import {
   type DoorFor2D,
   type WindowFor2D,
   type OpeningFor2D,
+  type DetectedRoomFor2D,
+  type RoomRenderConfig,
 } from './types.js';
 
 /**
@@ -43,6 +45,17 @@ export const DEFAULT_WALL_RENDER_CONFIG: WallRenderConfig = Object.freeze({
 });
 
 /**
+ * Configuration stylistique par défaut des pièces architecturales en plan.
+ */
+export const DEFAULT_ROOM_RENDER_CONFIG: RoomRenderConfig = Object.freeze({
+  fillColor: 'rgba(147, 197, 253, 0.25)', // Bleu pastel translucide
+  textColor: '#1e3a8a', // Bleu marine
+  subTextColor: '#2563eb', // Bleu primaire
+  font: 'bold 12px sans-serif',
+  subFont: '10px sans-serif',
+});
+
+/**
  * Configuration globale par défaut du rendu 2D.
  */
 export const DEFAULT_VIEW2D_RENDER_CONFIG: View2DRenderConfig = Object.freeze({
@@ -50,6 +63,7 @@ export const DEFAULT_VIEW2D_RENDER_CONFIG: View2DRenderConfig = Object.freeze({
   showAxes: true,
   grid: DEFAULT_GRID_CONFIG,
   wall: DEFAULT_WALL_RENDER_CONFIG,
+  room: DEFAULT_ROOM_RENDER_CONFIG,
 });
 
 /**
@@ -574,6 +588,79 @@ export function drawPreview(
 }
 
 /**
+ * Rendu des pièces détectées en vue en plan : poché architectural translucide et libellé central.
+ */
+export function drawRooms(
+  ctx: CanvasRenderingContext2D,
+  transform: Transform2D,
+  rooms: readonly DetectedRoomFor2D[],
+  config: RoomRenderConfig = DEFAULT_ROOM_RENDER_CONFIG,
+): void {
+  if (rooms.length === 0) return;
+
+  for (const room of rooms) {
+    if (room.polygon.length < 3) continue;
+
+    ctx.save();
+    ctx.beginPath();
+
+    // 1. Remplissage du polygone extérieur
+    const first = room.polygon[0];
+    if (!first) {
+      ctx.restore();
+      continue;
+    }
+    const p0 = transform.worldToScreen(first);
+    ctx.moveTo(p0.x, p0.y);
+    for (let i = 1; i < room.polygon.length; i++) {
+      const p = room.polygon[i];
+      if (!p) continue;
+      const pt = transform.worldToScreen(p);
+      ctx.lineTo(pt.x, pt.y);
+    }
+    ctx.closePath();
+
+    // 2. Évidement des éventuels îlots / poteaux intérieurs
+    if (room.holes && room.holes.length > 0) {
+      for (const hole of room.holes) {
+        if (hole.length < 3) continue;
+        const h0Pt = hole[0];
+        if (!h0Pt) continue;
+        const h0 = transform.worldToScreen(h0Pt);
+        ctx.moveTo(h0.x, h0.y);
+        for (let j = 1; j < hole.length; j++) {
+          const h = hole[j];
+          if (!h) continue;
+          const hPt = transform.worldToScreen(h);
+          ctx.lineTo(hPt.x, hPt.y);
+        }
+        ctx.closePath();
+      }
+    }
+
+    ctx.fillStyle = room.color ?? config.fillColor;
+    ctx.fill('evenodd');
+
+    // 3. Libellé textuel de la pièce (Nom + Surface en m²) au point de repère (seed)
+    const screenSeed = transform.worldToScreen(room.seed);
+    const roomName = room.name ?? 'Pièce';
+    const areaM2 = (room.areaMm2 / 1e6).toFixed(2);
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = config.font;
+    ctx.fillStyle = config.textColor;
+    ctx.fillText(roomName, screenSeed.x, screenSeed.y - 7);
+
+    ctx.font = config.subFont;
+    ctx.fillStyle = config.subTextColor;
+    ctx.fillText(`${areaM2} m²`, screenSeed.x, screenSeed.y + 7);
+
+    ctx.restore();
+  }
+}
+
+/**
  * Fonction pure orchestrant le cycle de rendu complet d'une vue en plan 2D.
  */
 export function renderPlanView(
@@ -585,12 +672,14 @@ export function renderPlanView(
   levelFilter?: string | null,
   preview?: PreviewShape | null,
   openings?: readonly OpeningFor2D[],
+  rooms?: readonly DetectedRoomFor2D[],
 ): void {
   const mergedConfig: View2DRenderConfig = {
     backgroundColor: config.backgroundColor ?? DEFAULT_VIEW2D_RENDER_CONFIG.backgroundColor,
     showAxes: config.showAxes ?? DEFAULT_VIEW2D_RENDER_CONFIG.showAxes,
     grid: { ...DEFAULT_GRID_CONFIG, ...config.grid },
     wall: { ...DEFAULT_WALL_RENDER_CONFIG, ...config.wall },
+    room: { ...DEFAULT_ROOM_RENDER_CONFIG, ...config.room },
   };
 
   // 1. Nettoyage de l'arrière-plan
@@ -599,7 +688,12 @@ export function renderPlanView(
   // 2. Grille de repérage et axes
   drawGrid(ctx, transform, mergedConfig.grid, mergedConfig.showAxes);
 
-  // 3. Murs architecturaux
+  // 3. Pièces closes (poché pastel de fond et libellés)
+  if (rooms && rooms.length > 0) {
+    drawRooms(ctx, transform, rooms, mergedConfig.room);
+  }
+
+  // 4. Murs architecturaux
   const state = doc.getState();
   drawWalls(
     ctx,

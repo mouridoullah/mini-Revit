@@ -81,5 +81,16 @@ export function createDemoDocument(): BimDocument {
     }),
   );
 
+  // Phase 4 : Pièce déclarée "Séjour" associée à la pièce close de 22.04 m²
+  doc.execute(
+    new Commands.AddRoomCommand({
+      id: 'room_demo_sejour',
+      category: 'room',
+      levelId,
+      seed: { x: 3000, y: 2000 },
+      name: 'Séjour',
+    }),
+  );
+
   return doc;
 }

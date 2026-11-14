@@ -1,5 +1,6 @@
 import { useBimDocument } from '../hooks/useBimDocument.js';
 import { type ToolKind } from '../tools/types.js';
+import { detectRooms } from '@mini-bim/core';
 
 export interface StatusBarProps {
   readonly activeToolKind?: ToolKind;
@@ -17,7 +18,11 @@ export function StatusBar({ activeToolKind = 'select', drawingLength }: StatusBa
   const doorCount = Object.keys(state.doors ?? {}).length;
   const windowCount = Object.keys(state.windows ?? {}).length;
   const levelCount = Object.keys(state.levels).length;
+  const activeLevelId = Object.keys(state.levels)[0] ?? '';
   const activeLevel = Object.values(state.levels)[0]?.name ?? 'Aucun niveau';
+
+  const detectedRooms = activeLevelId ? detectRooms(state, activeLevelId) : [];
+  const totalRoomAreaM2 = (detectedRooms.reduce((acc, r) => acc + r.areaMm2, 0) / 1e6).toFixed(2);
 
   let toolMessage = 'Outil : Sélectionner (S)';
   if (activeToolKind === 'wall') {
@@ -61,6 +66,9 @@ export function StatusBar({ activeToolKind = 'select', drawingLength }: StatusBa
         <span style={{ color: '#4b5563' }}>|</span>
         <span>
           Niveau actif : <strong style={{ color: '#e5e7eb' }}>{activeLevel}</strong>
+        </span>
+        <span data-testid="status-surface-info">
+          Surface : <strong style={{ color: '#e5e7eb' }}>{totalRoomAreaM2} m²</strong>
         </span>
         <span>
           Niveaux : <strong style={{ color: '#e5e7eb' }}>{levelCount}</strong>

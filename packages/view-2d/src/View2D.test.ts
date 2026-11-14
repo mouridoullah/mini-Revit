@@ -509,4 +509,59 @@ describe('View2D (View2D.ts)', () => {
 
     view.dispose();
   });
+
+  describe('Gestion des pièces (Rooms) dans View2D', () => {
+    it('setRooms() enregistre les pièces détectées et déclenche le rendu immédiat', () => {
+      const { canvas, mock } = createMockCanvas(800, 600);
+      const view = new View2D(canvas);
+
+      mock.clearCalls();
+
+      const testRooms = [
+        {
+          id: 'room_rdc',
+          name: 'Cuisine',
+          polygon: [vec2(0, 0), vec2(3000, 0), vec2(3000, 3000), vec2(0, 3000)],
+          areaMm2: 9000000,
+          perimeterMm: 12000,
+          seed: vec2(1500, 1500),
+        },
+      ];
+
+      view.setRooms(testRooms);
+
+      expect(view.getRooms()).toHaveLength(1);
+      expect(view.getRooms()[0]?.name).toBe('Cuisine');
+
+      // Le rendu a été déclenché
+      const fillTextCalls = mock.filterCalls('fillText');
+      expect(fillTextCalls.some((c) => c.args[0] === 'Cuisine')).toBe(true);
+      expect(fillTextCalls.some((c) => c.args[0] === '9.00 m²')).toBe(true);
+
+      view.dispose();
+    });
+
+    it('setRoomLabels() sert d alias conforme et actualise les libellés', () => {
+      const { canvas, mock } = createMockCanvas(800, 600);
+      const view = new View2D(canvas);
+
+      view.setRoomLabels([
+        {
+          id: 'room_chambre',
+          name: 'Chambre Parentale',
+          polygon: [vec2(0, 0), vec2(4000, 0), vec2(4000, 3500), vec2(0, 3500)],
+          areaMm2: 14000000,
+          perimeterMm: 15000,
+          seed: vec2(2000, 1750),
+        },
+      ]);
+
+      expect(view.getRooms()[0]?.name).toBe('Chambre Parentale');
+      const fillTextCalls = mock.filterCalls('fillText');
+      expect(fillTextCalls.some((c) => c.args[0] === 'Chambre Parentale')).toBe(true);
+      expect(fillTextCalls.some((c) => c.args[0] === '14.00 m²')).toBe(true);
+
+      view.dispose();
+    });
+  });
 });

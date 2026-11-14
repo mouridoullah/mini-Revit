@@ -22,6 +22,7 @@ export type {
   DoorSwing,
   DoorSwingSide,
   DoorSwingDirection,
+  Room,
 } from './types.js';
 export * as Commands from './commands.js';
 export {
@@ -41,6 +42,9 @@ export {
   UpdateWindowCommand,
   DeleteOpeningCommand,
   MoveOpeningCommand,
+  AddRoomCommand,
+  UpdateRoomCommand,
+  DeleteRoomCommand,
 } from './commands.js';
 export {
   BimValidationError,
@@ -49,6 +53,7 @@ export {
   validateLevel,
   validateDoor,
   validateWindow,
+  validateRoom,
   canDeleteWall,
   canDeleteLevel,
   canDeleteWallType,
@@ -56,3 +61,5 @@ export {
 export { generateId } from './ids.js';
 export { toJSON, fromJSON } from './serialization.js';
 export { HistoryStack, type HistoryEntry } from './history.js';
+export * from './rooms/index.js';
+export * from './metrics.js';

@@ -7,35 +7,40 @@
 
 ## Sommaire des ADRs
 
-| Réf.        | Titre de la Décision                                                                         |   Statut    |    Date    |
-| :---------- | :------------------------------------------------------------------------------------------- | :---------: | :--------: |
-| **ADR-001** | Modèle BIM comme Source de Vérité Unique (Géométrie = Cache Dérivé)                          | **Accepté** | 13/11/2026 |
-| **ADR-002** | Découplage Impératif des Moteurs de Vues (Canvas 2D / Three.js vs React)                     | **Accepté** | 13/11/2026 |
-| **ADR-003** | Standardisation des Unités et Repères Spatiaux (Millimètres Float64 & Z-Up)                  | **Accepté** | 13/11/2026 |
-| **ADR-004** | Découpe d'Ouvertures par Tranches 2.5D (Sutherland-Hodgman)                                  | **Accepté** | 13/11/2026 |
-| **ADR-005** | Résolution Topologique des Jonctions de Murs et Limites d'Onglet                             | **Accepté** | 13/11/2026 |
-| **ADR-006** | Gestion des Mutations et Undo/Redo par Command Pattern Typé                                  | **Accepté** | 13/11/2026 |
-| **ADR-007** | Stratégie de Persistance Hybride (JSON Versionné puis SQLite WASM/OPFS)                      | **Accepté** | 13/11/2026 |
-| **ADR-008** | Détection Hybride et Stabilité Sémantique des Pièces (Rooms)                                 | **Accepté** | 13/11/2026 |
-| **ADR-009** | Architecture d'Extensibilité pour les Réseaux MEP (Category Registry)                        | **Accepté** | 13/11/2026 |
-| **ADR-010** | Révision des Tolérances Numériques, Typage des Intersections et Rejet de l'Arrondi Prématuré | **Accepté** | 13/11/2026 |
-| **ADR-011** | Moteur de Jonctions de Murs Déterministe (L, T, X, Colinéaire et Multi-branches)             | **Accepté** | 13/11/2026 |
-| **ADR-012** | Directives de Robustesse Topologique et Clôture des Jonctions (Audit Approfondi Phase 1)     | **Accepté** | 13/11/2026 |
-| **ADR-013** | Formalisation et Validation des Percements d'Ouvertures 2.5D (Phase 1.2)                     | **Accepté** | 13/11/2026 |
-| **ADR-014** | Gouvernance et Traçabilité des Métriques de Rapports (CI Verbatim)                           | **Accepté** | 13/11/2026 |
-| **ADR-015** | RawMeshData et Buffers Neutres pour Rendu 3D (sans dépendance Three.js)                      | **Accepté** | 13/11/2026 |
-| **ADR-016** | Stratégie Hybride de Triangulation 2D (Triangle Fan O(n) + Ear Clipping earcut)              | **Accepté** | 13/11/2026 |
-| **ADR-017** | Traitement des Interfaces de Contact Internes entre Pièces Adjacentes (Modular Solid Block)  | **Accepté** | 13/11/2026 |
-| **ADR-018** | Architecture Impérative de view-3d sans React, Rendu à la Demande et Backface Culling        | **Accepté** | 13/11/2026 |
-| **ADR-019** | Architecture du Noyau BIM — BimDocument, CommandBus et Undo/Redo via Immer                   | **Accepté** | 13/11/2026 |
-| **ADR-020** | Stratégie d'Identifiants Uniques — Adoption d'ULID pour le Noyau BIM                         | **Accepté** | 13/11/2026 |
-| **ADR-021** | Architecture Impérative de view-2d sans React, Émission de Command, Conversion Y-up/Y-down   | **Accepté** | 13/11/2026 |
-| **ADR-022** | Intégration React dans apps/web — Viewports Impératifs Isolés, Contexte Documentaire         | **Accepté** | 13/11/2026 |
-| **ADR-023** | Génération de Maillages 3D dans @mini-bim/view-3d via Interfaces Géométriques Neutres        | **Accepté** | 14/11/2026 |
-| **ADR-024** | Architecture des Outils Interactifs 2D (State Machines Pures, Snapping 45° et Pont DOM)      | **Accepté** | 14/11/2026 |
-| **ADR-025** | Sélection UI Partagée Bidirectionnelle (État Éphémère React vs Pureté Documentaire)          | **Accepté** | 14/11/2026 |
-| **ADR-026** | Picking 3D Déterministe via Raycasting, userData et Permutation de Matériau Partagé          | **Accepté** | 14/11/2026 |
-| **ADR-027** | Remplacement de BimDocument sans Recréation de Contexte Graphique (setDocument vs Re-Key)    | **Accepté** | 14/11/2026 |
+| Réf.        | Titre de la Décision                                                                           |   Statut    |    Date    |
+| :---------- | :--------------------------------------------------------------------------------------------- | :---------: | :--------: |
+| **ADR-001** | Modèle BIM comme Source de Vérité Unique (Géométrie = Cache Dérivé)                            | **Accepté** | 13/11/2026 |
+| **ADR-002** | Découplage Impératif des Moteurs de Vues (Canvas 2D / Three.js vs React)                       | **Accepté** | 13/11/2026 |
+| **ADR-003** | Standardisation des Unités et Repères Spatiaux (Millimètres Float64 & Z-Up)                    | **Accepté** | 13/11/2026 |
+| **ADR-004** | Découpe d'Ouvertures par Tranches 2.5D (Sutherland-Hodgman)                                    | **Accepté** | 13/11/2026 |
+| **ADR-005** | Résolution Topologique des Jonctions de Murs et Limites d'Onglet                               | **Accepté** | 13/11/2026 |
+| **ADR-006** | Gestion des Mutations et Undo/Redo par Command Pattern Typé                                    | **Accepté** | 13/11/2026 |
+| **ADR-007** | Stratégie de Persistance Hybride (JSON Versionné puis SQLite WASM/OPFS)                        | **Accepté** | 13/11/2026 |
+| **ADR-008** | Détection Hybride et Stabilité Sémantique des Pièces (Rooms)                                   | **Accepté** | 13/11/2026 |
+| **ADR-009** | Architecture d'Extensibilité pour les Réseaux MEP (Category Registry)                          | **Accepté** | 13/11/2026 |
+| **ADR-010** | Révision des Tolérances Numériques, Typage des Intersections et Rejet de l'Arrondi Prématuré   | **Accepté** | 13/11/2026 |
+| **ADR-011** | Moteur de Jonctions de Murs Déterministe (L, T, X, Colinéaire et Multi-branches)               | **Accepté** | 13/11/2026 |
+| **ADR-012** | Directives de Robustesse Topologique et Clôture des Jonctions (Audit Approfondi Phase 1)       | **Accepté** | 13/11/2026 |
+| **ADR-013** | Formalisation et Validation des Percements d'Ouvertures 2.5D (Phase 1.2)                       | **Accepté** | 13/11/2026 |
+| **ADR-014** | Gouvernance et Traçabilité des Métriques de Rapports (CI Verbatim)                             | **Accepté** | 13/11/2026 |
+| **ADR-015** | RawMeshData et Buffers Neutres pour Rendu 3D (sans dépendance Three.js)                        | **Accepté** | 13/11/2026 |
+| **ADR-016** | Stratégie Hybride de Triangulation 2D (Triangle Fan O(n) + Ear Clipping earcut)                | **Accepté** | 13/11/2026 |
+| **ADR-017** | Traitement des Interfaces de Contact Internes entre Pièces Adjacentes (Modular Solid Block)    | **Accepté** | 13/11/2026 |
+| **ADR-018** | Architecture Impérative de view-3d sans React, Rendu à la Demande et Backface Culling          | **Accepté** | 13/11/2026 |
+| **ADR-019** | Architecture du Noyau BIM — BimDocument, CommandBus et Undo/Redo via Immer                     | **Accepté** | 13/11/2026 |
+| **ADR-020** | Stratégie d'Identifiants Uniques — Adoption d'ULID pour le Noyau BIM                           | **Accepté** | 13/11/2026 |
+| **ADR-021** | Architecture Impérative de view-2d sans React, Émission de Command, Conversion Y-up/Y-down     | **Accepté** | 13/11/2026 |
+| **ADR-022** | Intégration React dans apps/web — Viewports Impératifs Isolés, Contexte Documentaire           | **Accepté** | 13/11/2026 |
+| **ADR-023** | Génération de Maillages 3D dans @mini-bim/view-3d via Interfaces Géométriques Neutres          | **Accepté** | 14/11/2026 |
+| **ADR-024** | Architecture des Outils Interactifs 2D (State Machines Pures, Snapping 45° et Pont DOM)        | **Accepté** | 14/11/2026 |
+| **ADR-025** | Sélection UI Partagée Bidirectionnelle (État Éphémère React vs Pureté Documentaire)            | **Accepté** | 14/11/2026 |
+| **ADR-026** | Picking 3D Déterministe via Raycasting, userData et Permutation de Matériau Partagé            | **Accepté** | 14/11/2026 |
+| **ADR-027** | Remplacement de BimDocument sans Recréation de Contexte Graphique (setDocument vs Re-Key)      | **Accepté** | 14/11/2026 |
+| **ADR-028** | Modèle Paramétrique 1D des Ouvertures Hébergées, Validation et Cascade Transactionnelle        | **Accepté** | 14/11/2026 |
+| **ADR-029** | Rendu 2D/3D Multi-Pièces des Murs Percés, Débattements Angulaires et Placeholders              | **Accepté** | 14/11/2026 |
+| **ADR-030** | Outils Interactifs pour Ouvertures et Déplacement de Murs (Machines à États Pures)             | **Accepté** | 14/11/2026 |
+| **ADR-031** | Détection des Pièces par Union Booléenne des Murs, Point d'Ancrage Seed et Polylabel           | **Accepté** | 14/11/2026 |
+| **ADR-032** | Cascade et Cycle de Vie des Rooms (Option B : Suppression en Cascade avec Réversibilité Immer) | **Accepté** | 14/11/2026 |
 
 ---
 
@@ -957,3 +962,85 @@ Comment permettre la modélisation et la manipulation interactive des portes, fe
 - Les 4 nouveaux outils sont testés unitairement en isolation totale sans navigateur ni DOM.
 - Le test de crédibilité du BIM passe : déplacer un mur déplace automatiquement la porte et le trou 3D sans altérer `offsetAlong`.
 - Total de 432 tests automatisés passant avec succès sur l'ensemble du monorepo.
+
+---
+
+## ADR-031 : Détection des Pièces par Union Booléenne des Murs, Point d'Ancrage Seed et Polylabel
+
+- **Date :** 2026-11-14
+- **Statut :** Accepté
+- **Auteur :** Antigravity (Lead Software Architect & Computational Geometry Engineer)
+- **Contexte :** Phase 4 (Détection automatique des pièces fermées, surfaces utiles et métriques spatiales)
+
+### Problème
+
+Dans un logiciel BIM, les pièces (_Rooms_) ne sont pas de simples rectangles statiques saisis par l'utilisateur. Elles doivent être détectées automatiquement lorsque des murs s'entourent pour former un espace clos, tout en respectant deux contraintes fondamentales :
+
+1. **La pièce est un élément dérivé :** Conformément à l'ADR-001 et l'ADR-008, `BimDocument` ne doit jamais stocker de contours polygonaux. Si un mur est déplacé ou redimensionné, la pièce doit automatiquement voir son contour et sa surface recalculés sans risque de désynchronisation.
+2. **La surface utile intérieure :** L'aire doit être strictement l'aire intérieure habitable (délimitée par les faces intérieures des murs hôtes), et non l'enveloppe brute extérieure.
+3. **Stabilité sémantique :** Comment associer de manière déterministe le nom attribué par l'utilisateur ("Séjour", "Chambre") à l'espace géométrique recalculé lors des modifications documentaires ?
+
+### Décisions Prises
+
+1. **Représentation Dérivée Minimale (`Room`) :**  
+   L'entité `Room` mémorise exclusivement :
+   - `id: ElementId`
+   - `category: 'room'`
+   - `levelId: ElementId`
+   - `seed: Vec2` (coordonnées 2D d'un point intérieur servant d'ancre sémantique)
+   - `name: string`  
+     Le polygone du contour, la surface en mm², le périmètre et le volume sont recalculés à la demande par le service `detectRooms(state, levelId)`.
+
+2. **Détection par Union Booléenne (`polygon-clipping`) et Extraction des Vides :**
+   - Les emprises au sol des murs du niveau sont unifiées via `polygon-clipping.union()`.
+   - L'anneau extérieur de l'union correspond à l'enveloppe bâtie.
+   - Les anneaux intérieurs (trous / _holes_) correspondent rigoureusement aux pièces fermées délimitées par les faces intérieures des murs.
+   - Preuve arithmétique : pour 4 murs d'axe 4 m × 3 m avec épaisseur 200 mm, le trou intérieur mesure exactement $(4\,000 - 200) \times (3\,000 - 200) = 3\,800 \times 2\,800\text{ mm} \implies 10,64\text{ m}^2$ (strictement différent de l'enveloppe extérieure brute $13,44\text{ m}^2$).
+
+3. **Positionnement Visuel Optimal via `polylabel` :**  
+   Pour chaque vide détecté, l'algorithme du pôle d'inaccessibilité (`polylabel`) détermine le point intérieur le plus éloigné de tout obstacle/arête, garantissant un centrage idéal du libellé même pour des pièces concaves (en L ou U) ou comportant des poteaux intérieurs.
+
+4. **Réconciliation Sémantique par Inclusion de Point :**  
+   L'algorithme associe chaque entité `Room` existante au contour clos dans lequel tombe son point `seed` via l'algorithme de Ray-Casting (`isPointInPolygon`).
+
+### Conséquences
+
+- Invariant BIM respecté : zéro duplication géométrique dans le fichier documentaire.
+- Exactitude spatiale : calcul de surface utile habitable rigoureux à 100%.
+- Rendu 2D fluide avec poché pastel translucide et affichage des libellés (nom + surface).
+- Dalle de sol 3D générée à la volée à l'élévation du niveau.
+
+---
+
+## ADR-032 : Cascade et Cycle de Vie des Rooms (Option B : Suppression en Cascade avec Réversibilité Immer)
+
+- **Date :** 2026-11-14
+- **Statut :** Accepté
+- **Auteur :** Antigravity (Lead Software Architect & Computational Geometry Engineer)
+- **Contexte :** Phase 4 (Gestion de la cohérence spatiale lors de la suppression de murs ou de niveaux)
+
+### Problème
+
+Que doit-il advenir d'une pièce (_Room_) lorsqu'un mur constitutif de sa fermeture est supprimé, rompant l'enceinte fermée ?
+Trois options étaient envisageables :
+
+- **Option A (Rejet strict) :** Interdire la suppression d'un mur tant qu'il borde une pièce déclarée. (UX rigide et frustrante pour l'architecte).
+- **Option B (Suppression en cascade automatique) :** Supprimer automatiquement la pièce devenue non close lors de la suppression du mur, avec notification transactionnelle dans `getChangedIds()` et réversibilité totale via Undo/Redo.
+- **Option C (État dégradé orphelin) :** Conserver la pièce dans le modèle avec un statut "non close" (surface 0 m²).
+
+### Décisions Prises
+
+1. **Adoption de l'Option B (Suppression en Cascade Transactionnelle) :**
+   - Lorsqu'un mur est supprimé via `DeleteWallCommand`, l'union des murs du niveau est réévaluée.
+   - Toute entité `Room` dont le `seed` ne se trouve plus à l'intérieur d'un espace fermé valide est supprimée du dictionnaire `state.rooms`.
+   - `DeleteWallCommand.getChangedIds()` inclut l'identifiant du mur, les identifiants de toutes ses ouvertures hébergées et les identifiants de toutes les pièces supprimées en cascade.
+   - **Réversibilité totale :** Le proxy Immer enregistre les patches inverses d'état. L'appel à `doc.undo()` restaure atomiquement le mur, ses baies et ses pièces sans perte d'information.
+
+2. **Protection d'Intégrité des Niveaux :**  
+   `canDeleteLevel(levelId, state)` interdit formellement la suppression d'un niveau si des entités `Room` y sont encore rattachées (`LEVEL_HAS_ATTACHED_ROOMS`), forçant la purge préalable des pièces ou le re-rattachement explicite.
+
+### Conséquences
+
+- Comportement BIM cohérent avec les standards de l'industrie (Revit supprime l'étiquette de pièce quand l'enceinte est détruite).
+- La pile Undo/Redo préserve l'intégrité intégrale de l'état sans effet de bord ni état fantôme.
+- Les métrés et totaux de surface du niveau s'ajustent instantanément de façon réactive.

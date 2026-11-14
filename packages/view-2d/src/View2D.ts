@@ -12,6 +12,7 @@ import {
   type DocumentFor2D,
   type CommandLike,
   type OpeningFor2D,
+  type DetectedRoomFor2D,
 } from './types.js';
 
 /**
@@ -32,6 +33,7 @@ export class View2D {
   private config: View2DRenderConfig;
   private doc: DocumentFor2D | null = null;
   private openings: OpeningFor2D[] = [];
+  private rooms: DetectedRoomFor2D[] = [];
   private selectedIds: Set<string> = new Set();
   private activeLevelId: string | null = null;
   private preview: PreviewShape | null = null;
@@ -124,6 +126,25 @@ export class View2D {
     return this.openings;
   }
 
+  /**
+   * Configure les pièces détectées ou déclarées pour affichage (poché pastel et libellés).
+   */
+  public setRooms(rooms: readonly DetectedRoomFor2D[]): void {
+    this.rooms = [...rooms];
+    this.render();
+  }
+
+  /**
+   * Alias conforme à la spec pour définir les libellés et emprises des pièces.
+   */
+  public setRoomLabels(rooms: readonly DetectedRoomFor2D[]): void {
+    this.setRooms(rooms);
+  }
+
+  public getRooms(): readonly DetectedRoomFor2D[] {
+    return this.rooms;
+  }
+
   public getSelectedIds(): readonly string[] {
     return Array.from(this.selectedIds);
   }
@@ -182,6 +203,7 @@ export class View2D {
 
     const effectiveDoc = this.doc ?? this.createEmptyPlaceholderDoc();
     const effectiveOpenings = this.openings.length > 0 ? this.openings : undefined;
+    const effectiveRooms = this.rooms.length > 0 ? this.rooms : undefined;
 
     renderPlanView(
       this.ctx,
@@ -192,6 +214,7 @@ export class View2D {
       this.activeLevelId,
       this.preview,
       effectiveOpenings,
+      effectiveRooms,
     );
   }
 

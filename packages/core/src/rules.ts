@@ -4,10 +4,17 @@ import {
   type Level,
   type Door,
   type Window,
+  type Room,
   type BimState,
   type ElementId,
 } from './types.js';
-import { type OpeningInput, validateOpenings, MIN_OPENING_CLEARANCE } from '@mini-bim/geometry';
+import {
+  type OpeningInput,
+  validateOpenings,
+  MIN_OPENING_CLEARANCE,
+  isPointInPolygon,
+} from '@mini-bim/geometry';
+import { detectRooms } from './rooms/detect.js';
 
 /**
  * Erreur de validation métier levée lors de la violation d'une règle d'intégrité BIM.
@@ -113,7 +120,64 @@ export function canDeleteLevel(
     };
   }
 
+  const attachedRooms = Object.values(state.rooms ?? {}).filter((r) => r.levelId === levelId);
+  if (attachedRooms.length > 0) {
+    return {
+      allowed: false,
+      reason: `Cannot delete Level "${levelId}": ${attachedRooms.length} room(s) are attached to it.`,
+    };
+  }
+
   return { allowed: true };
+}
+
+/**
+ * Valide l'intégrité métier et spatiale d'une pièce architecturale (Room).
+ *
+ * Règles :
+ * 1. Nom non vide (`INVALID_ROOM_NAME`).
+ * 2. Niveau hôte existant (`UNKNOWN_LEVEL`).
+ * 3. Le seed doit se situer impérativement à l'intérieur d'une pièce fermée (`ROOM_SEED_NOT_IN_CLOSED_AREA`).
+ */
+export function validateRoom(room: Room, state: BimState): void {
+  // 1. Nom non vide
+  if (!room.name || room.name.trim() === '') {
+    throw new BimValidationError('INVALID_ROOM_NAME', 'Room name cannot be empty.');
+  }
+
+  // 2. Niveau existant
+  if (!state.levels[room.levelId]) {
+    throw new BimValidationError(
+      'UNKNOWN_LEVEL',
+      `Room refers to non-existent Level ID: "${room.levelId}".`,
+    );
+  }
+
+  // 3. Coordonnées numériques finies
+  if (!Number.isFinite(room.seed.x) || !Number.isFinite(room.seed.y)) {
+    throw new BimValidationError(
+      'INVALID_ROOM_SEED',
+      `Room seed coordinates must be finite numbers (got x=${room.seed.x}, y=${room.seed.y}).`,
+    );
+  }
+
+  // 4. Vérification que le seed est dans une pièce fermée
+  const detected = detectRooms(state, room.levelId);
+  const isInsideClosedRoom = detected.some((d) => {
+    const inOuter = isPointInPolygon(room.seed, d.polygon);
+    if (!inOuter) return false;
+    if (d.holes && d.holes.some((h) => isPointInPolygon(room.seed, h))) {
+      return false; // Dans un poteau/îlot intérieur
+    }
+    return true;
+  });
+
+  if (!isInsideClosedRoom) {
+    throw new BimValidationError(
+      'ROOM_SEED_NOT_IN_CLOSED_AREA',
+      `Room seed (${room.seed.x}, ${room.seed.y}) is not located inside any closed area on level "${room.levelId}".`,
+    );
+  }
 }
 
 /**

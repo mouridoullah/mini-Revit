@@ -47,6 +47,9 @@ export function createMockCanvas(
     strokeStyle: '#000000',
     lineWidth: 1,
     lineJoin: 'miter' as CanvasLineJoin,
+    font: '10px sans-serif',
+    textAlign: 'start' as CanvasTextAlign,
+    textBaseline: 'alphabetic' as CanvasTextBaseline,
 
     save: vi.fn(() => {
       record('save', []);
@@ -80,8 +83,14 @@ export function createMockCanvas(
       record('stroke', []);
     }),
 
-    fill: vi.fn(() => {
-      record('fill', []);
+    fill: vi.fn((fillRule?: CanvasFillRule) => {
+      record('fill', fillRule ? [fillRule] : []);
+    }),
+
+    fillText: vi.fn((text: string, x: number, y: number, maxWidth?: number) => {
+      assertFiniteNumber(x, 'x', 'fillText');
+      assertFiniteNumber(y, 'y', 'fillText');
+      record('fillText', [text, x, y, maxWidth]);
     }),
 
     arc: vi.fn(

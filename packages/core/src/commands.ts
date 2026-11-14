@@ -4,6 +4,7 @@ import {
   type Level,
   type Door,
   type Window,
+  type Room,
   type BimState,
   type ElementId,
 } from './types.js';
@@ -13,10 +14,13 @@ import {
   validateLevel,
   validateDoor,
   validateWindow,
+  validateRoom,
   canDeleteLevel,
   canDeleteWallType,
   BimValidationError,
 } from './rules.js';
+import { detectRooms } from './rooms/detect.js';
+import { isPointInPolygon } from '@mini-bim/geometry';
 
 /**
  * Interface fondamentale d'une commande transactionnelle de mutation d'état BIM.
@@ -89,16 +93,19 @@ export class UpdateWallCommand implements Command {
 export class DeleteWallCommand implements Command {
   public readonly name = 'DeleteWall';
   private deletedOpeningIds: ElementId[] = [];
+  private deletedRoomIds: ElementId[] = [];
 
   public constructor(public readonly wallId: ElementId) {}
 
   public apply(draft: BimState): void {
-    if (!draft.walls[this.wallId]) {
+    const wall = draft.walls[this.wallId];
+    if (!wall) {
       throw new BimValidationError(
         'ELEMENT_NOT_FOUND',
         `Cannot delete wall: ID "${this.wallId}" not found.`,
       );
     }
+    const levelId = wall.levelId;
 
     // Cascade ON DELETE CASCADE : suppression de toutes les portes et fenêtres hébergées
     // 1. Collecte des IDs des ouvertures rattachées AVANT toute suppression
@@ -133,10 +140,31 @@ export class DeleteWallCommand implements Command {
 
     // 3. Suppression du mur hôte
     Reflect.deleteProperty(draft.walls, this.wallId);
+
+    // 4. Cascade ADR-032 : Vérifier les Rooms sur ce niveau.
+    // Si la suppression du mur fait qu'une pièce n'est plus fermée, suppression en cascade de la Room.
+    const cascadedRooms: ElementId[] = [];
+    if (draft.rooms) {
+      const remainingRoomsOnLevel = Object.entries(draft.rooms).filter(
+        ([_, r]) => r.levelId === levelId,
+      );
+
+      if (remainingRoomsOnLevel.length > 0) {
+        const remainingDetected = detectRooms(draft as BimState, levelId);
+        for (const [roomId, room] of remainingRoomsOnLevel) {
+          const stillClosed = remainingDetected.some((d) => isPointInPolygon(room.seed, d.polygon));
+          if (!stillClosed) {
+            Reflect.deleteProperty(draft.rooms, roomId);
+            cascadedRooms.push(roomId);
+          }
+        }
+      }
+    }
+    this.deletedRoomIds = cascadedRooms.sort();
   }
 
   public getChangedIds(): readonly ElementId[] {
-    return [this.wallId, ...this.deletedOpeningIds];
+    return [this.wallId, ...this.deletedOpeningIds, ...this.deletedRoomIds];
   }
 }
 
@@ -487,5 +515,84 @@ export class MoveOpeningCommand implements Command {
 
   public getChangedIds(): readonly ElementId[] {
     return [this.openingId, ...(this.hostWallId ? [this.hostWallId] : [])];
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Commandes relatives aux Pièces (Rooms)
+// ---------------------------------------------------------------------------
+
+export class AddRoomCommand implements Command {
+  public readonly name = 'AddRoom';
+
+  public constructor(public readonly room: Room) {}
+
+  public apply(draft: BimState): void {
+    if (!draft.rooms) {
+      (draft as { rooms: Record<ElementId, Room> }).rooms = {};
+    }
+    if (draft.rooms[this.room.id]) {
+      throw new BimValidationError(
+        'ELEMENT_ALREADY_EXISTS',
+        `A room with ID "${this.room.id}" already exists.`,
+      );
+    }
+    // Validation d'intégrité spatiale et référentielle
+    validateRoom(this.room, draft as BimState);
+    draft.rooms[this.room.id] = this.room;
+  }
+
+  public getChangedIds(): readonly ElementId[] {
+    return [this.room.id];
+  }
+}
+
+export class UpdateRoomCommand implements Command {
+  public readonly name = 'UpdateRoom';
+
+  public constructor(
+    public readonly roomId: ElementId,
+    public readonly patch: Partial<Pick<Room, 'name' | 'seed'>>,
+  ) {}
+
+  public apply(draft: BimState): void {
+    const existing = draft.rooms?.[this.roomId];
+    if (!existing) {
+      throw new BimValidationError(
+        'ELEMENT_NOT_FOUND',
+        `Cannot update room: ID "${this.roomId}" not found.`,
+      );
+    }
+    const updated: Room = {
+      ...existing,
+      ...(this.patch.name !== undefined ? { name: this.patch.name } : {}),
+      ...(this.patch.seed !== undefined ? { seed: this.patch.seed } : {}),
+    };
+    validateRoom(updated, draft as BimState);
+    draft.rooms[this.roomId] = updated;
+  }
+
+  public getChangedIds(): readonly ElementId[] {
+    return [this.roomId];
+  }
+}
+
+export class DeleteRoomCommand implements Command {
+  public readonly name = 'DeleteRoom';
+
+  public constructor(public readonly roomId: ElementId) {}
+
+  public apply(draft: BimState): void {
+    if (!draft.rooms?.[this.roomId]) {
+      throw new BimValidationError(
+        'ELEMENT_NOT_FOUND',
+        `Cannot delete room: ID "${this.roomId}" not found.`,
+      );
+    }
+    Reflect.deleteProperty(draft.rooms, this.roomId);
+  }
+
+  public getChangedIds(): readonly ElementId[] {
+    return [this.roomId];
   }
 }

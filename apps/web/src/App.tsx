@@ -3,6 +3,7 @@ import { BimDocumentProvider } from './context/BimDocumentContext.js';
 import { useBimDocument } from './hooks/useBimDocument.js';
 import { Toolbar } from './components/Toolbar.js';
 import { StatusBar } from './components/StatusBar.js';
+import { MetricsPanel } from './components/MetricsPanel.js';
 import { Viewport2D } from './components/Viewport2D.js';
 import { Viewport3D } from './components/Viewport3D.js';
 import { useActiveTool } from './tools/useActiveTool.js';
@@ -177,6 +178,7 @@ function AppContent() {
             selection={selectedIds}
             onSelectionChanged={setSelectedIds}
             onDrawingLengthChange={setDrawingLength}
+            onErrorChange={setErrorMessage}
           />
         </section>
 
@@ -191,6 +193,9 @@ function AppContent() {
           <Viewport3D selection={selectedIds} onSelectionChanged={setSelectedIds} />
         </section>
       </main>
+
+      {/* Panneau rétractable du tableau de métrés et surfaces */}
+      <MetricsPanel doc={doc} />
 
       <StatusBar activeToolKind={activeToolKind} drawingLength={drawingLength} />
     </div>

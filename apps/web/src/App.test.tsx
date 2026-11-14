@@ -589,4 +589,56 @@ describe('App Integration & Squelette Double Viewport (apps/web)', () => {
 
     cleanup();
   });
+
+  it('Note 1 : DoorTool sur une zone occupée affiche une error-banner avec OPENING_OVERLAP', async () => {
+    const doc = createDemoDocument();
+    let capturedView2D: View2D | null = null;
+    const origSetDocument = View2D.prototype.setDocument;
+    vi.spyOn(View2D.prototype, 'setDocument').mockImplementation(function (this: View2D, document) {
+      // eslint-disable-next-line @typescript-eslint/no-this-alias
+      capturedView2D = this;
+      return origSetDocument.call(this, document);
+    });
+
+    const { getByTestId, queryByTestId } = render(<App initialDoc={doc} />);
+    expect(capturedView2D).not.toBeNull();
+    if (!capturedView2D) throw new Error('View2D non initialisé');
+    const transform = capturedView2D.getTransform();
+
+    // 1. Initialement, aucune bannière d'erreur
+    expect(queryByTestId('error-banner')).toBeNull();
+
+    // 2. Activer DoorTool
+    const doorBtn = getByTestId('tool-door-btn');
+    act(() => {
+      fireEvent.click(doorBtn);
+    });
+
+    // 3. Clic à X = 2000 mm sur le mur sud (Y = 0) -> déjà occupé par door_demo
+    const clickWorld = { x: 2000, y: 0 };
+    const clickScreen = transform.worldToScreen(clickWorld);
+
+    const canvas2D = getByTestId('viewport-2d-canvas');
+    act(() => {
+      fireEvent.pointerDown(canvas2D, {
+        clientX: clickScreen.x,
+        clientY: clickScreen.y,
+        button: 0,
+      });
+    });
+
+    // 4. L'erreur métier OPENING_OVERLAP remonte jusqu'à l'UI via onErrorChange -> error-banner visible
+    const banner = getByTestId('error-banner');
+    expect(banner).toBeDefined();
+    expect(banner.textContent).toContain('OPENING_OVERLAP');
+
+    // 5. Fermeture de la bannière via le bouton de fermeture
+    const closeBtn = getByTestId('close-error-banner-btn');
+    act(() => {
+      fireEvent.click(closeBtn);
+    });
+    expect(queryByTestId('error-banner')).toBeNull();
+
+    cleanup();
+  });
 });
