@@ -154,6 +154,7 @@ export interface View2DOptions {
   readonly transform?: Transform2DOptions;
   readonly renderConfig?: Partial<View2DRenderConfig>;
   readonly activeLevelId?: string | null;
+  readonly enableInternalSelection?: boolean; // Défaut: true
 }
 ```
 
@@ -168,6 +169,9 @@ export interface View2DOptions {
 | `resize(width, height)` | Met à jour la résolution du canvas et le viewport de transformation. |
 | `hitTest(screenPos)` | Détecte l'élément architectural sous le curseur en coordonnées écran. |
 | `setSelectedIds(ids)` | Met à jour la liste des éléments sélectionnés et notifie les abonnés. |
+| `setSelection(ids)` | Alias standardisé de `setSelectedIds` pour conformité avec l'API des Tools. |
+| `setPreview(shape)` | Définit ou efface la forme de prévisualisation temporaire (`PreviewShape`). |
+| `getPreview()` | Retourne la forme de prévisualisation courante (ou `null`). |
 | `onCommandRequested(cb)` | Enregistre un écouteur notifié lors d'une demande de mutation par la vue. |
 | `onSelectionChanged(cb)` | Enregistre un écouteur notifié lors d'un changement de sélection. |
 | `emitCommand(command)` | Émet une commande vers les écouteurs sans JAMAIS muter le document. |
@@ -182,13 +186,22 @@ La détection combine deux critères géométriques rigoureux :
 2. **Inclusion dans l'emprise polygonale (Poché) :** Test des 4 demi-plans CCW formés par les sommets $[V_0, V_1, V_2, V_3]$ du rectangle d'emprise issu de `computeWallFootprint2d`.
 3. **Ordre de parcours :** Les murs sont testés en ordre inverse de création (du plus récent au plus ancien) pour sélectionner l'élément visible au premier plan.
 
+### 5.4 Délégation de Sélection & Mode Dual (`enableInternalSelection`)
+
+L'introduction des machines à états de Tools en Phase 2.3 (`SelectTool`, `WallTool`) a conduit à formaliser deux modes de fonctionnement pour `View2D` :
+
+- **`enableInternalSelection: false` (Mode Recommandé en Production pour `apps/web`) :**
+  Dans l'application complète, la gestion des clics, des états d'interaction et de la sélection est exclusivement confiée à `SelectTool` et orchestrée par le hook `useActiveTool`. `View2D` désactive son écouteur interne de clic gauche, évitant tout conflit de sélection ou double-traitement lors du tracé avec `WallTool`.
+- **`enableInternalSelection: true` (Mode Autonome / Standalone — Défaut par rétrocompatibilité) :**
+  Ce mode autonome permet à `View2D` d'être instancié et utilisé isolément dans des contextes simples (ex: visualiseur en lecture seule ou tests unitaires directs du package sans la stack d'outils applicatifs).
+
 ---
 
 ## 6. Couverture de Tests Automatisés
 
-Le package est validé à 100% en environnement headless Vitest / JSDOM (35 tests unitaires et d'intégration) :
+Le package est validé à 100% en environnement headless Vitest / JSDOM (37 tests unitaires et d'intégration) :
 - `transform.test.ts` (12 tests) : inversion mathématique $\Delta < 10^{-9}$, Y-up $\to$ Y-down, bijection sur cas asymétriques (+Y, -Y, +X/+Y, -X/-Y), zoom centré invariant, zoomToFit, pan, limites d'échelle.
 - `hit-test.test.ts` (3 tests) : test de footprint polygonale, hitTestWall, findWallAtScreen avec filtre de niveau.
 - `renderer.test.ts` (8 tests) : clearCanvas, grille adaptative avec seuil anti-saturation, axes, poché, contour, axe pointillé, surbrillance de sélection, filtre de niveau.
-- `View2D.test.ts` (12 tests) : initialisation, rendu à la demande, hit-testing, sélection interactive, règle d'or d'émission de commande sans mutation de document, immutabilité stricte du document au clic (`doc.toJSON()` invariant), molette, pan, zoomToFit, resize, dispose, déconnexion du ResizeObserver.
+- `View2D.test.ts` (14 tests) : initialisation, rendu à la demande, hit-testing, sélection interactive (mode autonome), désactivation de la sélection interne (`enableInternalSelection: false`), prévisualisation temporaire (`setPreview` / `getPreview`), règle d'or d'émission de commande sans mutation de document, immutabilité stricte du document au clic (`doc.toJSON()` invariant), molette, pan, zoomToFit, resize, dispose, déconnexion du ResizeObserver.
 $$

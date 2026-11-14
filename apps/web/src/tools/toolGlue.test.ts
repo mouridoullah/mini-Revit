@@ -4,6 +4,8 @@ import { convertPointerEvent, convertKeyEvent } from './toolGlue.js';
 describe('toolGlue (Conversion des événements DOM en ToolEvents normalisés)', () => {
   it('convertPointerEvent calcule des coordonnées écran strictement relatives au canvas décalé', () => {
     const canvas = document.createElement('canvas');
+    canvas.width = 800;
+    canvas.height = 600;
     // Canvas positionné à (left: 100, top: 50) dans la fenêtre
     canvas.getBoundingClientRect = vi.fn().mockReturnValue({
       left: 100,
@@ -34,8 +36,40 @@ describe('toolGlue (Conversion des événements DOM en ToolEvents normalisés)',
     });
   });
 
+  it('compense fidèlement le ratio de redimensionnement CSS (canvas.width / rect.width)', () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 800;
+    canvas.height = 600;
+
+    // Canvas affiché à moitié de sa résolution intrinsèque (ex: style CSS width: 400px, height: 300px)
+    canvas.getBoundingClientRect = vi.fn().mockReturnValue({
+      left: 0,
+      top: 0,
+      right: 400,
+      bottom: 300,
+      width: 400,
+      height: 300,
+    } as DOMRect);
+
+    // Clic en (200, 200) CSS -> doit donner (400, 400) en pixels internes de canvas buffer
+    const event = new PointerEvent('pointerdown', {
+      clientX: 200,
+      clientY: 200,
+      button: 0,
+      shiftKey: false,
+      altKey: false,
+    });
+
+    const toolEvent = convertPointerEvent(event, canvas);
+
+    expect(toolEvent.screen.x).toBe(400);
+    expect(toolEvent.screen.y).toBe(400);
+  });
+
   it('gère correctement les types pointermove et pointerup', () => {
     const canvas = document.createElement('canvas');
+    canvas.width = 800;
+    canvas.height = 600;
     canvas.getBoundingClientRect = vi.fn().mockReturnValue({
       left: 0,
       top: 0,

@@ -1,6 +1,10 @@
 import { type Vec2 } from '@mini-bim/view-2d';
 
-const SQRT2_OVER_2 = Math.SQRT2 / 2;
+/**
+ * Constante 1 / √2 (soit √2 / 2) en précision flottante 64 bits IEEE-754 (~1.11e-16).
+ * Définie via la constante standard Math.SQRT1_2.
+ */
+const SQRT1_2 = Math.SQRT1_2;
 
 /**
  * Vecteurs unitaires précalculés pour les 8 directions cardinales et semi-cardinales (multiples de 45°).
@@ -9,18 +13,25 @@ const SQRT2_OVER_2 = Math.SQRT2 / 2;
  */
 const SNAP_DIRECTIONS: readonly (readonly [number, number])[] = [
   [1, 0], // 0° (Est, +X)
-  [SQRT2_OVER_2, SQRT2_OVER_2], // 45° (Nord-Est)
+  [SQRT1_2, SQRT1_2], // 45° (Nord-Est)
   [0, 1], // 90° (Nord, +Y)
-  [-SQRT2_OVER_2, SQRT2_OVER_2], // 135° (Nord-Ouest)
+  [-SQRT1_2, SQRT1_2], // 135° (Nord-Ouest)
   [-1, 0], // 180° (Ouest, -X)
-  [-SQRT2_OVER_2, -SQRT2_OVER_2], // 225° (Sud-Ouest)
+  [-SQRT1_2, -SQRT1_2], // 225° (Sud-Ouest)
   [0, -1], // 270° (Sud, -Y)
-  [SQRT2_OVER_2, -SQRT2_OVER_2], // 315° (Sud-Est)
+  [SQRT1_2, -SQRT1_2], // 315° (Sud-Est)
 ];
 
 /**
  * Projette le point `current` sur le multiple de 45° le plus proche par rapport à `start`,
- * tout en conservant rigoureusement la distance euclidienne (longueur du segment).
+ * selon la stratégie de **longueur conservée** (rayon polaire euclidien préservé).
+ *
+ * Justification architecturale :
+ * Dans les logiciels de CAO/BIM (AutoCAD, Revit), l'aimantation angulaire (polar/ortho snap)
+ * préserve la distance curseur-origine `r = ||current - start||` tout en alignant la direction
+ * sur le rayon polaire snappé : `start + r * dir_snapped`.
+ * Une projection scalaire dot-product rétrécirait artificiellement le mur lors d'une déviation
+ * angulaire de quelques degrés (ex: cos(1°) à 44° réduirait la longueur).
  *
  * Fonction PURE sans aucun effet secondaire.
  *

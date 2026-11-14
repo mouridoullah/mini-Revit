@@ -2,7 +2,8 @@ import { type ToolEvent } from './types.js';
 
 /**
  * Convertit un PointerEvent DOM brut en ToolEvent normalisé pour les machines à états.
- * Les coordonnées screen sont strictement relatives au canvas via getBoundingClientRect().
+ * Les coordonnées screen sont strictement relatives au canvas via getBoundingClientRect()
+ * et compensent fidèlement le ratio d'affichage CSS (canvas.width / rect.width).
  *
  * @param event Événement PointerEvent issu du navigateur
  * @param canvas Élément HTMLCanvasElement cible
@@ -10,9 +11,12 @@ import { type ToolEvent } from './types.js';
  */
 export function convertPointerEvent(event: PointerEvent, canvas: HTMLCanvasElement): ToolEvent {
   const rect = canvas.getBoundingClientRect();
+  const scaleX = rect.width > 0 ? canvas.width / rect.width : 1;
+  const scaleY = rect.height > 0 ? canvas.height / rect.height : 1;
+
   const screen = {
-    x: event.clientX - rect.left,
-    y: event.clientY - rect.top,
+    x: (event.clientX - rect.left) * scaleX,
+    y: (event.clientY - rect.top) * scaleY,
   };
 
   if (event.type === 'pointerdown') {

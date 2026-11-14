@@ -164,12 +164,22 @@ export type ToolOutput =
 - **Validation par relâchement :** Tracé par clic-glisser standard.
 - **Validation par touche `Enter` :** Permet la validation sans relâcher immédiatement.
 - **Annulation par touche `Escape` :** Efface le rubber-band et revient à `idle`.
-- **Contrainte de longueur minimale :** $L < 100\text{ mm}$ annule silencieusement pour éviter la pollution du modèle par des clics accidentels.
-- **Aimantation angulaire (Shift) :** Si la touche `Shift` est enfoncée lors du déplacement ou du relâchement, le point d'arrivée est projeté sur l'axe multiple de 45° le plus proche.
+- **Contrainte de longueur minimale ergonomique (`MIN_WALL_LENGTH = 100 mm`) :** $L < 100\text{ mm}$ annule silencieusement pour éviter la création de micro-segments involontaires lors d'un clic parasite sans intention de glisser.  
+  _Note d'architecture :_ Ce seuil UX est distinct de la règle d'intégrité topologique du modèle dans `@mini-bim/core` (`validateWall` exigeant $\text{length} > 10^{-4}\text{ mm}$). Le modèle autorise des murs plus courts programmés ou importés, mais l'interaction utilisateur à la souris applique un garde-fou ergonomique de 10 cm.
+- **Aimantation angulaire (Shift) :** Si la touche `Shift` est enfoncée lors du déplacement ou du relâchement, le point d'arrivée est aligné sur l'axe multiple de 45° le plus proche selon la stratégie de **longueur conservée**.
 
 ---
 
 ## 5. Algorithme d'Aimantation Angulaire à 45° (`snapAngle45`)
+
+### 5.1 Décision : Longueur Conservée vs Projection Scalaire
+
+Dans les logiciels de CAO/BIM professionnels (AutoCAD, Revit, Archicad), l'aimantation angulaire polaire/orthogonale applique la stratégie de **longueur conservée** :
+$$\mathbf{P}_{\text{snapped}} = \mathbf{P}_{\text{start}} + r \cdot \mathbf{U}[k] \quad \text{où } r = \|\mathbf{P}_{\text{current}} - \mathbf{P}_{\text{start}}\|$$
+
+Une projection scalaire produit scalaire ($\operatorname{dot}(\vec{v}, \vec{u})\cdot \vec{u}$) réduirait artificiellement la longueur lors d'une déviation angulaire de quelques degrés ($\cos(1^\circ) \approx 0.9998 \cdot r$), provoquant une variation indésirable de la longueur lors du tracé. La longueur conservée permet à l'utilisateur de doser la longueur du mur à la distance voulue tout en bénéficiant de l'alignement directionnel.
+
+### 5.2 Précision Float64 et Absence de Dérive
 
 Pour garantir une précision parfaite sur les 8 directions ($0^\circ, 45^\circ, 90^\circ, 135^\circ, 180^\circ, -135^\circ, -90^\circ, -45^\circ$) et éliminer les erreurs de trigonométrie flottante :
 
@@ -179,30 +189,38 @@ Pour garantir une précision parfaite sur les 8 directions ($0^\circ, 45^\circ, 
 4. Normalisation positive : $\theta_{\text{norm}} = (\theta < 0) \; ? \; \theta + 2\pi : \theta$.
 5. Index du secteur (largeur $\pi/4$, décalage $\pi/8$) :
    $$k = \left\lfloor \frac{\theta_{\text{norm}} + \frac{\pi}{8}}{\frac{\pi}{4}} \right\rfloor \bmod 8$$
-6. Consultation du vecteur unitaire tabulé :
+6. Consultation du vecteur unitaire tabulé (avec `Math.SQRT1_2` $\approx 0.7071067811865476$) :
    $$ \mathbf{U} = \begin{bmatrix}
    (1, 0) \\
-   (\tfrac{\sqrt{2}}{2}, \tfrac{\sqrt{2}}{2}) \\
+   (\texttt{Math.SQRT1\_2}, \texttt{Math.SQRT1\_2}) \\
    (0, 1) \\
-   (-\tfrac{\sqrt{2}}{2}, \tfrac{\sqrt{2}}{2}) \\
+   (-\texttt{Math.SQRT1\_2}, \texttt{Math.SQRT1\_2}) \\
    (-1, 0) \\
-   (-\tfrac{\sqrt{2}}{2}, -\tfrac{\sqrt{2}}{2}) \\
+   (-\texttt{Math.SQRT1\_2}, -\texttt{Math.SQRT1\_2}) \\
    (0, -1) \\
-   (\tfrac{\sqrt{2}}{2}, -\tfrac{\sqrt{2}}{2})
+   (\texttt{Math.SQRT1\_2}, -\texttt{Math.SQRT1\_2})
    \end{bmatrix}$$
    $$
 7. Point aimanté exact :
    $$\mathbf{P}_{\text{snapped}} = \mathbf{P}_{\text{start}} + r \cdot \mathbf{U}[k]$$
 
-**Propriété :** Pour $k = 0, 2, 4, 6$ (axes cardinaux), l'une des composantes est **strictement zéro**, garantissant qu'aucun mur orthogonal ne dévie d'un millième de degré.
+**Propriétés mathématiques vérifiées par test :**
+
+- Pour $k = 0, 2, 4, 6$ (axes cardinaux), l'une des composantes est **strictement zéro bit-à-bit** en IEEE-754 ($y \equiv 0$ ou $x \equiv 0$).
+- Pour $k = 1, 3, 5, 7$ (diagonales), $\Delta x$ et $\Delta y$ sont calculés par le même produit `r * Math.SQRT1_2`, assurant une égalité binaire stricte $|\Delta x| \equiv |\Delta y|$ et une pente exacte $\frac{\Delta y}{\Delta x} \equiv 1.0$ (erreur résiduelle $< 10^{-15}$).
 
 ---
 
 ## 6. Pont DOM et Intégration React
 
-### 6.1 Normalisation DOM (`toolGlue.ts`)
+### 6.1 Normalisation DOM & Ratio d'Affichage CSS (`toolGlue.ts`)
 
-- Conversion de `PointerEvent` en coordonnées locales d'affichage en soustrayant `canvas.getBoundingClientRect()`.
+- Conversion de `PointerEvent` en coordonnées locales d'affichage relatives à `canvas.getBoundingClientRect()`.
+- Application du ratio d'échelle CSS :
+  $$\text{scaleX} = \frac{\text{canvas.width}}{\text{rect.width}}, \quad \text{scaleY} = \frac{\text{canvas.height}}{\text{rect.height}}$$
+  $$x_{\text{canvas}} = (e.\text{clientX} - \text{rect.left}) \cdot \text{scaleX}$$
+  $$y_{\text{canvas}} = (e.\text{clientY} - \text{rect.top}) \cdot \text{scaleY}$$
+  Garantit une fidélité absolue même lorsque le canvas est affiché via un style CSS responsive (ex: `width: 100%`) différent de sa résolution interne en pixels.
 - Gestion des touches de modification (`shiftKey`, `altKey`).
 - Extraction des touches du clavier (`Escape`, `Enter`).
 

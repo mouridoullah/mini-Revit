@@ -8,7 +8,13 @@ import {
   type WallToolState,
 } from './types.js';
 
-export const MIN_WALL_LENGTH = 100; // 100 mm minimum
+/**
+ * Seuil ergonomique UX de longueur minimale pour le tracé interactif (100 mm).
+ * Note d'architecture : Ne pas confondre avec le seuil métier de @mini-bim/core
+ * (validateWall exige len > 1e-4 mm pour l'intégrité topologique).
+ * MIN_WALL_LENGTH sert exclusivement à éliminer les clics parasites sans intention de glisser.
+ */
+export const MIN_WALL_LENGTH = 100;
 
 /**
  * Outil interactif de tracé de murs par pointerdown -> pointermove -> pointerup (clic-glisser).

@@ -28,6 +28,31 @@ describe('snapAngle45 (Snap angulaire à 45°)', () => {
     expect(Math.hypot(snapped.x, snapped.y)).toBeCloseTo(Math.hypot(1000, 900), 6);
   });
 
+  it('tracé à 44° donne un mur à exactement 45° (précision float64 dy/dx ≈ 1.0) et conserve la longueur', () => {
+    const start = { x: 1250, y: 750 };
+    const radius = 4500; // 4,5 mètres
+    const angle44Rad = (44 * Math.PI) / 180;
+    const target = {
+      x: start.x + radius * Math.cos(angle44Rad),
+      y: start.y + radius * Math.sin(angle44Rad),
+    };
+
+    const snapped = snapAngle45(start, target);
+    const deltaX = snapped.x - start.x;
+    const deltaY = snapped.y - start.y;
+
+    // 1. Rapport de pente exactement égal à 1.0 à la précision machine IEEE-754 (< 1e-15)
+    expect(Math.abs(deltaY / deltaX - 1.0)).toBeLessThan(1e-15);
+
+    // 2. Égalité bit-à-bit stricte si l'origine est (0, 0)
+    const snappedFromZero = snapAngle45({ x: 0, y: 0 }, { x: 1000, y: 965 }); // ~44°
+    expect(snappedFromZero.y).toBe(snappedFromZero.x);
+    expect(snappedFromZero.y / snappedFromZero.x).toBe(1.0);
+
+    // 3. Préservation de la longueur (distance euclidienne conservée)
+    expect(Math.hypot(deltaX, deltaY)).toBeCloseTo(radius, 10);
+  });
+
   it('snap fidèlement à 90° (vertical +Y) avec x == 0 exact', () => {
     // 88° par rapport à l'horizontale
     const target = { x: 35, y: 1000 };
