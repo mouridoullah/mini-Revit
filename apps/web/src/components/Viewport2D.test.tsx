@@ -6,6 +6,9 @@ import { BimDocumentProvider } from '../context/BimDocumentContext.js';
 import { Viewport2D } from './Viewport2D.js';
 import { WallTool } from '../tools/WallTool.js';
 import { SelectTool } from '../tools/SelectTool.js';
+import { DoorTool } from '../tools/DoorTool.js';
+import { MoveWallTool } from '../tools/MoveWallTool.js';
+import { Commands } from '@mini-bim/core';
 
 describe('Viewport2D React Wrapper & Tools Integration (apps/web)', () => {
   const disposeSpy = vi.spyOn(View2DModule.View2D.prototype, 'dispose');
@@ -232,5 +235,125 @@ describe('Viewport2D React Wrapper & Tools Integration (apps/web)', () => {
     );
 
     expect(setSelectionSpy).toHaveBeenCalledWith([]);
+  });
+
+  it('DoorTool + placement : pointerdown au-dessus d’un mur exécute AddDoorCommand et ajoute la porte au document', () => {
+    const doc = BimDocument.createDefaultProject();
+    const typeId = Object.keys(doc.getState().wallTypes)[0] ?? '';
+    const levelId = Object.keys(doc.getState().levels)[0] ?? '';
+
+    doc.execute(
+      new Commands.AddWallCommand({
+        id: 'w_door_host',
+        category: 'wall',
+        typeId,
+        levelId,
+        start: { x: 0, y: 0 },
+        end: { x: 5000, y: 0 },
+      }),
+    );
+
+    const doorTool = new DoorTool();
+
+    const { getByTestId } = render(
+      <BimDocumentProvider initialDoc={doc}>
+        <Viewport2D tool={doorTool} />
+      </BimDocumentProvider>,
+    );
+
+    const canvas = getByTestId('viewport-2d-canvas');
+
+    // Clic au centre de la vue à (400, 300) qui correspond au centre du mur (2500, 0) suite au zoomToFit
+    act(() => {
+      fireEvent.pointerDown(canvas, {
+        clientX: 400,
+        clientY: 300,
+        button: 0,
+      });
+    });
+
+    const doors = Object.values(doc.getState().doors ?? {});
+    expect(doors.length).toBe(1);
+    expect(doors[0]?.hostWallId).toBe('w_door_host');
+    expect(doors[0]?.offsetAlong).toBe(2500);
+    expect(doors[0]?.width).toBe(900);
+  });
+
+  it('MoveWallTool + drag : drag d’un mur hôte déplace le mur, UpdateWallCommand est exécuté et la porte suit', () => {
+    const doc = BimDocument.createDefaultProject();
+    const typeId = Object.keys(doc.getState().wallTypes)[0] ?? '';
+    const levelId = Object.keys(doc.getState().levels)[0] ?? '';
+
+    doc.execute(
+      new Commands.AddWallCommand({
+        id: 'w_move_host',
+        category: 'wall',
+        typeId,
+        levelId,
+        start: { x: 0, y: 0 },
+        end: { x: 5000, y: 0 },
+      }),
+    );
+
+    doc.execute(
+      new Commands.AddDoorCommand({
+        id: 'door_hosted',
+        category: 'door',
+        kind: 'door',
+        hostWallId: 'w_move_host',
+        offsetAlong: 2000,
+        width: 900,
+        height: 2100,
+        swing: { side: 'left', direction: 'in' },
+      }),
+    );
+
+    const moveWallTool = new MoveWallTool();
+
+    const { getByTestId } = render(
+      <BimDocumentProvider initialDoc={doc}>
+        <Viewport2D tool={moveWallTool} />
+      </BimDocumentProvider>,
+    );
+
+    const canvas = getByTestId('viewport-2d-canvas');
+
+    // 1. Grab sur le mur au centre de la vue (400, 300)
+    act(() => {
+      fireEvent.pointerDown(canvas, {
+        clientX: 400,
+        clientY: 300,
+        button: 0,
+      });
+    });
+    expect(moveWallTool.getState().kind).toBe('dragging');
+
+    // 2. Drag de +25 px en X (avec zoomToFit : 25px / 0.136 ≈ 183.8mm -> snappé à 180mm)
+    act(() => {
+      fireEvent.pointerMove(canvas, {
+        clientX: 425,
+        clientY: 300,
+      });
+    });
+
+    // 3. Relâchement
+    act(() => {
+      fireEvent.pointerUp(canvas, {
+        clientX: 425,
+        clientY: 300,
+        button: 0,
+      });
+    });
+
+    // Le mur s'est déplacé de 180 mm
+    const movedWall = doc.getState().walls['w_move_host'];
+    expect(movedWall).toBeDefined();
+    expect(movedWall?.start).toEqual({ x: 180, y: 0 });
+    expect(movedWall?.end).toEqual({ x: 5180, y: 0 });
+
+    // La porte conserve strictement son offsetAlong dans le modèle
+    const door = doc.getState().doors?.['door_hosted'];
+    expect(door).toBeDefined();
+    expect(door?.offsetAlong).toBe(2000);
   });
 });

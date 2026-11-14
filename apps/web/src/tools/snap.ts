@@ -66,3 +66,25 @@ export function snapAngle45(start: Vec2, current: Vec2): Vec2 {
     y: start.y + length * dirY,
   };
 }
+
+/**
+ * Aligne une valeur sur un pas (step), avec arrondi au pair le plus proche (banker's rounding)
+ * pour éliminer les biais d'arrondi sur les valeurs médianes (ex: 105 mm avec step 10 mm -> 100 mm).
+ *
+ * @param value Valeur flottante ou entière
+ * @param step Pas d'alignement (ex: 50 pour 50 mm, 10 pour 10 mm)
+ * @returns Valeur alignée sur le multiple de step le plus proche
+ */
+export function snapToStep(value: number, step: number): number {
+  if (step <= 0) return value;
+  const scaled = value / step;
+  const floor = Math.floor(scaled);
+  const diff = scaled - floor;
+  let rounded: number;
+  if (Math.abs(diff - 0.5) < 1e-9) {
+    rounded = floor % 2 === 0 ? floor : floor + 1;
+  } else {
+    rounded = Math.round(scaled);
+  }
+  return rounded * step;
+}

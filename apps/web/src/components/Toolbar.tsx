@@ -39,6 +39,14 @@ export function Toolbar({
         onSelectTool('select');
       } else if (e.key === 'w' || e.key === 'W') {
         onSelectTool('wall');
+      } else if (e.key === 'd' || e.key === 'D') {
+        onSelectTool('door');
+      } else if (e.key === 'f' || e.key === 'F') {
+        onSelectTool('window');
+      } else if (e.key === 'm' || e.key === 'M') {
+        onSelectTool('moveWall');
+      } else if (e.key === 'o' || e.key === 'O') {
+        onSelectTool('moveOpening');
       }
     };
 
@@ -87,7 +95,7 @@ export function Toolbar({
             color: '#9ca3af',
           }}
         >
-          Phase 2.4 — Sync & Persistance
+          Phase 3.3 — Outils & Déplacement
         </span>
       </div>
 
@@ -130,6 +138,78 @@ export function Toolbar({
             }}
           >
             Tracer Mur (W)
+          </button>
+          <button
+            type="button"
+            data-testid="tool-door-btn"
+            onClick={() => onSelectTool('door')}
+            style={{
+              padding: '6px 12px',
+              fontSize: '12px',
+              fontWeight: activeToolKind === 'door' ? 600 : 400,
+              borderRadius: '4px',
+              backgroundColor: activeToolKind === 'door' ? '#2563eb' : '#374151',
+              color: activeToolKind === 'door' ? '#ffffff' : '#d1d5db',
+              border: activeToolKind === 'door' ? '1px solid #3b82f6' : '1px solid #4b5563',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease-in-out',
+            }}
+          >
+            Porte (D)
+          </button>
+          <button
+            type="button"
+            data-testid="tool-window-btn"
+            onClick={() => onSelectTool('window')}
+            style={{
+              padding: '6px 12px',
+              fontSize: '12px',
+              fontWeight: activeToolKind === 'window' ? 600 : 400,
+              borderRadius: '4px',
+              backgroundColor: activeToolKind === 'window' ? '#2563eb' : '#374151',
+              color: activeToolKind === 'window' ? '#ffffff' : '#d1d5db',
+              border: activeToolKind === 'window' ? '1px solid #3b82f6' : '1px solid #4b5563',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease-in-out',
+            }}
+          >
+            Fenêtre (F)
+          </button>
+          <button
+            type="button"
+            data-testid="tool-move-wall-btn"
+            onClick={() => onSelectTool('moveWall')}
+            style={{
+              padding: '6px 12px',
+              fontSize: '12px',
+              fontWeight: activeToolKind === 'moveWall' ? 600 : 400,
+              borderRadius: '4px',
+              backgroundColor: activeToolKind === 'moveWall' ? '#2563eb' : '#374151',
+              color: activeToolKind === 'moveWall' ? '#ffffff' : '#d1d5db',
+              border: activeToolKind === 'moveWall' ? '1px solid #3b82f6' : '1px solid #4b5563',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease-in-out',
+            }}
+          >
+            Déplacer Mur (M)
+          </button>
+          <button
+            type="button"
+            data-testid="tool-move-opening-btn"
+            onClick={() => onSelectTool('moveOpening')}
+            style={{
+              padding: '6px 12px',
+              fontSize: '12px',
+              fontWeight: activeToolKind === 'moveOpening' ? 600 : 400,
+              borderRadius: '4px',
+              backgroundColor: activeToolKind === 'moveOpening' ? '#2563eb' : '#374151',
+              color: activeToolKind === 'moveOpening' ? '#ffffff' : '#d1d5db',
+              border: activeToolKind === 'moveOpening' ? '1px solid #3b82f6' : '1px solid #4b5563',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease-in-out',
+            }}
+          >
+            Déplacer Ouverture (O)
           </button>
         </div>
 

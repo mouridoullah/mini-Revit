@@ -4,7 +4,7 @@ import { type Transform2D, type PreviewShape, type Vec2 } from '@mini-bim/view-2
 /**
  * Identifiant du type d'outil interactif actif.
  */
-export type ToolKind = 'select' | 'wall';
+export type ToolKind = 'select' | 'wall' | 'door' | 'window' | 'moveWall' | 'moveOpening';
 
 /**
  * États possibles de la machine à états SelectTool.
@@ -33,6 +33,75 @@ export type WallToolState =
       readonly startWorld: Vec2;
       readonly endWorld: Vec2;
     };
+
+/**
+ * États possibles de la machine à états DoorTool.
+ */
+export type DoorToolState =
+  | { readonly kind: 'idle' }
+  | {
+      readonly kind: 'hovering';
+      readonly wallId: string;
+      readonly offsetAlong: number;
+    }
+  | { readonly kind: 'placed'; readonly doorId: string };
+
+/**
+ * États possibles de la machine à états WindowTool.
+ */
+export type WindowToolState =
+  | { readonly kind: 'idle' }
+  | {
+      readonly kind: 'hovering';
+      readonly wallId: string;
+      readonly offsetAlong: number;
+    }
+  | { readonly kind: 'placed'; readonly windowId: string };
+
+/**
+ * États possibles de la machine à états MoveWallTool.
+ */
+export type MoveWallToolState =
+  | { readonly kind: 'idle' }
+  | {
+      readonly kind: 'dragging';
+      readonly wallId: string;
+      readonly startWall: { readonly start: Vec2; readonly end: Vec2 };
+      readonly grabWorld: Vec2;
+      readonly currentDelta: Vec2;
+    };
+
+/**
+ * États possibles de la machine à états MoveOpeningTool.
+ */
+export type MoveOpeningToolState =
+  | { readonly kind: 'idle' }
+  | {
+      readonly kind: 'dragging';
+      readonly openingId: string;
+      readonly hostWallId: string;
+      readonly initialOffsetAlong: number;
+      readonly currentOffsetAlong: number;
+      readonly width: number;
+    };
+
+/**
+ * Paramètres par défaut configurables pour l'insertion de portes.
+ */
+export interface DoorDefaults {
+  readonly width: number;
+  readonly height: number;
+  readonly swing: { readonly side: 'left' | 'right'; readonly direction: 'in' | 'out' };
+}
+
+/**
+ * Paramètres par défaut configurables pour l'insertion de fenêtres.
+ */
+export interface WindowDefaults {
+  readonly width: number;
+  readonly height: number;
+  readonly sillHeight: number;
+}
 
 /**
  * Événements d'entrée normalisés transmis aux machines à états des Tools.
@@ -81,6 +150,8 @@ export interface ToolContext {
   readonly transform: Transform2D;
   readonly activeLevelId: string;
   readonly activeWallTypeId?: string;
+  readonly doorDefaults?: DoorDefaults;
+  readonly windowDefaults?: WindowDefaults;
 }
 
 /**
@@ -88,7 +159,13 @@ export interface ToolContext {
  */
 export interface Tool {
   readonly kind: ToolKind;
-  getState(): SelectToolState | WallToolState;
+  getState():
+    | SelectToolState
+    | WallToolState
+    | DoorToolState
+    | WindowToolState
+    | MoveWallToolState
+    | MoveOpeningToolState;
   handle(event: ToolEvent, ctx: ToolContext): ToolOutput;
   reset(): void;
 }

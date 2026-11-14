@@ -2,7 +2,12 @@ import { describe, it, expect } from 'vitest';
 import { vec2 } from '@mini-bim/geometry';
 import { BimDocument, Commands, type Wall, type WallType } from '@mini-bim/core';
 import { Transform2D } from './transform.js';
-import { isPointInsideOrNearFootprint, hitTestWall, findWallAtScreen } from './hit-test.js';
+import {
+  isPointInsideOrNearFootprint,
+  hitTestWall,
+  findWallAtScreen,
+  findOpeningAtScreen,
+} from './hit-test.js';
 
 describe('Hit-Test Découplé (hit-test.ts)', () => {
   const wall: Wall = {
@@ -91,5 +96,83 @@ describe('Hit-Test Découplé (hit-test.ts)', () => {
       activeLevelId: 'lvl_non_existant',
     });
     expect(otherLevelHit).toBeNull();
+  });
+
+  it('findOpeningAtScreen détecte portes et fenêtres avec précision et rejette les clics hors zone', () => {
+    const transform = new Transform2D({
+      origin: vec2(0, 0),
+      scale: 0.05,
+      viewportWidth: 800,
+      viewportHeight: 600,
+    });
+
+    const doc = BimDocument.createDefaultProject();
+    const state = doc.getState();
+    const typeId = Object.keys(state.wallTypes)[0]!;
+    const levelId = Object.keys(state.levels)[0]!;
+
+    doc.execute(
+      new Commands.AddWallCommand({
+        id: 'w_host',
+        category: 'wall',
+        typeId,
+        levelId,
+        start: vec2(0, 0),
+        end: vec2(6000, 0),
+      }),
+    );
+
+    doc.execute(
+      new Commands.AddDoorCommand({
+        id: 'door_test_1',
+        category: 'door',
+        kind: 'door',
+        hostWallId: 'w_host',
+        offsetAlong: 1000,
+        width: 900,
+        height: 2100,
+        swing: { side: 'left', direction: 'in' },
+      }),
+    );
+
+    doc.execute(
+      new Commands.AddWindowCommand({
+        id: 'win_test_1',
+        category: 'window',
+        kind: 'window',
+        hostWallId: 'w_host',
+        offsetAlong: 3500,
+        width: 1200,
+        height: 1400,
+        sillHeight: 900,
+      }),
+    );
+
+    // Mur va de (0,0) à (6000,0) -> écran X va de 400 à 700, Y = 300.
+    // Porte à offset 1000 (X monde = 1000 à 1900) -> écran X = 400 + 1000*0.05 = 450 à 495.
+    // Clic au milieu de la porte : monde (1450, 0) -> écran (472.5, 300)
+    const doorHit = findOpeningAtScreen(vec2(472.5, 300), transform, doc);
+    expect(doorHit).toEqual({
+      id: 'door_test_1',
+      kind: 'door',
+      hostWallId: 'w_host',
+    });
+
+    // Fenêtre à offset 3500 (X monde = 3500 à 4700) -> écran X = 400 + 3500*0.05 = 575 à 635.
+    // Clic au milieu de la fenêtre : monde (4100, 0) -> écran (605, 300)
+    const winHit = findOpeningAtScreen(vec2(605, 300), transform, doc);
+    expect(winHit).toEqual({
+      id: 'win_test_1',
+      kind: 'window',
+      hostWallId: 'w_host',
+    });
+
+    // Clic sur le mur mais hors des ouvertures : monde (2500, 0) -> écran (525, 300)
+    const wallOnlyHit = findOpeningAtScreen(vec2(525, 300), transform, doc);
+    expect(wallOnlyHit).toBeNull();
+
+    // Clic au-delà de l'épaisseur du mur : monde (1450, 300) -> écran (472.5, 300 - 15)
+    const farPerpHit = findOpeningAtScreen(vec2(472.5, 270), transform, doc);
+    expect(farPerpHit).toBeNull();
   });
 });

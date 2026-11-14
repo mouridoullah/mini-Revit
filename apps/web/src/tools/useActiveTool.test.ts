@@ -3,6 +3,10 @@ import { renderHook, act } from '@testing-library/react';
 import { useActiveTool } from './useActiveTool.js';
 import { SelectTool } from './SelectTool.js';
 import { WallTool } from './WallTool.js';
+import { DoorTool } from './DoorTool.js';
+import { WindowTool } from './WindowTool.js';
+import { MoveWallTool } from './MoveWallTool.js';
+import { MoveOpeningTool } from './MoveOpeningTool.js';
 import { BimDocument } from '@mini-bim/core';
 import { Transform2D } from '@mini-bim/view-2d';
 import { type ToolContext } from './types.js';
@@ -116,5 +120,61 @@ describe('useActiveTool Hook', () => {
       result.current.setActiveToolKind('wall');
     });
     expect(result.current.activeToolKind).toBe('wall');
+  });
+
+  it('setActiveToolKind("moveWall") appelle SelectTool.reset() et active MoveWallTool', () => {
+    const selectResetSpy = vi.spyOn(SelectTool.prototype, 'reset');
+    const { result } = renderHook(() => useActiveTool('select'));
+
+    act(() => {
+      result.current.setActiveToolKind('moveWall');
+    });
+
+    expect(selectResetSpy).toHaveBeenCalledTimes(1);
+    expect(result.current.activeToolKind).toBe('moveWall');
+    expect(result.current.activeTool).toBeInstanceOf(MoveWallTool);
+  });
+
+  it('supporte l’activation de chacun des 6 outils avec réinitialisation de l’outil sortant', () => {
+    const moveWallResetSpy = vi.spyOn(MoveWallTool.prototype, 'reset');
+    const doorResetSpy = vi.spyOn(DoorTool.prototype, 'reset');
+    const winResetSpy = vi.spyOn(WindowTool.prototype, 'reset');
+    const moveOpResetSpy = vi.spyOn(MoveOpeningTool.prototype, 'reset');
+
+    const { result } = renderHook(() => useActiveTool('select'));
+
+    // 1. door
+    act(() => {
+      result.current.setActiveToolKind('door');
+    });
+    expect(result.current.activeTool).toBeInstanceOf(DoorTool);
+
+    // 2. window (door.reset appelé)
+    act(() => {
+      result.current.setActiveToolKind('window');
+    });
+    expect(doorResetSpy).toHaveBeenCalledTimes(1);
+    expect(result.current.activeTool).toBeInstanceOf(WindowTool);
+
+    // 3. moveWall (window.reset appelé)
+    act(() => {
+      result.current.setActiveToolKind('moveWall');
+    });
+    expect(winResetSpy).toHaveBeenCalledTimes(1);
+    expect(result.current.activeTool).toBeInstanceOf(MoveWallTool);
+
+    // 4. moveOpening (moveWall.reset appelé)
+    act(() => {
+      result.current.setActiveToolKind('moveOpening');
+    });
+    expect(moveWallResetSpy).toHaveBeenCalledTimes(1);
+    expect(result.current.activeTool).toBeInstanceOf(MoveOpeningTool);
+
+    // 5. select (moveOpening.reset appelé)
+    act(() => {
+      result.current.setActiveToolKind('select');
+    });
+    expect(moveOpResetSpy).toHaveBeenCalledTimes(1);
+    expect(result.current.activeTool).toBeInstanceOf(SelectTool);
   });
 });

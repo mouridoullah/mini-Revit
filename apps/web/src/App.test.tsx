@@ -4,6 +4,7 @@ import { StrictMode } from 'react';
 import { View2D } from '@mini-bim/view-2d';
 import * as view2dModule from '@mini-bim/view-2d';
 import { Scene3D } from '@mini-bim/view-3d';
+import * as Scene3DModule from '@mini-bim/view-3d';
 import { BimDocument, AddWallCommand } from '@mini-bim/core';
 import { App } from './App.js';
 import { createDemoDocument } from './demo/demoDocument.js';
@@ -455,6 +456,72 @@ describe('App Integration & Squelette Double Viewport (apps/web)', () => {
       expect(statusBar?.textContent).toContain('Murs : 0');
       expect(statusBar?.textContent).not.toContain('Longueur :');
     });
+
+    cleanup();
+  });
+
+  it('LE TEST DE CRÉDIBILITÉ DU BIM : MoveWallTool déplace le mur, la porte suit automatiquement avec offsetAlong inchangé', async () => {
+    const doc = createDemoDocument();
+    const createMeshSpy = vi.spyOn(Scene3DModule, 'createWallMeshWithOpenings');
+
+    const { getByTestId } = render(<App initialDoc={doc} />);
+
+    // 1. État initial : wall_south va de (0, 0) à (6000, 0), door_demo est à offsetAlong = 2000
+    expect(doc.getState().walls['wall_south']?.start).toEqual({ x: 0, y: 0 });
+    expect(doc.getState().doors?.['door_demo']?.offsetAlong).toBe(2000);
+
+    // 2. Activer l'outil MoveWallTool depuis la Toolbar
+    const moveWallBtn = getByTestId('tool-move-wall-btn');
+    act(() => {
+      fireEvent.click(moveWallBtn);
+    });
+
+    const statusInfo = getByTestId('status-tool-info');
+    expect(statusInfo.textContent).toContain('Déplacer Mur (M)');
+
+    // 3. PointerDown sur wall_south (centre de wall_south projeté à l'écran : clientX = 400, clientY ≈ 526.67)
+    const canvas2D = getByTestId('viewport-2d-canvas');
+    act(() => {
+      fireEvent.pointerDown(canvas2D, {
+        clientX: 400,
+        clientY: 526.67,
+        button: 0,
+      });
+    });
+
+    // 4. Drag de +56.67 px en X (= +500 mm monde avec échelle zoomToFit ~0.1133 px/mm)
+    act(() => {
+      fireEvent.pointerMove(canvas2D, {
+        clientX: 456.67,
+        clientY: 526.67,
+      });
+    });
+
+    // 5. PointerUp : validation de la translation
+    act(() => {
+      fireEvent.pointerUp(canvas2D, {
+        clientX: 456.67,
+        clientY: 526.67,
+        button: 0,
+      });
+    });
+
+    // 6. ASSERTION 1 : Le mur a été déplacé dans le modèle de (500, 0)
+    const movedWall = doc.getState().walls['wall_south'];
+    expect(movedWall?.start).toEqual({ x: 500, y: 0 });
+    expect(movedWall?.end).toEqual({ x: 6500, y: 0 });
+
+    // 7. ASSERTION 2 : L'invariant BIM est strictement respecté : l'offsetAlong de la porte est INCHANGÉ
+    const door = doc.getState().doors?.['door_demo'];
+    expect(door).toBeDefined();
+    expect(door?.offsetAlong).toBe(2000);
+
+    // 8. ASSERTION 3 : createWallMeshWithOpenings a été ré-appelé avec le mur aux nouvelles coordonnées
+    const lastCall = createMeshSpy.mock.calls.filter((c) => c[0].wall.id === 'wall_south').pop();
+    expect(lastCall).toBeDefined();
+    expect(lastCall?.[0].wall.start).toEqual({ x: 500, y: 0 });
+    expect(lastCall?.[0].wall.end).toEqual({ x: 6500, y: 0 });
+    expect(lastCall?.[0].openings[0]?.offsetAlong).toBe(2000);
 
     cleanup();
   });

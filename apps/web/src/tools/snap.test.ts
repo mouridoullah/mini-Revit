@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { snapAngle45 } from './snap.js';
+import { snapAngle45, snapToStep } from './snap.js';
 
 describe('snapAngle45 (Snap angulaire à 45°)', () => {
   const origin = { x: 0, y: 0 };
@@ -116,5 +116,21 @@ describe('snapAngle45 (Snap angulaire à 45°)', () => {
     // Y reste rigoureusement aligné sur start.y
     expect(snapped.y).toBe(3000);
     expect(snapped.x).toBeCloseTo(2500 + Math.hypot(1000, 20), 6);
+  });
+});
+
+describe('snapToStep (Aimantation linéaire et pas architectural)', () => {
+  it('snap fidèlement à 50 mm pour les ouvertures (2053 -> 2050)', () => {
+    expect(snapToStep(2053, 50)).toBe(2050);
+    expect(snapToStep(2024, 50)).toBe(2000);
+    expect(snapToStep(2026, 50)).toBe(2050);
+  });
+
+  it('snap fidèlement à 10 mm pour les déplacements de murs (105 -> 100, 106 -> 110)', () => {
+    expect(snapToStep(105, 10)).toBe(100);
+    expect(snapToStep(106, 10)).toBe(110);
+    expect(snapToStep(104, 10)).toBe(100);
+    expect(snapToStep(0, 10)).toBe(0);
+    expect(snapToStep(-105, 10)).toBe(-100);
   });
 });

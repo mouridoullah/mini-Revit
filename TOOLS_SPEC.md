@@ -1,6 +1,6 @@
 # SPÉCIFICATION TECHNIQUE DES OUTILS INTERACTIFS 2D (TOOLS_SPEC.md)
 
-**Statut :** Spécification de Référence — Phase 2.3  
+**Statut :** Spécification de Référence — Phase 3.3  
 **Dernière mise à jour :** 14 novembre 2026  
 **Package d'implémentation :** `apps/web/src/tools/` et `@mini-bim/view-2d`
 
@@ -234,3 +234,43 @@ Pour garantir une précision parfaite sur les 8 directions ($0^\circ, 45^\circ, 
 
 - Les écouteurs (`pointerdown`, `pointermove`, `pointerup`, `keydown`) sont nettoyés dans le retour de `useEffect`.
 - `tool.reset()` et `view.setPreview(null)` sont systématiquement invoqués lors du démontage ou du changement d'outil, éliminant tout risque d'écouteurs orphelins ou d'artefacts graphiques persistants.
+
+---
+
+## 7. Outils Phase 3.3 — Manipulation d'Ouvertures et Déplacement de Murs
+
+### 7.1 `DoorTool` & `WindowTool` (Insertion Interactive d'Ouvertures)
+
+- **Nature :** Machines à états pures (0 import de `@mini-bim/geometry`, React, Three.js ou DOM).
+- **États :** `{ kind: 'idle' } | { kind: 'hovering'; wallId: string; offsetAlong: number } | { kind: 'placed'; id: string }`.
+- **Aimantation architecturale (Snap 50 mm) :**  
+  La projection orthogonale du curseur écran sur l'axe du mur hôte produit un abscisse curviligne $u$. Cet offset est aimanté au pas de 50 mm via `snapToStep(rawOffset, 50)`.
+- **Clamping et gardes minimales :**  
+  L'ouverture est contrainte dans l'intervalle $[50, L_{\text{mur}} - W_{\text{baie}} - 50]$ mm pour respecter l'intégrité constructive et les règles d'épaisseur/d'appui.
+- **Émission :** `pointerdown` émet `AddDoorCommand` ou `AddWindowCommand`.
+
+### 7.2 `MoveWallTool` — LE TEST DE CRÉDIBILITÉ DU BIM
+
+- **Principe directeur :** « Le modèle est la source de vérité, la géométrie est un cache ».
+- **Invariant paramétrique :**  
+  Lorsqu'un mur hôte est translaté par `UpdateWallCommand(wallId, { start: start + delta, end: end + delta })`, **aucune ouverture hébergée n'est altérée dans le document**. Chaque porte ou fenêtre conserve rigoureusement son `offsetAlong` paramétrique. C'est le moteur de rendu 3D (`Viewport3D.tsx`) et 2D (`Viewport2D.tsx`) qui régénère automatiquement les solides percés et replace les placeholders 3D aux nouvelles coordonnées spatiales mondes.
+- **Machine à états :**  
+  - `idle` : curseur libre.
+  - `dragging` : clic sur un mur existant capturé via `findWallAtScreen`. Prévisualisation de l'axe translaté sous forme de `line`.
+- **Aimantation spatiale (Snap 10 mm) :**  
+  Chaque composante du vecteur translation $\vec{\Delta} = (\Delta x, \Delta y)$ est aimantée sur le pas de 10 mm (ex: $105 \text{ mm} \to 100 \text{ mm}$ via banker's rounding).
+- **Suppression des commandes nulles :**  
+  Si $\vec{\Delta} = (0, 0)$ (clic stationnaire), l'outil retourne `{ kind: 'preview', preview: null }` sans émettre de commande, évitant toute pollution de la pile undo/redo.
+
+### 7.3 `MoveOpeningTool` (Déplacement d'Ouvertures le Long de l'Axe)
+
+- **Machine à états :**  
+  - `idle` : en attente.
+  - `dragging` : détection d'une porte ou fenêtre via `findOpeningAtScreen`. Glissement le long du mur hôte avec projection axiale, snap 50 mm et clamp aux gardes de rive.
+- **Propagation de recalcul :**  
+  Émet `MoveOpeningCommand(openingId, newOffsetAlong)`. Conformément à la Phase 3.2, `MoveOpeningCommand.getChangedIds()` retourne `[openingId, hostWallId]`, provoquant la reconstruction atomique du mur solide percé (`updateMeshBatch`) et le repositionnement du placeholder.
+
+### 7.4 Note Technique sur l'Espionnage des Fonctions Exportées (`vi.spyOn`)
+
+> [!NOTE] Espionnage sur exports nommés en ESM
+> L'espionnage Vitest via `vi.spyOn(Module, 'namedFunction')` nécessite en ECMAScript natif un import namespace (`import * as Scene3DModule from '@mini-bim/view-3d'`) afin que les références d'export soient mutables via le module loader de Vitest 3+. Les tests d'intégration d'`apps/web` appliquent systématiquement cette convention architecturale.

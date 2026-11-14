@@ -910,3 +910,49 @@ Comment connecter le pipeline géométrique de découpage d'ouvertures (`sliceWa
 - Règle d'or d'architecture respectée à 100% : `core` n'est importé ni dans `view-2d/src`, ni dans `view-3d/src`.
 - Le double viewport affiche instantanément les murs percés et les ouvertures cohérentes en 2D et en 3D.
 - Base prête pour la Phase 3.3 (outils interactifs de placement `DoorTool` et `WindowTool`).
+
+---
+
+## ADR-030 : Outils interactifs pour ouvertures et déplacement de murs — Machines à états pures et propagation paramétrique
+
+- **Date :** 2026-11-14
+- **Statut :** Accepté
+- **Auteur :** Antigravity (Lead Software Architect & Computational Geometry Engineer)
+- **Contexte :** Phase 3.3 (Outils interactifs DoorTool, WindowTool, MoveWallTool, MoveOpeningTool et Test de Crédibilité du BIM)
+
+### Problème
+
+Comment permettre la modélisation et la manipulation interactive des portes, fenêtres et murs directement dans le viewport 2D tout en garantissant :
+1. La pureté absolue des machines à états des Tools (zéro dépendance à React, Three.js, au DOM ou à `@mini-bim/geometry`).
+2. L'invariant fondamental du BIM : « Le modèle est la source de vérité, la géométrie est un cache ». Lors du déplacement d'un mur hôte (`MoveWallTool`), les ouvertures hébergées ne doivent pas être altérées dans l'état documentaire (`offsetAlong` inchangé), mais leur représentation 2D et 3D doit suivre fidèlement et immédiatement le déplacement du mur hôte.
+3. Le snapping déterministe aux pas architecturaux : 50 mm pour les ouvertures le long de leur mur, 10 mm pour les translations de murs.
+4. L'exclusivité stricte de l'outil actif et la réinitialisation de tout outil sortant.
+
+### Décisions Prises
+
+1. **Machines à États Pures Découplées du DOM :**
+   - `DoorTool`, `WindowTool`, `MoveWallTool`, et `MoveOpeningTool` implémentent l'interface pure `Tool`.
+   - Les événements sont normalisés (`ToolEvent`) et les sorties sont immuables (`ToolOutput` : `command`, `preview`, `selectionChanged`, `noop`).
+   - Zéro importation de `@mini-bim/geometry` dans les Tools : les calculs 2D de détection reposent exclusivement sur les fonctions exportées par `@mini-bim/view-2d` (`findWallAtScreen`, `findOpeningAtScreen`, `Transform2D`, `Vec2`).
+
+2. **Invariant Paramétrique de Déplacement de Mur (`MoveWallTool`) :**
+   - Lorsqu'un utilisateur translate un mur, `MoveWallTool` émet `UpdateWallCommand(wallId, { start, end })`.
+   - Aucune commande ne modifie les ouvertures hébergées : dans `doc.getState().doors` et `doc.getState().windows`, chaque baie conserve son `offsetAlong` paramétrique d'origine.
+   - Les viewports 2D et 3D régénèrent automatiquement les maillages solides percés et les placeholders 3D aux nouvelles coordonnées spatiales du mur hôte. C'est le test de crédibilité du BIM validé formellement.
+
+3. **Aimantation Déterministe (`snapToStep`) et Banker's Rounding :**
+   - Utilisation d'un algorithme d'arrondi au pair le plus proche (banker's rounding) pour éliminer les biais d'arrondi sur les valeurs médianes (ex: 105 mm avec un pas de 10 mm s'aimante fidèlement à 100 mm ; 2053 mm avec un pas de 50 mm s'aimante à 2050 mm).
+   - Clamping strict aux gardes minimales de rive ($50 \text{ mm}$) pour prévenir tout débordement d'ouverture hors du mur hôte.
+
+4. **Détection Découplée d'Ouvertures (`findOpeningAtScreen`) :**
+   - Ajout et export dans `@mini-bim/view-2d` de la fonction pure `findOpeningAtScreen` calculant la projection orthogonale d'un point écran sur l'axe du mur hôte et testant l'intervalle $[offsetAlong - \epsilon, offsetAlong + width + \epsilon]$. Utilisée par `MoveOpeningTool`.
+
+5. **Gestion Exclusive dans `useActiveTool` :**
+   - `useActiveTool` instancie et référence de manière stable les 6 outils.
+   - Tout appel à `setActiveToolKind(next)` invoque systématiquement `tool.reset()` sur l'outil sortant afin de purger les états transitoires (rubber-band, drag en cours) et effacer la prévisualisation.
+
+### Conséquences
+
+- Les 4 nouveaux outils sont testés unitairement en isolation totale sans navigateur ni DOM.
+- Le test de crédibilité du BIM passe : déplacer un mur déplace automatiquement la porte et le trou 3D sans altérer `offsetAlong`.
+- Total de 432 tests automatisés passant avec succès sur l'ensemble du monorepo.

@@ -14,6 +14,8 @@ export function StatusBar({ activeToolKind = 'select', drawingLength }: StatusBa
   const { state } = useBimDocument();
 
   const wallCount = Object.keys(state.walls).length;
+  const doorCount = Object.keys(state.doors ?? {}).length;
+  const windowCount = Object.keys(state.windows ?? {}).length;
   const levelCount = Object.keys(state.levels).length;
   const activeLevel = Object.values(state.levels)[0]?.name ?? 'Aucun niveau';
 
@@ -24,6 +26,17 @@ export function StatusBar({ activeToolKind = 'select', drawingLength }: StatusBa
     } else {
       toolMessage = 'Outil : Tracer Mur (W) — Clic-glisser pour tracer (Shift = snap 45°)';
     }
+  } else if (activeToolKind === 'door') {
+    toolMessage =
+      'Outil : Porte (D) — Survoler et cliquer sur un mur (snap 50 mm, Échap = annuler)';
+  } else if (activeToolKind === 'window') {
+    toolMessage =
+      'Outil : Fenêtre (F) — Survoler et cliquer sur un mur (snap 50 mm, Échap = annuler)';
+  } else if (activeToolKind === 'moveWall') {
+    toolMessage = 'Outil : Déplacer Mur (M) — Clic-glisser un mur pour le déplacer (snap 10 mm)';
+  } else if (activeToolKind === 'moveOpening') {
+    toolMessage =
+      'Outil : Déplacer Ouverture (O) — Clic-glisser une ouverture le long de son mur (snap 50 mm)';
   }
 
   return (
@@ -55,6 +68,16 @@ export function StatusBar({ activeToolKind = 'select', drawingLength }: StatusBa
         <span>
           Murs : <strong style={{ color: '#e5e7eb' }}>{wallCount}</strong>
         </span>
+        {doorCount > 0 && (
+          <span>
+            Portes : <strong style={{ color: '#e5e7eb' }}>{doorCount}</strong>
+          </span>
+        )}
+        {windowCount > 0 && (
+          <span>
+            Fenêtres : <strong style={{ color: '#e5e7eb' }}>{windowCount}</strong>
+          </span>
+        )}
       </div>
       <div>
         <span>

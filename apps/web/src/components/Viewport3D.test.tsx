@@ -325,5 +325,11 @@ describe('Viewport3D React Wrapper (apps/web)', () => {
     const removedIds = removeMeshSpy.mock.calls.map((c) => c[0]);
     expect(removedIds).toContain('wall_south');
     expect(removedIds).toContain('door_demo');
+
+    // 4. addMesh appelé pour ré-attacher le nouveau placeholder de door_demo régénéré à offsetAlong 3500
+    const updatedDoorCall = addMeshSpy.mock.calls.find(
+      (c) => c[0].elementId === 'door_demo' && c[0].boundingBox.min.x >= 3500,
+    );
+    expect(updatedDoorCall).toBeDefined();
   });
 });

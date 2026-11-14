@@ -389,6 +389,42 @@ describe('Renderer 2D (renderer.ts)', () => {
     expect(s4).toBeCloseTo((3 * Math.PI) / 4, 5);
     expect(e4).toBeCloseTo((-3 * Math.PI) / 4, 5);
     expect(ccw4).toBe(false);
+
+    // 5. Mur horizontal (0°) + swing: left / out
+    const [x5, y5, r5, s5, e5, ccw5] = getArcParams(wHoriz, { side: 'left', direction: 'out' });
+    expect(x5).toBeCloseTo(500, 5);
+    expect(y5).toBeCloseTo(300, 5);
+    expect(r5).toBeCloseTo(100, 5);
+    expect(s5).toBeCloseTo(0, 5);
+    expect(e5).toBeCloseTo(Math.PI / 2, 5);
+    expect(ccw5).toBe(false);
+
+    // 6. Mur horizontal (0°) + swing: right / in
+    const [x6, y6, r6, s6, e6, ccw6] = getArcParams(wHoriz, { side: 'right', direction: 'in' });
+    expect(x6).toBeCloseTo(600, 5);
+    expect(y6).toBeCloseTo(300, 5);
+    expect(r6).toBeCloseTo(100, 5);
+    expect(s6).toBeCloseTo(Math.PI, 5);
+    expect(e6).toBeCloseTo(-Math.PI / 2, 5);
+    expect(ccw6).toBe(false);
+
+    // 7. Mur vertical (90°) + swing: right / in
+    const [x7, y7, r7, s7, e7, ccw7] = getArcParams(wVert, { side: 'right', direction: 'in' });
+    expect(x7).toBeCloseTo(400, 5);
+    expect(y7).toBeCloseTo(100, 5); // 300 - 2000 * 0.1 = 100
+    expect(r7).toBeCloseTo(100, 5);
+    expect(s7).toBeCloseTo(Math.PI / 2, 5);
+    expect(e7).toBeCloseTo(Math.PI, 5);
+    expect(ccw7).toBe(false);
+
+    // 8. Mur vertical (90°) + swing: left / out
+    const [x8, y8, r8, s8, e8, ccw8] = getArcParams(wVert, { side: 'left', direction: 'out' });
+    expect(x8).toBeCloseTo(400, 5);
+    expect(y8).toBeCloseTo(200, 5);
+    expect(r8).toBeCloseTo(100, 5);
+    expect(s8).toBeCloseTo(-Math.PI / 2, 5);
+    expect(e8).toBeCloseTo(0, 5);
+    expect(ccw8).toBe(false);
   });
 
   it('drawOpeningWindow trace l’évidement, les montants et 2 lignes parallèles de vitrage', () => {

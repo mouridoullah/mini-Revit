@@ -198,13 +198,19 @@ _Dépendances : Phase 1.1 à 1.3 (`@mini-bim/geometry`), Phase 1.4 (`@mini-bim/v
   - **Intégration Applicative Web :** Le `demoDocument` intègre 1 porte sur `wall_south` et 1 fenêtre sur `wall_north`. Synchronisation automatique dans `Viewport3D` et `Viewport2D`. Suppression en cascade reflétée dans les maillages 3D.
 - **Tests :** 403 tests automatisés dans tout le monorepo (+14 tests par rapport à Phase 3.1) : 73 dans `core`, 23 dans `view-3d` (+6), 41 dans `view-2d` (+4), 75 dans `apps/web` (+3), 191 dans `geometry`.
 
-#### Phase 3.3 — Outils Interactifs d'Ouvertures & Inspection UI (`apps/web`) [PROCHAINE ÉTAPE]
+#### Phase 3.3 — Outils Interactifs d'Ouvertures & Déplacement de Murs (`apps/web`) [LIVRÉ]
 
-- **Objectif :** Implémenter les machines à états d'outils `DoorTool` et `WindowTool`, le magnétisme le long de l'axe du mur hôte survolé, et la mise à jour des propriétés dans le panneau d'inspection.
+- **Objectif :** Implémenter les machines à états d'outils pures `DoorTool`, `WindowTool`, `MoveWallTool` et `MoveOpeningTool`, avec magnétisme le long de l'axe hôte (snap 50 mm) et translation de murs (snap 10 mm).
+- **Livrables :**
+  - `DoorTool.ts`, `WindowTool.ts`, `MoveWallTool.ts`, `MoveOpeningTool.ts` purs sans dépendance DOM/moteur.
+  - Fonction de picking découplée `findOpeningAtScreen` dans `@mini-bim/view-2d`.
+  - Intégration complète dans `useActiveTool`, `Toolbar` (raccourcis D, F, M, O) et `StatusBar`.
+  - **Le Test de Crédibilité du BIM :** validation formelle qu'un mur déplacé conserve intact l'`offsetAlong` de ses ouvertures tout en déplaçant automatiquement les ouvertures en 2D et en 3D.
+  - 432 tests automatisés passants sur l'ensemble du monorepo.
 
 ---
 
-### Phase 4 — Intelligence Architecturale et Métrés
+### Phase 4 — Intelligence Architecturale et Métrés [PROCHAINE ÉTAPE]
 
 - **Objectif :** Extraire automatiquement la sémantique spatiale et les quantités constructives du modèle.
 - **Fonctionnalités :**

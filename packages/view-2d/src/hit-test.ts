@@ -131,3 +131,108 @@ export function findWallAtScreen(
 
   return null;
 }
+
+/**
+ * Résultat d'une détection d'ouverture sous le curseur.
+ */
+export interface HitOpeningResult {
+  readonly id: string;
+  readonly kind: 'door' | 'window';
+  readonly hostWallId: string;
+}
+
+/**
+ * Détecte une ouverture (porte ou fenêtre) sous une coordonnée écran dans le document BIM.
+ * Fonction pure et découplée pour les Tools de sélection et déplacement d'ouvertures.
+ *
+ * @param screenPos Position en pixels dans l'espace écran du canvas.
+ * @param transform Matrice de transformation courante.
+ * @param doc Document BIM contenant le modèle.
+ * @param options Paramètres de tolérance et filtre de niveau.
+ * @returns L'identifiant, le type et le mur hôte de l'ouverture touchée, ou `null`.
+ */
+export function findOpeningAtScreen(
+  screenPos: Vec2,
+  transform: Transform2D,
+  doc: DocumentFor2D,
+  options?: HitTestOptions,
+): HitOpeningResult | null {
+  const hitTolerancePx = options?.hitTolerancePx ?? 6;
+  const activeLevelId = options?.activeLevelId ?? null;
+
+  const worldPos = transform.screenToWorld(screenPos);
+  const toleranceMm = transform.screenDistanceToWorld(hitTolerancePx);
+  const state = doc.getState();
+
+  const doors = state.doors ? Object.values(state.doors) : [];
+  const windows = state.windows ? Object.values(state.windows) : [];
+
+  // Parcourir portes et fenêtres (du plus récent au plus ancien = dessus d'abord)
+  const openings: Array<{
+    id: string;
+    kind: 'door' | 'window';
+    hostWallId: string;
+    offsetAlong: number;
+    width: number;
+  }> = [
+    ...doors.map((d) => ({
+      id: d.id,
+      kind: 'door' as const,
+      hostWallId: d.hostWallId,
+      offsetAlong: d.offsetAlong,
+      width: d.width,
+    })),
+    ...windows.map((w) => ({
+      id: w.id,
+      kind: 'window' as const,
+      hostWallId: w.hostWallId,
+      offsetAlong: w.offsetAlong,
+      width: w.width,
+    })),
+  ];
+
+  for (let i = openings.length - 1; i >= 0; i--) {
+    const op = openings[i];
+    if (!op) continue;
+
+    const wall = state.walls[op.hostWallId];
+    if (!wall) continue;
+
+    if (activeLevelId && wall.levelId !== activeLevelId) {
+      continue;
+    }
+
+    const wallType = wall.typeId ? state.wallTypes[wall.typeId] : undefined;
+    const thickness = wallType ? wallType.thickness : 200;
+
+    const dx = wall.end.x - wall.start.x;
+    const dy = wall.end.y - wall.start.y;
+    const wallLen = Math.hypot(dx, dy);
+    if (wallLen < 1e-6) continue;
+
+    const ux = dx / wallLen;
+    const uy = dy / wallLen;
+
+    const toPtX = worldPos.x - wall.start.x;
+    const toPtY = worldPos.y - wall.start.y;
+
+    const projAlong = toPtX * ux + toPtY * uy;
+    const distPerp = Math.abs(toPtX * uy - toPtY * ux);
+
+    const maxDistPerp = thickness / 2 + toleranceMm;
+
+    if (
+      projAlong >= op.offsetAlong - toleranceMm &&
+      projAlong <= op.offsetAlong + op.width + toleranceMm &&
+      distPerp <= maxDistPerp
+    ) {
+      return {
+        id: op.id,
+        kind: op.kind,
+        hostWallId: op.hostWallId,
+      };
+    }
+  }
+
+  return null;
+}

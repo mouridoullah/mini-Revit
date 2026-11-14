@@ -25,5 +25,7 @@ export {
   isPointInsideOrNearFootprint,
   hitTestWall,
   findWallAtScreen,
+  findOpeningAtScreen,
   type HitTestOptions,
+  type HitOpeningResult,
 } from './hit-test.js';
