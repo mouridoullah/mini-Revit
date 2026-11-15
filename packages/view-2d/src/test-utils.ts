@@ -98,6 +98,10 @@ export function createMockCanvas(
       record('fill', fillRule ? [fillRule] : []);
     }),
 
+    clip: vi.fn((fillRule?: CanvasFillRule) => {
+      record('clip', fillRule ? [fillRule] : []);
+    }),
+
     fillText: vi.fn((text: string, x: number, y: number, maxWidth?: number) => {
       assertFiniteNumber(x, 'x', 'fillText');
       assertFiniteNumber(y, 'y', 'fillText');

@@ -14,6 +14,7 @@ import {
   type OpeningFor2D,
   type DetectedRoomFor2D,
   type DimensionFor2D,
+  type SlabFor2D,
 } from './types.js';
 
 /**
@@ -36,6 +37,7 @@ export class View2D {
   private openings: OpeningFor2D[] = [];
   private rooms: DetectedRoomFor2D[] = [];
   private dimensions: DimensionFor2D[] = [];
+  private slabs: SlabFor2D[] = [];
   private selectedIds: Set<string> = new Set();
   private activeLevelId: string | null = null;
   private preview: PreviewShape | null = null;
@@ -159,6 +161,15 @@ export class View2D {
     return this.dimensions;
   }
 
+  public setSlabs(slabs: readonly SlabFor2D[]): void {
+    this.slabs = Array.from(slabs);
+    this.render();
+  }
+
+  public getSlabs(): readonly SlabFor2D[] {
+    return this.slabs;
+  }
+
   public getSelectedIds(): readonly string[] {
     return Array.from(this.selectedIds);
   }
@@ -219,6 +230,7 @@ export class View2D {
     const effectiveOpenings = this.openings.length > 0 ? this.openings : undefined;
     const effectiveRooms = this.rooms.length > 0 ? this.rooms : undefined;
     const effectiveDimensions = this.dimensions.length > 0 ? this.dimensions : undefined;
+    const effectiveSlabs = this.slabs.length > 0 ? this.slabs : undefined;
 
     renderPlanView(
       this.ctx,
@@ -231,6 +243,7 @@ export class View2D {
       effectiveOpenings,
       effectiveRooms,
       effectiveDimensions,
+      effectiveSlabs,
     );
   }
 

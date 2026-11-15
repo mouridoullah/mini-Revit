@@ -52,6 +52,10 @@ export interface RawMeshData {
    * Boîte englobante AABB 3D.
    */
   readonly boundingBox: BoundingBox3D;
+  /**
+   * Métadonnées architecturales libres attachées au maillage (ex. category: 'slab').
+   */
+  readonly userData?: Record<string, unknown> | undefined;
 }
 
 /**

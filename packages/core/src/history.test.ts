@@ -348,6 +348,8 @@ describe('Gestionnaire d’Historique Transactionnel (history.ts)', () => {
       levelId,
       seed: vec2(2000, 1500),
       name: 'Salon Principal',
+      status: 'enclosed',
+      area: 10.64,
     };
     doc.execute(new Commands.AddRoomCommand(room));
     expect(doc.getState().rooms['room_hist_cascade']).toEqual(room);

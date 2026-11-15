@@ -19,11 +19,14 @@ export {
   createWallMeshWithOpenings,
   createOpeningPlaceholder,
   createRoomFloorMesh,
+  createSlabMesh,
   type WallGeometryParams,
   type WallTypeGeometryParams,
   type OpeningGeometryParams,
   type WallWithOpeningsParams,
   type RoomFloorMeshParams,
+  type SlabGeometryParams,
+  type SlabTypeGeometryParams,
 } from './mesh-generator.js';
 export { computeWallFootprint2d, extrudeWallPiece, type RawMeshData } from '@mini-bim/geometry';
 export type { SceneOptions, MeshHandle } from './types.js';

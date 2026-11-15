@@ -315,4 +315,122 @@ describe('Générateur IFC4 ISO 10303-21 (packages/core/ifc)', () => {
     expect(ifc).toContain('IFCWALL(');
     expect(ifc.trimEnd().endsWith('END-ISO-10303-21;')).toBe(true);
   });
+
+  it('T-SLAB-IFC-01 : Export IFC4 d’une dalle pleine -> entité IfcSlab (.FLOOR.) parsée par web-ifc', async () => {
+    const doc = BimDocument.createDefaultProject();
+    const baseState = doc.getState();
+    const levelId = Object.keys(baseState.levels)[0]!;
+
+    const slabState: BimState = {
+      ...baseState,
+      slabTypes: {
+        st_test: { id: 'st_test', name: 'Dalle 200mm', thickness: 200 },
+      },
+      slabs: {
+        slab_01: {
+          id: 'slab_01',
+          category: 'slab',
+          slabTypeId: 'st_test',
+          levelId,
+          boundary: [
+            { x: 0, y: 0 },
+            { x: 5000, y: 0 },
+            { x: 5000, y: 5000 },
+            { x: 0, y: 5000 },
+          ],
+        },
+      },
+    };
+
+    const ifcContent = exportToIfc(slabState);
+    expect(ifcContent).toContain('IFCSLAB(');
+    expect(ifcContent).toContain('.FLOOR.');
+
+    const ifcApi = new WebIFC.IfcAPI();
+    await ifcApi.Init();
+    const modelId = ifcApi.OpenModel(new TextEncoder().encode(ifcContent));
+
+    const slabs = ifcApi.GetLineIDsWithType(modelId, WebIFC.IFCSLAB);
+    expect(slabs.size()).toBe(1);
+
+    ifcApi.CloseModel(modelId);
+  });
+
+  it('T-SLAB-IFC-02 : Dalle pleine sans trémie -> génère IfcArbitraryClosedProfileDef', () => {
+    const doc = BimDocument.createDefaultProject();
+    const baseState = doc.getState();
+    const levelId = Object.keys(baseState.levels)[0]!;
+
+    const slabState: BimState = {
+      ...baseState,
+      slabTypes: {
+        st_test: { id: 'st_test', name: 'Dalle 200mm', thickness: 200 },
+      },
+      slabs: {
+        slab_solid: {
+          id: 'slab_solid',
+          category: 'slab',
+          slabTypeId: 'st_test',
+          levelId,
+          boundary: [
+            { x: 0, y: 0 },
+            { x: 4000, y: 0 },
+            { x: 4000, y: 4000 },
+            { x: 0, y: 4000 },
+          ],
+        },
+      },
+    };
+
+    const ifcContent = exportToIfc(slabState);
+    expect(ifcContent).toContain("IFCARBITRARYCLOSEDPROFILEDEF(.AREA.,'SlabProfile'");
+    expect(ifcContent).not.toContain('IFCARBITRARYPROFILEDEFWITHVOIDS');
+  });
+
+  it('T-SLAB-IFC-03 : Dalle avec trémie (hole) -> génère IfcArbitraryProfileDefWithVoids', async () => {
+    const doc = BimDocument.createDefaultProject();
+    const baseState = doc.getState();
+    const levelId = Object.keys(baseState.levels)[0]!;
+
+    const slabState: BimState = {
+      ...baseState,
+      slabTypes: {
+        st_test: { id: 'st_test', name: 'Dalle 200mm', thickness: 200 },
+      },
+      slabs: {
+        slab_with_hole: {
+          id: 'slab_with_hole',
+          category: 'slab',
+          slabTypeId: 'st_test',
+          levelId,
+          boundary: [
+            { x: 0, y: 0 },
+            { x: 6000, y: 0 },
+            { x: 6000, y: 6000 },
+            { x: 0, y: 6000 },
+          ],
+          holes: [
+            [
+              { x: 2000, y: 2000 },
+              { x: 3000, y: 2000 },
+              { x: 3000, y: 3000 },
+              { x: 2000, y: 3000 },
+            ],
+          ],
+        },
+      },
+    };
+
+    const ifcContent = exportToIfc(slabState);
+    expect(ifcContent).toContain("IFCARBITRARYPROFILEDEFWITHVOIDS(.AREA.,'SlabProfileWithVoids'");
+
+    const ifcApi = new WebIFC.IfcAPI();
+    await ifcApi.Init();
+    const modelId = ifcApi.OpenModel(new TextEncoder().encode(ifcContent));
+
+    const slabs = ifcApi.GetLineIDsWithType(modelId, WebIFC.IFCSLAB);
+    expect(slabs.size()).toBe(1);
+
+    ifcApi.CloseModel(modelId);
+  });
 });

@@ -145,6 +145,45 @@ export function triangulateEarClipping(vertices: readonly Vec2[]): Uint32Array {
 }
 
 /**
+ * Triangule un polygone 2D avec d'éventuels trous intérieurs via l'algorithme Ear Clipping (earcut).
+ *
+ * @param outer Contour extérieur (orienté CCW de préférence)
+ * @param holes Trous intérieurs (orientés CW de préférence)
+ * @returns Le tableau concaténé des sommets et les indices des triangles (face supérieure vue de +Z).
+ */
+export function triangulatePolygonWithHoles(
+  outer: readonly Vec2[],
+  holes: readonly (readonly Vec2[])[] = [],
+): { readonly vertices: readonly Vec2[]; readonly indices: Uint32Array } {
+  if (outer.length < 3) {
+    return { vertices: [], indices: new Uint32Array(0) };
+  }
+
+  const allVertices: Vec2[] = [...outer];
+  const holeIndices: number[] = [];
+
+  for (const hole of holes) {
+    if (hole && hole.length >= 3) {
+      holeIndices.push(allVertices.length);
+      allVertices.push(...hole);
+    }
+  }
+
+  const flatCoords = new Float64Array(allVertices.length * 2);
+  for (let i = 0; i < allVertices.length; i++) {
+    const v = allVertices[i]!;
+    flatCoords[i * 2] = v.x;
+    flatCoords[i * 2 + 1] = v.y;
+  }
+
+  const rawIndices = earcut(flatCoords, holeIndices.length > 0 ? holeIndices : undefined, 2);
+  return {
+    vertices: allVertices,
+    indices: new Uint32Array(rawIndices),
+  };
+}
+
+/**
  * Triangule un polygone 2D arbitraire en sélectionnant la stratégie optimale :
  * 1. Nettoyage des sommets dupliqués et colinéaires.
  * 2. Normalisation de l'orientation en CCW si nécessaire.

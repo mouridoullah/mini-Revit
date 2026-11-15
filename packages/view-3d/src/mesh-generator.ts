@@ -3,10 +3,13 @@ import {
   sliceWallWithOpenings,
   extrudeWallPiece,
   extrudePolygon,
+  computeEffectiveSlabPolygon,
+  triangulatePolygonWithHoles,
   vec2,
   type RawMeshData,
   type WallPiece,
   type OpeningInput,
+  type Vec2,
 } from '@mini-bim/geometry';
 
 export interface WallGeometryParams {
@@ -207,5 +210,216 @@ export function createRoomFloorMesh(params: RoomFloorMeshParams): RawMeshData | 
   return {
     ...mesh,
     elementId: params.id,
+  };
+}
+
+export interface SlabGeometryParams {
+  readonly id: string;
+  readonly boundary: readonly { readonly x: number; readonly y: number }[];
+  readonly holes?: readonly (readonly { readonly x: number; readonly y: number }[])[] | undefined;
+  readonly openings?: readonly (readonly { readonly x: number; readonly y: number }[])[] | undefined;
+  readonly baseOffset?: number | undefined;
+}
+
+export interface SlabTypeGeometryParams {
+  readonly thickness: number;
+}
+
+/**
+ * Génère le maillage 3D brut (RawMeshData) d'une dalle horizontale extrudée vers le bas
+ * avec découpe effective des réservations/trémies (ADR-046 / Phase 6.1b).
+ *
+ * Z_sup = elevation + (slab.baseOffset ?? 0)
+ * Z_inf = Z_sup - slabType.thickness
+ */
+export function createSlabMesh(
+  slab: SlabGeometryParams,
+  slabType: SlabTypeGeometryParams,
+  elevation: number = 0,
+): RawMeshData | null {
+  if (!slab.boundary || slab.boundary.length < 3) return null;
+
+  const boundary2D = slab.boundary.map((p) => vec2(p.x, p.y));
+  const rawHoles = [...(slab.holes ?? []), ...(slab.openings ?? [])].map((h) =>
+    h.map((p) => vec2(p.x, p.y)),
+  );
+
+  let effective;
+  try {
+    effective = computeEffectiveSlabPolygon({
+      boundary: boundary2D,
+      holes: rawHoles,
+    });
+  } catch {
+    return null;
+  }
+
+  const thickness = Math.max(1, slabType.thickness);
+  const zSup = elevation + (slab.baseOffset ?? 0);
+  const zInf = zSup - thickness;
+
+  // Triangulation des faces horizontales (avec trous)
+  const { vertices, indices: topIndices } = triangulatePolygonWithHoles(
+    effective.outer,
+    effective.holes,
+  );
+
+  const numFaceVerts = vertices.length;
+  const numFaceTris = topIndices.length / 3;
+
+  // Calcul du nombre de segments pour les flancs verticaux
+  let numWallSegments = effective.outer.length;
+  for (const h of effective.holes) {
+    numWallSegments += h.length;
+  }
+  const numWallQuads = numWallSegments;
+  const numWallTris = numWallQuads * 2;
+  const totalTris = numFaceTris * 2 + numWallTris;
+  const totalVerts = numFaceVerts * 2 + numWallQuads * 4;
+
+  const positions = new Float32Array(totalVerts * 3);
+  const normals = new Float32Array(totalVerts * 3);
+  const uvs = new Float32Array(totalVerts * 2);
+  const indices = new Uint32Array(totalTris * 3);
+
+  let vOffset = 0;
+  let iOffset = 0;
+
+  // 1. Face Supérieure (+Z)
+  const topStartV = vOffset;
+  for (let i = 0; i < numFaceVerts; i++) {
+    const v = vertices[i]!;
+    const idx = (topStartV + i) * 3;
+    positions[idx] = v.x;
+    positions[idx + 1] = v.y;
+    positions[idx + 2] = zSup;
+
+    normals[idx] = 0;
+    normals[idx + 1] = 0;
+    normals[idx + 2] = 1;
+
+    uvs[(topStartV + i) * 2] = v.x / 1000;
+    uvs[(topStartV + i) * 2 + 1] = v.y / 1000;
+  }
+  vOffset += numFaceVerts;
+
+  for (let i = 0; i < topIndices.length; i++) {
+    indices[iOffset++] = topStartV + topIndices[i]!;
+  }
+
+  // 2. Face Inférieure (-Z)
+  const bottomStartV = vOffset;
+  for (let i = 0; i < numFaceVerts; i++) {
+    const v = vertices[i]!;
+    const idx = (bottomStartV + i) * 3;
+    positions[idx] = v.x;
+    positions[idx + 1] = v.y;
+    positions[idx + 2] = zInf;
+
+    normals[idx] = 0;
+    normals[idx + 1] = 0;
+    normals[idx + 2] = -1;
+
+    uvs[(bottomStartV + i) * 2] = v.x / 1000;
+    uvs[(bottomStartV + i) * 2 + 1] = v.y / 1000;
+  }
+  vOffset += numFaceVerts;
+
+  // Inversion de l'ordre d'enroulement pour orienter la normale vers le bas (-Z)
+  for (let i = 0; i < topIndices.length; i += 3) {
+    indices[iOffset++] = bottomStartV + topIndices[i]!;
+    indices[iOffset++] = bottomStartV + topIndices[i + 2]!;
+    indices[iOffset++] = bottomStartV + topIndices[i + 1]!;
+  }
+
+  // Fonction helper pour construire les flancs verticaux d'un anneau
+  const addFlanks = (ring: readonly Vec2[]) => {
+    const n = ring.length;
+    for (let i = 0; i < n; i++) {
+      const pA = ring[i]!;
+      const pB = ring[(i + 1) % n]!;
+
+      const dx = pB.x - pA.x;
+      const dy = pB.y - pA.y;
+      const len = Math.hypot(dx, dy);
+      if (len < 1e-6) continue;
+
+      const nx = dy / len;
+      const ny = -dx / len;
+
+      const baseV = vOffset;
+      const pts = [
+        { x: pA.x, y: pA.y, z: zInf, u: 0, v: 0 },
+        { x: pB.x, y: pB.y, z: zInf, u: len / 1000, v: 0 },
+        { x: pB.x, y: pB.y, z: zSup, u: len / 1000, v: thickness / 1000 },
+        { x: pA.x, y: pA.y, z: zSup, u: 0, v: thickness / 1000 },
+      ];
+
+      for (let k = 0; k < 4; k++) {
+        const pt = pts[k]!;
+        const idx = (baseV + k) * 3;
+        positions[idx] = pt.x;
+        positions[idx + 1] = pt.y;
+        positions[idx + 2] = pt.z;
+
+        normals[idx] = nx;
+        normals[idx + 1] = ny;
+        normals[idx + 2] = 0;
+
+        uvs[(baseV + k) * 2] = pt.u;
+        uvs[(baseV + k) * 2 + 1] = pt.v;
+      }
+      vOffset += 4;
+
+      // Triangles quad : (V0, V1, V2) et (V0, V2, V3)
+      indices[iOffset++] = baseV;
+      indices[iOffset++] = baseV + 1;
+      indices[iOffset++] = baseV + 2;
+
+      indices[iOffset++] = baseV;
+      indices[iOffset++] = baseV + 2;
+      indices[iOffset++] = baseV + 3;
+    }
+  };
+
+  addFlanks(effective.outer);
+  for (const hole of effective.holes) {
+    addFlanks(hole);
+  }
+
+  // Calcul AABB
+  let minX = Number.POSITIVE_INFINITY;
+  let maxX = Number.NEGATIVE_INFINITY;
+  let minY = Number.POSITIVE_INFINITY;
+  let maxY = Number.NEGATIVE_INFINITY;
+  for (const p of effective.outer) {
+    minX = Math.min(minX, p.x);
+    maxX = Math.max(maxX, p.x);
+    minY = Math.min(minY, p.y);
+    maxY = Math.max(maxY, p.y);
+  }
+
+  const finalPositions =
+    vOffset * 3 === positions.length ? positions : positions.subarray(0, vOffset * 3);
+  const finalNormals =
+    vOffset * 3 === normals.length ? normals : normals.subarray(0, vOffset * 3);
+  const finalUvs = vOffset * 2 === uvs.length ? uvs : uvs.subarray(0, vOffset * 2);
+  const finalIndices = iOffset === indices.length ? indices : indices.subarray(0, iOffset);
+
+  return {
+    positions: finalPositions,
+    normals: finalNormals,
+    uvs: finalUvs,
+    indices: finalIndices,
+    elementId: slab.id,
+    role: 'full',
+    boundingBox: {
+      min: { x: minX, y: minY, z: zInf },
+      max: { x: maxX, y: maxY, z: zSup },
+    },
+    userData: {
+      elementId: slab.id,
+      category: 'slab',
+    },
   };
 }

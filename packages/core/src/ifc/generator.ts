@@ -5,6 +5,7 @@ import {
   type Window,
   type Room,
   type Level,
+  type Slab,
 } from '../types.js';
 import { detectRooms } from '../rooms/detect.js';
 import { isPointInPolygon, type Vec2 } from '@mini-bim/geometry';
@@ -326,6 +327,92 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
     writer.add(
       `IFCRELFILLSELEMENT('${createIfcGuid()}',#${ownerHistory},$,$,#${ifcOpening},#${fillingElementId})`,
     );
+  }
+
+  // -------------------------------------------------------------------------
+  // Dalles Horizontales (IfcSlab)
+  // -------------------------------------------------------------------------
+  if (state.slabs && Object.keys(state.slabs).length > 0) {
+    for (const [slabId, slab] of Object.entries(state.slabs)) {
+      if (!slab.boundary || slab.boundary.length < 3) continue;
+
+      const slabType = state.slabTypes?.[slab.slabTypeId];
+      const thickness = slabType?.thickness ?? 200;
+      const baseOffset = slab.baseOffset ?? 0;
+
+      const defaultStorey = storeyMap.get(defaultLevel.id);
+      const storeyInfo = storeyMap.get(slab.levelId) || defaultStorey;
+      if (!storeyInfo) continue;
+
+      // Placement de la dalle au niveau de l'étage
+      // La dalle s'étend vers le bas de Z_sup = baseOffset à Z_inf = baseOffset - thickness
+      const zBottom = baseOffset - thickness;
+      const ptSlab = writer.add(`IFCCARTESIANPOINT((0.,0.,${zBottom.toFixed(2)}))`);
+      const placementSlab3D = writer.add(`IFCAXIS2PLACEMENT3D(#${ptSlab},#${dirZ},#${dirX})`);
+      const slabPlacement = writer.add(
+        `IFCLOCALPLACEMENT(#${storeyInfo.placementId},#${placementSlab3D})`,
+      );
+
+      // Polygone extérieur (boundary)
+      const boundaryPoints = slab.boundary.map((p) =>
+        writer.add(`IFCCARTESIANPOINT((${p.x.toFixed(2)},${p.y.toFixed(2)}))`),
+      );
+      const firstBoundPoint = boundaryPoints[0];
+      if (firstBoundPoint !== undefined) {
+        boundaryPoints.push(firstBoundPoint); // Fermeture
+      }
+      const boundaryPolyline = writer.add(
+        `IFCPOLYLINE((${boundaryPoints.map((id) => `#${id}`).join(',')}))`,
+      );
+
+      const allHoles = [...(slab.holes ?? []), ...(slab.openings ?? [])].filter(
+        (h) => h && h.length >= 3,
+      );
+
+      let profile: number;
+      if (allHoles.length > 0) {
+        const holePolylineIds: number[] = [];
+        for (const hole of allHoles) {
+          const holePoints = hole.map((p) =>
+            writer.add(`IFCCARTESIANPOINT((${p.x.toFixed(2)},${p.y.toFixed(2)}))`),
+          );
+          const firstHolePoint = holePoints[0];
+          if (firstHolePoint !== undefined) {
+            holePoints.push(firstHolePoint);
+          }
+          holePolylineIds.push(
+            writer.add(`IFCPOLYLINE((${holePoints.map((id) => `#${id}`).join(',')}))`),
+          );
+        }
+        profile = writer.add(
+          `IFCARBITRARYPROFILEDEFWITHVOIDS(.AREA.,'SlabProfileWithVoids',#${boundaryPolyline},(${holePolylineIds.map((id) => `#${id}`).join(',')}))`,
+        );
+      } else {
+        profile = writer.add(
+          `IFCARBITRARYCLOSEDPROFILEDEF(.AREA.,'SlabProfile',#${boundaryPolyline})`,
+        );
+      }
+
+      const slabSolid = writer.add(
+        `IFCEXTRUDEDAREASOLID(#${profile},#${placementWorld3D},#${dirZ},${thickness.toFixed(2)})`,
+      );
+      const slabShapeRep = writer.add(
+        `IFCSHAPEREPRESENTATION(#${geomSubContext},'Body','SweptSolid',(#${slabSolid}))`,
+      );
+      const slabProdShape = writer.add(`IFCPRODUCTDEFINITIONSHAPE($,$,(#${slabShapeRep}))`);
+
+      const slabGuid = createIfcGuid();
+      const ifcSlab = writer.add(
+        `IFCSLAB('${slabGuid}',#${ownerHistory},'${escapeIfcString(slab.name || slab.id)}',$,'Slab',#${slabPlacement},#${slabProdShape},$,.FLOOR.)`,
+      );
+
+      // Rattachement au niveau (IfcRelContainedInSpatialStructure)
+      const elementsList =
+        storeyElementsMap.get(slab.levelId) || storeyElementsMap.get(defaultLevel.id);
+      if (elementsList) {
+        elementsList.push(ifcSlab);
+      }
+    }
   }
 
   // -------------------------------------------------------------------------

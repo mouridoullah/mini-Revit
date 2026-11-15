@@ -950,7 +950,26 @@ export class AddRoomCommand implements Command {
     }
     // Validation d'intégrité spatiale et référentielle
     validateRoom(this.room, draft as BimState);
-    draft.rooms[this.room.id] = this.room;
+
+    let area = this.room.area;
+    const status: 'enclosed' | 'unenclosed' = this.room.status ?? 'enclosed';
+    if (area === undefined) {
+      const detected = detectRooms(draft as BimState, this.room.levelId);
+      const match = detected.find((d) => {
+        if (!isPointInPolygon(this.room.seed, d.polygon)) return false;
+        if (d.holes && d.holes.some((h) => isPointInPolygon(this.room.seed, h))) return false;
+        return true;
+      });
+      if (match) {
+        area = match.areaMm2 / 1_000_000;
+      }
+    }
+
+    draft.rooms[this.room.id] = {
+      ...this.room,
+      status,
+      ...(area !== undefined ? { area } : {}),
+    };
   }
 
   public getChangedIds(): readonly ElementId[] {

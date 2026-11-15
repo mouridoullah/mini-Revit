@@ -28,6 +28,7 @@ export class Scene3D {
   private readonly directionalLight: THREE.DirectionalLight;
   private readonly defaultMaterial: THREE.MeshStandardMaterial;
   private readonly highlightMaterial: THREE.MeshStandardMaterial;
+  private readonly slabMaterial: THREE.MeshStandardMaterial;
 
   /**
    * Registre des maillages architecturaux indexés par elementId.
@@ -111,6 +112,12 @@ export class Scene3D {
     // 7. Matériaux partagés par défaut et de surbrillance
     this.defaultMaterial = createDefaultMaterial();
     this.highlightMaterial = createHighlightMaterial();
+    this.slabMaterial = new THREE.MeshStandardMaterial({
+      color: 0xd1d5db,
+      roughness: 0.85,
+      metalness: 0.05,
+      side: THREE.DoubleSide,
+    });
 
     // 8. Rendu à la demande sur interaction caméra
     this.onControlsChange = () => {
@@ -138,6 +145,7 @@ export class Scene3D {
       elementId: rawData.elementId,
       role: rawData.role,
       baseMaterial: mat,
+      ...(rawData.userData ?? {}),
     };
 
     this.scene.add(mesh);
@@ -270,6 +278,32 @@ export class Scene3D {
   public updateRoomMesh(roomId: string, rawMesh: RawMeshData): THREE.Mesh {
     this.removeMesh(roomId);
     return this.addRoomMesh(roomId, rawMesh);
+  }
+
+  /**
+   * Ajoute une dalle structurelle dans la scène 3D avec un matériau béton (#d1d5db).
+   */
+  public addSlabMesh(slabId: string, rawMesh: RawMeshData): THREE.Mesh {
+    return this.addMesh(
+      {
+        ...rawMesh,
+        elementId: slabId,
+        userData: {
+          elementId: slabId,
+          category: 'slab',
+          ...(rawMesh.userData ?? {}),
+        },
+      },
+      this.slabMaterial,
+    );
+  }
+
+  /**
+   * Met à jour une dalle structurelle (libère l'ancienne géométrie et remplace le mesh).
+   */
+  public updateSlabMesh(slabId: string, rawMesh: RawMeshData): THREE.Mesh {
+    this.removeMesh(slabId);
+    return this.addSlabMesh(slabId, rawMesh);
   }
 
   /**
@@ -410,6 +444,7 @@ export class Scene3D {
     // 4. Libérer les matériaux gérés
     this.defaultMaterial.dispose();
     this.highlightMaterial.dispose();
+    this.slabMaterial.dispose();
 
     // 5. Vider la scène Three.js
     this.scene.clear();

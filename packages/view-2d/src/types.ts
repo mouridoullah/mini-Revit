@@ -61,6 +61,31 @@ export type OpeningFor2D =
   ({ readonly kind: 'door' } & DoorFor2D) | ({ readonly kind: 'window' } & WindowFor2D);
 
 /**
+ * Paramètres neutres d'un type de dalle pour le tracé 2D.
+ */
+export interface SlabTypeFor2D {
+  readonly id: string;
+  readonly name: string;
+  readonly thickness: number;
+  readonly materialId?: string | undefined;
+}
+
+/**
+ * Paramètres neutres d'une dalle pour le tracé en plan 2D.
+ */
+export interface SlabFor2D {
+  readonly id: string;
+  readonly category?: 'slab' | undefined;
+  readonly slabTypeId: string;
+  readonly levelId: string;
+  readonly boundary: readonly Vec2[];
+  readonly holes?: readonly (readonly Vec2[])[] | undefined;
+  readonly openings?: readonly (readonly Vec2[])[] | undefined;
+  readonly baseOffset?: number | undefined;
+  readonly name?: string | undefined;
+}
+
+/**
  * Paramètres neutres d'une cotation pour le tracé en plan 2D.
  */
 export interface DimensionFor2D {
@@ -82,6 +107,10 @@ export interface DocumentFor2D {
   getState(): {
     readonly walls: Record<string, WallFor2D>;
     readonly wallTypes: Record<string, WallTypeFor2D>;
+    readonly doorTypes?: Record<string, { readonly id: string; readonly width: number; readonly height: number }> | undefined;
+    readonly windowTypes?: Record<string, { readonly id: string; readonly width: number; readonly height: number; readonly defaultSillHeight?: number }> | undefined;
+    readonly slabTypes?: Record<string, SlabTypeFor2D> | undefined;
+    readonly slabs?: Record<string, SlabFor2D> | undefined;
     readonly doors?: Record<string, DoorFor2D> | undefined;
     readonly windows?: Record<string, WindowFor2D> | undefined;
     readonly rooms?:
@@ -236,6 +265,17 @@ export interface DimensionRenderConfig {
   readonly tickSize: number;
 }
 
+export interface SlabRenderConfig {
+  readonly fillColor: string;
+  readonly strokeColor: string;
+  readonly strokeWidth: number;
+  readonly hatchColor: string;
+  readonly hatchSpacing: number;
+  readonly holeStrokeColor: string;
+  readonly selectedStrokeColor: string;
+  readonly selectedStrokeWidth: number;
+}
+
 /**
  * Configuration globale du moteur de rendu 2D.
  */
@@ -248,6 +288,8 @@ export interface View2DRenderConfig {
   readonly grid: GridConfig;
   /** Configuration de rendu des murs */
   readonly wall: WallRenderConfig;
+  /** Configuration de rendu des dalles */
+  readonly slab?: SlabRenderConfig;
   /** Configuration de rendu des pièces */
   readonly room?: RoomRenderConfig;
   /** Configuration de rendu des cotations */

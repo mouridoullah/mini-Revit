@@ -298,6 +298,7 @@ flowchart LR
     - **Rendu Dalles 2D / 3D :** Poché/hachure béton en 2D Canvas, maillage Three.js extrudé avec découpe de trémies (`earcut`).
     - **Export IFC4 :** `IfcSlab` (`.FLOOR.`, 9ᵉ attribut ISO 10303-21) et relations `IfcRelContainedInSpatialStructure`.
   - **6.2 Rendu 2D, 3D & Vue Fantôme Underlay en Cache Vectoriel (`@mini-bim/view-2d`, `@mini-bim/view-3d`) :**
+    - **Purge Définitive des Champs Transitoires V1 (ADR-042 / Note 3 Phase 6.1b) :** Suppression définitive des propriétés optionnelles transitoires `Door.kind?`, `Door.width?`, `Door.height?`, `Window.kind?`, `Window.width?`, `Window.height?` dans `types.ts` et alignement exhaustif du code applicatif sur `doorType` / `windowType`.
     - Rendu 3D Three.js : triangulation polygonale concave avec trous effectifs (`earcut`) et extrusion descendante de la dalle depuis l'élévation du niveau (`Z = level.elevation`).
     - Rendu 2D Canvas : affichage du contour de la dalle avec hachure béton ou bordure stylisée, trémies transparentes avec croix de réservation.
     - Rendu Underlay (Vue Fantôme Vectorielle) : tracé des murs et baies du niveau inférieur ($N-1$) sur le plan actif via un cache vectoriel pré-compilé `Path2D` en coordonnées mondes, invalidé uniquement par les `changedIds` du niveau $N-1$ (zéro pixellisation au zoom, complexité $\mathcal{O}(1)$ appel d'API).
