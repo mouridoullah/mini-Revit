@@ -1411,13 +1411,16 @@ Dans un bâtiment à étages, si un mur du niveau $N$ s'élève jusqu'à l'élé
      getChangedIds(modifiedRootIds: readonly ElementId[]): readonly ElementId[]; // tri topologique
    }
    ```
-3. **Alimentation Dynamique à partir de `RELATIONS_REGISTRY` :**  
-   À l'insertion ou la modification d'une entité, le graphe est alimenté automatiquement :
-   - Baie `door` / `window` $\to$ arc `hostWallId` $\to$ `doorId`
-   - Cotation `dim` $\to$ arcs `references[i]` $\to$ `dimId`
-   - Dalle / Mur `e` $\to$ arc `levelId` $\to$ `e.id`
-   - Mur avec contrainte supérieure `topConstraint` $\to$ arc `topConstraint.levelId` $\to$ `wall.id`
-   - Trémie d'escalier $\to$ arc `stair.id` $\to$ `slab.id`
+3. **Alimentation Hybride du DAG (Clés Étrangères Explicites & Sur-Invalidation Spatiale) :**  
+   Le DAG ne pouvant pas dériver les relations purement spatiales (couverture 2D de dalle ou connectivité de sommets) à partir de champs statiques seuls, il combine deux mécanismes :
+   - **Arêtes Déclaratives par Clés Étrangères :**
+     - Baie `door` / `window` $\to$ arc `hostWallId` $\to$ `openingId`
+     - Famille/Type $\to$ arc `typeId` $\to$ `instanceId` (ex: `wallTypeId` $\to$ `wallId`, `doorTypeId` $\to$ `doorId`, `windowTypeId` $\to$ `windowId`, `slabTypeId` $\to$ `slabId`)
+     - Cotation `dim` $\to$ arcs `references[i]` $\to$ `dimId`
+     - Entité de niveau `e` (mur, dalle) $\to$ arc `levelId` $\to$ `e.id`
+   - **Arêtes de Sur-Invalidation Spatiale (Coarse-Grained Spatial Dependencies) :**
+     - **Dalle $N+1 \to$ Murs du niveau $N$ :** Tout mur contraint au niveau supérieur $N+1$ dépend du niveau $N+1$ et de l'ensemble des dalles de ce niveau (`slabs(N+1) -> wall(N)`). Toute modification d'épaisseur de dalle, de décalage ou de contour sur $N+1$ ré-évalue automatiquement le $Z_{\text{top}}$ des murs sous-jacents. Le surcoût d'invalidation est négligeable ($\ll 0.01\text{ ms}$).
+     - **Connectivité Spatiale des Jonctions :** Les voisins connectés partageant un sommet coïncident ($\|P_i - P_j\| \le 1.0\text{ mm}$) sont résolus dynamiquement à la volée par le moteur de topologie géométrique lors des déplacements.
 4. **Suppression Générique Déduite par le Graphe :**  
    Le moteur générique de cascade (`resolveCascadeDeletions`, ADR-038) interroge le DAG :
    - Si `onDelete: 'cascade'`, suppression récursive de la fermeture transitive.
@@ -1425,12 +1428,22 @@ Dans un bâtiment à étages, si un mur du niveau $N$ s'élève jusqu'à l'élé
    - Si `onDelete: 'detach'`, réinitialisation des clés étrangères orphelines.
 5. **Calcul Automatique et Déterministe de `getChangedIds()` :**  
    `BimDocument.execute()` ne s'appuie plus sur des listes empiriques manuelles : l'union des entités modifiées et de leurs dépendants calculés par le DAG constitue la liste immuable de `getChangedIds()`.
+6. **Post-Condition Générique d'Intégrité (`validateDirty`) dans `execute()` :**  
+   Pour éradiquer les vérifications ad-hoc par commande (ex: porte dépassant le mur suite à un abaissement de dalle de plancher haut ou un changement de hauteur de niveau), `BimDocument.execute()` exécute une post-condition universelle sur l'ensemble du dirty set avant validation transactionnelle :
+   ```typescript
+   validateDirty(draftState, changedIds);
+   ```
+   - Pour tout mur sale : vérifie $L \ge \text{MIN\_WALL\_LENGTH}$ et re-valide ses ouvertures via `validateOpenings(wall, openings)` ($H_{\text{linteau}} \le H_{\text{eff}}$, gardes de rive, non-chevauchement).
+   - Pour toute dalle sale : exécute `validateSlab(slab, draftState)`.
+   - Pour tout type sale : vérifie les épaisseurs et dimensions positives.
+     Si une contrainte est violée n'importe où dans le dirty set, la transaction est **rejetée atomiquement** avec l'erreur `BimValidationError` appropriée, le draft Immer est abandonné et rien n'est empilé dans l'historique Undo/Redo.
 
 ### Conséquences
 
 - Respect total d'Open/Closed : ajouter une entité (dalle, toiture) ne touche jamais aux commandes des autres entités.
 - Algorithme ultra-rapide par parcours en largeur (BFS) en $\mathcal{O}(V + E)$ ($\ll 0.1\text{ ms}$).
 - Détection immédiate de tout cycle éventuel d'invalidation.
+- Garantie formelle et universelle d'intégrité géométrique sur toutes les opérations (modification de niveau, changement de type de dalle, étirement de mur).
 
 ---
 
@@ -1544,9 +1557,14 @@ Une migration simpliste assignant des types standards fixes (ex: tous les ouvran
    - **Portes :** Partitionnement de `v1State.doors` par dimensions distinctes $(width, height)$. Pour chaque couple unique rencontré, un `DoorType` dédié est généré (ex: `door-type-900x2100` avec nom `"Porte 900×2100 mm"`). L'instance de porte se voit assigner le `doorTypeId` correspondant. **Aucune dimension n'est écrasée.**
    - **Fenêtres :** Partitionnement par triplet distinct $(width, height, sillHeight)$. Génération d'un `WindowType` dédié par triplet (ex: `window-type-1200x1400-900`).
    - **Dalles & Types de Dalles :** Initialisation d'un type de dalle standard `default-slab-type` (épaisseur 200 mm) et initialisation du dictionnaire `slabs: {}`.
-   - **Contraintes Supérieures des Murs :** Pour chaque mur sans hauteur explicite (`heightOverride`), initialisation automatique de `topConstraint: { levelId: level_{N+1}.id, offset: 0 }`.
+   - **Préservation Géométrique des Murs Migrés (`heightOverride`) :**  
+     Afin de garantir que les murs existants de la V1 ne subissent aucune déformation volumique lors de la migration (par exemple si l'écart entre niveaux est de 3000 mm alors que le mur type fait 2800 mm, ou si le niveau supérieur n'a pas encore de dalle), la migration pose explicitement :
+     $$\text{wall.heightOverride} = \text{wall.heightOverride} \mathbin{??} \text{wallType.height}$$
+     Le mur conserve ainsi rigoureusement sa hauteur et son volume d'origine au millimètre cube près ($\text{Volume}_{\text{migré}} \equiv \text{Volume}_{\text{v1}}$).
+   - **Raccord Altimétrique Dynamique pour les Nouveaux Murs :**  
+     Pour les nouveaux murs créés ultérieurement en Saison 2, la contrainte supérieure est résolue dynamiquement vers le niveau immédiatement supérieur (`next-level-up`) selon la relation d'ordre des élévations s'il existe. Si le mur est au dernier niveau (aucun étage supérieur), il adopte la hauteur nominale de son type sans contrainte supérieure.
 3. **Validation de Non-Régression par Fixtures de Référence :**  
-   Les fichiers de démonstration et fixtures de test certifiés en Phase 5 (`demo-plan.json` et maquettes d'or) sont inclus dans un test de migration automatisé vérifiant l'égalité bit-à-bit des dimensions avant et après migration.
+   Les fichiers de démonstration et fixtures de test certifiés en Phase 5 (`demo-plan.json` et maquettes d'or) sont inclus dans un test de migration automatisé vérifiant non seulement l'égalité bit-à-bit des dimensions des ouvertures, mais également la stricte conservation du volume 3D total de matière de chaque mur.
 
 ### Conséquences
 

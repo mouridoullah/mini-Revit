@@ -33,8 +33,6 @@ export interface Level {
   readonly id: ElementId;
   readonly name: string;
   readonly elevation: number; // en mm (repère Z-up, source unique de vérité altimétrique)
-  readonly storyHeight?: number; // hauteur d'étage indicative en mm (défaut: 2800)
-  readonly order?: number; // index ordinal d'empilement
 }
 
 export interface Layer {
@@ -199,16 +197,27 @@ export interface Command {
 - **Murs :**
   - `AddWallCommand(wall)`
   - `UpdateWallCommand(wallId, patch)`
-  - `DeleteWallCommand(wallId)` : suppression en cascade (`ON DELETE CASCADE`) supprimant automatiquement toutes les portes et fenêtres hébergées par le mur. `getChangedIds()` retourne l'identifiant du mur ET des ouvertures supprimées.
-- **Ouvertures hébergées (Phase 3.1) :**
-  - `AddDoorCommand(door)` : ajoute une porte après validation d'intégrité et de non-chevauchement. Notifie `[door.id, door.hostWallId]`.
-  - `AddWindowCommand(window)` : ajoute une fenêtre après validation d'intégrité et de non-chevauchement. Notifie `[window.id, window.hostWallId]`.
-  - `UpdateDoorCommand(doorId, patch)` : met à jour dimensions ou battement après validation.
-  - `UpdateWindowCommand(windowId, patch)` : met à jour dimensions ou allège après validation.
-  - `DeleteOpeningCommand(openingId)` : supprime une porte ou une fenêtre de manière ciblée sans altérer le mur hôte. Notifie `[openingId, hostWallId]`.
-  - `MoveOpeningCommand(openingId, newOffsetAlong)` : déplace une ouverture le long de l'axe du mur hôte avec revalidation géométrique immédiate.
-- **Niveaux :** `AddLevelCommand`, `UpdateLevelCommand`, `DeleteLevelCommand`.
-- **Types de murs :** `AddWallTypeCommand`, `UpdateWallTypeCommand`, `DeleteWallTypeCommand`.
+  - `DeleteWallCommand(wallId)` : suppression en cascade via `resolveCascadeDeletions` (ADR-038/ADR-041) supprimant automatiquement toutes les portes, fenêtres et cotations associées.
+- **Ouvertures hébergées (Schéma v2 / ADR-042) :**
+  - `AddDoorCommand(door)` : ajoute une porte après validation d'intégrité et de non-chevauchement.
+  - `AddWindowCommand(window)` : ajoute une fenêtre après validation d'intégrité et de non-chevauchement.
+  - `UpdateDoorCommand(doorId, patch)` : met à jour l'offset ou le battement.
+  - `UpdateWindowCommand(windowId, patch)` : met à jour l'offset ou l'allège.
+  - `DeleteOpeningCommand(openingId)` : supprime une baie sans altérer le mur hôte.
+  - `MoveOpeningCommand(openingId, newOffsetAlong)` : déplace une ouverture avec revalidation immédiate.
+- **Dalles horizontales (Phase 6 / ADR-035) :**
+  - `AddSlabCommand(slab)` : insère une dalle après validation `validateSlab`.
+  - `UpdateSlabCommand(slabId, patch)` : met à jour contour ou trémies manuelles.
+  - `DeleteSlabCommand(slabId)` : supprime la dalle.
+- **Gestion des Types Constructifs (ADR-042) :**
+  - `AddWallTypeCommand`, `UpdateWallTypeCommand`, `DeleteWallTypeCommand`
+  - `AddSlabTypeCommand`, `UpdateSlabTypeCommand`, `DeleteSlabTypeCommand`
+  - `AddDoorTypeCommand`, `UpdateDoorTypeCommand`, `DeleteDoorTypeCommand`
+  - `AddWindowTypeCommand`, `UpdateWindowTypeCommand`, `DeleteWindowTypeCommand`
+  - _Rejet transactionnel :_ Toute suppression d'un type utilisé lève `DELETE_REJECTED`. Toute modification dimensionnelle de type invalidant une instance lève `TYPE_UPDATE_INVALIDATES_INSTANCES`.
+- **Niveaux (ADR-036) :** `AddLevelCommand`, `UpdateLevelCommand`, `DeleteLevelCommand` (rejetée avec `DELETE_LEVEL_REJECTED` si le niveau héberge des éléments).
+- **Pièces (Phase 4 / ADR-039) :** `AddRoomCommand`, `UpdateRoomCommand`, `DeleteRoomCommand`.
+- **Cotations (Phase 5 / ADR-034) :** `AddDimensionCommand`, `UpdateDimensionCommand`, `DeleteDimensionCommand`.
 
 ---
 
@@ -217,28 +226,32 @@ export interface Command {
 Toute violation de règle métier lève immédiatement une exception explicite `BimValidationError` :
 
 1. **Longueur minimale de mur :** Tout mur doit avoir une longueur euclidienne strictement positive :
-   $$\sqrt{(x_2 - x_1)^2 + (y_2 - y_1)^2} > 10^{-4}\text{ mm}$$
-2. **Intégrité référentielle des murs :** Un mur doit obligatoirement pointer vers un `WallType` et un `Level` existant.
+   $$\sqrt{(x_2 - x_1)^2 + (y_2 - y_1)^2} \ge \text{MIN\_WALL\_LENGTH} = 100.0\text{ mm}$$
+2. **Intégrité référentielle des murs et dalles :**
+   - Un mur doit obligatoirement pointer vers un `WallType` et un `Level` existants.
+   - Une dalle doit obligatoirement pointer vers un `SlabType` et un `Level` existants (`validateSlab`).
 3. **Intégrité référentielle des ouvertures :**
-   - Une ouverture (`Door`, `Window`) doit obligatoirement référencer un mur hôte existant (`UNKNOWN_HOST_WALL`).
-4. **Dimensions physiques des ouvertures :**
-   - `width > 0`, `height > 0` et valeurs finies (`INVALID_OPENING_DIMENSIONS`).
+   - Une baie (`Door`, `Window`) doit obligatoirement référencer un mur hôte existant (`UNKNOWN_HOST_WALL`) et un type valide (`UNKNOWN_OPENING_TYPE`).
+4. **Dimensions physiques des types d'ouvertures :**
+   - `type.width > 0`, `type.height > 0` et valeurs finies (`INVALID_OPENING_DIMENSIONS`).
    - `sillHeight >= 0` pour les fenêtres.
    - Battement valide (`left` | `right`, `in` | `out`) pour les portes.
 5. **Bornes géométriques sur l'axe du mur :**
    - L'ouverture doit être entièrement contenue dans l'intervalle $[0, L]$ du mur :
-     $$0 \le \text{offsetAlong} \le \text{offsetAlong} + \text{width} \le L_{\text{wall}}$$
+     $$0 \le \text{offsetAlong} \le \text{offsetAlong} + \text{type.width} \le L_{\text{wall}}$$
      (`INVALID_OPENING_POSITION`).
-   - Hauteur :
-     - Pour une porte : $\text{height} \le H_{\text{wall}}$
-     - Pour une fenêtre : $\text{sillHeight} + \text{height} \le H_{\text{wall}}$
+   - Hauteur sous linteau par rapport à la hauteur effective du mur :
+     - Pour une porte : $\text{type.height} \le H_{\text{eff}}$
+     - Pour une fenêtre : $\text{sillHeight} + \text{type.height} \le H_{\text{eff}}$
        (`INVALID_OPENING_HEIGHT`).
 6. **Non-chevauchement et dégagement minimal :**
    - Deux ouvertures sur un même mur hôte ne peuvent se chevaucher en 1D :
      $$[\text{offset}_i, \text{offset}_i + w_i] \cap [\text{offset}_j, \text{offset}_j + w_j] = \emptyset$$
      (`OPENING_OVERLAP`).
-   - Les trumeaux minimaux et dégagements respectent la fonction `validateOpenings` de `@mini-bim/geometry` (signature complète à 4 paramètres : `validateOpenings(wall: WallInput, openings: readonly OpeningInput[], minClearance?: number, options?: ValidationOptions)`) et `MIN_OPENING_CLEARANCE = 50\text{ mm}` (`INVALID_OPENING_CLEARANCE`).
-7. **Protection de suppression :**
+   - Les trumeaux minimaux et dégagements respectent la fonction `validateOpenings` de `@mini-bim/geometry` et $\text{MIN\_OPENING\_CLEARANCE} = 50\text{ mm}$ (`INVALID_OPENING_CLEARANCE`).
+7. **Post-Condition Universelle `validateDirty` :**  
+   Avant d'enregistrer une transaction dans l'historique Undo/Redo, `BimDocument.execute()` invoque systématiquement `validateDirty(draft, changedIds)`. Si un changement de type, de dalle, de niveau ou un étirement de mur viole une règle sur n'importe quel élément du dirty set, la transaction est atomiquement annulée.
+8. **Protection de suppression :**
    - Un `Level` ne peut être supprimé tant que des murs y sont rattachés (`canDeleteLevel`).
    - Un `WallType` ne peut être supprimé tant qu'il est instancié par au moins un mur (`canDeleteWallType`).
    - Un `Wall` hébergeant des ouvertures **peut** être supprimé (`canDeleteWall` retourne `allowed: true`), en cascade transactionnelle avec ses ouvertures.
@@ -276,13 +289,13 @@ export class BimDocument {
 
 ---
 
-## 6. Format de Sérialisation JSON & Rétrocompatibilité
+## 6. Format de Sérialisation JSON & Rétrocompatibilité (Schéma v2)
 
-Exemple de document sérialisé en JSON avec portes et fenêtres (`schemaVersion: 1`, `units: "mm"`) :
+Exemple de document sérialisé en JSON conforme au Schéma Version 2 (`schemaVersion: 2`, `units: "mm"`) :
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "units": "mm",
   "levels": {
     "01JCTP9Y2M14N58XVB69K4W7AZ": {
@@ -299,6 +312,30 @@ Exemple de document sérialisé en JSON avec portes et fenêtres (`schemaVersion
       "height": 2800
     }
   },
+  "slabTypes": {
+    "01JCTP9Y2M14N58XVB69K4W7S0": {
+      "id": "01JCTP9Y2M14N58XVB69K4W7S0",
+      "name": "Dalle BA 200 mm",
+      "thickness": 200
+    }
+  },
+  "doorTypes": {
+    "01JCTP9Y2M14N58XVB69K4W7DT": {
+      "id": "01JCTP9Y2M14N58XVB69K4W7DT",
+      "name": "Porte Isoplane 900x2100",
+      "width": 900,
+      "height": 2100
+    }
+  },
+  "windowTypes": {
+    "01JCTP9Y2M14N58XVB69K4W7WT": {
+      "id": "01JCTP9Y2M14N58XVB69K4W7WT",
+      "name": "Fenêtre Châssis 1200x1400",
+      "width": 1200,
+      "height": 1400,
+      "defaultSillHeight": 900
+    }
+  },
   "walls": {
     "01JCTP9Y2M14N58XVB69K4W7B1": {
       "id": "01JCTP9Y2M14N58XVB69K4W7B1",
@@ -309,15 +346,14 @@ Exemple de document sérialisé en JSON avec portes et fenêtres (`schemaVersion
       "end": { "x": 5000, "y": 0 }
     }
   },
+  "slabs": {},
   "doors": {
     "01JCTP9Y2M14N58XVB69K4W7D1": {
       "id": "01JCTP9Y2M14N58XVB69K4W7D1",
       "category": "door",
-      "kind": "door",
+      "doorTypeId": "01JCTP9Y2M14N58XVB69K4W7DT",
       "hostWallId": "01JCTP9Y2M14N58XVB69K4W7B1",
       "offsetAlong": 800,
-      "width": 900,
-      "height": 2100,
       "swing": {
         "side": "right",
         "direction": "in"
@@ -328,16 +364,16 @@ Exemple de document sérialisé en JSON avec portes et fenêtres (`schemaVersion
     "01JCTP9Y2M14N58XVB69K4W7W1": {
       "id": "01JCTP9Y2M14N58XVB69K4W7W1",
       "category": "window",
-      "kind": "window",
+      "windowTypeId": "01JCTP9Y2M14N58XVB69K4W7WT",
       "hostWallId": "01JCTP9Y2M14N58XVB69K4W7B1",
       "offsetAlong": 2500,
-      "width": 1200,
-      "height": 1400,
       "sillHeight": 900
     }
-  }
+  },
+  "rooms": {},
+  "dimensions": {}
 }
 ```
 
-> [!NOTE] Rétrocompatibilité Totale
-> Les fichiers de projet issus des Phases 1 et 2 (dépourvus de clés `doors` et `windows`) sont désérialisés avec succès : le chargeur initialise automatiquement `doors: {}` et `windows: {}`.
+> [!NOTE] Migration Automatisée sans Perte (ADR-043)
+> La fonction pure `migrateSchemaV1toV2` convertit automatiquement tout document de schéma v1 (Phases 1 à 5). Elle synthétise un `DoorType` par couple distinct $(width, height)$ et un `WindowType` par triplet distinct $(width, height, sillHeight)$, préserve la hauteur d'origine des murs via `heightOverride = wallType.height`, et garantit une conservation de volume et une égalité bit-à-bit stricte lors du round-trip.

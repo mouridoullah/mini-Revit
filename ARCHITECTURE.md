@@ -1,7 +1,7 @@
 # ARCHITECTURE SYSTÈME — MINI-BIM
 
 **Statut :** Spécification d'Architecture Validée  
-**Date :** 13 novembre 2026  
+**Date :** 15 novembre 2026  
 **Auteur :** Ingénieur Principal & Architecte Logiciel
 
 ---
@@ -64,7 +64,7 @@ flowchart TD
     end
 
     subgraph Persistence ["Couche Persistance"]
-        Serializer["Sérialiseur / Désérialiseur JSON Schéma v1"]
+        Serializer["Sérialiseur / Désérialiseur JSON Schéma v2"]
         SQLiteAdapter["Adaptateur SQLite WASM + OPFS"]
     end
 
@@ -105,24 +105,26 @@ flowchart TD
 - **Rôle :** Représentation des concepts architecturaux, cohérence du modèle et cycle de vie des entités.
 - **Dépendances :** `@mini-bim/geometry`. Aucune dépendance graphique.
 - **Responsabilités :**
-  - Modèle de données normalisé : `Project`, `Building`, `Level`, `Category`, `ElementType`, `ElementInstance`, `Wall`, `Door`, `Window`, `Slab`, `Roof`, `Room`, `Material`.
+  - Modèle de données normalisé Schéma v2 : `Project`, `Building`, `Level`, `Category`, `ElementType`, `ElementInstance`, `Wall`, `WallType`, `Door`, `DoorType`, `Window`, `WindowType`, `Slab`, `SlabType`, `Roof`, `Room`, `Dimension`.
   - Gestion des identifiants stables (ULID).
-  - Graphe de dépendances dirigé acyclique (DAG) reliant hôtes, éléments hébergés et limites de pièces.
-  - Moteur de régénération incrémentale : calcul des ensembles d'entités sales (`dirty set`) et orchestration des générateurs géométriques.
-  - Calcul des métriques et quantités (surfaces brutes/nettes, volumes, longueurs de linéaire).
+  - Graphe de dépendances dirigé acyclique (DAG minimal, ADR-041) et registre de relations déclaratives (`RELATIONS_REGISTRY`, ADR-038).
+  - Moteur de cascade et propagation d'invalidations (`getChangedIds`).
+  - Post-condition universelle d'intégrité transactionnelle (`validateDirty(draft, changedIds)`) exécutée dans `execute()` avant empilement dans l'historique Undo/Redo.
+  - Calcul des métriques et quantités (surfaces brutes/nettes, volumes, longueurs de linéaire, détection de doublons `redundant`).
 
-### 3.3 `@mini-bim/app` (Couche Application & Outils)
+### 3.3 Couche Application & Outils (`apps/web/src/tools` & CommandBus)
 
 - **Rôle :** Orchestration des flux utilisateurs, outillage interactif et historique.
 - **Dépendances :** `@mini-bim/core`, `@mini-bim/geometry`.
 - **Responsabilités :**
   - Bus de commandes : `execute(command)`, `undo()`, `redo()`.
-  - Commandes transactionnelles typées : `AddWallCommand`, `MoveWallEndpointCommand`, `InsertDoorCommand`, `UpdatePropertyCommand`.
-  - Machines à états des outils (`ToolStateMachine`) :
+  - Commandes transactionnelles typées : `AddWallCommand`, `MoveWallCommand`, `MoveOpeningCommand`, `AddDoorCommand`, etc.
+  - Machines à états des outils pures (`Tool`) :
     - `WallTool` : clic de départ, fantôme temps réel, accrochage, clic de fin, émission de commande.
-    - `DoorTool` : détection du mur hôte sous le curseur, calcul de la projection le long de l'axe, validation des marges, prévisualisation, émission de commande.
+    - `DoorTool` / `WindowTool` : détection du mur hôte sous le curseur, calcul de la projection le long de l'axe, validation des marges, prévisualisation, émission de commande.
     - `SelectTool` : sélection mono/multi-éléments, boîte de sélection élastique, manipulation de poignées (gizmos/grips).
-  - Moteur d'accrochage (`SnappingEngine`) : détection des extrémités, milieux, alignements orthogonaux (axes X/Y) et intersections.
+    - `MoveWallTool` : translation de mur avec étirement élastique des murs incidents connectés (Wall Stretching & Joint Tracking).
+  - Moteur d'accrochage (`SnappingEngine`) : détection des extrémités, milieux, alignements orthogonaux (axes X/Y) et intersections en pixels écran.
 
 ### 3.4 `@mini-bim/view-2d` & `@mini-bim/view-3d` (Moteurs de Vues)
 
@@ -137,16 +139,16 @@ flowchart TD
 - **Responsabilités 2D :**
   - Rendu en plan horizontal interactif au niveau de coupe standard (1,20 m au-dessus du niveau actif).
   - Affichage des pochés de murs, symboles normalisés d'ouverture (arcs de débattement de portes), étiquettes de pièces et cotations.
+  - Tracé vectoriel optimisé de l'Underlay via cache mondial `Path2D`.
 
-### 3.5 `@mini-bim/persistence` (Stockage et Échange)
+### 3.5 Persistance et Échange (`apps/web/src/persistence` & `@mini-bim/core/ifc`)
 
 - **Rôle :** Sauvegarde, restauration, validation et conversion.
 - **Dépendances :** `@mini-bim/core`.
 - **Responsabilités :**
-  - Validation des structures de données via schémas Zod stricts.
-  - Import/Export de snapshots JSON versionnés (`schema_version: 1`).
-  - Driver de persistance SQLite WASM avec stockage OPFS (Origin Private File System).
-  - Passerelle préparée pour l'export IFC minimal (`IfcWall`, `IfcDoor`, `IfcWindow`, `IfcBuildingStorey`).
+  - Import/Export de snapshots JSON versionnés (`schemaVersion: 2`).
+  - Migration ascendante sans perte `migrateSchemaV1toV2` (ADR-043).
+  - Générateur IFC4 STEP ISO 10303-21 natif pur TypeScript (`IfcWall`, `IfcDoor`, `IfcWindow`, `IfcSlab`, `IfcSpace`, `IfcBuildingStorey`).
 
 ---
 

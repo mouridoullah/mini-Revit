@@ -64,7 +64,8 @@ Dans le standard BIM (Revit, IFC) :
   Z_{\text{inf}} &= Z_{\text{sup}} - \text{slabType.thickness}
   \end{aligned} $$
   $$
-- **Conséquence directe au niveau $N$ :** Les murs posés sur ce niveau ($Z_{\text{base}} = \text{level}_N.\text{elevation}$) reposent exactement sur la face supérieure de la dalle du même niveau ($Z_{\text{sup}} \le \text{level}_N.\text{elevation}$ si $baseOffset \le 0$).
+- **Conséquence directe au niveau $N$ & Règle sur `baseOffset` :**  
+  Par convention standard, le décalage altimétrique d'une dalle de sol satisfait $baseOffset \le 0$ afin que la dalle reste affleurante ou enfouie sous la cote de sol fini. Si un $baseOffset > 0$ est spécifié (cas d'un plancher technique surélevé), le pied des murs posés sur ce niveau s'aligne automatiquement sur la face supérieure de la dalle ($Z_{\text{base}} = Z_{\text{sup}}$) pour empêcher tout enfoncement des cloisons dans le béton.
 - **Cas critique multi-étages (Mur du niveau $N$ sous dalle du niveau $N+1$, ADR-040) :**
   Pour un mur contraint sous la dalle de plancher haut du niveau $N+1$, son sommet s'arrête exactement à la sous-face de la dalle qui le couvre :
   $$Z_{\text{top}}(wall_N) = Z_{\text{inf}}(slab_{N+1}) = \text{level}_{N+1}.\text{elevation} + (\text{slab.baseOffset} \mathbin{??} 0) - \text{slabType.thickness}$$
@@ -75,17 +76,21 @@ Dans le standard BIM (Revit, IFC) :
 
 ---
 
-## 3. Dérivation des Trémies d'Escalier (Règle de Vérité Unique)
+## 3. Dérivation des Trémies d'Escalier & Résolution Booléenne (Règle de Vérité Unique)
 
-Pour éviter tout risque de désynchronisation entre un escalier et la réservation qu'il traverse (critique de Claude sur la duplication d'état) :
+Pour éviter tout risque de désynchronisation entre un escalier et la réservation qu'il traverse (critique de Claude sur la duplication d'état) et pour gérer robustement les trémies en rive ou sécantes :
 
 1. **Source Unique de Vérité :**  
    Le champ `slab.holes` stocke **exclusivement les trémies et réservations manuelles** dessinées par l'utilisateur. La trémie requise pour le passage d'un escalier n'est **jamais stockée en dur** dans `slab.holes`.
-2. **Fonction Pure de Dérivation (`computeEffectiveHoles`) :**  
-   Avant toute opération de rendu 2D, de maillage 3D ou d'export IFC, les trémies effectives de la dalle sont calculées à la demande :
-   $$\text{holes}_{\text{effective}}(\text{slab}, \text{stairs}) = \text{slab.holes} \cup \bigcup_{s \in \text{stairs}, s.\text{topLevelId} = \text{slab.levelId}} \text{computeStairShaft}(s)$$
+2. **Fonction Pure de Dérivation Booléenne (`computeEffectiveSlabPolygon`) :**  
+   Avant toute opération de maillage 3D (`earcut`), de tracé en plan 2D ou d'export IFC, les trémies d'escalier sont collectées et combinées via `polygon-clipping` :
+   - **Union des trémies :** L'ensemble des trous manuels `slab.holes` et des contours de trémies d'escaliers débouchants est fusionné par union booléenne :
+     $$\text{shafts}_{\text{merged}} = \text{union}(\text{slab.holes} \cup \bigcup_{s \in \text{stairs}} \text{computeStairShaft}(s))$$
+   - **Découpe des trémies en rive (Entailles de rive) :** Si une trémie d'escalier ou manuelle intersecte le bord extérieur de la dalle (cas fréquent de l'escalier adossé à un mur de façade), elle n'est pas rejetée : elle découpe automatiquement le contour extérieur par différence booléenne :
+     $$\text{boundary}_{\text{trimmed}} = \text{difference}(\text{slab.boundary}, \text{shafts}_{\text{merged}})$$
+   - **Extraction des trous intérieurs :** Les îlots de vide résultants situés strictement à l'intérieur de $\text{boundary}_{\text{trimmed}}$ forment les trous intérieurs effectifs $\text{holes}_{\text{effective}}$.
 3. **Conséquence :**  
-   Si un escalier est déplacé, redimensionné ou supprimé, la trémie correspondante dans la dalle supérieure s'ajuste ou disparaît immédiatement, sans aucun risque de trou orphelin persistant.
+   Si un escalier est déplacé, redimensionné ou supprimé, la trémie correspondante dans la dalle supérieure s'ajuste ou disparaît immédiatement, sans aucun risque de trou orphelin persistant et avec une étanchéité topologique absolue.
 
 ---
 

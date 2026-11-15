@@ -24,32 +24,34 @@ Cette spécification définit :
 
 ### 2.1 Définition Paramétrique et Source Unique de Vérité
 
-Dans `BimState.levels`, chaque niveau possède :
+Dans `BimState.levels`, chaque niveau est minimal et non redondant :
 
-- `id: ElementId` (ULID).
-- `name: string` (ex: "Rez-de-chaussée", "Étage 1", "Combles").
-- `elevation: number` (**Source unique de vérité altimétrique** : altitude absolue en mm par rapport à la référence du projet $Z=0$).
-- `storyHeight?: number` (Hauteur libre d'étage indicative en mm, ex: 2800 mm).
-- `order?: number` (Index ordinal d'empilement, cohérent avec le tri par `elevation` croissante).
+```typescript
+export interface Level {
+  readonly id: ElementId;
+  readonly name: string; // Ex: "Rez-de-chaussée", "Étage 1", "Combles"
+  readonly elevation: number; // Source unique de vérité altimétrique (mm, repère Z-up)
+}
+```
 
-### 2.2 Relation d'Ordre et Propagation Altimétrique Paramétrique
+- **Absence de redondance :** Aucun champ `order` ou `storyHeight` n'est stocké dans l'état documentaire.
+- **Ordre dérivé déterministe :** La relation d'ordre est calculée dynamiquement par tri des niveaux sur leur élévation croissante :
+  $$\text{getSortedLevels}(\text{levels}) \implies \text{elevation}_0 < \text{elevation}_1 < \dots < \text{elevation}_k$$
+- **Hauteur d'étage dérivée :** La hauteur d'un étage $i$ vers $i+1$ est une vue calculée à la demande :
+  $$\text{getLevelStoryHeight}(\text{state}, \text{level}_i) = \text{elevation}_{i+1} - \text{elevation}_i$$
 
-1. **Relation d'Ordre Déterministe :**  
-   Les niveaux du bâtiment sont strictement ordonnés par `elevation` croissante :
-   $$\text{elevation}_0 < \text{elevation}_1 < \dots < \text{elevation}_k$$
-2. **Dérivation de la Hauteur d'Étage :**  
-   La hauteur de l'étage $i$ vers l'étage $i+1$ est une propriété dérivée :
-   $$\text{storyHeight}_i = \text{elevation}_{i+1} - \text{elevation}_i$$
-3. **Propagation lors de la Modification d'Hauteur d'Étage :**  
-   Lors de l'appel à la commande `UpdateLevelHeightCommand(level_i, newHeight)` :
-   $$\Delta = newHeight - (\text{elevation}_{i+1} - \text{elevation}_i)$$
-   L'élévation de tous les niveaux supérieurs $j > i$ est automatiquement translatée :
+### 2.2 Propagation Altimétrique Paramétrique
+
+1. **Mutation de Niveau (`UpdateLevelCommand`) :**  
+   Lorsqu'une commande `UpdateLevelCommand(levelId, { elevation: newElevation })` est exécutée (ou lors du changement de hauteur libre d'étage $\Delta H$) :
+   $$\Delta = newElevation - oldElevation$$
+   L'élévation de tous les niveaux supérieurs $j > i$ est automatiquement décalée :
    $$\forall j > i, \quad \text{elevation}_j \gets \text{elevation}_j + \Delta$$
-4. **Invalidation par le DAG (ADR-041) :**  
-   Le DAG propage la translation à l'ensemble des éléments attachés aux niveaux supérieurs :
-   - Dalles (`Z_sup = level.elevation + baseOffset`),
+2. **Invalidation par le DAG (ADR-041) :**  
+   Le DAG propage la translation à l'ensemble des éléments rattachés aux niveaux supérieurs :
+   - Dalles structurelles ($Z_{\text{sup}} = \text{level.elevation} + baseOffset$),
    - Sommets de murs contraints en tête via `topConstraint` (ADR-040),
-   - Cotations altimétriques.
+   - Cotations altimétriques associatives.
 
 ---
 
@@ -91,16 +93,20 @@ Conformément à la convention de l'ADR-024 et aux règles UX, le rayon d'attrac
 $$\text{snapDistanceWorld} = \frac{12\text{ px}}{\text{scale}}$$
 L'accrochage reste ainsi parfaitement ergonomique quel que soit le niveau de zoom de la vue en plan.
 
-### 4.4 Architecture Haute Performance : Mise en Cache Hors-Écran & Culling
+### 4.4 Architecture Vectorielle Haute Performance : Cache `Path2D` Mondial
 
-Pour garantir un framerate constant de 60 FPS sans jamais tronquer arbitrairement la maquette :
+Afin d'éviter les artefacts de pixellisation au zoom et les bordures vides en panoramique inhérents aux caches bitmaps :
 
-1. **Cache Hors-Écran (`OffscreenCanvas`) :**  
-   Le tracé de l'Underlay du niveau $N-1$ est rendu dans un canvas hors-écran dédié.
+1. **Compilation Vectorielle en `Path2D` :**  
+   L'ensemble des segments de murs et baies du niveau $N-1$ est pré-compilé dans un objet natif Canvas `Path2D` en coordonnées mondes réelles (millimètres).
 2. **Invalidation par les `changedIds` du DAG :**  
-   Le bitmap de l'Underlay est réutilisé en temps constant $\mathcal{O}(1)$ (`drawImage`) à chaque frame de navigation (pan/zoom). Il n'est recalculé que si `changedIds` contient au moins un élément appartenant au niveau $N-1$.
-3. **Culling Spatial sur le Viewport :**  
-   Lors du rafraîchissement du cache, seuls les éléments intersectant la boîte englobante de la vue écran active (`Transform2D.screenToWorld`) sont soumis au tracé vectoriel.
+   Ce `Path2D` est conservé en mémoire et réutilisé intégralement sans recalcul géométrique. Il n'est régénéré que lorsque `changedIds` contient au moins une entité appartenant au niveau $N-1$.
+3. **Tracé GPU Direct à Chaque Frame :**  
+   À chaque rafraîchissement d'écran du Viewport 2D, après application de la matrice de transformation cartésienne `Transform2D`, le visualiseur exécute un unique appel :
+   ```typescript
+   ctx.stroke(cachedUnderlayPath2D);
+   ```
+   - **Avantages :** Netteté vectorielle absolue sans flou quel que soit le zoom, aucun bord noir lors des pans rapides, et complexité CPU $\mathcal{O}(1)$ appel d'API sans allocation bitmap hors-écran.
 
 ---
 
@@ -109,4 +115,4 @@ Pour garantir un framerate constant de 60 FPS sans jamais tronquer arbitrairemen
 1. **Test unitaire Core :** Modification de hauteur de niveau $\implies$ translation automatique de l'élévation des niveaux supérieurs et propagation DAG aux murs/dalles.
 2. **Test 2D Canvas :** L'activation de l'Underlay génère le tracé en pointillés gris (`#9ca3af`) avec les baies du niveau inférieur.
 3. **Test d'accrochage Snap en pixels :** À zoom $1\times$, l'aimantation opère à 12 mm monde ; à zoom $0.1\times$, elle opère à 120 mm monde ($12\text{ px} / \text{scale}$).
-4. **Test de Cache Hors-Écran :** 10 opérations consécutives de pan/zoom réutilisent le cache sans aucun re-tracé de géométrie vectorielle sous-jacente.
+4. **Test de Cache Vectoriel `Path2D` :** 10 opérations consécutives de pan/zoom réutilisent l'instance `Path2D` en cache sans ré-exécuter le moteur d'extraction géométrique.

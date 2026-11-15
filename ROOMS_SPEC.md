@@ -66,7 +66,7 @@ export interface DetectedRoom {
 
 ## 3. Algorithme de Détection Automatique (`detectRooms`)
 
-L'algorithme s'exécute en 6 étapes déterministes :
+L'algorithme s'exécute en 7 étapes déterministes :
 
 ```mermaid
 flowchart TD
