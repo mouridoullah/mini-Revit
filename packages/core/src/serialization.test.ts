@@ -30,6 +30,7 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
     },
     doorTypes: {},
     windowTypes: {},
+    stairTypes: {},
     walls: {
       w_01: {
         id: 'w_01',
@@ -47,6 +48,7 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
     windows: {},
     rooms: {},
     dimensions: {},
+    stairs: {},
   };
 
   it('aller-retour toJSON -> fromJSON préserve l’état à l’identique (deepEqual)', () => {
@@ -124,6 +126,8 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
         },
       },
       rooms: {},
+      stairTypes: {},
+      stairs: {},
     };
 
     expect(() => fromJSON(JSON.stringify(badWallState))).toThrowError(BimValidationError);
@@ -144,6 +148,8 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
         },
       },
       rooms: {},
+      stairTypes: {},
+      stairs: {},
     };
     expect(() => fromJSON(JSON.stringify(orphanTypeState))).toThrowError(/UNKNOWN_WALL_TYPE/);
 
@@ -160,6 +166,8 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
         },
       },
       rooms: {},
+      stairTypes: {},
+      stairs: {},
     };
     expect(() => fromJSON(JSON.stringify(orphanLevelState))).toThrowError(/UNKNOWN_LEVEL/);
   });
@@ -174,6 +182,8 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
         },
       },
       rooms: {},
+      stairTypes: {},
+      stairs: {},
     };
     expect(() => fromJSON(JSON.stringify(badCategoryState))).toThrowError(/MALFORMED_WALL/);
 
@@ -186,6 +196,8 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
         },
       },
       rooms: {},
+      stairTypes: {},
+      stairs: {},
     };
     expect(() => fromJSON(JSON.stringify(nanCoordState))).toThrowError(/MALFORMED_WALL/);
   });
@@ -201,6 +213,8 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
         },
       },
       rooms: {},
+      stairTypes: {},
+      stairs: {},
     };
     expect(() => fromJSON(JSON.stringify(keyMismatchState))).toThrowError(/MALFORMED_LEVEL/);
   });
@@ -217,6 +231,8 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
         },
       },
       rooms: {},
+      stairTypes: {},
+      stairs: {},
     };
     expect(() => fromJSON(JSON.stringify(zeroLengthState))).toThrowError(/INVALID_WALL_LENGTH/);
   });
@@ -268,6 +284,8 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
         },
       },
       rooms: {},
+      stairTypes: {},
+      stairs: {},
     };
 
     const json = toJSON(stateWithOpenings, true);
@@ -294,6 +312,8 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
         },
       },
       rooms: {},
+      stairTypes: {},
+      stairs: {},
     };
 
     expect(() => fromJSON(JSON.stringify(stateWithGhostDoor))).toThrowError(BimValidationError);
@@ -316,6 +336,8 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
         },
       },
       rooms: {},
+      stairTypes: {},
+      stairs: {},
     };
 
     expect(() => fromJSON(JSON.stringify(stateWithGhostWindow))).toThrowError(BimValidationError);
@@ -340,6 +362,8 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
         },
       },
       rooms: {},
+      stairTypes: {},
+      stairs: {},
     };
     expect(() => fromJSON(JSON.stringify(badSideDoorState))).toThrowError(/MALFORMED_DOOR/);
 
@@ -360,6 +384,8 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
         },
       },
       rooms: {},
+      stairTypes: {},
+      stairs: {},
     };
     expect(() => fromJSON(JSON.stringify(badDirDoorState))).toThrowError(/MALFORMED_DOOR/);
 
@@ -380,6 +406,8 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
         },
       },
       rooms: {},
+      stairTypes: {},
+      stairs: {},
     };
     expect(() => fromJSON(JSON.stringify(badDimDoorState))).toThrowError(/MALFORMED_DOOR/);
   });
@@ -401,6 +429,8 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
         },
       },
       rooms: {},
+      stairTypes: {},
+      stairs: {},
     };
     expect(() => fromJSON(JSON.stringify(missingSwingDoorState))).toThrowError(/MALFORMED_DOOR/);
   });

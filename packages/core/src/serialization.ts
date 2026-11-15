@@ -424,5 +424,40 @@ export function fromJSON(jsonString: string): BimState {
     }
   }
 
+  // 16. Validation et initialisation des Escaliers (Stairs & StairTypes, ADR-048)
+  if (!state.stairTypes || typeof state.stairTypes !== 'object' || Array.isArray(state.stairTypes)) {
+    (state as { stairTypes: Record<string, unknown> }).stairTypes = {};
+  } else {
+    for (const [id, st] of Object.entries(state.stairTypes)) {
+      if (!st || typeof st !== 'object' || st.id !== id || typeof st.name !== 'string' || !Number.isFinite(st.width)) {
+        throw new BimValidationError('MALFORMED_STAIR_TYPE', `Malformed stairType entry at "${id}".`);
+      }
+    }
+  }
+
+  if (!state.stairs || typeof state.stairs !== 'object' || Array.isArray(state.stairs)) {
+    (state as { stairs: Record<string, unknown> }).stairs = {};
+  } else {
+    for (const [id, str] of Object.entries(state.stairs)) {
+      if (
+        !str ||
+        typeof str !== 'object' ||
+        str.id !== id ||
+        str.category !== 'stair' ||
+        typeof str.stairTypeId !== 'string' ||
+        typeof str.bottomLevelId !== 'string' ||
+        typeof str.topLevelId !== 'string' ||
+        !str.start ||
+        !Number.isFinite(str.start.x) ||
+        !Number.isFinite(str.start.y) ||
+        !str.end ||
+        !Number.isFinite(str.end.x) ||
+        !Number.isFinite(str.end.y)
+      ) {
+        throw new BimValidationError('MALFORMED_STAIR', `Malformed stair entry at "${id}".`);
+      }
+    }
+  }
+
   return state;
 }

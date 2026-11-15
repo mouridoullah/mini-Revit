@@ -27,6 +27,10 @@ function getEntitiesForCategory(state: BimState, category: EntityCategory): Reco
       return (state as any).windowTypes ?? {};
     case 'slabType':
       return (state as any).slabTypes ?? {};
+    case 'stair':
+      return (state as any).stairs ?? {};
+    case 'stairType':
+      return (state as any).stairTypes ?? {};
     default:
       return {};
   }
@@ -262,6 +266,27 @@ export class DependencyGraph {
               const w = walls[wallId];
               if (w && w.topConstraint?.levelId === s.levelId) {
                 graph.addEdge(s.id, w.id);
+              }
+            }
+          }
+        }
+      }
+
+      const stairs = state.stairs;
+      if (stairs) {
+        for (const id in stairs) {
+          const st = stairs[id];
+          if (!st) continue;
+          if (st.stairTypeId) graph.addEdge(st.stairTypeId, st.id);
+          if (st.bottomLevelId) graph.addEdge(st.bottomLevelId, st.id);
+          if (st.topLevelId) graph.addEdge(st.topLevelId, st.id);
+
+          // Arête DAG stair -> slab(topLevelId) pour la dérivation dynamique de trémie (ADR-048 §5)
+          if (slabs) {
+            for (const slabId in slabs) {
+              const slab = slabs[slabId];
+              if (slab && slab.levelId === st.topLevelId) {
+                graph.addEdge(st.id, slab.id);
               }
             }
           }

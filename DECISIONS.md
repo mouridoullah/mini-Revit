@@ -56,6 +56,7 @@
 | **ADR-045** | Modèle Dalles, SlabType, Migration de Schéma v1→v2 et Résolution des Trémies                   | **Accepté**  | 15/11/2026 |
 | **ADR-046** | PropertyInspector Unifié, SlabTool Interactif, Rendu 2D/3D Dalles et LevelSelector             | **Accepté**  | 15/11/2026 |
 | **ADR-047** | Purge des Champs Transitoires V1, Underlay Vectoriel Path2D et Snapping Inter-Niveaux          | **Accepté**  | 15/11/2026 |
+| **ADR-048** | Escalier Paramétrique Droit, Formule de Blondel, Dérivation de Trémie et Rendering Crénelé    | **Accepté**  | 15/11/2026 |
 
 ---
 
@@ -1986,4 +1987,66 @@ La Phase 6.1b a certifié le modèle de dalles et son rendu 2D/3D. Pour assurer 
 - **Contexte :** La purge des champs transitoires (`width?`, `height?`, `kind?`) sur `Door` et `Window` impose de piloter les dimensions via `doorTypeId` / `windowTypeId`. Pour préserver la compatibilité avec les scripts d'automatisation et les outils existants passant encore un patch `{ width, height }`, les commandes supportent ces attributs de manière transactionnelle.
 - **Règle de Déduplication Stricte :** Lors de l'application d'un patch avec dimensions, la commande inspecte d'abord le catalogue existant (`draft.doorTypes` / `draft.windowTypes`). Si un type constructif aux dimensions identiques existe déjà, il est réutilisé. Dans le cas contraire uniquement, un type déterministe est généré (ex: `door-type-1000x2150`).
 - **Périmètre du Modèle :** Conformément au standard BIM Type/Instance d'ADR-042, les types créés enrichissent le catalogue du projet et restent persistés même en cas de suppression de l'instance hôte. L'instance `Door` ou `Window` ne stocke aucun champ transitoire et référence exclusivement son `doorTypeId` / `windowTypeId`.
+
+---
+
+## ADR-048 : Escalier Paramétrique Droit, Formule de Blondel, Dérivation de Trémie et Rendering Crénelé
+
+### Statut
+
+**Accepté** (Phase 6.4 — Escalier Paramétrique et Dérivation de Trémie)
+
+### Date
+
+15 novembre 2026
+
+### Contexte
+
+Les phases précédentes ont posé les fondations multi-niveaux, les dalles horizontales, les relations déclaratives (DAG) et la vue fantôme d'underlay. L'introduction d'un escalier reliant deux niveaux adjacents constitue le lien vertical sémantique et constructif majeur du bâtiment. Cet élément doit :
+1. Calculer ses marches et contremarches selon la formule ergonomique et réglementaire de Blondel ($2h + g$).
+2. Dériver automatiquement la trémie d'échappée dans la dalle de plancher supérieure sans polluer le modèle documentaire (`slab.holes` restant réservé aux réservations manuelles).
+3. Produire un rendu 2D plan normalisé (nez de marches, ligne de foulée fléchée) et un rendu 3D étanche (maillage crénelé optimisé).
+4. S'intégrer dans le DAG (`stair -> slab(topLevel)`) pour régénérer la dalle lors des déplacements de l'escalier.
+5. Permettre la modélisation interactive (`StairTool`), l'inspection paramétrique (`PropertyInspector`) et l'interopérabilité IFC4 (`IfcStair`, `IfcStairFlight`).
+
+### Décisions d'Architecture
+
+#### 1. D1 — Portée de l'Itération 6.4 (Option α : Escalier Droit Simple 1 Volée)
+
+- **Décision :** Restreindre le périmètre de la Phase 6.4 à l'escalier droit à 1 volée continue, sans palier de repos ni quartiers tournants.
+- **Justification :** Aligné sur le périmètre MVP d'ADR-037. L'escalier droit pose les fondations mathématiques complètes (Blondel, échappée, calcul de trémie, maillage crénelé fusionné) qui serviront de socle aux extensions futures (Phase 6.5 : palier intermédiaire ; Phase 7 : escaliers balancés et hélicoïdaux).
+
+#### 2. D2 — Modèle Type / Instance pour l'Escalier (Option γ : StairType Minimal + Surcharges)
+
+- **Décision :** Formaliser un `StairType` portant les attributs de famille générique (`id`, `name`, `width`, `materialId?`), tandis que l'instance `Stair` porte les liaisons d'implantation spatiale (`bottomLevelId`, `topLevelId`, `start`, `end`) et une surcharge optionnelle `widthOverride`.
+- **Justification :** Cohérence stricte avec le pattern Revit / ADR-042. Une agence d'architecture normalise ses largeurs de volées (ex. 900 mm pour le résidentiel individuel, 1200 mm pour l'ERP). La surcharge locale permet de gérer les cas particuliers de trémies étroites sans multiplier inutilement les types.
+
+#### 3. D3 — Validation Réglementaire de Blondel (Option β : Warnings Confort vs Rejet Sécurité)
+
+- **Formule de Blondel :** $M = 2h + g$ où $h$ est la hauteur de contremarche et $g$ le giron horizontal.
+- **Plage de Confort :** $2h + g \in [600, 640]\text{ mm}$, avec $h \in [160, 190]\text{ mm}$ et $g \in [250, 320]\text{ mm}$.
+- **Plage de Sécurité Maximale :** $2h + g \in [560, 680]\text{ mm}$.
+- **Décision d'Arbitrage :**
+  - Si $2h + g \in [600, 640]\text{ mm}$ : Conforme (`isCompliant: true`), badge vert dans l'UI.
+  - Si $2h + g \in [560, 680]\text{ mm} \setminus [600, 640]\text{ mm}$ : Avertissement non-bloquant (`STAIR_BLONDEL_OUT_OF_COMFORT`), badge jaune, modélisation acceptée.
+  - Si $2h + g \notin [560, 680]\text{ mm}$ : Avertissement de sécurité majeur (`STAIR_BLONDEL_OUT_OF_SAFETY`), badge rouge.
+  - *Rejet strict à la création (`validateStair`) :* Longueur de run aberrante ($L < \text{width}$ ou $L > 20000\text{ mm}$), niveaux non adjacents, ou delta d'élévation $\Delta Z \le 0$.
+
+#### 4. D4 — Granularité du Maillage 3D (Option α : 1 RawMeshData Fusionné)
+
+- **Décision :** Générer l'escalier complet (marches supérieures, contremarches verticales et flancs latéraux) en un unique buffer géométrique fusionné (`RawMeshData`).
+- **Justification :** Cohérent avec les générateurs `createWallMeshAggregated` et `createSlabMesh`. Garantit un draw call unique par escalier dans Three.js et permet un picking direct par raycasting via `userData.elementId = stair.id`. Le volume total et la topologie étanche (caractéristique d'Euler = 2) sont vérifiables de manière déterministe.
+
+#### 5. D5 — Dérivation Automatique de la Trémie & Respect de la Source Unique de Vérité (ADR-001)
+
+- **Règle d'Or :** La trémie de l'escalier n'est **jamais stockée** dans la propriété documentaire `slab.holes` de la dalle supérieure.
+- **Principe :** La fonction pure `computeStairShaft(stair, state)` projette l'emprise horizontale au niveau `topLevel` en tenant compte d'un dégagement latéral de $50\text{ mm}$ (passage de main courante) et de $100\text{ mm}$ en extrémités. Lors du rendu ou du calcul géométrique, les trémies dérivées sont transmises via le paramètre éphémère `slab.openings` à `computeEffectiveSlabPolygon`.
+- **Invalidation par le DAG :** Une relation dépendante `stair -> slab(topLevel)` est enregistrée dans le `RELATIONS_REGISTRY` (ADR-038 / ADR-041). Toute modification d'un escalier invalide automatiquement le cache de maillage de la dalle d'étage.
+
+#### 6. D6 — Ligne de Foulée et Représentation 2D
+
+- La ligne de foulée est tracée le long de l'axe de parcours avec un cercle au point de départ (`start`) et une flèche orientée vers le haut au point d'arrivée (`end`).
+- Les nez de marches sont dessinés sous forme de $N-1$ segments perpendiculaires à la directrice de la volée.
+- En vue fantôme (Underlay $N-1$), l'escalier est représenté en traits pointillés gris (`#9ca3af`) pour situer la circulation verticale.
+
 

@@ -27,6 +27,10 @@ function getEntitiesForCategory(state: BimState, category: EntityCategory): Reco
       return (state as any).windowTypes ?? {};
     case 'slabType':
       return (state as any).slabTypes ?? {};
+    case 'stair':
+      return (state as any).stairs ?? {};
+    case 'stairType':
+      return (state as any).stairTypes ?? {};
     default:
       return {};
   }

@@ -50,6 +50,8 @@ export class BimDocument {
       windows: {},
       rooms: {},
       dimensions: {},
+      stairTypes: {},
+      stairs: {},
     };
   }
 
@@ -77,6 +79,7 @@ export class BimDocument {
     const defaultSlabTypeId = 'default-slab-type';
     const defaultDoorTypeId = 'default-door-type';
     const defaultWindowTypeId = 'default-window-type';
+    const defaultStairTypeId = 'default-stair-type';
 
     const defaultSlabType: import('./types.js').SlabType = {
       id: defaultSlabTypeId,
@@ -99,6 +102,12 @@ export class BimDocument {
       defaultSillHeight: 900,
     };
 
+    const defaultStairType: import('./types.js').StairType = {
+      id: defaultStairTypeId,
+      name: 'Escalier Droit 900mm',
+      width: 900,
+    };
+
     const state: BimState = {
       schemaVersion: 2,
       units: 'mm',
@@ -107,12 +116,14 @@ export class BimDocument {
       slabTypes: { [defaultSlabTypeId]: defaultSlabType },
       doorTypes: { [defaultDoorTypeId]: defaultDoorType },
       windowTypes: { [defaultWindowTypeId]: defaultWindowType },
+      stairTypes: { [defaultStairTypeId]: defaultStairType },
       walls: {},
       slabs: {},
       doors: {},
       windows: {},
       rooms: {},
       dimensions: {},
+      stairs: {},
     };
 
     return new BimDocument(state);

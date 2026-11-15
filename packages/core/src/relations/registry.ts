@@ -65,4 +65,23 @@ export const RELATIONS_REGISTRY: readonly RelationDef[] = [
     targetCategory: 'slabType',
     onDelete: 'restrict',
   },
+  // 6. Escaliers rattachés à leur type constructif et leurs niveaux (Restrict, ADR-048)
+  {
+    sourceCategory: 'stair',
+    field: 'stairTypeId',
+    targetCategory: 'stairType',
+    onDelete: 'restrict',
+  },
+  {
+    sourceCategory: 'stair',
+    field: 'bottomLevelId',
+    targetCategory: 'level',
+    onDelete: 'restrict',
+  },
+  {
+    sourceCategory: 'stair',
+    field: 'topLevelId',
+    targetCategory: 'level',
+    onDelete: 'restrict',
+  },
 ] as const;

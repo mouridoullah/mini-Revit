@@ -6,11 +6,13 @@ export type EntityCategory =
   | 'window'
   | 'dimension'
   | 'slab'
+  | 'stair'
   | 'wallType'
   | 'level'
   | 'doorType'
   | 'windowType'
   | 'slabType'
+  | 'stairType'
   | 'room';
 
 export interface RelationDef {

@@ -228,6 +228,31 @@ export interface Dimension {
 }
 
 /**
+ * Type constructif d'escalier paramétrique (Famille BIM, ADR-048).
+ */
+export interface StairType {
+  readonly id: ElementId;
+  readonly name: string;
+  readonly width: number; // Largeur nominale de volée en mm (> 0, défaut: 900)
+  readonly materialId?: string;
+}
+
+/**
+ * Entité escalier droit paramétrique unissant deux niveaux consécutifs (ADR-048).
+ */
+export interface Stair {
+  readonly id: ElementId;
+  readonly category: 'stair';
+  readonly stairTypeId: ElementId;
+  readonly bottomLevelId: ElementId;
+  readonly topLevelId: ElementId;
+  readonly start: Vec2; // Pied de l'escalier (coordonnées monde 2D mm)
+  readonly end: Vec2; // Tête d'arrivée de l'escalier (coordonnées monde 2D mm)
+  readonly widthOverride?: number; // Surcharge locale optionnelle de la largeur
+  readonly name?: string;
+}
+
+/**
  * État documentaire immuable complet du projet Mini-BIM (Schéma v2 / Saison 2).
  * Normalisé sous forme de dictionnaires indexés par ElementId.
  */
@@ -239,12 +264,14 @@ export interface BimState {
   readonly slabTypes: Record<ElementId, SlabType>;
   readonly doorTypes: Record<ElementId, DoorType>;
   readonly windowTypes: Record<ElementId, WindowType>;
+  readonly stairTypes?: Record<ElementId, StairType>;
   readonly walls: Record<ElementId, Wall>;
   readonly slabs: Record<ElementId, Slab>;
   readonly doors: Record<ElementId, Door>;
   readonly windows: Record<ElementId, Window>;
   readonly rooms: Record<ElementId, Room>;
   readonly dimensions: Record<ElementId, Dimension>;
+  readonly stairs?: Record<ElementId, Stair>;
 }
 
 /**

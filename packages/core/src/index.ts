@@ -12,6 +12,8 @@ export type {
   WallType,
   Slab,
   SlabType,
+  Stair,
+  StairType,
   DoorType,
   WindowType,
   TopConstraint,
@@ -67,6 +69,12 @@ export {
   AddSlabCommand,
   UpdateSlabCommand,
   DeleteSlabCommand,
+  AddStairTypeCommand,
+  UpdateStairTypeCommand,
+  DeleteStairTypeCommand,
+  AddStairCommand,
+  UpdateStairCommand,
+  DeleteStairCommand,
 } from './commands.js';
 export {
   BimValidationError,
@@ -80,6 +88,11 @@ export {
   validateSlabType,
   checkSlabViolations,
   checkSlabTypeViolations,
+  validateStair,
+  validateStairType,
+  validateStairBlondel,
+  checkStairViolations,
+  checkStairTypeViolations,
   validateRoom,
   validateDimension,
   canDeleteWall,
@@ -88,6 +101,12 @@ export {
   collectViolationsForDirty,
   validateDirty,
 } from './rules.js';
+export {
+  computeStairGeometry,
+  computeStairShaft,
+  computeHeadroom,
+  type StairGeometry,
+} from './stairs.js';
 export { getSortedLevels, getLevelStoryHeight, setStoryHeight } from './levels.js';
 export { generateId } from './ids.js';
 export { toJSON, fromJSON } from './serialization.js';
