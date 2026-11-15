@@ -11,6 +11,7 @@ import { type Command } from './commands.js';
 import { HistoryStack } from './history.js';
 import { toJSON, fromJSON } from './serialization.js';
 import { generateId } from './ids.js';
+import { DependencyGraph } from './dag/DependencyGraph.js';
 
 /**
  * Gestionnaire documentaire central du projet Mini-BIM.
@@ -106,8 +107,30 @@ export class BimDocument {
       cmd.apply(draft as BimState);
     });
 
+    // Capture des dépendants transitifs via DAG minimal (ADR-041 / Option B)
+    const dagBefore = DependencyGraph.build(this.state);
+    const dagAfter = DependencyGraph.build(nextState as BimState);
+    const directChanged = cmd.getChangedIds();
+
+    const allChanged: ElementId[] = [...directChanged];
+    const seen = new Set<ElementId>(directChanged);
+    for (const id of directChanged) {
+      for (const dep of dagBefore.getDependents(id)) {
+        if (!seen.has(dep)) {
+          seen.add(dep);
+          allChanged.push(dep);
+        }
+      }
+      for (const dep of dagAfter.getDependents(id)) {
+        if (!seen.has(dep)) {
+          seen.add(dep);
+          allChanged.push(dep);
+        }
+      }
+    }
+    const changed = allChanged;
+
     this.state = nextState as BimState;
-    const changed = cmd.getChangedIds();
 
     // Enregistrer la transaction dans l'historique
     this.history.push({

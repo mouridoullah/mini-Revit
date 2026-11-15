@@ -17,10 +17,9 @@ import {
   validateWindow,
   validateRoom,
   validateDimension,
-  canDeleteLevel,
-  canDeleteWallType,
   BimValidationError,
 } from './rules.js';
+import { resolveCascadeDeletions } from './relations/cascade.js';
 import { detectRooms } from './rooms/detect.js';
 import { computeDimensionValue } from './dimensions/index.js';
 import { isPointInPolygon } from '@mini-bim/geometry';
@@ -112,9 +111,8 @@ export class UpdateWallCommand implements Command {
 
 export class DeleteWallCommand implements Command {
   public readonly name = 'DeleteWall';
-  private deletedOpeningIds: ElementId[] = [];
+  private cascadedIds: ElementId[] = [];
   private deletedRoomIds: ElementId[] = [];
-  private deletedDimensionIds: ElementId[] = [];
 
   public constructor(public readonly wallId: ElementId) {}
 
@@ -128,42 +126,24 @@ export class DeleteWallCommand implements Command {
     }
     const levelId = wall.levelId;
 
-    // Cascade ON DELETE CASCADE : suppression de toutes les portes et fenêtres hébergées
-    // 1. Collecte des IDs des ouvertures rattachées AVANT toute suppression
-    const doorIds: ElementId[] = [];
-    if (draft.doors) {
-      for (const [doorId, door] of Object.entries(draft.doors)) {
-        if (door.hostWallId === this.wallId) {
-          doorIds.push(doorId);
-        }
+    // 1. Résolution déclarative générique des cascades (portes, fenêtres, cotations - ADR-038)
+    const { cascadeDeletes } = resolveCascadeDeletions(draft, this.wallId);
+
+    // 2. Suppression atomique de toutes les entités identifiées
+    for (const id of cascadeDeletes) {
+      if (id === this.wallId) {
+        Reflect.deleteProperty(draft.walls, id);
+      } else if (draft.doors?.[id]) {
+        Reflect.deleteProperty(draft.doors, id);
+      } else if (draft.windows?.[id]) {
+        Reflect.deleteProperty(draft.windows, id);
+      } else if (draft.dimensions?.[id]) {
+        Reflect.deleteProperty(draft.dimensions, id);
       }
     }
+    this.cascadedIds = Array.from(cascadeDeletes).sort();
 
-    const windowIds: ElementId[] = [];
-    if (draft.windows) {
-      for (const [windowId, win] of Object.entries(draft.windows)) {
-        if (win.hostWallId === this.wallId) {
-          windowIds.push(windowId);
-        }
-      }
-    }
-
-    // Ordre déterministe (tri alphabétique stable des identifiants d'ouvertures)
-    this.deletedOpeningIds = [...doorIds, ...windowIds].sort();
-
-    // 2. Suppression atomique des ouvertures hébergées
-    for (const doorId of doorIds) {
-      Reflect.deleteProperty(draft.doors, doorId);
-    }
-    for (const windowId of windowIds) {
-      Reflect.deleteProperty(draft.windows, windowId);
-    }
-
-    // 3. Suppression du mur hôte
-    Reflect.deleteProperty(draft.walls, this.wallId);
-
-    // 4. Cascade ADR-032 : Vérifier les Rooms sur ce niveau.
-    // Si la suppression du mur fait qu'une pièce n'est plus fermée, suppression en cascade de la Room.
+    // 3. Cascade Rooms sur ce niveau (D1 / Phase 4)
     const cascadedRooms: ElementId[] = [];
     if (draft.rooms) {
       const remainingRoomsOnLevel = Object.entries(draft.rooms).filter(
@@ -182,27 +162,15 @@ export class DeleteWallCommand implements Command {
       }
     }
     this.deletedRoomIds = cascadedRooms.sort();
-
-    // 5. Cascade ADR-034 : Suppression des cotations associatives référençant ce mur
-    const cascadedDims: ElementId[] = [];
-    if (draft.dimensions) {
-      for (const [dimId, dim] of Object.entries(draft.dimensions)) {
-        if (dim.references.includes(this.wallId)) {
-          Reflect.deleteProperty(draft.dimensions, dimId);
-          cascadedDims.push(dimId);
-        }
-      }
-    }
-    this.deletedDimensionIds = cascadedDims.sort();
   }
 
   public getChangedIds(): readonly ElementId[] {
-    return [
-      this.wallId,
-      ...this.deletedOpeningIds,
-      ...this.deletedRoomIds,
-      ...this.deletedDimensionIds,
-    ];
+    const others = this.cascadedIds.filter((id) => id !== this.wallId);
+    return [this.wallId, ...others, ...this.deletedRoomIds];
+  }
+
+  public getAdditionalChangedIds(): readonly ElementId[] {
+    return this.deletedRoomIds;
   }
 }
 
@@ -269,9 +237,15 @@ export class DeleteLevelCommand implements Command {
   public constructor(public readonly levelId: ElementId) {}
 
   public apply(draft: BimState): void {
-    const check = canDeleteLevel(this.levelId, draft as BimState);
-    if (!check.allowed) {
-      throw new BimValidationError('DELETE_LEVEL_REJECTED', check.reason ?? 'Cannot delete level.');
+    const { restrictViolations } = resolveCascadeDeletions(draft, this.levelId, {
+      throwOnRestrict: false,
+    });
+    if (restrictViolations.length > 0) {
+      throw new BimValidationError(
+        'DELETE_RESTRICTED',
+        `Cannot delete level: ID "${this.levelId}" is referenced by ${restrictViolations.length} active element(s) (DELETE_LEVEL_REJECTED).`,
+        { blockingIds: restrictViolations },
+      );
     }
     Reflect.deleteProperty(draft.levels, this.levelId);
   }
@@ -344,11 +318,14 @@ export class DeleteWallTypeCommand implements Command {
   public constructor(public readonly typeId: ElementId) {}
 
   public apply(draft: BimState): void {
-    const check = canDeleteWallType(this.typeId, draft as BimState);
-    if (!check.allowed) {
+    const { restrictViolations } = resolveCascadeDeletions(draft, this.typeId, {
+      throwOnRestrict: false,
+    });
+    if (restrictViolations.length > 0) {
       throw new BimValidationError(
-        'DELETE_WALL_TYPE_REJECTED',
-        check.reason ?? 'Cannot delete wall type.',
+        'DELETE_RESTRICTED',
+        `Cannot delete wall type: ID "${this.typeId}" is referenced by ${restrictViolations.length} active wall(s) (DELETE_WALL_TYPE_REJECTED).`,
+        { blockingIds: restrictViolations },
       );
     }
     Reflect.deleteProperty(draft.wallTypes, this.typeId);

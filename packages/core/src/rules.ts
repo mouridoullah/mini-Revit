@@ -21,12 +21,29 @@ import { detectRooms } from './rooms/detect.js';
  * Erreur de validation métier levée lors de la violation d'une règle d'intégrité BIM.
  */
 export class BimValidationError extends Error {
+  public readonly blockingIds?: readonly ElementId[];
+  public readonly offendingIds?: readonly ElementId[];
+
   public constructor(
     public readonly code: string,
     message: string,
+    details?: {
+      blockingIds?: readonly ElementId[];
+      offendingIds?: readonly ElementId[];
+      [key: string]: unknown;
+    },
   ) {
     super(`[${code}] ${message}`);
     this.name = 'BimValidationError';
+    if (details) {
+      if (details.blockingIds) {
+        this.blockingIds = details.blockingIds;
+      }
+      if (details.offendingIds) {
+        this.offendingIds = details.offendingIds;
+      }
+      Object.assign(this, details);
+    }
   }
 }
 

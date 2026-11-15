@@ -1,0 +1,297 @@
+import type { BimState, ElementId } from '../types.js';
+import { BimValidationError } from '../rules.js';
+import type { RelationDef, EntityCategory } from '../relations/types.js';
+import { RELATIONS_REGISTRY } from '../relations/registry.js';
+
+function getEntitiesForCategory(state: BimState, category: EntityCategory): Record<string, any> {
+  switch (category) {
+    case 'wall':
+      return state.walls ?? {};
+    case 'door':
+      return state.doors ?? {};
+    case 'window':
+      return state.windows ?? {};
+    case 'dimension':
+      return state.dimensions ?? {};
+    case 'room':
+      return state.rooms ?? {};
+    case 'wallType':
+      return state.wallTypes ?? {};
+    case 'level':
+      return state.levels ?? {};
+    case 'slab':
+      return (state as any).slabs ?? {};
+    case 'doorType':
+      return (state as any).doorTypes ?? {};
+    case 'windowType':
+      return (state as any).windowTypes ?? {};
+    case 'slabType':
+      return (state as any).slabTypes ?? {};
+    default:
+      return {};
+  }
+}
+
+/**
+ * Graphe de dépendances dirigé acyclique (DAG minimal) pour la propagation d'invalidation.
+ * Dans ce graphe : parent -> enfant (dépendant).
+ * Exemple : wall -> door (si wall change, door est invalidée).
+ */
+export class DependencyGraph {
+  private readonly forward = new Map<ElementId, Set<ElementId>>(); // parent -> children
+  private readonly backward = new Map<ElementId, Set<ElementId>>(); // child -> parents
+
+  /**
+   * Ajoute une arête orientée du parent vers l'enfant dépendant.
+   */
+  public addEdge(parent: ElementId, child: ElementId): void {
+    if (!parent || !child || parent === child) return;
+
+    let children = this.forward.get(parent);
+    if (!children) {
+      children = new Set();
+      this.forward.set(parent, children);
+    }
+    children.add(child);
+
+    let parents = this.backward.get(child);
+    if (!parents) {
+      parents = new Set();
+      this.backward.set(child, parents);
+    }
+    parents.add(parent);
+  }
+
+  /**
+   * Supprime une arête orientée existante.
+   */
+  public removeEdge(parent: ElementId, child: ElementId): void {
+    this.forward.get(parent)?.delete(child);
+    this.backward.get(child)?.delete(parent);
+  }
+
+  /**
+   * Supprime complètement un nœud et toutes ses arêtes incidentes.
+   */
+  public removeNode(id: ElementId): void {
+    const children = this.forward.get(id);
+    if (children) {
+      for (const child of children) {
+        this.backward.get(child)?.delete(id);
+      }
+      this.forward.delete(id);
+    }
+
+    const parents = this.backward.get(id);
+    if (parents) {
+      for (const parent of parents) {
+        this.forward.get(parent)?.delete(id);
+      }
+      this.backward.delete(id);
+    }
+  }
+
+  /**
+   * Retourne la fermeture transitive ordonnée (ULID) de tous les descendants (dépendants).
+   */
+  public getDependents(id: ElementId): readonly ElementId[] {
+    const directChildren = this.forward.get(id);
+    if (!directChildren || directChildren.size === 0) return [];
+
+    const visited = new Set<ElementId>();
+    const queue: ElementId[] = [];
+
+    for (const child of directChildren) {
+      visited.add(child);
+      queue.push(child);
+    }
+
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      const nextChildren = this.forward.get(current);
+      if (nextChildren) {
+        for (const child of nextChildren) {
+          if (!visited.has(child)) {
+            visited.add(child);
+            queue.push(child);
+          }
+        }
+      }
+    }
+
+    return Array.from(visited).sort();
+  }
+
+  /**
+   * Retourne la liste des parents directs d'un nœud (dépendances directes).
+   */
+  public getDependencies(id: ElementId): readonly ElementId[] {
+    const parents = this.backward.get(id);
+    if (!parents || parents.size === 0) return [];
+    return Array.from(parents).sort();
+  }
+
+  /**
+   * Vérifie la présence d'au moins un cycle dans le graphe.
+   */
+  public hasCycle(): boolean {
+    return this.findCycleNodes().length > 0;
+  }
+
+  /**
+   * Détecte les cycles via un parcours DFS à 3 couleurs.
+   * Retourne la liste des nœuds impliqués dans un cycle.
+   */
+  public findCycleNodes(): ElementId[] {
+    if (this.forward.size === 0) return [];
+
+    const color = new Map<ElementId, number>();
+    const parentPath = new Map<ElementId, ElementId>();
+    let cycleNodes: ElementId[] = [];
+
+    const dfs = (node: ElementId): boolean => {
+      color.set(node, 1);
+
+      const children = this.forward.get(node);
+      if (children) {
+        for (const next of children) {
+          const c = color.get(next);
+          if (c === 1) {
+            // Cycle détecté ! Reconstitution du chemin
+            const cycle: ElementId[] = [next, node];
+            let curr = node;
+            while (parentPath.has(curr) && parentPath.get(curr) !== next) {
+              curr = parentPath.get(curr)!;
+              cycle.push(curr);
+            }
+            cycleNodes = Array.from(new Set(cycle)).sort();
+            return true;
+          }
+          if (c === undefined) {
+            parentPath.set(next, node);
+            if (dfs(next)) return true;
+          }
+        }
+      }
+
+      color.set(node, 2);
+      return false;
+    };
+
+    for (const node of this.forward.keys()) {
+      if (color.get(node) === undefined) {
+        if (dfs(node)) break;
+      }
+    }
+
+    return cycleNodes;
+  }
+
+  /**
+   * Construit le graphe de dépendances complet à partir d'un état documentaire et d'un registre de relations.
+   */
+  public static build(
+    state: BimState,
+    registry: readonly RelationDef[] = RELATIONS_REGISTRY,
+  ): DependencyGraph {
+    const graph = new DependencyGraph();
+
+    if (registry === RELATIONS_REGISTRY) {
+      // Chemin optimisé en un seul passage linéaire O(E) sans allocations de tuples
+      const doors = state.doors;
+      if (doors) {
+        for (const id in doors) {
+          const d = doors[id];
+          if (!d) continue;
+          if (d.hostWallId) graph.addEdge(d.hostWallId, d.id);
+          if ((d as any).doorTypeId) graph.addEdge((d as any).doorTypeId, d.id);
+        }
+      }
+
+      const windows = state.windows;
+      if (windows) {
+        for (const id in windows) {
+          const w = windows[id];
+          if (!w) continue;
+          if (w.hostWallId) graph.addEdge(w.hostWallId, w.id);
+          if ((w as any).windowTypeId) graph.addEdge((w as any).windowTypeId, w.id);
+        }
+      }
+
+      const walls = state.walls;
+      if (walls) {
+        for (const id in walls) {
+          const w = walls[id];
+          if (!w) continue;
+          if (w.typeId) graph.addEdge(w.typeId, w.id);
+          if (w.levelId) graph.addEdge(w.levelId, w.id);
+        }
+      }
+
+      const dimensions = state.dimensions;
+      if (dimensions) {
+        for (const id in dimensions) {
+          const dim = dimensions[id];
+          if (!dim) continue;
+          const refs = dim.references;
+          if (refs) {
+            for (let i = 0; i < refs.length; i++) {
+              const refId = refs[i];
+              if (refId) {
+                graph.addEdge(refId, id);
+              }
+            }
+          }
+        }
+      }
+
+      const slabs = (state as any).slabs;
+      if (slabs) {
+        for (const id in slabs) {
+          const s = slabs[id];
+          if (s && s.levelId) graph.addEdge(s.levelId, s.id);
+        }
+      }
+    } else {
+      // Fallback générique multi-pass pour registres personnalisés
+      for (const rel of registry) {
+        const sourceEntities = getEntitiesForCategory(state, rel.sourceCategory);
+        const isArr = rel.isArray;
+        const field = rel.field;
+
+        for (const sourceId in sourceEntities) {
+          const entity = sourceEntities[sourceId];
+          if (!entity) continue;
+
+          if (isArr) {
+            const arr = entity[field];
+            if (Array.isArray(arr)) {
+              for (let i = 0; i < arr.length; i++) {
+                const targetId = arr[i];
+                if (targetId && typeof targetId === 'string') {
+                  graph.addEdge(targetId, sourceId);
+                }
+              }
+            }
+          } else {
+            const targetId = entity[field];
+            if (targetId && typeof targetId === 'string') {
+              graph.addEdge(targetId, sourceId);
+            }
+          }
+        }
+      }
+    }
+
+    const cycleNodes = graph.findCycleNodes();
+    if (cycleNodes.length > 0) {
+      throw new BimValidationError(
+        'CYCLE_DETECTED',
+        `Cycle detected in dependency graph involving nodes: ${cycleNodes.join(', ')}`,
+        { offendingIds: cycleNodes },
+      );
+    }
+
+    return graph;
+  }
+}

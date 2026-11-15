@@ -1427,8 +1427,12 @@ Dans un bâtiment à étages, si un mur du niveau $N$ s'élève jusqu'à l'élé
    - Si `onDelete: 'cascade'`, suppression récursive de la fermeture transitive.
    - Si `onDelete: 'restrict'` et qu'il existe des arcs entrants, rejet immédiat avec le code unifié `DELETE_RESTRICTED` et la liste `blockingIds: ElementId[]` des éléments empêchant la suppression.
    - Si `onDelete: 'detach'`, réinitialisation des clés étrangères orphelines.
-5. **Calcul Automatique et Déterministe de `getChangedIds()` :**  
-   `BimDocument.execute()` ne s'appuie plus sur des listes empiriques manuelles : l'union des entités modifiées et de leurs dépendants calculés par le DAG constitue la liste immuable de `getChangedIds()`.
+5. **Sémantique Déterministe de `getChangedIds()` (Option B) :**  
+   Chaque `Command.getChangedIds()` retourne la liste exacte des `ElementId` directement mutés dans le draft Immer par `apply()`. Cette liste correspond bijectivement aux opérations `add`/`remove`/`replace` générées par `produceWithPatches`.  
+   `BimDocument.execute()` calcule ensuite :
+   $$\text{changedFinal} = \text{union}(\text{getChangedIds}(), \text{dag.getDependents}(\text{getChangedIds}()))$$
+   Le DAG capture les dépendants transitifs non directement mutés (ex : une ouverture devant être revalidée suite à un changement de type de mur), garantissant qu'aucun élément impacté n'est omis.  
+   **Conséquence pour `DeleteWallCommand` :** En 6.0a, `DeleteWallCommand.getChangedIds()` retourne `[wallId, ...openingIds, ...dimIds, ...roomIds]` (tout ce que `apply()` a supprimé du draft). En Phase 6.1, quand ADR-039 (statut dérivé) sera implémenté, `apply()` ne mutera plus les Rooms $\to$ `getChangedIds()` ne les inclura plus. Ce changement de comportement sera acté par mise à jour des tests concernés à ce moment-là.
 6. **Post-Condition Universelle Différentielle (`validateDirty`) dans `execute()` :**  
    Pour éradiquer les vérifications ad-hoc par commande tout en évitant de bloquer des commandes innocentes sur des modèles avec des avertissements préexistants, `BimDocument.execute()` exécute une post-condition différentielle sur l'ensemble du dirty set avant validation transactionnelle :
    ```typescript
