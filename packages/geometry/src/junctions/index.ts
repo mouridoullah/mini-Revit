@@ -13,4 +13,5 @@ export * from './x-junction.js';
 export * from './collinear.js';
 export * from './multi.js';
 export * from './engine.js';
+export * from './stretch.js';
 export * from './visualizer.js';
