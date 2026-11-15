@@ -300,8 +300,9 @@ export function drawOpeningDoor(
   const vy = ux;
 
   const halfT = wallThickness / 2;
+  const doorWidth = door.width ?? 900;
   const u0 = door.offsetAlong;
-  const u1 = door.offsetAlong + door.width;
+  const u1 = door.offsetAlong + doorWidth;
 
   // 1. Évidement du poché du mur (remplissage à la couleur d'arrière-plan)
   const pA0 = vec2(wall.start.x + ux * u0 - vx * halfT, wall.start.y + uy * u0 - vy * halfT);
@@ -349,8 +350,8 @@ export function drawOpeningDoor(
   // Direction d'ouverture : 'in' -> +v, 'out' -> -v
   const dirSign = door.swing.direction === 'in' ? 1 : -1;
   const openWorld = vec2(
-    hingeWorld.x + vx * (door.width * dirSign),
-    hingeWorld.y + vy * (door.width * dirSign),
+    hingeWorld.x + vx * (doorWidth * dirSign),
+    hingeWorld.y + vy * (doorWidth * dirSign),
   );
 
   const sHinge = transform.worldToScreen(hingeWorld);
@@ -366,7 +367,7 @@ export function drawOpeningDoor(
   ctx.stroke();
 
   // 5. Tracé de l'arc de débattement de 90°
-  const radius = transform.worldDistanceToScreen(door.width);
+  const radius = transform.worldDistanceToScreen(doorWidth);
   const startAngle = Math.atan2(sClosed.y - sHinge.y, sClosed.x - sHinge.x);
   const endAngle = Math.atan2(sOpen.y - sHinge.y, sOpen.x - sHinge.x);
 
@@ -412,8 +413,9 @@ export function drawOpeningWindow(
   const vy = ux;
 
   const halfT = wallThickness / 2;
+  const winWidth = window.width ?? 1200;
   const u0 = window.offsetAlong;
-  const u1 = window.offsetAlong + window.width;
+  const u1 = window.offsetAlong + winWidth;
 
   // 1. Évidement du poché du mur (remplissage à la couleur d'arrière-plan)
   const pA0 = vec2(wall.start.x + ux * u0 - vx * halfT, wall.start.y + uy * u0 - vy * halfT);

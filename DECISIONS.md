@@ -1789,6 +1789,7 @@ export function computeWallStretch(input: WallStretchInput): WallStretchResult;
 
 La Phase 6.1a amorce le chantier majeur des dalles horizontales (`Slab`) et de la généralisation du modèle Type / Instance pour l'ensemble des éléments constructifs (`SlabType`, `DoorType`, `WindowType`). Ce passage introduit `schemaVersion: 2`.
 Trois décisions d'ingénierie majeures doivent être tranchées formellement avant l'écriture du code de production :
+
 1. La persistance ou dérivation pure des champs `status` et `area` de `Room` (suite aux ajouts de la Phase 6.0c).
 2. L'emplacement architectural et l'algorithme exact du calcul de la hauteur d'arase supérieure (`topConstraint`) des murs sous dalles.
 3. Les garanties de rétrocompatibilité et la politique de rejet lors de la migration automatique des fichiers V1 vers V2.
@@ -1801,9 +1802,9 @@ Trois décisions d'ingénierie majeures doivent être tranchées formellement av
 
 - **Arbitrage :** **Option α** (les champs optionnels `status?: 'enclosed' | 'unenclosed'` et `area?: number` sont persistés dans l'état documentaire `BimState.rooms`).
 - **Justification :**
-  1. *Performance d'affichage $\mathcal{O}(1)$ :* Le calcul topologique des pièces (`detectRooms`) implique un partitionnement planaire et un lancer de rayons géométrique. Le faire à chaque rafraîchissement d'affichage 2D Canvas ou 3D Three.js dégraderait les performances au-delà des 60 FPS requis.
-  2. *Cohérence avec ADR-039 :* Le statut dérivé `unenclosed` est un état métier persistant permettant à l'utilisateur de constater une rupture d'enceinte sans voir sa pièce supprimée du modèle.
-  3. *Harmonisation documentaire :* `CORE_SPEC.md` et `ROOMS_SPEC.md` sont formellement alignés sur `types.ts` pour consigner que `Room` porte ces attributs calculés lors des mutations topologiques (création, déplacement de mur, suppression).
+  1. _Performance d'affichage $\mathcal{O}(1)$ :_ Le calcul topologique des pièces (`detectRooms`) implique un partitionnement planaire et un lancer de rayons géométrique. Le faire à chaque rafraîchissement d'affichage 2D Canvas ou 3D Three.js dégraderait les performances au-delà des 60 FPS requis.
+  2. _Cohérence avec ADR-039 :_ Le statut dérivé `unenclosed` est un état métier persistant permettant à l'utilisateur de constater une rupture d'enceinte sans voir sa pièce supprimée du modèle.
+  3. _Harmonisation documentaire :_ `CORE_SPEC.md` et `ROOMS_SPEC.md` sont formellement alignés sur `types.ts` pour consigner que `Room` porte ces attributs calculés lors des mutations topologiques (création, déplacement de mur, suppression).
 
 #### DÉCISION 2 — Calcul de `topConstraint` : Option α (Helper Métier Pur `computeWallEffectiveHeight`)
 
@@ -1816,7 +1817,10 @@ Trois décisions d'ingénierie majeures doivent être tranchées formellement av
     readonly heightEff: number;
     readonly limitingSlabId?: ElementId;
   }
-  export function computeWallEffectiveHeight(wall: Wall, state: BimState): WallEffectiveHeightResult;
+  export function computeWallEffectiveHeight(
+    wall: Wall,
+    state: BimState,
+  ): WallEffectiveHeightResult;
   ```
 - **Règles de Calcul Déterministe :**
   1. **Priorité absolue à `heightOverride` :** Si `wall.heightOverride !== undefined`, $H_{\text{eff}} = \text{wall.heightOverride}$, $Z_{\text{base}} = \text{level.elevation}$, $Z_{\text{top}} = Z_{\text{base}} + H_{\text{eff}}$.
@@ -1845,6 +1849,7 @@ Trois décisions d'ingénierie majeures doivent être tranchées formellement av
 ### Découpe Géométrique des Trémies (`computeEffectiveSlabPolygon`)
 
 La fonction géométrique pure `computeEffectiveSlabPolygon` dans `@mini-bim/geometry/src/slabs/effective.ts` opère via la librairie éprouvée `polygon-clipping` :
+
 1. **Union des trémies :** $\mathcal{H}_{\text{merged}} = \text{union}(\text{manualHoles}, \text{stairShafts})$.
 2. **Découpe en rive :** $\mathcal{B}_{\text{trimmed}} = \text{difference}(\text{boundary}, \mathcal{H}_{\text{merged}})$.
    - Si $\mathcal{B}_{\text{trimmed}} = \emptyset \implies$ throw `SlabGeometryError('SLAB_EMPTY')`.

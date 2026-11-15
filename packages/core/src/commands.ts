@@ -4,6 +4,8 @@ import {
   type Level,
   type Door,
   type Window,
+  type DoorType,
+  type WindowType,
   type Room,
   type Dimension,
   type BimState,
@@ -621,11 +623,44 @@ export class AddDoorCommand implements Command {
         `A door with ID "${this.door.id}" already exists.`,
       );
     }
-    validateDoor(this.door, draft as BimState);
+    let resolvedDoor = this.door;
+    if (!resolvedDoor.doorTypeId) {
+      const rawW = (this.door as unknown as { width?: number }).width ?? 900;
+      const rawH = (this.door as unknown as { height?: number }).height ?? 2100;
+      const typeKey = `door-type-${rawW}x${rawH}`;
+      if (!draft.doorTypes) {
+        (draft as { doorTypes: Record<ElementId, DoorType> }).doorTypes = {};
+      }
+      if (!draft.doorTypes[typeKey]) {
+        draft.doorTypes[typeKey] = {
+          id: typeKey,
+          name: `Porte ${rawW}×${rawH} mm`,
+          width: rawW,
+          height: rawH,
+        };
+      }
+      resolvedDoor = {
+        ...this.door,
+        doorTypeId: typeKey,
+      };
+    } else if (!draft.doorTypes?.[resolvedDoor.doorTypeId]) {
+      const rawW = (this.door as unknown as { width?: number }).width ?? 900;
+      const rawH = (this.door as unknown as { height?: number }).height ?? 2100;
+      if (!draft.doorTypes) {
+        (draft as { doorTypes: Record<ElementId, DoorType> }).doorTypes = {};
+      }
+      draft.doorTypes[resolvedDoor.doorTypeId] = {
+        id: resolvedDoor.doorTypeId,
+        name: `Porte ${rawW}×${rawH} mm`,
+        width: rawW,
+        height: rawH,
+      };
+    }
+    validateDoor(resolvedDoor, draft as BimState);
     if (!draft.doors) {
       (draft as { doors: Record<ElementId, Door> }).doors = {};
     }
-    draft.doors[this.door.id] = this.door;
+    draft.doors[this.door.id] = resolvedDoor;
   }
 
   public getChangedIds(): readonly ElementId[] {
@@ -645,11 +680,48 @@ export class AddWindowCommand implements Command {
         `A window with ID "${this.window.id}" already exists.`,
       );
     }
-    validateWindow(this.window, draft as BimState);
+    let resolvedWindow = this.window;
+    if (!resolvedWindow.windowTypeId) {
+      const rawW = (this.window as unknown as { width?: number }).width ?? 1200;
+      const rawH = (this.window as unknown as { height?: number }).height ?? 1400;
+      const rawSill = this.window.sillHeight ?? 900;
+      const typeKey = `window-type-${rawW}x${rawH}-s${rawSill}`;
+      if (!draft.windowTypes) {
+        (draft as { windowTypes: Record<ElementId, WindowType> }).windowTypes = {};
+      }
+      if (!draft.windowTypes[typeKey]) {
+        draft.windowTypes[typeKey] = {
+          id: typeKey,
+          name: `Fenêtre ${rawW}×${rawH} mm`,
+          width: rawW,
+          height: rawH,
+          defaultSillHeight: rawSill,
+        };
+      }
+      resolvedWindow = {
+        ...this.window,
+        windowTypeId: typeKey,
+      };
+    } else if (!draft.windowTypes?.[resolvedWindow.windowTypeId]) {
+      const rawW = (this.window as unknown as { width?: number }).width ?? 1200;
+      const rawH = (this.window as unknown as { height?: number }).height ?? 1400;
+      const rawSill = this.window.sillHeight ?? 900;
+      if (!draft.windowTypes) {
+        (draft as { windowTypes: Record<ElementId, WindowType> }).windowTypes = {};
+      }
+      draft.windowTypes[resolvedWindow.windowTypeId] = {
+        id: resolvedWindow.windowTypeId,
+        name: `Fenêtre ${rawW}×${rawH} mm`,
+        width: rawW,
+        height: rawH,
+        defaultSillHeight: rawSill,
+      };
+    }
+    validateWindow(resolvedWindow, draft as BimState);
     if (!draft.windows) {
       (draft as { windows: Record<ElementId, Window> }).windows = {};
     }
-    draft.windows[this.window.id] = this.window;
+    draft.windows[this.window.id] = resolvedWindow;
   }
 
   public getChangedIds(): readonly ElementId[] {
@@ -675,12 +747,37 @@ export class UpdateDoorCommand implements Command {
       );
     }
     this.hostWallId = existing.hostWallId;
+
+    let targetDoorTypeId = this.patch.doorTypeId ?? existing.doorTypeId;
+    const rawPatch = this.patch as unknown as { width?: number; height?: number };
+    if (rawPatch.width !== undefined || rawPatch.height !== undefined) {
+      const curType = targetDoorTypeId ? draft.doorTypes?.[targetDoorTypeId] : undefined;
+      const curW = curType?.width ?? (existing as unknown as { width?: number }).width ?? 900;
+      const curH = curType?.height ?? (existing as unknown as { height?: number }).height ?? 2100;
+      const newW = rawPatch.width ?? curW;
+      const newH = rawPatch.height ?? curH;
+      const typeKey = `door-type-${newW}x${newH}`;
+      if (!draft.doorTypes) {
+        (draft as { doorTypes: Record<ElementId, DoorType> }).doorTypes = {};
+      }
+      if (!draft.doorTypes[typeKey]) {
+        draft.doorTypes[typeKey] = {
+          id: typeKey,
+          name: `Porte ${newW}×${newH} mm`,
+          width: newW,
+          height: newH,
+        };
+      }
+      targetDoorTypeId = typeKey;
+    }
+
     const updatedDoor: Door = {
       ...existing,
       ...this.patch,
       id: existing.id,
       category: 'door',
       kind: 'door',
+      doorTypeId: targetDoorTypeId,
       hostWallId: existing.hostWallId,
     };
     validateDoor(updatedDoor, draft as BimState);
@@ -710,12 +807,38 @@ export class UpdateWindowCommand implements Command {
       );
     }
     this.hostWallId = existing.hostWallId;
+
+    let targetWindowTypeId = this.patch.windowTypeId ?? existing.windowTypeId;
+    const rawPatch = this.patch as unknown as { width?: number; height?: number };
+    if (rawPatch.width !== undefined || rawPatch.height !== undefined) {
+      const curType = targetWindowTypeId ? draft.windowTypes?.[targetWindowTypeId] : undefined;
+      const curW = curType?.width ?? (existing as unknown as { width?: number }).width ?? 1200;
+      const curH = curType?.height ?? (existing as unknown as { height?: number }).height ?? 1400;
+      const newW = rawPatch.width ?? curW;
+      const newH = rawPatch.height ?? curH;
+      const typeKey = `window-type-${newW}x${newH}-s${existing.sillHeight}`;
+      if (!draft.windowTypes) {
+        (draft as { windowTypes: Record<ElementId, WindowType> }).windowTypes = {};
+      }
+      if (!draft.windowTypes[typeKey]) {
+        draft.windowTypes[typeKey] = {
+          id: typeKey,
+          name: `Fenêtre ${newW}×${newH} mm`,
+          width: newW,
+          height: newH,
+          defaultSillHeight: existing.sillHeight,
+        };
+      }
+      targetWindowTypeId = typeKey;
+    }
+
     const updatedWindow: Window = {
       ...existing,
       ...this.patch,
       id: existing.id,
       category: 'window',
       kind: 'window',
+      windowTypeId: targetWindowTypeId,
       hostWallId: existing.hostWallId,
     };
     validateWindow(updatedWindow, draft as BimState);

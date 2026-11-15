@@ -146,15 +146,20 @@ export class WindowTool implements Tool {
       }
 
       const windowId = generateId();
+      const width = ctx.windowDefaults?.width ?? DEFAULT_WINDOW_WIDTH;
+      const height = ctx.windowDefaults?.height ?? DEFAULT_WINDOW_HEIGHT;
+      const sillHeight = ctx.windowDefaults?.sillHeight ?? DEFAULT_WINDOW_SILL_HEIGHT;
+      const windowTypeId = `window-type-${width}x${height}-s${sillHeight}`;
       const command = new Commands.AddWindowCommand({
         id: windowId,
         category: 'window',
         kind: 'window',
+        windowTypeId,
         hostWallId: targetWallId,
         offsetAlong: targetOffset,
-        width: ctx.windowDefaults?.width ?? DEFAULT_WINDOW_WIDTH,
-        height: ctx.windowDefaults?.height ?? DEFAULT_WINDOW_HEIGHT,
-        sillHeight: ctx.windowDefaults?.sillHeight ?? DEFAULT_WINDOW_SILL_HEIGHT,
+        width,
+        height,
+        sillHeight,
       });
 
       this.state = { kind: 'placed', windowId };

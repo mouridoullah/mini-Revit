@@ -36,7 +36,8 @@ export interface DoorFor2D {
   readonly kind?: 'door';
   readonly hostWallId: string;
   readonly offsetAlong: number;
-  readonly width: number;
+  readonly doorTypeId?: string;
+  readonly width?: number;
   readonly swing: DoorSwingFor2D;
 }
 
@@ -48,7 +49,8 @@ export interface WindowFor2D {
   readonly kind?: 'window';
   readonly hostWallId: string;
   readonly offsetAlong: number;
-  readonly width: number;
+  readonly windowTypeId?: string;
+  readonly width?: number;
   readonly sillHeight?: number;
 }
 

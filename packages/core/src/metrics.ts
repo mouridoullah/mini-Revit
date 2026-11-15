@@ -4,6 +4,8 @@ import {
   type Wall,
   type WallType,
   type Opening,
+  type Door,
+  type Window,
   type Room,
   type Level,
 } from './types.js';
@@ -36,6 +38,7 @@ export function computeWallMetrics(
   wall: Wall,
   wallType: WallType,
   openings: readonly Opening[],
+  state?: BimState,
 ): WallMetrics {
   const dx = wall.end.x - wall.start.x;
   const dy = wall.end.y - wall.start.y;
@@ -51,12 +54,19 @@ export function computeWallMetrics(
   let totalOpeningAreaMm2 = 0;
 
   for (const op of hosted) {
-    if (op.kind === 'door') {
+    if (op.kind === 'door' || op.category === 'door') {
       doorIds.push(op.id);
-    } else if (op.kind === 'window') {
+      const dt = state?.doorTypes?.[(op as Door).doorTypeId];
+      const w = dt?.width ?? op.width ?? 0;
+      const h = dt?.height ?? op.height ?? 0;
+      totalOpeningAreaMm2 += w * h;
+    } else if (op.kind === 'window' || op.category === 'window') {
       windowIds.push(op.id);
+      const wt = state?.windowTypes?.[(op as Window).windowTypeId];
+      const w = wt?.width ?? op.width ?? 0;
+      const h = wt?.height ?? op.height ?? 0;
+      totalOpeningAreaMm2 += w * h;
     }
-    totalOpeningAreaMm2 += op.width * op.height;
   }
 
   const netAreaMm2 = Math.max(0, grossAreaMm2 - totalOpeningAreaMm2);
@@ -157,7 +167,7 @@ export function computeLevelMetrics(state: BimState, levelId: ElementId): LevelM
     const wallType = state.wallTypes[wall.typeId];
     if (!wallType) continue;
 
-    const m = computeWallMetrics(wall, wallType, allOpenings);
+    const m = computeWallMetrics(wall, wallType, allOpenings, state);
     wallMetricsList.push(m);
 
     totalWallLinearMm += m.lengthMm;

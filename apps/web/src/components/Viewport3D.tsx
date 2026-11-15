@@ -92,22 +92,32 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
       const wallWindows = Object.values(windows).filter((w) => w.hostWallId === wall.id);
 
       const openingParams: OpeningGeometryParams[] = [
-        ...wallDoors.map((d) => ({
-          id: d.id,
-          kind: 'door' as const,
-          offsetAlong: d.offsetAlong,
-          width: d.width,
-          height: d.height,
-          sillHeight: 0,
-        })),
-        ...wallWindows.map((w) => ({
-          id: w.id,
-          kind: 'window' as const,
-          offsetAlong: w.offsetAlong,
-          width: w.width,
-          height: w.height,
-          sillHeight: w.sillHeight,
-        })),
+        ...wallDoors.map((d) => {
+          const dt = state.doorTypes?.[d.doorTypeId];
+          const w = dt?.width ?? d.width ?? 900;
+          const h = dt?.height ?? d.height ?? 2100;
+          return {
+            id: d.id,
+            kind: 'door' as const,
+            offsetAlong: d.offsetAlong,
+            width: w,
+            height: h,
+            sillHeight: 0,
+          };
+        }),
+        ...wallWindows.map((w) => {
+          const wt = state.windowTypes?.[w.windowTypeId];
+          const width = wt?.width ?? w.width ?? 1200;
+          const height = wt?.height ?? w.height ?? 1400;
+          return {
+            id: w.id,
+            kind: 'window' as const,
+            offsetAlong: w.offsetAlong,
+            width,
+            height,
+            sillHeight: w.sillHeight,
+          };
+        }),
       ];
 
       // Générer les tronçons solides découpés (murs percés 2.5D)
@@ -130,13 +140,17 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
       const level = state.levels[hostWall.levelId];
       const elevation = level?.elevation ?? 0;
 
+      const dt = state.doorTypes?.[door.doorTypeId];
+      const doorWidth = dt?.width ?? door.width ?? 900;
+      const doorHeight = dt?.height ?? door.height ?? 2100;
+
       const placeholder = createOpeningPlaceholder(
         {
           id: door.id,
           kind: 'door',
           offsetAlong: door.offsetAlong,
-          width: door.width,
-          height: door.height,
+          width: doorWidth,
+          height: doorHeight,
           sillHeight: 0,
         },
         hostWall,
@@ -153,13 +167,17 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
       const level = state.levels[hostWall.levelId];
       const elevation = level?.elevation ?? 0;
 
+      const wt = state.windowTypes?.[win.windowTypeId];
+      const winWidth = wt?.width ?? win.width ?? 1200;
+      const winHeight = wt?.height ?? win.height ?? 1400;
+
       const placeholder = createOpeningPlaceholder(
         {
           id: win.id,
           kind: 'window',
           offsetAlong: win.offsetAlong,
-          width: win.width,
-          height: win.height,
+          width: winWidth,
+          height: winHeight,
           sillHeight: win.sillHeight,
         },
         hostWall,

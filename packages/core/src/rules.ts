@@ -115,12 +115,15 @@ export function checkOpeningsWithCandidate(
   if (state.doors) {
     for (const d of Object.values(state.doors)) {
       if (d.hostWallId === wall.id && d.id !== candidateId) {
+        const dType = d.doorTypeId ? state.doorTypes?.[d.doorTypeId] : undefined;
+        const width = dType?.width ?? (d as unknown as { width?: number }).width ?? 900;
+        const height = dType?.height ?? (d as unknown as { height?: number }).height ?? 2100;
         allOpeningsOnHost.push({
           id: d.id,
           hostWallId: d.hostWallId,
-          u: d.offsetAlong + d.width / 2,
-          width: d.width,
-          height: d.height,
+          u: d.offsetAlong + width / 2,
+          width,
+          height,
           sillZ: 0,
           kind: 'door',
           swing: d.swing,
@@ -132,12 +135,15 @@ export function checkOpeningsWithCandidate(
   if (state.windows) {
     for (const w of Object.values(state.windows)) {
       if (w.hostWallId === wall.id && w.id !== candidateId) {
+        const winType = w.windowTypeId ? state.windowTypes?.[w.windowTypeId] : undefined;
+        const width = winType?.width ?? (w as unknown as { width?: number }).width ?? 1200;
+        const height = winType?.height ?? (w as unknown as { height?: number }).height ?? 1400;
         allOpeningsOnHost.push({
           id: w.id,
           hostWallId: w.hostWallId,
-          u: w.offsetAlong + w.width / 2,
-          width: w.width,
-          height: w.height,
+          u: w.offsetAlong + width / 2,
+          width,
+          height,
           sillZ: w.sillHeight,
           kind: 'window',
         });
@@ -310,16 +316,29 @@ export function checkDoorViolations(door: Door, state: BimState): RuleViolation[
     hostWall.end.y - hostWall.start.y,
   );
 
+  // 2. Intégrité du type de porte (Schéma v2 / ADR-042)
+  if (door.doorTypeId && (!state.doorTypes || !state.doorTypes[door.doorTypeId])) {
+    violations.push({
+      code: 'UNKNOWN_DOOR_TYPE',
+      message: `Door "${door.id}" references non-existent DoorType ID: "${door.doorTypeId}".`,
+      offendingIds: [door.id],
+    });
+  }
+
+  const doorType = door.doorTypeId ? state.doorTypes?.[door.doorTypeId] : undefined;
+  const doorWidth = doorType?.width ?? (door as unknown as { width?: number }).width ?? NaN;
+  const doorHeight = doorType?.height ?? (door as unknown as { height?: number }).height ?? NaN;
+
   // 3. Validation dimensionnelle
   if (
-    !Number.isFinite(door.width) ||
-    door.width <= 0 ||
-    !Number.isFinite(door.height) ||
-    door.height <= 0
+    !Number.isFinite(doorWidth) ||
+    doorWidth <= 0 ||
+    !Number.isFinite(doorHeight) ||
+    doorHeight <= 0
   ) {
     violations.push({
       code: 'INVALID_OPENING_DIMENSIONS',
-      message: `Door dimensions must be strictly positive (width: ${door.width}, height: ${door.height}).`,
+      message: `Door dimensions must be strictly positive (width: ${doorWidth}, height: ${doorHeight}).`,
       offendingIds: [door.id],
     });
   }
@@ -333,19 +352,19 @@ export function checkDoorViolations(door: Door, state: BimState): RuleViolation[
   }
 
   // 4. Débordement en longueur
-  if (door.offsetAlong + door.width > wallLength) {
+  if (door.offsetAlong + doorWidth > wallLength) {
     violations.push({
       code: 'INVALID_OPENING_POSITION',
-      message: `Door position exceeds wall bounds: offset (${door.offsetAlong} mm) + width (${door.width} mm) > wall length (${wallLength.toFixed(2)} mm).`,
+      message: `Door position exceeds wall bounds: offset (${door.offsetAlong} mm) + width (${doorWidth} mm) > wall length (${wallLength.toFixed(2)} mm).`,
       offendingIds: [door.id, hostWall.id],
     });
   }
 
   // 5. Débordement en hauteur
-  if (door.height > wallHeight) {
+  if (doorHeight > wallHeight) {
     violations.push({
       code: 'INVALID_OPENING_HEIGHT',
-      message: `Door height (${door.height} mm) exceeds host wall height (${wallHeight} mm).`,
+      message: `Door height (${doorHeight} mm) exceeds host wall height (${wallHeight} mm).`,
       offendingIds: [door.id, hostWall.id],
     });
   }
@@ -367,9 +386,9 @@ export function checkDoorViolations(door: Door, state: BimState): RuleViolation[
   const doorCandidate: OpeningInput = {
     id: door.id,
     hostWallId: door.hostWallId,
-    u: door.offsetAlong + door.width / 2,
-    width: door.width,
-    height: door.height,
+    u: door.offsetAlong + doorWidth / 2,
+    width: doorWidth,
+    height: doorHeight,
     sillZ: 0,
     kind: 'door',
     swing: door.swing,
@@ -418,16 +437,29 @@ export function checkWindowViolations(window: Window, state: BimState): RuleViol
     hostWall.end.y - hostWall.start.y,
   );
 
+  // 2. Intégrité du type de fenêtre (Schéma v2 / ADR-042)
+  if (window.windowTypeId && (!state.windowTypes || !state.windowTypes[window.windowTypeId])) {
+    violations.push({
+      code: 'UNKNOWN_WINDOW_TYPE',
+      message: `Window "${window.id}" references non-existent WindowType ID: "${window.windowTypeId}".`,
+      offendingIds: [window.id],
+    });
+  }
+
+  const winType = window.windowTypeId ? state.windowTypes?.[window.windowTypeId] : undefined;
+  const winWidth = winType?.width ?? (window as unknown as { width?: number }).width ?? NaN;
+  const winHeight = winType?.height ?? (window as unknown as { height?: number }).height ?? NaN;
+
   // 3. Validation dimensionnelle
   if (
-    !Number.isFinite(window.width) ||
-    window.width <= 0 ||
-    !Number.isFinite(window.height) ||
-    window.height <= 0
+    !Number.isFinite(winWidth) ||
+    winWidth <= 0 ||
+    !Number.isFinite(winHeight) ||
+    winHeight <= 0
   ) {
     violations.push({
       code: 'INVALID_OPENING_DIMENSIONS',
-      message: `Window dimensions must be strictly positive (width: ${window.width}, height: ${window.height}).`,
+      message: `Window dimensions must be strictly positive (width: ${winWidth}, height: ${winHeight}).`,
       offendingIds: [window.id],
     });
   }
@@ -449,19 +481,19 @@ export function checkWindowViolations(window: Window, state: BimState): RuleViol
   }
 
   // 4. Débordement en longueur
-  if (window.offsetAlong + window.width > wallLength) {
+  if (window.offsetAlong + winWidth > wallLength) {
     violations.push({
       code: 'INVALID_OPENING_POSITION',
-      message: `Window position exceeds wall bounds: offset (${window.offsetAlong} mm) + width (${window.width} mm) > wall length (${wallLength.toFixed(2)} mm).`,
+      message: `Window position exceeds wall bounds: offset (${window.offsetAlong} mm) + width (${winWidth} mm) > wall length (${wallLength.toFixed(2)} mm).`,
       offendingIds: [window.id, hostWall.id],
     });
   }
 
   // 5. Débordement en hauteur
-  if (window.sillHeight + window.height > wallHeight) {
+  if (window.sillHeight + winHeight > wallHeight) {
     violations.push({
       code: 'INVALID_OPENING_HEIGHT',
-      message: `Window top (${window.sillHeight + window.height} mm) exceeds host wall height (${wallHeight} mm).`,
+      message: `Window top (${window.sillHeight + winHeight} mm) exceeds host wall height (${wallHeight} mm).`,
       offendingIds: [window.id, hostWall.id],
     });
   }
@@ -470,9 +502,9 @@ export function checkWindowViolations(window: Window, state: BimState): RuleViol
   const winCandidate: OpeningInput = {
     id: window.id,
     hostWallId: window.hostWallId,
-    u: window.offsetAlong + window.width / 2,
-    width: window.width,
-    height: window.height,
+    u: window.offsetAlong + winWidth / 2,
+    width: winWidth,
+    height: winHeight,
     sillZ: window.sillHeight,
     kind: 'window',
   };

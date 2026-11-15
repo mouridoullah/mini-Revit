@@ -180,14 +180,14 @@ export function findOpeningAtScreen(
       kind: 'door' as const,
       hostWallId: d.hostWallId,
       offsetAlong: d.offsetAlong,
-      width: d.width,
+      width: d.width ?? 900,
     })),
     ...windows.map((w) => ({
       id: w.id,
       kind: 'window' as const,
       hostWallId: w.hostWallId,
       offsetAlong: w.offsetAlong,
-      width: w.width,
+      width: w.width ?? 1200,
     })),
   ];
 

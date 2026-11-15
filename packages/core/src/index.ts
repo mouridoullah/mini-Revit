@@ -10,6 +10,11 @@ export type {
   BimState,
   Wall,
   WallType,
+  Slab,
+  SlabType,
+  DoorType,
+  WindowType,
+  TopConstraint,
   Level,
   Layer,
   ElementId,
@@ -25,6 +30,9 @@ export type {
   Room,
   Dimension,
   DimensionType,
+  V1BimState,
+  V1Door,
+  V1Window,
 } from './types.js';
 export * as Commands from './commands.js';
 export {

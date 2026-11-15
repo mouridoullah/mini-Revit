@@ -255,8 +255,19 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
     if (!hostInfo) continue;
 
     const sill = (item as Window).sillHeight ?? 0;
-    const opWidth = item.width;
-    const opHeight = item.height;
+    let opWidth = 900;
+    let opHeight = 2100;
+    if (op.kind === 'door') {
+      const door = item as Door;
+      const dt = state.doorTypes?.[door.doorTypeId];
+      opWidth = dt?.width ?? door.width ?? 900;
+      opHeight = dt?.height ?? door.height ?? 2100;
+    } else {
+      const win = item as Window;
+      const wt = state.windowTypes?.[win.windowTypeId];
+      opWidth = wt?.width ?? win.width ?? 1200;
+      opHeight = wt?.height ?? win.height ?? 1400;
+    }
     const opOffset = item.offsetAlong;
 
     // Réservation (IfcOpeningElement)
@@ -301,13 +312,13 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
       const doorGuid = createIfcGuid();
       const opType = door.swing.side === 'left' ? '.SINGLE_SWING_LEFT.' : '.SINGLE_SWING_RIGHT.';
       fillingElementId = writer.add(
-        `IFCDOOR('${doorGuid}',#${ownerHistory},'${escapeIfcString(door.id)}',$,'Door',#${opPlacement},#${opProdShape},$,${door.height.toFixed(2)},${door.width.toFixed(2)},.DOOR.,${opType},$)`,
+        `IFCDOOR('${doorGuid}',#${ownerHistory},'${escapeIfcString(door.id)}',$,'Door',#${opPlacement},#${opProdShape},$,${opHeight.toFixed(2)},${opWidth.toFixed(2)},.DOOR.,${opType},$)`,
       );
     } else {
       const win = item as Window;
       const winGuid = createIfcGuid();
       fillingElementId = writer.add(
-        `IFCWINDOW('${winGuid}',#${ownerHistory},'${escapeIfcString(win.id)}',$,'Window',#${opPlacement},#${opProdShape},$,${win.height.toFixed(2)},${win.width.toFixed(2)},.WINDOW.,$,$)`,
+        `IFCWINDOW('${winGuid}',#${ownerHistory},'${escapeIfcString(win.id)}',$,'Window',#${opPlacement},#${opProdShape},$,${opHeight.toFixed(2)},${opWidth.toFixed(2)},.WINDOW.,$,$)`,
       );
     }
 

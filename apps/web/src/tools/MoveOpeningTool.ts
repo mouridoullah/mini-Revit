@@ -52,13 +52,24 @@ export class MoveOpeningTool implements Tool {
         return { kind: 'noop' };
       }
 
+      let openingWidth = opening.width;
+      if (openingWidth === undefined) {
+        if ('doorTypeId' in opening && opening.doorTypeId) {
+          openingWidth = state.doorTypes?.[opening.doorTypeId]?.width ?? 900;
+        } else if ('windowTypeId' in opening && opening.windowTypeId) {
+          openingWidth = state.windowTypes?.[opening.windowTypeId]?.width ?? 1200;
+        } else {
+          openingWidth = 900;
+        }
+      }
+
       this.state = {
         kind: 'dragging',
         openingId: hit.id,
         hostWallId: hit.hostWallId,
         initialOffsetAlong: opening.offsetAlong,
         currentOffsetAlong: opening.offsetAlong,
-        width: opening.width,
+        width: openingWidth,
       };
 
       return { kind: 'noop' };

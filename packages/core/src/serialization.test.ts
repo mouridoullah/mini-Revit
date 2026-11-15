@@ -6,7 +6,7 @@ import { type BimState } from './types.js';
 
 describe('Sérialisation et Désérialisation (serialization.ts)', () => {
   const sampleState: BimState = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     units: 'mm',
     levels: {
       lvl_01: { id: 'lvl_01', name: 'Rez-de-chaussée', elevation: 0 },
@@ -21,6 +21,15 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
         layers: [{ materialId: 'mat_concrete', thickness: 200 }],
       },
     },
+    slabTypes: {
+      'default-slab-type': {
+        id: 'default-slab-type',
+        name: 'Dalle BA 200mm',
+        thickness: 200,
+      },
+    },
+    doorTypes: {},
+    windowTypes: {},
     walls: {
       w_01: {
         id: 'w_01',
@@ -33,6 +42,7 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
         heightOverride: 2800,
       },
     },
+    slabs: {},
     doors: {},
     windows: {},
     rooms: {},
@@ -50,7 +60,7 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
   it('toJSON avec mise en page pretty produit un JSON valide et indenté', () => {
     const jsonPretty = toJSON(sampleState, true);
     expect(jsonPretty).toContain('\n');
-    expect(jsonPretty).toContain('  "schemaVersion": 1');
+    expect(jsonPretty).toContain('  "schemaVersion": 2');
 
     const restored = fromJSON(jsonPretty);
     expect(restored).toEqual(sampleState);
@@ -69,7 +79,7 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
   it('rejette une version de schéma non supportée', () => {
     const futureSchema = JSON.stringify({
       ...sampleState,
-      schemaVersion: 2,
+      schemaVersion: 3,
     });
 
     expect(() => fromJSON(futureSchema)).toThrowError(BimValidationError);
@@ -218,15 +228,31 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
   it('toJSON et fromJSON gèrent fidèlement les portes et fenêtres avec intégrité référentielle', () => {
     const stateWithOpenings: BimState = {
       ...sampleState,
+      doorTypes: {
+        dt_01: {
+          id: 'dt_01',
+          name: 'Porte 900×2150 mm',
+          width: 900,
+          height: 2150,
+        },
+      },
+      windowTypes: {
+        wt_01: {
+          id: 'wt_01',
+          name: 'Fenêtre 1200×1400 mm',
+          width: 1200,
+          height: 1400,
+          defaultSillHeight: 900,
+        },
+      },
       doors: {
         door_01: {
           id: 'door_01',
           category: 'door',
           kind: 'door',
+          doorTypeId: 'dt_01',
           hostWallId: 'w_01',
           offsetAlong: 500,
-          width: 900,
-          height: 2150,
           swing: { side: 'right', direction: 'in' },
         },
       },
@@ -235,10 +261,9 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
           id: 'win_01',
           category: 'window',
           kind: 'window',
+          windowTypeId: 'wt_01',
           hostWallId: 'w_01',
           offsetAlong: 2000,
-          width: 1200,
-          height: 1400,
           sillHeight: 900,
         },
       },
@@ -301,6 +326,7 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
     // Cas 1: side invalide
     const badSideDoorState = {
       ...sampleState,
+      schemaVersion: 1,
       doors: {
         door_bad_side: {
           id: 'door_bad_side',
@@ -320,6 +346,7 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
     // Cas 2: direction invalide
     const badDirDoorState = {
       ...sampleState,
+      schemaVersion: 1,
       doors: {
         door_bad_dir: {
           id: 'door_bad_dir',
@@ -339,6 +366,7 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
     // Cas 3: dimensions nulles ou négatives
     const badDimDoorState = {
       ...sampleState,
+      schemaVersion: 1,
       doors: {
         door_bad_dim: {
           id: 'door_bad_dim',
@@ -359,6 +387,7 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
   it('fromJSON rejette une porte dont la propriété swing est absente ou indéfinie (MALFORMED_DOOR)', () => {
     const missingSwingDoorState = {
       ...sampleState,
+      schemaVersion: 1,
       doors: {
         door_no_swing: {
           id: 'door_no_swing',
@@ -428,9 +457,9 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
       },
     });
 
-    // 1. fromJSON charge l'état avec succès
+    // 1. fromJSON charge l'état avec succès et le migre automatiquement vers v2
     const loadedState = fromJSON(phase2Json);
-    expect(loadedState.schemaVersion).toBe(1);
+    expect(loadedState.schemaVersion).toBe(2);
     expect(Object.keys(loadedState.walls)).toHaveLength(4);
 
     // 2. Initialisation automatique de doors et windows à {}
@@ -445,5 +474,86 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
     // 4. Stabilité intégrale du round-trip
     const reloadedState = fromJSON(reserializedJson);
     expect(reloadedState).toEqual(loadedState);
+  });
+
+  /* =========================================================================
+   * TESTS DE SÉRIALISATION PHASE 6.1a : T-SER-01 à T-SER-03
+   * ========================================================================= */
+
+  it('T-SER-01 : fromJSON sur un document schéma v2 valide le charge sans modification', () => {
+    const rawV2 = toJSON(sampleState);
+    const loaded = fromJSON(rawV2);
+    expect(loaded.schemaVersion).toBe(2);
+    expect(loaded).toEqual(sampleState);
+  });
+
+  it('T-SER-02 : fromJSON sur un document schéma v1 avec 2 portes identiques synthétise 1 seul DoorType', () => {
+    const v1WithDoors = JSON.stringify({
+      schemaVersion: 1,
+      units: 'mm',
+      levels: { lvl_1: { id: 'lvl_1', name: 'RDC', elevation: 0 } },
+      wallTypes: { wt_1: { id: 'wt_1', name: 'Mur 200', thickness: 200, height: 2800 } },
+      walls: {
+        w_1: {
+          id: 'w_1',
+          category: 'wall',
+          typeId: 'wt_1',
+          levelId: 'lvl_1',
+          start: { x: 0, y: 0 },
+          end: { x: 5000, y: 0 },
+        },
+      },
+      doors: {
+        d_1: {
+          id: 'd_1',
+          category: 'door',
+          hostWallId: 'w_1',
+          offsetAlong: 500,
+          width: 900,
+          height: 2100,
+          swing: { side: 'right', direction: 'in' },
+        },
+        d_2: {
+          id: 'd_2',
+          category: 'door',
+          hostWallId: 'w_1',
+          offsetAlong: 2500,
+          width: 900,
+          height: 2100,
+          swing: { side: 'left', direction: 'in' },
+        },
+      },
+      windows: {},
+    });
+
+    const migrated = fromJSON(v1WithDoors);
+    expect(migrated.schemaVersion).toBe(2);
+    // Un seul DoorType synthétisé pour 900x2100
+    expect(Object.keys(migrated.doorTypes)).toHaveLength(1);
+    const synthesizedTypeId = Object.keys(migrated.doorTypes)[0]!;
+    expect(migrated.doorTypes[synthesizedTypeId]).toEqual({
+      id: 'door-type-900x2100',
+      name: 'Porte 900×2100 mm',
+      width: 900,
+      height: 2100,
+    });
+    // Les deux portes pointent vers ce même type
+    expect(migrated.doors['d_1']?.doorTypeId).toBe('door-type-900x2100');
+    expect(migrated.doors['d_2']?.doorTypeId).toBe('door-type-900x2100');
+  });
+
+  it('T-SER-03 : fromJSON rejette rigoureusement un schéma futur v3 ou non supporté avec UNSUPPORTED_SCHEMA_VERSION', () => {
+    const v3Doc = JSON.stringify({
+      ...sampleState,
+      schemaVersion: 3,
+    });
+    expect(() => fromJSON(v3Doc)).toThrowError(BimValidationError);
+    expect(() => fromJSON(v3Doc)).toThrowError(/UNSUPPORTED_SCHEMA_VERSION/);
+
+    const v99Doc = JSON.stringify({
+      ...sampleState,
+      schemaVersion: 99,
+    });
+    expect(() => fromJSON(v99Doc)).toThrowError(/UNSUPPORTED_SCHEMA_VERSION/);
   });
 });

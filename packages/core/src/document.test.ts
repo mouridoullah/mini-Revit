@@ -9,7 +9,7 @@ describe('BimDocument & CommandBus (document.ts)', () => {
     const doc = new BimDocument();
     const state = doc.getState();
 
-    expect(state.schemaVersion).toBe(1);
+    expect(state.schemaVersion).toBe(2);
     expect(state.units).toBe('mm');
     expect(state.levels).toEqual({});
     expect(state.wallTypes).toEqual({});
@@ -417,6 +417,7 @@ describe('BimDocument & CommandBus (document.ts)', () => {
         id: doorId,
         category: 'door',
         kind: 'door',
+        doorTypeId: 'door-type-900x2100',
         hostWallId: wallId,
         offsetAlong: 500,
         width: 900,

@@ -14,7 +14,7 @@ describe('jsonIO (Persistance JSON export / import)', () => {
 
     expect(typeof jsonStr).toBe('string');
     const parsed = JSON.parse(jsonStr) as Record<string, unknown>;
-    expect(parsed['schemaVersion']).toBe(1);
+    expect(parsed['schemaVersion']).toBe(2);
     expect(parsed['units']).toBe('mm');
     expect(Object.keys(parsed['walls'] as Record<string, unknown>).length).toBe(4);
   });

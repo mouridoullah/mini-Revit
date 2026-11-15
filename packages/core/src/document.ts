@@ -37,11 +37,15 @@ export class BimDocument {
    */
   public static createEmptyState(): BimState {
     return {
-      schemaVersion: 1,
+      schemaVersion: 2,
       units: 'mm',
       levels: {},
       wallTypes: {},
+      slabTypes: {},
+      doorTypes: {},
+      windowTypes: {},
       walls: {},
+      slabs: {},
       doors: {},
       windows: {},
       rooms: {},
@@ -70,12 +74,41 @@ export class BimDocument {
       height: 2800,
     };
 
+    const defaultSlabTypeId = 'default-slab-type';
+    const defaultDoorTypeId = 'default-door-type';
+    const defaultWindowTypeId = 'default-window-type';
+
+    const defaultSlabType: import('./types.js').SlabType = {
+      id: defaultSlabTypeId,
+      name: 'Dalle BA 200mm',
+      thickness: 200,
+    };
+
+    const defaultDoorType: import('./types.js').DoorType = {
+      id: defaultDoorTypeId,
+      name: 'Porte 900×2100 mm',
+      width: 900,
+      height: 2100,
+    };
+
+    const defaultWindowType: import('./types.js').WindowType = {
+      id: defaultWindowTypeId,
+      name: 'Fenêtre 1200×1400 mm',
+      width: 1200,
+      height: 1400,
+      defaultSillHeight: 900,
+    };
+
     const state: BimState = {
-      schemaVersion: 1,
+      schemaVersion: 2,
       units: 'mm',
       levels: { [levelId]: defaultLevel },
       wallTypes: { [typeId]: defaultWallType },
+      slabTypes: { [defaultSlabTypeId]: defaultSlabType },
+      doorTypes: { [defaultDoorTypeId]: defaultDoorType },
+      windowTypes: { [defaultWindowTypeId]: defaultWindowType },
       walls: {},
+      slabs: {},
       doors: {},
       windows: {},
       rooms: {},

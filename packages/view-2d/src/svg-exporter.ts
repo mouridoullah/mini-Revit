@@ -186,10 +186,11 @@ export function generatePlanSvg(doc: DocumentFor2D, options: PlanSvgOptions = {}
     const ny = ux;
 
     // Position de feuillure
+    const doorWidth = door.width ?? 900;
     const hingeX = host.start.x + ux * door.offsetAlong;
     const hingeY = host.start.y + uy * door.offsetAlong;
-    const endX = host.start.x + ux * (door.offsetAlong + door.width);
-    const endY = host.start.y + uy * (door.offsetAlong + door.width);
+    const endX = host.start.x + ux * (door.offsetAlong + doorWidth);
+    const endY = host.start.y + uy * (door.offsetAlong + doorWidth);
 
     const sHingeX = toSvgX(hingeX);
     const sHingeY = toSvgY(hingeY);
@@ -210,7 +211,7 @@ export function generatePlanSvg(doc: DocumentFor2D, options: PlanSvgOptions = {}
     openingSvgParts.push(`    <polygon points="${cutPts}" fill="#ffffff" stroke="none" />`);
 
     // Battement de porte à 90° (arc de cercle)
-    const radiusPx = door.width * pxPerMmModel;
+    const radiusPx = doorWidth * pxPerMmModel;
     const sweepFlag = door.swing.direction === 'in' ? 1 : 0;
     openingSvgParts.push(
       `    <path d="M ${sHingeX.toFixed(2)} ${sHingeY.toFixed(2)} L ${sEndX.toFixed(2)} ${sEndY.toFixed(2)} A ${radiusPx.toFixed(2)} ${radiusPx.toFixed(2)} 0 0 ${sweepFlag} ${sHingeX.toFixed(2)} ${(sHingeY - radiusPx).toFixed(2)} Z" fill="rgba(243, 244, 246, 0.5)" stroke="#111827" stroke-width="1" stroke-dasharray="3,2" />`,
@@ -228,10 +229,11 @@ export function generatePlanSvg(doc: DocumentFor2D, options: PlanSvgOptions = {}
 
     const ux = dx / len;
     const uy = dy / len;
+    const winWidth = win.width ?? 1200;
     const startX = host.start.x + ux * win.offsetAlong;
     const startY = host.start.y + uy * win.offsetAlong;
-    const endX = host.start.x + ux * (win.offsetAlong + win.width);
-    const endY = host.start.y + uy * (win.offsetAlong + win.width);
+    const endX = host.start.x + ux * (win.offsetAlong + winWidth);
+    const endY = host.start.y + uy * (win.offsetAlong + winWidth);
 
     const sStartX = toSvgX(startX);
     const sStartY = toSvgY(startY);

@@ -129,6 +129,8 @@ export interface Room {
   readonly levelId: ElementId;
   readonly seed: Vec2;
   readonly name: string;
+  readonly status?: 'enclosed' | 'unenclosed'; // Statut dérivé persisté (ADR-039 / ADR-045 D1)
+  readonly area?: number; // Surface utile calculée en m² (ADR-045 D1)
 }
 
 // ---------------------------------------------------------------------------

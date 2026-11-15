@@ -142,14 +142,18 @@ export class DoorTool implements Tool {
       }
 
       const doorId = generateId();
+      const width = ctx.doorDefaults?.width ?? DEFAULT_DOOR_WIDTH;
+      const height = ctx.doorDefaults?.height ?? DEFAULT_DOOR_HEIGHT;
+      const doorTypeId = `door-type-${width}x${height}`;
       const command = new Commands.AddDoorCommand({
         id: doorId,
         category: 'door',
         kind: 'door',
+        doorTypeId,
         hostWallId: targetWallId,
         offsetAlong: targetOffset,
-        width: ctx.doorDefaults?.width ?? DEFAULT_DOOR_WIDTH,
-        height: ctx.doorDefaults?.height ?? DEFAULT_DOOR_HEIGHT,
+        width,
+        height,
         swing: ctx.doorDefaults?.swing ?? { side: 'left', direction: 'in' },
       });
 

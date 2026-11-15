@@ -37,6 +37,14 @@ export interface WallType {
 }
 
 /**
+ * Contrainte d'élévation supérieure d'un mur (ADR-040 / ADR-045).
+ */
+export interface TopConstraint {
+  readonly levelId: ElementId;
+  readonly offset?: number; // décalage en mm (défaut: 0)
+}
+
+/**
  * Instance d'un mur linéaire placé dans le projet.
  */
 export interface Wall {
@@ -48,6 +56,52 @@ export interface Wall {
   readonly end: Vec2; // Coordonnées 2D en mm
   readonly baseOffset?: number; // Décalage vertical par rapport au niveau en mm
   readonly heightOverride?: number; // Surcharge optionnelle de la hauteur du type en mm
+  readonly topConstraint?: TopConstraint; // Contrainte altimétrique supérieure
+}
+
+/**
+ * Famille paramétrique d'une dalle horizontale (ADR-042).
+ */
+export interface SlabType {
+  readonly id: ElementId;
+  readonly name: string;
+  readonly thickness: number; // en mm (> 0, >= 50 mm)
+  readonly materialId?: string;
+}
+
+/**
+ * Instance d'une dalle horizontale (ADR-035 / ADR-042).
+ */
+export interface Slab {
+  readonly id: ElementId;
+  readonly category: 'slab';
+  readonly slabTypeId: ElementId;
+  readonly levelId: ElementId;
+  readonly boundary: readonly Vec2[]; // CCW
+  readonly holes: readonly (readonly Vec2[])[]; // CW (réservations manuelles uniquement)
+  readonly baseOffset?: number; // décalage vertical par rapport au niveau (<= 0 standard)
+  readonly name?: string;
+}
+
+/**
+ * Famille paramétrique d'une porte (ADR-042).
+ */
+export interface DoorType {
+  readonly id: ElementId;
+  readonly name: string;
+  readonly width: number; // en mm (> 0)
+  readonly height: number; // en mm (> 0)
+}
+
+/**
+ * Famille paramétrique d'une fenêtre (ADR-042).
+ */
+export interface WindowType {
+  readonly id: ElementId;
+  readonly name: string;
+  readonly width: number; // en mm (> 0)
+  readonly height: number; // en mm (> 0)
+  readonly defaultSillHeight: number; // en mm (>= 0)
 }
 
 /**
@@ -80,26 +134,64 @@ export interface OpeningBase {
    * mesurée depuis wall.start vers wall.end jusqu'au début de l'ouverture.
    */
   readonly offsetAlong: number;
-  readonly width: number; // en mm (> 0)
-  readonly height: number; // en mm (> 0)
 }
 
 /**
- * Entité porte architecturale hébergée par un mur.
+ * Entité porte architecturale hébergée par un mur (Schéma v2 / ADR-042).
+ * Les dimensions (width, height) sont portées par son DoorType.
  */
 export interface Door extends OpeningBase {
   readonly category: 'door';
-  readonly kind: 'door';
+  readonly kind?: 'door';
+  readonly doorTypeId: ElementId;
+  readonly swing: DoorSwing;
+  /** Largeur transitoire optionnelle pour compatibilité ascendante */
+  readonly width?: number;
+  /** Hauteur transitoire optionnelle pour compatibilité ascendante */
+  readonly height?: number;
+}
+
+/**
+ * Entité fenêtre architecturale hébergée par un mur (Schéma v2 / ADR-042).
+ * Les dimensions (width, height) sont portées par son WindowType.
+ */
+export interface Window extends OpeningBase {
+  readonly category: 'window';
+  readonly kind?: 'window';
+  readonly windowTypeId: ElementId;
+  readonly sillHeight: number; // Hauteur d'allège propre à l'instance en mm (>= 0)
+  /** Largeur transitoire optionnelle pour compatibilité ascendante */
+  readonly width?: number;
+  /** Hauteur transitoire optionnelle pour compatibilité ascendante */
+  readonly height?: number;
+}
+
+/**
+ * Modèle V1 transitoire d'une porte pour la migration.
+ */
+export interface V1Door {
+  readonly id: ElementId;
+  readonly category: 'door';
+  readonly kind?: 'door';
+  readonly hostWallId: ElementId;
+  readonly offsetAlong: number;
+  readonly width: number;
+  readonly height: number;
   readonly swing: DoorSwing;
 }
 
 /**
- * Entité fenêtre architecturale hébergée par un mur avec hauteur d'allège paramétrique.
+ * Modèle V1 transitoire d'une fenêtre pour la migration.
  */
-export interface Window extends OpeningBase {
+export interface V1Window {
+  readonly id: ElementId;
   readonly category: 'window';
-  readonly kind: 'window';
-  readonly sillHeight: number; // Hauteur d'allège en mm (>= 0 depuis la base du mur)
+  readonly kind?: 'window';
+  readonly hostWallId: ElementId;
+  readonly offsetAlong: number;
+  readonly width: number;
+  readonly height: number;
+  readonly sillHeight: number;
 }
 
 /**
@@ -144,19 +236,38 @@ export interface Dimension {
 }
 
 /**
- * État documentaire immuable complet du projet Mini-BIM.
+ * État documentaire immuable complet du projet Mini-BIM (Schéma v2 / Saison 2).
  * Normalisé sous forme de dictionnaires indexés par ElementId.
  */
 export interface BimState {
-  readonly schemaVersion: 1;
+  readonly schemaVersion: 2;
   readonly units: 'mm';
   readonly levels: Record<ElementId, Level>;
   readonly wallTypes: Record<ElementId, WallType>;
+  readonly slabTypes: Record<ElementId, SlabType>;
+  readonly doorTypes: Record<ElementId, DoorType>;
+  readonly windowTypes: Record<ElementId, WindowType>;
   readonly walls: Record<ElementId, Wall>;
+  readonly slabs: Record<ElementId, Slab>;
   readonly doors: Record<ElementId, Door>;
   readonly windows: Record<ElementId, Window>;
   readonly rooms: Record<ElementId, Room>;
   readonly dimensions: Record<ElementId, Dimension>;
+}
+
+/**
+ * Modèle V1 de l'état documentaire pour la rétrocompatibilité et la migration.
+ */
+export interface V1BimState {
+  readonly schemaVersion?: 1;
+  readonly units?: 'mm';
+  readonly levels: Record<ElementId, Level>;
+  readonly wallTypes: Record<ElementId, WallType>;
+  readonly walls: Record<ElementId, Wall>;
+  readonly doors: Record<ElementId, V1Door>;
+  readonly windows: Record<ElementId, V1Window>;
+  readonly rooms: Record<ElementId, Room>;
+  readonly dimensions?: Record<ElementId, Dimension>;
 }
 
 /**
