@@ -7,40 +7,51 @@
 
 ## Sommaire des ADRs
 
-| Réf.        | Titre de la Décision                                                                           |   Statut    |    Date    |
-| :---------- | :--------------------------------------------------------------------------------------------- | :---------: | :--------: |
-| **ADR-001** | Modèle BIM comme Source de Vérité Unique (Géométrie = Cache Dérivé)                            | **Accepté** | 13/11/2026 |
-| **ADR-002** | Découplage Impératif des Moteurs de Vues (Canvas 2D / Three.js vs React)                       | **Accepté** | 13/11/2026 |
-| **ADR-003** | Standardisation des Unités et Repères Spatiaux (Millimètres Float64 & Z-Up)                    | **Accepté** | 13/11/2026 |
-| **ADR-004** | Découpe d'Ouvertures par Tranches 2.5D (Sutherland-Hodgman)                                    | **Accepté** | 13/11/2026 |
-| **ADR-005** | Résolution Topologique des Jonctions de Murs et Limites d'Onglet                               | **Accepté** | 13/11/2026 |
-| **ADR-006** | Gestion des Mutations et Undo/Redo par Command Pattern Typé                                    | **Accepté** | 13/11/2026 |
-| **ADR-007** | Stratégie de Persistance Hybride (JSON Versionné puis SQLite WASM/OPFS)                        | **Accepté** | 13/11/2026 |
-| **ADR-008** | Détection Hybride et Stabilité Sémantique des Pièces (Rooms)                                   | **Accepté** | 13/11/2026 |
-| **ADR-009** | Architecture d'Extensibilité pour les Réseaux MEP (Category Registry)                          | **Accepté** | 13/11/2026 |
-| **ADR-010** | Révision des Tolérances Numériques, Typage des Intersections et Rejet de l'Arrondi Prématuré   | **Accepté** | 13/11/2026 |
-| **ADR-011** | Moteur de Jonctions de Murs Déterministe (L, T, X, Colinéaire et Multi-branches)               | **Accepté** | 13/11/2026 |
-| **ADR-012** | Directives de Robustesse Topologique et Clôture des Jonctions (Audit Approfondi Phase 1)       | **Accepté** | 13/11/2026 |
-| **ADR-013** | Formalisation et Validation des Percements d'Ouvertures 2.5D (Phase 1.2)                       | **Accepté** | 13/11/2026 |
-| **ADR-014** | Gouvernance et Traçabilité des Métriques de Rapports (CI Verbatim)                             | **Accepté** | 13/11/2026 |
-| **ADR-015** | RawMeshData et Buffers Neutres pour Rendu 3D (sans dépendance Three.js)                        | **Accepté** | 13/11/2026 |
-| **ADR-016** | Stratégie Hybride de Triangulation 2D (Triangle Fan O(n) + Ear Clipping earcut)                | **Accepté** | 13/11/2026 |
-| **ADR-017** | Traitement des Interfaces de Contact Internes entre Pièces Adjacentes (Modular Solid Block)    | **Accepté** | 13/11/2026 |
-| **ADR-018** | Architecture Impérative de view-3d sans React, Rendu à la Demande et Backface Culling          | **Accepté** | 13/11/2026 |
-| **ADR-019** | Architecture du Noyau BIM — BimDocument, CommandBus et Undo/Redo via Immer                     | **Accepté** | 13/11/2026 |
-| **ADR-020** | Stratégie d'Identifiants Uniques — Adoption d'ULID pour le Noyau BIM                           | **Accepté** | 13/11/2026 |
-| **ADR-021** | Architecture Impérative de view-2d sans React, Émission de Command, Conversion Y-up/Y-down     | **Accepté** | 13/11/2026 |
-| **ADR-022** | Intégration React dans apps/web — Viewports Impératifs Isolés, Contexte Documentaire           | **Accepté** | 13/11/2026 |
-| **ADR-023** | Génération de Maillages 3D dans @mini-bim/view-3d via Interfaces Géométriques Neutres          | **Accepté** | 14/11/2026 |
-| **ADR-024** | Architecture des Outils Interactifs 2D (State Machines Pures, Snapping 45° et Pont DOM)        | **Accepté** | 14/11/2026 |
-| **ADR-025** | Sélection UI Partagée Bidirectionnelle (État Éphémère React vs Pureté Documentaire)            | **Accepté** | 14/11/2026 |
-| **ADR-026** | Picking 3D Déterministe via Raycasting, userData et Permutation de Matériau Partagé            | **Accepté** | 14/11/2026 |
-| **ADR-027** | Remplacement de BimDocument sans Recréation de Contexte Graphique (setDocument vs Re-Key)      | **Accepté** | 14/11/2026 |
-| **ADR-028** | Modèle Paramétrique 1D des Ouvertures Hébergées, Validation et Cascade Transactionnelle        | **Accepté** | 14/11/2026 |
-| **ADR-029** | Rendu 2D/3D Multi-Pièces des Murs Percés, Débattements Angulaires et Placeholders              | **Accepté** | 14/11/2026 |
-| **ADR-030** | Outils Interactifs pour Ouvertures et Déplacement de Murs (Machines à États Pures)             | **Accepté** | 14/11/2026 |
-| **ADR-031** | Détection des Pièces par Union Booléenne des Murs, Point d'Ancrage Seed et Polylabel           | **Accepté** | 14/11/2026 |
-| **ADR-032** | Cascade et Cycle de Vie des Rooms (Option B : Suppression en Cascade avec Réversibilité Immer) | **Accepté** | 14/11/2026 |
+| Réf.        | Titre de la Décision                                                                         |    Statut    |    Date    |
+| :---------- | :------------------------------------------------------------------------------------------- | :----------: | :--------: |
+| **ADR-001** | Modèle BIM comme Source de Vérité Unique (Géométrie = Cache Dérivé)                          | **Accepté**  | 13/11/2026 |
+| **ADR-002** | Découplage Impératif des Moteurs de Vues (Canvas 2D / Three.js vs React)                     | **Accepté**  | 13/11/2026 |
+| **ADR-003** | Standardisation des Unités et Repères Spatiaux (Millimètres Float64 & Z-Up)                  | **Accepté**  | 13/11/2026 |
+| **ADR-004** | Découpe d'Ouvertures par Tranches 2.5D (Sutherland-Hodgman)                                  | **Accepté**  | 13/11/2026 |
+| **ADR-005** | Résolution Topologique des Jonctions de Murs et Limites d'Onglet                             | **Accepté**  | 13/11/2026 |
+| **ADR-006** | Gestion des Mutations et Undo/Redo par Command Pattern Typé                                  | **Accepté**  | 13/11/2026 |
+| **ADR-007** | Stratégie de Persistance Hybride (JSON Versionné puis SQLite WASM/OPFS)                      | **Accepté**  | 13/11/2026 |
+| **ADR-008** | Détection Hybride et Stabilité Sémantique des Pièces (Rooms)                                 | **Accepté**  | 13/11/2026 |
+| **ADR-009** | Architecture d'Extensibilité pour les Réseaux MEP (Category Registry)                        | **Accepté**  | 13/11/2026 |
+| **ADR-010** | Révision des Tolérances Numériques, Typage des Intersections et Rejet de l'Arrondi Prématuré | **Accepté**  | 13/11/2026 |
+| **ADR-011** | Moteur de Jonctions de Murs Déterministe (L, T, X, Colinéaire et Multi-branches)             | **Accepté**  | 13/11/2026 |
+| **ADR-012** | Directives de Robustesse Topologique et Clôture des Jonctions (Audit Approfondi Phase 1)     | **Accepté**  | 13/11/2026 |
+| **ADR-013** | Formalisation et Validation des Percements d'Ouvertures 2.5D (Phase 1.2)                     | **Accepté**  | 13/11/2026 |
+| **ADR-014** | Gouvernance et Traçabilité des Métriques de Rapports (CI Verbatim)                           | **Accepté**  | 13/11/2026 |
+| **ADR-015** | RawMeshData et Buffers Neutres pour Rendu 3D (sans dépendance Three.js)                      | **Accepté**  | 13/11/2026 |
+| **ADR-016** | Stratégie Hybride de Triangulation 2D (Triangle Fan O(n) + Ear Clipping earcut)              | **Accepté**  | 13/11/2026 |
+| **ADR-017** | Traitement des Interfaces de Contact Internes entre Pièces Adjacentes (Modular Solid Block)  | **Accepté**  | 13/11/2026 |
+| **ADR-018** | Architecture Impérative de view-3d sans React, Rendu à la Demande et Backface Culling        | **Accepté**  | 13/11/2026 |
+| **ADR-019** | Architecture du Noyau BIM — BimDocument, CommandBus et Undo/Redo via Immer                   | **Accepté**  | 13/11/2026 |
+| **ADR-020** | Stratégie d'Identifiants Uniques — Adoption d'ULID pour le Noyau BIM                         | **Accepté**  | 13/11/2026 |
+| **ADR-021** | Architecture Impérative de view-2d sans React, Émission de Command, Conversion Y-up/Y-down   | **Accepté**  | 13/11/2026 |
+| **ADR-022** | Intégration React dans apps/web — Viewports Impératifs Isolés, Contexte Documentaire         | **Accepté**  | 13/11/2026 |
+| **ADR-023** | Génération de Maillages 3D dans @mini-bim/view-3d via Interfaces Géométriques Neutres        | **Accepté**  | 14/11/2026 |
+| **ADR-024** | Architecture des Outils Interactifs 2D (State Machines Pures, Snapping 45° et Pont DOM)      | **Accepté**  | 14/11/2026 |
+| **ADR-025** | Sélection UI Partagée Bidirectionnelle (État Éphémère React vs Pureté Documentaire)          | **Accepté**  | 14/11/2026 |
+| **ADR-026** | Picking 3D Déterministe via Raycasting, userData et Permutation de Matériau Partagé          | **Accepté**  | 14/11/2026 |
+| **ADR-027** | Remplacement de BimDocument sans Recréation de Contexte Graphique (setDocument vs Re-Key)    | **Accepté**  | 14/11/2026 |
+| **ADR-028** | Modèle Paramétrique 1D des Ouvertures Hébergées, Validation et Cascade Transactionnelle      | **Accepté**  | 14/11/2026 |
+| **ADR-029** | Rendu 2D/3D Multi-Pièces des Murs Percés, Débattements Angulaires et Placeholders            | **Accepté**  | 14/11/2026 |
+| **ADR-030** | Outils Interactifs pour Ouvertures et Déplacement de Murs (Machines à États Pures)           | **Accepté**  | 14/11/2026 |
+| **ADR-031** | Détection des Pièces par Union Booléenne des Murs, Point d'Ancrage Seed et Polylabel         | **Accepté**  | 14/11/2026 |
+| **ADR-032** | Cascade et Cycle de Vie des Rooms (Option B : Suppression en Cascade)                        | **Obsolète** | 14/11/2026 |
+| **ADR-033** | Stratégie d'Exportation IFC — Générateur Natif TypeScript STEP ISO 10303-21                  | **Accepté**  | 14/11/2026 |
+| **ADR-034** | Cotations 2D Associatives et Propagation Paramétrique Bidirectionnelle                       | **Accepté**  | 14/11/2026 |
+| **ADR-035** | Architecture des Dalles Horizontales (`Slab`), Représentation Polygonale 2D et Extrusion 3D  | **Accepté**  | 15/11/2026 |
+| **ADR-036** | Gestion du Multi-Niveaux, Altimétrie Paramétrique et Rendu Fantôme (`Underlay`)              | **Accepté**  | 15/11/2026 |
+| **ADR-037** | Modèle Paramétrique d'Escalier (`Stair`) et Découpe Automatique de Trémie                    | **Accepté**  | 15/11/2026 |
+| **ADR-038** | Relations Déclaratives Inter-Entités et Moteur de Cascade Générique (`RELATIONS_REGISTRY`)   | **Accepté**  | 15/11/2026 |
+| **ADR-039** | Cycle de Vie Non-Destructif des Pièces (Statut Dérivé `Enclosed` / `Unenclosed`)             | **Accepté**  | 15/11/2026 |
+| **ADR-040** | Contrainte Altimétrique Supérieure des Murs (`topConstraint`) et Sous-Face de Dalle          | **Accepté**  | 15/11/2026 |
+| **ADR-041** | Architecture du Graphe de Dépendances Minimal (DAG) et Moteur de Propagation Générique       | **Accepté**  | 15/11/2026 |
+| **ADR-042** | Généralisation du Modèle Type / Instance (`SlabType`, `DoorType`, `WindowType`)              | **Accepté**  | 15/11/2026 |
+| **ADR-043** | Migration de Schéma Documentaire v2 et Préservation Intégrale des Familles                   | **Accepté**  | 15/11/2026 |
 
 ---
 
@@ -1015,9 +1026,9 @@ Dans un logiciel BIM, les pièces (_Rooms_) ne sont pas de simples rectangles st
 ## ADR-032 : Cascade et Cycle de Vie des Rooms (Option B : Suppression en Cascade avec Réversibilité Immer)
 
 - **Date :** 2026-11-14
-- **Statut :** Accepté
+- **Statut :** Obsolète (Amandé et remplacé par ADR-039 : Cycle de Vie Non-Destructif des Pièces)
 - **Auteur :** Antigravity (Lead Software Architect & Computational Geometry Engineer)
-- **Contexte :** Phase 4 (Gestion de la cohérence spatiale lors de la suppression de murs ou de niveaux)
+- **Contexte :** Phase 4 (Gestion de la cohérence spatiale lors de la suppression de murs ou de niveaux) — Remplacé suite à l'audit critique d'alignement Revit/BIM (ADR-039).
 
 ### Problème
 
@@ -1311,42 +1322,60 @@ Si un architecte supprime un mur pour le redessiner 50 cm plus loin, la pièce (
 
 ---
 
-## ADR-040 : Contrainte Altimétrique Supérieure des Murs (`topConstraint`) et Éradication des Conflits Mur-Dalle
+## ADR-040 : Contrainte Altimétrique Supérieure des Murs (`topConstraint`) et Sous-Face de Dalle
 
 - **Date :** 2026-11-15
-- **Statut :** Accepté
+- **Statut :** Accepté (Révisé suite à l'Audit Croisé)
 - **Auteur :** Antigravity (Lead Software Architect & Computational Geometry Engineer)
 - **Contexte :** Phase 6 (Multi-niveaux et planchers d'étages)
 
 ### Problème
 
-Dans un bâtiment à étages, si un mur du rez-de-chaussée (RDC) s'élève jusqu'à l'altitude brute du premier étage ($elev_{R+1}$), il entre en collision avec la dalle de plancher du R+1 qui occupe l'intervalle $[elev_{R+1} - \text{thickness}, elev_{R+1}]$. Cette interpénétration engendre :
+Dans un bâtiment à étages, si un mur du niveau $N$ s'élève jusqu'à l'élévation brute du niveau supérieur $N+1$, il entre en collision volumique avec la dalle de plancher du niveau $N+1$. Cette interpénétration engendre :
 
 1. Un double comptage faux des volumes de béton dans les métrés.
-2. Des conflits volumiques (clashs) dans les visionneuses IFC OpenBIM.
+2. Des conflits volumiques (clashs 3D) dans les visionneuses IFC OpenBIM.
+3. Des failles potentielles si la formule ne précise pas quelle dalle couvre le mur, ignore le `baseOffset` de la dalle (ex: une dalle abaissée de 100 mm qui rentre dans le mur), ou ne propage pas les invalidations du type de dalle vers les murs contraints.
 
 ### Décisions Prises
 
 1. **Introduction de `topConstraint` sur `Wall` :**  
-   Un mur peut spécifier son raccord supérieur :
+   Tout mur peut définir son raccord altimétrique supérieur :
    ```typescript
    export interface TopConstraint {
-     readonly levelId: ElementId;
-     readonly offset?: number; // Décalage relatif en mm (défaut: 0)
+     readonly levelId: ElementId; // Niveau supérieur d'attachement (ex: N+1)
+     readonly offset?: number; // Décalage relatif optionnel en mm (défaut: 0)
    }
    ```
-2. **Calcul Paramétrique de la Hauteur Effective :**  
-   Lorsque le sommet d'un mur du niveau $N$ est contraint au niveau $N+1$, sa hauteur géométrique réelle tient automatiquement compte de la dalle de plancher haut :
-   $$Z_{\text{top}} = \text{level}_{N+1}.\text{elevation} - \text{slabThickness} + (\text{topConstraint.offset} \mathbin{??} 0)$$
-   $$height = Z_{\text{top}} - Z_{\text{base}}$$
-3. **Garantie d'Absence de Collision (Disjonction Parfaite) :**  
-   Le sommet du mur s'arrête rigoureusement sous la sous-face de la dalle supérieure. L'intersection des volumes 3D est strictement nulle : $\text{Volume}(wall \cap slab) = 0$.
+2. **Priorité Algorithmique (`heightOverride` vs `topConstraint`) :**
+   - **Priorité absolue à `heightOverride` :** Si un mur possède une valeur `heightOverride: number` explicite (cas d'un muret d'allège libre, acrotère, ou mur rideau non attaché), sa hauteur est rigoureusement $H = \text{heightOverride}$ et $Z_{\text{top}} = Z_{\text{base}} + H$. La contrainte de niveau supérieur est alors inactive.
+   - **Comportement par défaut (Paramétrique Revit) :** Par défaut, pour tout mur standard nouvellement créé ou migré sans `heightOverride`, la contrainte `topConstraint` est active et pointe vers le niveau immédiatement supérieur $N+1$ (`offset: 0`).
+3. **Calcul Rigoureux de Sous-Face de Dalle de Couverture :**  
+   Pour un mur $W$ contraint au niveau $N+1$ :
+   - Le moteur recherche parmi les dalles portées par le niveau $N+1$ celles dont le contour 2D `boundary` couvre géométriquement l'axe ou l'emprise au sol du mur.
+   - Si une dalle $S$ couvre le mur $W$, l'altitude de sous-face de cette dalle est :
+     $$Z_{\text{inf}}(S) = \text{level}_{N+1}.\text{elevation} + (\text{slab.baseOffset} \mathbin{??} 0) - \text{slabType.thickness}$$
+     Le sommet du mur s'arrête exactement sous cette sous-face :
+     $$Z_{\text{top}}(W) = Z_{\text{inf}}(S) + (\text{topConstraint.offset} \mathbin{??} 0)$$
+   - Si plusieurs dalles couvrent différentes parties du mur, la cote retenue est $\min_S Z_{\text{inf}}(S)$ afin de garantir l'absence totale de collision.
+   - Si aucune dalle du niveau $N+1$ ne couvre le mur (ex: mur en double hauteur ou terrasse extérieure), le sommet du mur s'arrête à l'élévation brute du niveau :
+     $$Z_{\text{top}}(W) = \text{level}_{N+1}.\text{elevation} + (\text{topConstraint.offset} \mathbin{??} 0)$$
+   - La hauteur géométrique résultante est : $H_{\text{eff}} = Z_{\text{top}}(W) - Z_{\text{base}}(W)$.
+4. **Intégration DAG des Dépendances Dalle $\to$ Murs (ADR-041) :**  
+   Le DAG enregistre les arêtes orientées :
+   - `slab (N+1) -> wall (N)` (pour tout mur couvert)
+   - `slabType -> slab`
+   - `level (N+1) -> wall (N)`
+     Toute modification de l'épaisseur du type de dalle (`slabType.thickness`), du décalage de dalle (`baseOffset`), ou de l'élévation du niveau recalcule automatiquement $Z_{\text{top}}$ et re-maille les murs contraints sous-jacents.
+5. **Garantie d'Absence de Collision (Disjonction Parfaite) :**  
+   Pour tout mur du niveau $N$ couvert par une dalle du niveau $N+1$ (quel que soit son `baseOffset` dans $[-500, +500]$ mm) :
+   $$wall_N.maxZ \le slab_{N+1}.minZ \implies \text{Volume}(wall_N \cap slab_{N+1}) \equiv 0$$
 
 ### Conséquences
 
-- Les murs suivent automatiquement les changements de hauteur d'étage sans intervention manuelle.
-- Zéro collision géométrique dans les modèles exportés en IFC4.
-- Préparation de l'infrastructure pour l'attachement aux versants de toiture en Phase 7.
+- Les murs suivent automatiquement les variations de hauteur d'étage et d'épaisseur de plancher.
+- Éradication totale des conflits d'interpénétration mur/dalle en 3D et dans les exports IFC4.
+- Invariant mathématique robuste testé par fuzzing de propriétés (`fast-check`).
 
 ---
 
@@ -1408,20 +1437,20 @@ Dans un bâtiment à étages, si un mur du rez-de-chaussée (RDC) s'élève jusq
 ## ADR-042 : Généralisation du Modèle Type / Instance (`SlabType`, `DoorType`, `WindowType`)
 
 - **Date :** 2026-11-15
-- **Statut :** Accepté
+- **Statut :** Accepté (Révisé suite à l'Audit Croisé)
 - **Auteur :** Antigravity (Lead Software Architect & Computational Geometry Engineer)
 - **Contexte :** Anticipation architecturale de la Phase 6.1 et de la bibliothèque de composants (Phase 8)
 
 ### Problème
 
 En V1.0, seule l'entité `Wall` disposait d'un type formel (`WallType`), tandis que `Door`, `Window` et le premier jet de `Slab` stockaient leurs propriétés dimensionnelles constructives directement sur l'instance (`door.width`, `door.height`, `window.sillHeight`, `slab.thickness`).
-Pour la Phase 8 (catalogue de familles et composants paramétriques), l'absence de types pour les portes, fenêtres et dalles aurait forcé une migration de schéma cassante et coûteuse.
+Pour la Phase 8 (catalogue de familles et composants paramétriques), l'absence de types pour les portes, fenêtres et dalles forcerait une migration de schéma cassante. De plus, une migration simpliste forçant toutes les baies vers un type standard unique (ex: 900×2100) détruirait les dimensions personnalisées existantes.
 
 ### Décisions Prises
 
 1. **Standardisation Globale du Modèle Type / Instance :**  
-   Toutes les entités architecturales hôtes et hébergées sont séparées en Type constructif et Instance géométrique :
-   - **`SlabType` :**
+   Toutes les entités architecturales hôtes et hébergées sont strictement réparties en Type constructif et Instance paramétrique, en préservant scrupuleusement les contrats d'interface existants (`offsetAlong` et `swing: { side, direction }`) :
+   - **`SlabType` & `Slab` :**
      ```typescript
      export interface SlabType {
        readonly id: ElementId;
@@ -1440,30 +1469,33 @@ Pour la Phase 8 (catalogue de familles et composants paramétriques), l'absence 
        readonly name?: string;
      }
      ```
-   - **`DoorType` :**
+   - **`DoorType` & `Door` :**
      ```typescript
      export interface DoorType {
        readonly id: ElementId;
        readonly name: string; // ex: "Porte Isoplane 900x2100"
-       readonly width: number; // mm
-       readonly height: number; // mm
+       readonly width: number; // mm (> 0)
+       readonly height: number; // mm (> 0)
      }
      export interface Door {
        readonly id: ElementId;
        readonly category: 'door';
        readonly doorTypeId: ElementId;
        readonly hostWallId: ElementId;
-       readonly distanceAlongWall: number;
-       readonly swing: 'left' | 'right';
+       readonly offsetAlong: number; // Abscisse curviligne préservée depuis start
+       readonly swing: {
+         readonly side: 'left' | 'right';
+         readonly direction: 'in' | 'out'; // Requis pour le rendu 2D et IFC
+       };
      }
      ```
-   - **`WindowType` :**
+   - **`WindowType` & `Window` :**
      ```typescript
      export interface WindowType {
        readonly id: ElementId;
        readonly name: string; // ex: "Fenêtre Châssis 1200x1400"
-       readonly width: number; // mm
-       readonly height: number; // mm
+       readonly width: number; // mm (> 0)
+       readonly height: number; // mm (> 0)
        readonly defaultSillHeight: number; // mm
      }
      export interface Window {
@@ -1471,20 +1503,53 @@ Pour la Phase 8 (catalogue de familles et composants paramétriques), l'absence 
        readonly category: 'window';
        readonly windowTypeId: ElementId;
        readonly hostWallId: ElementId;
-       readonly distanceAlongWall: number;
-       readonly sillHeight: number; // mm (surchargeable par instance)
+       readonly offsetAlong: number; // Abscisse curviligne préservée
+       readonly sillHeight: number; // Allège propre à l'instance
      }
      ```
-2. **Types par Défaut dans le Modèle :**  
-   `createEmptyDocument()` et `demoDocument` initialisent systématiquement des types standards préconfigurés :
-   - `default-wall-type` (200 mm, hauteur 2800 mm)
-   - `default-slab-type` (200 mm)
-   - `default-door-type` (900 × 2100 mm)
-   - `default-window-type` (1200 × 1400 mm, allège 900 mm)
-3. **Rétrocompatibilité Transparente (Migration Schéma JSON) :**  
-   Le désérialiseur JSON (`deserializeBimDocument`) convertit à la volée les fichiers de sauvegarde V1.0 en assignant les types par défaut correspondants, préservant 100% de rétrocompatibilité sans erreur.
+2. **Re-validation Transactionnelle lors de la Modification de Type :**  
+   Lors de l'exécution de `UpdateDoorTypeCommand` ou `UpdateWindowTypeCommand` (ex: modification de largeur de 900 mm à 1200 mm) :
+   - Le gestionnaire de commande interroge le DAG pour identifier toutes les instances dépendantes du type.
+   - Pour chaque mur hôte concerné, il réévalue `validateOpenings(wall, openings)`.
+   - Si une seule des instances dépendantes vient à sévériser son mur hôte ou chevaucher une autre baie suite à cet élargissement, la transaction est **rejetée atomiquement** avec l'erreur typée `TYPE_UPDATE_INVALIDATES_INSTANCES`, protégeant le modèle contre toute corruption géométrique.
+3. **Arêtes DAG Type $\to$ Instance (ADR-041) :**  
+   Les arêtes `doorTypeId -> doorId`, `windowTypeId -> windowId`, et `slabTypeId -> slabId` sont enregistrées dans le DAG. Toute modification de type invalide automatiquement l'ensemble des instances associées dans `getChangedIds()`, provoquant le recalcul et le re-maillage de leurs murs hôtes respectifs.
 
 ### Conséquences
 
-- Modifier l'épaisseur d'un `SlabType` ou la largeur d'un `DoorType` répercute automatiquement la mise à jour sur toutes les instances associées via le DAG.
-- Architecture parfaitement prête pour la bibliothèque d'équipements de la Phase 8.
+- Zéro régression sur le tracé des débattements 2D (`swing.direction` préservé).
+- Continuité parfaite des noms de champs (`offsetAlong`).
+- Intégrité constructive garantie lors des modifications massives par type.
+
+---
+
+## ADR-043 : Migration de Schéma Documentaire v2 et Préservation Intégrale des Familles
+
+- **Date :** 2026-11-15
+- **Statut :** Accepté
+- **Auteur :** Antigravity (Lead Software Architect & Computational Geometry Engineer)
+- **Contexte :** Transition du modèle V1 vers le modèle multi-niveaux et dalles en Phase 6.1
+
+### Problème
+
+En V1.0 (`schemaVersion: 1`), les portes et fenêtres stockaient leurs dimensions (`width`, `height`) directement sur l'instance. La mise à niveau vers le modèle Type/Instance d'ADR-042 constitue une modification de schéma structurelle.
+Une migration simpliste assignant des types standards fixes (ex: tous les ouvrants forcés à 900×2100) détruirait les dimensions sur mesure de maquettes existantes.
+
+### Décisions Prises
+
+1. **Incrémentation de `schemaVersion` :**  
+   Le schéma documentaire passe formellement à `schemaVersion: 2`.
+2. **Fonction Pure de Migration `migrateSchemaV1toV2` :**  
+   Lors de la désérialisation JSON (`deserializeBimDocument`), tout état avec `schemaVersion: 1` (ou non spécifié) est automatiquement converti par une fonction de migration déterministe :
+   - **Portes :** Partitionnement de `v1State.doors` par dimensions distinctes $(width, height)$. Pour chaque couple unique rencontré, un `DoorType` dédié est généré (ex: `door-type-900x2100` avec nom `"Porte 900×2100 mm"`). L'instance de porte se voit assigner le `doorTypeId` correspondant. **Aucune dimension n'est écrasée.**
+   - **Fenêtres :** Partitionnement par triplet distinct $(width, height, sillHeight)$. Génération d'un `WindowType` dédié par triplet (ex: `window-type-1200x1400-900`).
+   - **Dalles & Types de Dalles :** Initialisation d'un type de dalle standard `default-slab-type` (épaisseur 200 mm) et initialisation du dictionnaire `slabs: {}`.
+   - **Contraintes Supérieures des Murs :** Pour chaque mur sans hauteur explicite (`heightOverride`), initialisation automatique de `topConstraint: { levelId: level_{N+1}.id, offset: 0 }`.
+3. **Validation de Non-Régression par Fixtures de Référence :**  
+   Les fichiers de démonstration et fixtures de test certifiés en Phase 5 (`demo-plan.json` et maquettes d'or) sont inclus dans un test de migration automatisé vérifiant l'égalité bit-à-bit des dimensions avant et après migration.
+
+### Conséquences
+
+- Rétrocompatibilité garantie à 100% avec les sauvegardes de la Saison 1.
+- Zéro perte de données dimensionnelles lors de la montée de version.
+- Migration propre, isolée et réversible dans `@mini-bim/core`.

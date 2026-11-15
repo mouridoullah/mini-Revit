@@ -245,7 +245,7 @@ _Dépendances : Phase 1.1 à 1.3 (`@mini-bim/geometry`), Phase 1.4 (`@mini-bim/v
   - **Cotations 2D Associatives (`Dimension` / ADR-034) :** Entité normalisée dans `BimState.dimensions` avec calcul géométrique pur (`computeDimensionValue`). Recalcul automatique lors du déplacement/allongement d'un mur hôte (`UpdateWallCommand`), suppression en cascade lors de la destruction d'un mur (`DeleteWallCommand`), et réversibilité transactionnelle bit-à-bit via `doc.undo()`.
   - **Plans Vectoriels Imprimables SVG (`generatePlanSvg`) :** Export vectoriel de haute précision à l'échelle architecturale normalisée (1:50, 1:100, 1:200) sur format A4/A3 paysage. Rendu conforme avec poché de mur, vitrages, arcs de battement de portes, surfaces pastel des pièces en m², lignes de cote avec ticks à 45°, et cartouche architectural réglementaire (Titre, Échelle, Date, Auteur).
   - **Intégration Web UI (`Toolbar.tsx`) :** Boutons d'export direct « 🏛️ Exporter IFC » et « 📐 Plan (SVG) » avec sélecteur d'échelle intégré, déclenchant le téléchargement instantané côté client.
-- **Tests :** 507 tests automatisés passants sur l'ensemble du monorepo (Geometry: 198, Core: 116, View-3D: 27, View-2D: 53, Web: 113), validation officielle par le parser C++/WASM `web-ifc` (buildingSMART) et test de performance d'export (< 50 ms pour 50 murs).
+- **Tests :** 507 tests automatisés passants sur l'ensemble du monorepo (Geometry: 198, Core: 116, View-3D: 27, View-2D: 53, Web: 113), validation de structure et syntaxe STEP ISO 10303-21 par le parser C++/WASM `web-ifc` (That Open Company) avec intégration d'un job de validation IfcOpenShell (`ifcopenshell.validate`) en CI Python, et test de performance d'export (< 50 ms pour 50 murs).
 
 ---
 
@@ -266,21 +266,28 @@ flowchart LR
 
 - **Objectif :** Dépasser le simple niveau unique pour modéliser des édifices multi-étages complets avec leurs planchers horizontaux, trémies et circulations verticales.
 - **Sous-phases :**
-  - **6.1 Modèle Dalles & Niveaux, Graphe DAG et Inspecteur Minimal (`@mini-bim/core`, `apps/web`) :**
-    - **Architecture DAG & Relations Déclaratives (ADR-041, ADR-038) :** `DependencyGraph` compact (~100 lignes) gérant la propagation automatique des invalidations pour `getChangedIds()` et résolvant les cascades de suppression génériques sans hardcoding.
+  - **6.0 Socle DAG Minimal, Registre des Relations & Maintien de Connectivité des Jonctions (`@mini-bim/core`, `@mini-bim/geometry`) :**
+    - **Refactor Préalable Sécurisé :** Réingénierie interne sans rupture fonctionnelle ni modification du schéma JSON v1 existant.
+    - **Moteur DAG Minimal (ADR-041) :** Implémentation de `DependencyGraph` compact (~100–150 lignes de code pur) gérant la propagation automatique des invalidations pour `getChangedIds()`.
+    - **Relations Déclaratives & Cascades Génériques (ADR-038) :** `RELATIONS_REGISTRY` centralisant les dépendances (`door -> wall`, `window -> wall`, `dimension -> wall`, `wall -> level`). Remplacement de la cascade codée en dur de `DeleteWallCommand` par `resolveCascadeDeletions`.
+    - **Maintien de Connectivité des Jonctions (Wall Stretching / Joint Tracking) :** Lors du déplacement d'un mur ou d'un sommet (`MoveWallTool`, `MoveWallEndpointCommand`), étirement élastique des murs incidents connectés en L et T pour maintenir les cloisons closes et préserver le statut des pièces (ADR-039).
+    - **Garantie de Non-Régression :** 100% des 507 tests existants restent verts.
+  - **6.1 Modèle Dalles & Niveaux, Schéma v2 et Inspecteur Minimal (`@mini-bim/core`, `apps/web`) :**
+    - **Migration Documentaire vers Schéma v2 (ADR-043) :** Fonction pure `migrateSchemaV1toV2` extrayant automatiquement les familles distinctes de portes $(width, height)$ et fenêtres $(width, height, sillHeight)$ sans aucune perte dimensionnelle. Tests de non-régression sur fixtures de référence Phase 5.
     - **Généralisation Type / Instance (ADR-042) :** Entité `SlabType` (`id`, `name`, `thickness`, `materialId`) et réalignement de `DoorType` et `WindowType`.
     - **Entité Dalle (`Slab`) :** `id`, `slabTypeId`, `levelId`, `boundary: Vec2[]` (contour extérieur CCW), `holes: Vec2[][]` (trémies manuelles CW), `baseOffset: number`.
+    - **Modèle de Niveaux Paramétriques :** Niveaux ordonnés strictement par élévation croissante (`order`, `elevation`, `storyHeight`), avec propagation altimétrique paramétrique lors du changement d'hauteur d'étage.
+    - **Calcul de Sous-Face de Dalle et Disjonction Mur-Dalle (ADR-040) :** Sommet de mur calé sous la sous-face de la dalle supérieure $Z_{\text{inf}} = \text{elev}_{N+1} + baseOffset - thickness$, garantissant $\text{Volume}(wall_N \cap slab_{N+1}) \equiv 0$.
     - **Dérivation des Trémies d'Escalier (Règle de la Source Unique) :** `slab.holes` conserve uniquement les trémies manuelles ; les réservations d'escalier sont dérivées dynamiquement par $\text{holes}_{\text{effective}} = \text{slab.holes} \cup \bigcup \text{stairOpening}$.
     - **Commandes Transactionnelles Immer :** `AddSlabCommand`, `UpdateSlabCommand`, `DeleteSlabCommand`, `AddSlabTypeCommand`, `UpdateSlabTypeCommand`, `DeleteSlabTypeCommand`, et commandes de niveaux (`AddLevel`, `UpdateLevel`, `DeleteLevel` avec `DELETE_LEVEL_REJECTED` si le niveau porte des dalles/murs).
     - **Validation Métier (`validateSlab` & `validateSlabType`) :** Les 6 codes d'erreur (`UNKNOWN_LEVEL`, `UNKNOWN_SLAB_TYPE`, `INVALID_SLAB_BOUNDARY`, `SELF_INTERSECTING_SLAB`, `HOLE_OUTSIDE_SLAB`, `INTERSECTING_HOLES`) + `INVALID_SLAB_THICKNESS`. Tolérance de contact/tangence sur la rive.
-    - **Invariant de Non-Interpénétration Volumique :** Dalle négative sous le niveau ($Z_{\text{sup}} = \text{elevation}$, $Z_{\text{inf}} = Z_{\text{sup}} - \text{thickness}$), garantissant $\text{Volume}(wall \cap slab) = 0$.
     - **Panneau d'Inspection Minimal (`apps/web`) :** Panneau latéral réactif permettant d'éditer le nom, le type, l'épaisseur, le niveau et l'altitude de l'élément sélectionné sans passer par le JSON brut.
-    - **Tests à Base de Propriétés (`fast-check`) :** Invariance bit-à-bit d'undo/redo sur séquences aléatoires et fuzzing géométrique des polygones de dalle.
+    - **Tests à Base de Propriétés (`fast-check`) :** Invariance bit-à-bit d'undo/redo sur séquences aléatoires, fuzzing géométrique des polygones de dalle, et test de disjonction volumique mur N × dalle N+1 avec `baseOffset` aléatoire.
     - **Export IFC4 :** `IfcSlab` (`.FLOOR.`, 9ᵉ attribut ISO 10303-21) et relations `IfcRelContainedInSpatialStructure`.
-  - **6.2 Rendu 2D, 3D & Vue Fantôme Underlay (`@mini-bim/view-2d`, `@mini-bim/view-3d`) :**
+  - **6.2 Rendu 2D, 3D & Vue Fantôme Underlay en Cache (`@mini-bim/view-2d`, `@mini-bim/view-3d`) :**
     - Rendu 3D Three.js : triangulation polygonale concave avec trous effectifs (`earcut`) et extrusion descendante de la dalle depuis l'élévation du niveau (`Z = level.elevation`).
     - Rendu 2D Canvas : affichage du contour de la dalle avec hachure béton ou bordure stylisée, trémies transparentes avec croix de réservation.
-    - Rendu Underlay (Vue Fantôme) : affichage en grisé estompé (traits pointillés gris moyen `#9ca3af`) des murs et baies du niveau inférieur ($N-1$) sur le plan actif.
+    - Rendu Underlay (Vue Fantôme) : affichage en grisé estompé (traits pointillés gris moyen `#9ca3af`) des murs et baies du niveau inférieur ($N-1$) sur le plan actif, avec cache hors-écran `OffscreenCanvas` invalidé par les `changedIds` du niveau $N-1$ et culling spatial sur le viewport.
     - Snapping d'accrochage inter-niveaux basé sur une tolérance fixe en pixels écran ($12\text{ px} / \text{scale}$).
   - **6.3 Outils Interactifs UI (`apps/web`) :**
     - `SlabTool` (Raccourci `L`) : dessin polygonal de dalles par clics consécutifs avec magnétisme sur les angles de murs extérieurs.
@@ -331,7 +338,7 @@ flowchart LR
   - **9.2 Noyau MEP & Modèle Topologique des Réseaux Techniques (`@mini-bim/core`) :**
     - Modèle de données MEP (gaines aérauliques `Duct`, tuyauteries `Pipe`, chemins de câbles `CableTray`).
     - Connecteurs et ports (`Port`, `Connector`) avec typage de fluide (air soufflé/repris, eau mitigée, évacuation EU/EV).
-    - Graphe de flux orienté, continuités, dimensionnement automatique et calcul de pertes de charge.
+    - Graphe de flux orienté, continuités de réseaux et calcul de propagation (dimensionnement automatique et pertes de charge à titre indicatif / expérimental).
   - **9.3 Rendu 2D/3D & Outils Interactifs MEP (`apps/web`, `view-2d`, `view-3d`) :**
     - Tracé interactif de gaines et conduites avec routage automatique des coudes (45°/90°) et tés.
     - Rendu 2D symbolique unifilaire et bifilaire.

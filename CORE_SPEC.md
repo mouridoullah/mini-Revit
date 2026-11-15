@@ -2,10 +2,10 @@
 
 ## Noyau Métier, Modèle Documentaire BIM & CommandBus Transactionnel
 
-**Version :** 0.2.0 (Phase 3.1)  
-**Date :** 14 Novembre 2026  
+**Version :** 2.0.0 (Saison 2 / Phase 6 Préparation)  
+**Date :** 15 Novembre 2026  
 **Auteur :** Lead Software Architect & Computational Geometry Engineer  
-**Statut :** Livré, testé et certifié conforme par 72 tests automatisés (389 tests globaux)
+**Statut :** Spécification de Référence Alignée (ADR-041 à ADR-043)
 
 ---
 
@@ -24,7 +24,7 @@ Le package `@mini-bim/core` constitue la source unique de vérité (_Single Sour
 
 ## 2. Modèle de Données et Schéma Aligné (`types.ts`)
 
-L'état documentaire complet est modélisé par l'interface `BimState` :
+L'état documentaire complet est modélisé par l'interface `BimState` (Schéma Version 2) :
 
 ```typescript
 export type ElementId = string; // ULID (26 caractères Crockford Base32)
@@ -32,8 +32,9 @@ export type ElementId = string; // ULID (26 caractères Crockford Base32)
 export interface Level {
   readonly id: ElementId;
   readonly name: string;
-  readonly elevation: number; // en mm (repère Z-up)
-  readonly height?: number; // hauteur d'étage en mm (défaut: 2800)
+  readonly elevation: number; // en mm (repère Z-up, source unique de vérité altimétrique)
+  readonly storyHeight?: number; // hauteur d'étage indicative en mm (défaut: 2800)
+  readonly order?: number; // index ordinal d'empilement
 }
 
 export interface Layer {
@@ -47,6 +48,28 @@ export interface WallType {
   readonly thickness: number; // en mm (> 0)
   readonly height: number; // hauteur nominale en mm (> 0)
   readonly layers?: readonly Layer[];
+}
+
+export interface SlabType {
+  readonly id: ElementId;
+  readonly name: string;
+  readonly thickness: number; // en mm (> 0)
+  readonly materialId?: string;
+}
+
+export interface DoorType {
+  readonly id: ElementId;
+  readonly name: string;
+  readonly width: number; // mm (> 0)
+  readonly height: number; // mm (> 0)
+}
+
+export interface WindowType {
+  readonly id: ElementId;
+  readonly name: string;
+  readonly width: number; // mm (> 0)
+  readonly height: number; // mm (> 0)
+  readonly defaultSillHeight: number; // mm
 }
 
 export interface TopConstraint {
@@ -63,11 +86,11 @@ export interface Wall {
   readonly end: Vec2; // coordonnées 2D en mm
   readonly baseOffset?: number; // décalage vertical optionnel en mm
   readonly heightOverride?: number; // surcharge optionnelle en mm
-  readonly topConstraint?: TopConstraint; // contrainte supérieure optionnelle (ADR-040)
+  readonly topConstraint?: TopConstraint; // contrainte supérieure (ADR-040)
 }
 
 // ---------------------------------------------------------------------------
-// Modèle des Ouvertures Hébergées (Phase 3.1)
+// Modèle des Ouvertures Hébergées (Schéma v2 / ADR-042)
 // ---------------------------------------------------------------------------
 
 export type DoorSwingSide = 'left' | 'right';
@@ -78,24 +101,22 @@ export interface DoorSwing {
   readonly direction: DoorSwingDirection;
 }
 
-export interface OpeningBase {
+export interface Door {
   readonly id: ElementId;
+  readonly category: 'door';
+  readonly doorTypeId: ElementId;
   readonly hostWallId: ElementId;
   readonly offsetAlong: number; // mm depuis wall.start le long de l'axe directeur
-  readonly width: number; // mm (> 0)
-  readonly height: number; // mm (> 0)
-}
-
-export interface Door extends OpeningBase {
-  readonly category: 'door';
-  readonly kind: 'door';
   readonly swing: DoorSwing;
 }
 
-export interface Window extends OpeningBase {
+export interface Window {
+  readonly id: ElementId;
   readonly category: 'window';
-  readonly kind: 'window';
-  readonly sillHeight: number; // allège en mm (>= 0)
+  readonly windowTypeId: ElementId;
+  readonly hostWallId: ElementId;
+  readonly offsetAlong: number; // mm depuis wall.start le long de l'axe directeur
+  readonly sillHeight: number; // allège propre à l'instance en mm (>= 0)
 }
 
 export type Opening = Door | Window;
@@ -128,31 +149,34 @@ export interface Dimension {
 }
 
 // ---------------------------------------------------------------------------
-// Modèle des Dalles Horizontales (Phase 6 / ADR-035)
+// Modèle des Dalles Horizontales (Phase 6 / ADR-035 & ADR-042)
 // ---------------------------------------------------------------------------
 
 export interface Slab {
   readonly id: ElementId;
   readonly category: 'slab';
+  readonly slabTypeId: ElementId;
   readonly levelId: ElementId;
   readonly boundary: readonly Vec2[]; // CCW
-  readonly holes: readonly (readonly Vec2[])[]; // CW
-  readonly thickness: number; // mm (> 0)
+  readonly holes: readonly (readonly Vec2[])[]; // CW (réservations manuelles uniquement)
   readonly baseOffset?: number;
   readonly name?: string;
 }
 
 export interface BimState {
-  readonly schemaVersion: 1;
+  readonly schemaVersion: 2;
   readonly units: 'mm';
   readonly levels: Record<ElementId, Level>;
   readonly wallTypes: Record<ElementId, WallType>;
+  readonly slabTypes: Record<ElementId, SlabType>;
+  readonly doorTypes: Record<ElementId, DoorType>;
+  readonly windowTypes: Record<ElementId, WindowType>;
   readonly walls: Record<ElementId, Wall>;
+  readonly slabs: Record<ElementId, Slab>;
   readonly doors: Record<ElementId, Door>;
   readonly windows: Record<ElementId, Window>;
-  readonly rooms?: Record<ElementId, Room>;
-  readonly dimensions?: Record<ElementId, Dimension>;
-  readonly slabs?: Record<ElementId, Slab>;
+  readonly rooms: Record<ElementId, Room>;
+  readonly dimensions: Record<ElementId, Dimension>;
 }
 ```
 

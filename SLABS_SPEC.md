@@ -58,19 +58,20 @@ export interface BimState {
 Dans le standard BIM (Revit, IFC) :
 
 - L'élévation d'un niveau (`level.elevation`) correspond à la **cote de plancher fini**.
-- La dalle structurelle est donc positionnée **sous** le niveau de référence :
+- La dalle structurelle est positionnée **sous** le niveau de référence :
   $$ \begin{aligned}
   Z_{\text{sup}} &= \text{level.elevation} + (\text{slab.baseOffset} \mathbin{??} 0) \\
   Z_{\text{inf}} &= Z_{\text{sup}} - \text{slabType.thickness}
-  \end{aligned}$$
-
+  \end{aligned} $$
   $$
-- **Conséquence directe :** Les murs posés sur ce niveau ($Z = \text{level.elevation}$) reposent exactement sur la face supérieure de la dalle, sans aucun chevauchement ou conflit volumique.
-- **Invariant de Non-Interpénétration Volumique (Test Discriminant) :**
-  Pour un mur et une dalle sur le même niveau sans décalages ($baseOffset = 0$) :
-  $$wall.minZ = level.elevation = slab.topZ$$
-  $$slab.maxZ \le wall.minZ \implies \text{Volume}(wall \cap slab) = 0$$
-  La boîte englobante 3D du mur et la boîte englobante 3D de la dalle ne se chevauchent jamais en $Z$ (au plus un contact surfacique coplanaire à $Z = level.elevation$).
+- **Conséquence directe au niveau $N$ :** Les murs posés sur ce niveau ($Z_{\text{base}} = \text{level}_N.\text{elevation}$) reposent exactement sur la face supérieure de la dalle du même niveau ($Z_{\text{sup}} \le \text{level}_N.\text{elevation}$ si $baseOffset \le 0$).
+- **Cas critique multi-étages (Mur du niveau $N$ sous dalle du niveau $N+1$, ADR-040) :**
+  Pour un mur contraint sous la dalle de plancher haut du niveau $N+1$, son sommet s'arrête exactement à la sous-face de la dalle qui le couvre :
+  $$Z_{\text{top}}(wall_N) = Z_{\text{inf}}(slab_{N+1}) = \text{level}_{N+1}.\text{elevation} + (\text{slab.baseOffset} \mathbin{??} 0) - \text{slabType.thickness}$$
+- **Invariant de Non-Interpénétration Volumique (Test Discriminant Multi-Niveaux) :**
+  Pour tout mur du niveau $N$ contraint sous une dalle du niveau $N+1$, quel que soit le décalage altimétrique de la dalle (`baseOffset` $\in [-500, +500]\text{ mm}$) :
+  $$wall_N.maxZ \le slab_{N+1}.minZ \implies \text{Volume}(wall_N \cap slab_{N+1}) \equiv 0$$
+  La boîte englobante 3D du mur et la boîte englobante 3D de la dalle supérieure ne se chevauchent jamais en $Z$ (au plus un contact surfacique plan coplanaire sans aucune interpénétration).
 
 ---
 
@@ -209,9 +210,9 @@ En complément des tests unitaires déterministes, la suite de tests de Phase 6.
    $$\forall s_0, \forall (c_1, \dots, c_K), \quad \text{undo}^K(\text{apply}^K(s_0)) \equiv s_0$$
 2. **Propriété de Résilience de `validateSlab` :**  
    Fuzzing sur des polygones arbitraires générés aléatoirement (sommets superposés, segments croisés, sens horaire inversé) : `validateSlab` ne doit jamais lever d'exception non gérée (seules des instances de `BimValidationError` typées sont admises).
-3. **Propriété de Non-Interpénétration Volumique :**  
-   Sur un échantillon aléatoire de niveaux et d'épaisseurs de dalles :
-   $$\text{Volume}(wall \cap slab) \equiv 0$$
+3. **Propriété de Non-Interpénétration Volumique Multi-Niveaux :**  
+   Pour des configurations aléatoires de hauteurs de niveaux ($[2400, 4000]\text{ mm}$), d'épaisseurs de dalles ($[100, 400]\text{ mm}$) et de décalages altimétriques de dalles (`baseOffset` $\in [-500, +500]\text{ mm}$) :
+   Tout mur du niveau $N$ contraint sous une dalle du niveau $N+1$ a un sommet $Z_{\text{top}}$ rigoureusement inférieur ou égal à la sous-face de la dalle ($wall_N.maxZ \le slab_{N+1}.minZ$), garantissant analytiquement $\text{Volume}(wall_N \cap slab_{N+1}) \equiv 0$ sans chevauchement en $Z$.
 
 ---
 

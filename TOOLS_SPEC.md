@@ -42,7 +42,8 @@ L'architecture repose sur quatre principes directeurs :
 ### 2.1 Interface Commune `Tool`
 
 ```typescript
-export type ToolKind = 'select' | 'wall';
+export type ToolKind =
+  'select' | 'wall' | 'door' | 'window' | 'move-wall' | 'move-opening' | 'slab' | 'stair';
 
 export interface Tool {
   readonly kind: ToolKind;
@@ -269,7 +270,11 @@ Cette convention assure une zone d'attraction ergonomique constante sous le poin
   Si $\vec{\Delta} = (0, 0)$ (clic stationnaire), l'outil retourne `{ kind: 'preview', preview: null }` sans émettre de commande, évitant toute pollution de la pile undo/redo.
 - **Validation des contraintes géométriques et topologiques :**
   - **Longueur invariante :** La translation applique rigoureusement le même vecteur $\vec{\Delta}$ aux deux extrémités $\mathbf{P}_{\text{start}}$ et $\mathbf{P}_{\text{end}}$ ($\|\vec{end}_{\text{new}} - \vec{start}_{\text{new}}\| \equiv \|\vec{end} - \vec{start}\| > 0$). La longueur du mur est donc strictement conservée et ne peut devenir nulle.
-  - **Limites Phase 3.3 documentées :** `MoveWallTool` ne valide pas les collisions ou chevauchements avec d'autres murs ni la topologie des jonctions (murs connectés en L ou T). Le déplacement translate rigidement le mur sans déformer automatiquement les murs adjacents. Le recalcul adaptatif des sommets connectés et la détection d'interférences seront traités en Phase 5.
+  - **Maintien de Connectivité des Jonctions (Wall Stretching / Joint Tracking — Spécifié pour Phase 6.0) :**  
+    Afin de préserver l'étanchéité des enceintes de pièces et d'éviter leur passage intempestif au statut `unenclosed` (ADR-039) lors de la manipulation d'un mur ou d'un sommet :
+    1. Le moteur de jonctions identifie l'ensemble des murs incidents partageant le sommet translaté (jonctions d'angles en L ou jonctions en T).
+    2. La commande transactionnelle (`MoveWallCommand` ou `MoveWallEndpointCommand`) met à jour simultanément le sommet cible et les extrémités des murs connectés.
+    3. Les murs adjacents s'étirent de façon élastique le long de leurs axes directeurs respectifs, maintenant la continuité physique fermée de la cloison.
 
 ### 7.3 `MoveOpeningTool` (Déplacement d'Ouvertures le Long de l'Axe)
 

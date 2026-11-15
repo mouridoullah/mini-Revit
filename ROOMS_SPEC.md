@@ -115,13 +115,27 @@ Lorsqu'un mur est supprimé via `DeleteWallCommand` :
 4. Si l'utilisateur redessine un mur fermant l'espace, la pièce retrouve automatiquement son statut `enclosed` et sa surface calculée, sans perte de son nom ni de son identifiant.
 5. Seule une commande explicite `DeleteRoomCommand(roomId)` détruit la pièce du modèle.
 
+### 4.3 Statuts Dérivés et Traitement des Doublons (`redundant`) dans les Métrés
+
+Chaque pièce évaluée par `detectRooms` possède l'un des trois statuts spatiaux :
+
+- **`enclosed` :** Pièce unique dans son contour fermé. Sa surface nette, son périmètre et son volume sont calculés et inclus dans le total des surfaces habitables du bâtiment.
+- **`unenclosed` :** L'enceinte est ouverte (ou le seed est à l'extérieur). La pièce est annotée _« Non délimitée »_, sa surface est de $0\text{ m}^2$ et n'impacte pas le métré.
+- **`redundant` :** Plusieurs graines (`seed`) distinctes se trouvent dans la même enceinte fermée :
+  - La première pièce (par ordre chronologique de création ou tri d'identifiant ULID) se voit attribuer la surface de la pièce et est comptabilisée dans la somme totale.
+  - La seconde pièce (et les suivantes) reçoit le statut `redundant`. Son libellé est annoté _« Redondante / Doublon »_. **Sa surface est strictement exclue de la somme totale du projet** dans le tableau de métrés (`MetricsPanel`) et les exports CSV pour éradiquer tout double comptage de surface.
+
 ---
 
-## 5. Note sur la Performance et Mise en Cache pour la Phase 6 (MEP)
+## 5. Performance, DAG et Invalidation Réactive du Cache (Phase 6 / Phase 9 MEP)
 
 Actuellement, l'algorithme `detectRooms` s'exécute à la demande en $< 2\text{ ms}$ pour une distribution d'étage standard.  
-En prévision de la **Phase 6 (Réseaux MEP - CVC, Plomberie et Électricité)**, où les cheminements de canalisations et gaines traversent fréquemment les cloisons et interrogent les volumes de pièces :
+En prévision du dimensionnement multi-niveaux (Phase 6) et des **réseaux MEP (Phase 9)** :
 
-- Une stratégie de mise en cache topologique par niveau (`levelId`) sera introduite dans le `BimDocument`.
-- Le cache sera invalidé de façon sélective uniquement lorsque les commandes impactant la topologie des murs (`AddWallCommand`, `UpdateWallCommand`, `DeleteWallCommand`) sont exécutées.
-- Les requêtes en lecture (métrés de surface, cotations associatives, passage de gaines MEP) accéderont au résultat pré-calculé en temps constant $\mathcal{O}(1)$.
+- Une stratégie de mise en cache topologique par niveau (`levelId`) est intégrée au `BimDocument`.
+- **Invalidation par le DAG (ADR-041) :** Le cache d'un niveau est invalidé dès que `getChangedIds()` contient un élément de ce niveau :
+  - Modification de géométrie de mur (`AddWallCommand`, `UpdateWallCommand`, `DeleteWallCommand`),
+  - Modification de type de mur (`UpdateWallTypeCommand` : changement d'épaisseur affectant l'emprise intérieure),
+  - Déplacement de sommet ou mur (`MoveWallTool` avec étirement de jonctions),
+  - Opérations d'historique Undo / Redo.
+- Les requêtes en lecture (affichage plan 2D, tableau de métrés, cotations associatives, passage de gaines MEP) accèdent au résultat pré-calculé en temps constant $\mathcal{O}(1)$.
