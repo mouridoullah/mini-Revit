@@ -54,7 +54,13 @@ La double présence de `state` et `json` permet une désérialisation immédiate
 
 - Node.js et JSDOM ne disposent pas d'implémentation native d'IndexedDB.
 - Un mock complet et déterministe (`createMockIndexedDB`) a été développé dans `apps/web/src/persistence/indexedDBMock.ts` et enregistré sur `globalThis.indexedDB` dans `test-setup.ts`.
-- Tous les tests de persistance (`T-AUTOSAVE-01..05` et `T-APP-AUTOSAVE-01`) s'exécutent en mémoire sans dépendance externe native.
+- Tous les tests de persistance (`T-AUTOSAVE-01..08` et `T-APP-AUTOSAVE-01`) s'exécutent en mémoire sans dépendance externe native.
+
+### 6. D6 — Périmètre de Concurrence & Multi-onglets (Clause V1)
+
+- Le mode de fonctionnement **local-first mono-onglet** est explicitement assumé en V1.
+- La concurrence multi-onglets n'est pas gérée en V1 : si deux onglets sont ouverts simultanément sur la même application, le dernier onglet effectuant une écriture écrase l'enregistrement précédent (stratégie standard *Last-Write-Wins*).
+- Une stratégie d'orchestration multi-onglets avec verrouillage distribué (`Web Locks API`) et synchronisation inter-onglets (`BroadcastChannel`) est officiellement reportée en Phase 9 (Collaboration & Cloud Sync).
 
 ---
 

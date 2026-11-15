@@ -60,6 +60,7 @@
 | **ADR-049** | Résolveur Unique de Géométrie de Mur (`resolveWallGeometry` — S1-1 + S1-4)                     | **Accepté**  | 15/11/2026 |
 | **ADR-050** | Unification des Données Dérivées, Invalidation de Cache & Matériaux Partagés (S1-2, S2-3, S2-5) | **Accepté**  | 15/11/2026 |
 | **ADR-051** | Persistance Locale Automatique via IndexedDB & Sécurisation de Session (S2-8)                  | **Accepté**  | 15/11/2026 |
+| **ADR-052** | Dépendance Contrôlée de view-2d vers core pour Fonctions Pures (Amendement ADR-021 & ADR-029)  | **Accepté**  | 15/11/2026 |
 
 ---
 
@@ -2170,6 +2171,32 @@ Le package `@mini-bim/view-3d` reste strictement découplé de `@mini-bim/core`.
 3. **D3 — Restauration Transparente et Notification Utilisateur :**
    - Au chargement initial de l'application, l'état précédent est restauré automatiquement via `BimDocument.fromJSON` si présent.
    - Bannière informative `info-banner` ("Projet restauré depuis la sauvegarde automatique") affichée avec disparition automatique après 4 secondes.
+
+4. **D4 — Périmètre Concurrence Multi-onglets (Clause V1) :**
+   - Le mode de fonctionnement local-first mono-onglet est explicitement assumé en V1. La concurrence multi-onglets applique une politique standard *Last-Write-Wins*.
+   - Le verrouillage inter-onglets (`Web Locks API`) et la synchronisation réactive (`BroadcastChannel`) sont reportés en Phase 9.
+
+---
+
+## ADR-052 : Dépendance Contrôlée de `@mini-bim/view-2d` vers `@mini-bim/core` pour Fonctions Pures de Dérivation (Amendement ADR-021 & ADR-029)
+
+### Statut
+
+**Accepté** (Chantier 3 — Complément d'Architecture — 15 novembre 2026)
+
+### Décisions Clés
+
+1. **D1 — Amendement Contrôlé d'ADR-021 & ADR-029 :**
+   - `@mini-bim/view-2d` est officiellement autorisé à importer `@mini-bim/core` en dépendance de production (`dependencies`), exclusivement pour les fonctions mathématiques pures de dérivation géométrique et les types en lecture seule.
+
+2. **D2 — Périmètre Autorisé (White-list) :**
+   - Fonctions pures autorisées : `computeStairShaft`, `computeStairGeometry`, `computeHeadroomCutoffStep`, `resolveWallGeometry`.
+   - Types et interfaces en lecture seule (`Stair`, `Slab`, `Wall`, `BimState`).
+
+3. **D3 — Périmètre Interdit (Black-list Impérative) :**
+   - Interdiction absolue d'importer `BimDocument`, `CommandBus`, les commandes concrètes de mutation (`AddWallCommand`, etc.), Immer (`produceWithPatches`), l'historique undo/redo ou tout état applicatif mutable.
+   - `View2D` demeure un visualiseur Canvas 2D impératif et passif, qui n'applique aucune mutation directe et émet uniquement des intentions via ses callbacks.
+
 
 
 

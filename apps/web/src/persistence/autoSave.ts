@@ -45,13 +45,21 @@ function openAutoSaveDB(customFactory?: IDBFactory): Promise<IDBDatabase> {
 
 /**
  * Persiste l'état documentaire dans IndexedDB sous la clé standard 'current_project'.
+ * Retourne true en cas de succès, false en cas d'erreur ou de quota dépassé.
  */
 export async function saveToIndexedDB(
   docOrState: BimDocument | BimState,
   customFactory?: IDBFactory,
-): Promise<void> {
-  const db = await openAutoSaveDB(customFactory);
-  return new Promise((resolve, reject) => {
+): Promise<boolean> {
+  let db: IDBDatabase;
+  try {
+    db = await openAutoSaveDB(customFactory);
+  } catch (err) {
+    console.warn('[AutoSave] IndexedDB non disponible pour la sauvegarde :', err);
+    return false;
+  }
+
+  return new Promise((resolve) => {
     try {
       const tx = db.transaction(AUTOSAVE_STORE_NAME, 'readwrite');
       const store = tx.objectStore(AUTOSAVE_STORE_NAME);
@@ -68,32 +76,44 @@ export async function saveToIndexedDB(
       };
 
       const putReq = store.put(record as unknown as Record<string, unknown>);
-      putReq.onerror = () => reject(putReq.error ?? new Error('Failed to put record in IndexedDB'));
+      putReq.onerror = () => {
+        db.close();
+        resolve(false);
+      };
 
       tx.oncomplete = () => {
         db.close();
-        resolve();
+        resolve(true);
       };
       tx.onerror = () => {
         db.close();
-        reject(tx.error ?? new Error('Transaction failed'));
+        resolve(false);
       };
     } catch (err) {
+      console.warn('[AutoSave] Erreur lors de l’écriture IndexedDB :', err);
       db.close();
-      reject(err);
+      resolve(false);
     }
   });
 }
 
 /**
  * Charge l'état documentaire précédemment persisté dans IndexedDB.
- * Retourne null si aucune sauvegarde automatique n'existe.
+ * Retourne null si aucune sauvegarde n'existe, si IndexedDB est inaccessible
+ * ou si le contenu est corrompu (sans lever d'exception).
  */
 export async function loadFromIndexedDB(
   customFactory?: IDBFactory,
 ): Promise<AutoSaveLoadResult | null> {
-  const db = await openAutoSaveDB(customFactory);
-  return new Promise((resolve, reject) => {
+  let db: IDBDatabase;
+  try {
+    db = await openAutoSaveDB(customFactory);
+  } catch (err) {
+    console.warn('[AutoSave] IndexedDB non disponible ou inaccessible :', err);
+    return null;
+  }
+
+  return new Promise((resolve) => {
     try {
       const tx = db.transaction(AUTOSAVE_STORE_NAME, 'readonly');
       const store = tx.objectStore(AUTOSAVE_STORE_NAME);
@@ -104,22 +124,32 @@ export async function loadFromIndexedDB(
         db.close();
         if (!record || !record.state) {
           resolve(null);
-        } else {
+          return;
+        }
+
+        // Protection contre un enregistrement JSON corrompu
+        try {
+          if (record.json) {
+            JSON.parse(record.json);
+          }
           resolve({
             state: record.state,
             json: record.json,
             timestamp: record.timestamp,
           });
+        } catch {
+          console.warn('[AutoSave] Enregistrement JSON corrompu détecté dans IndexedDB.');
+          resolve(null);
         }
       };
 
       req.onerror = () => {
         db.close();
-        reject(req.error ?? new Error('Failed to read from IndexedDB'));
+        resolve(null);
       };
-    } catch (err) {
+    } catch {
       db.close();
-      reject(err);
+      resolve(null);
     }
   });
 }
@@ -214,6 +244,19 @@ export class AutoSaveManager {
     } finally {
       this.saving = false;
     }
+  }
+
+  public attachBeforeUnload(doc: BimDocument): () => void {
+    const handler = () => {
+      if (this.isDirty()) {
+        void this.flushSave(doc);
+      }
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('beforeunload', handler);
+      return () => window.removeEventListener('beforeunload', handler);
+    }
+    return () => {};
   }
 
   public cancelScheduledSave(): void {

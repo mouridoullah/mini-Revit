@@ -41,6 +41,8 @@ export class MockIDBOpenDBRequest extends MockIDBRequest<IDBDatabase> {
 }
 
 export class MockIDBObjectStore {
+  public simulateQuotaError = false;
+
   public constructor(
     public readonly name: string,
     public readonly keyPath: string | null,
@@ -50,6 +52,10 @@ export class MockIDBObjectStore {
   public put(value: Record<string, unknown>, key?: IDBValidKey): MockIDBRequest<IDBValidKey> {
     const req = new MockIDBRequest<IDBValidKey>();
     queueMicrotask(() => {
+      if (this.simulateQuotaError) {
+        req.triggerError(new DOMException('The quota has been exceeded.', 'QuotaExceededError'));
+        return;
+      }
       let actualKey = key;
       if (!actualKey && this.keyPath && typeof value === 'object' && value !== null) {
         actualKey = value[this.keyPath] as IDBValidKey;
@@ -169,11 +175,16 @@ export class MockIDBDatabase {
 }
 
 export class MockIDBFactory {
+  public simulateOpenError = false;
   private readonly databases = new Map<string, MockIDBDatabase>();
 
   public open(name: string, version = 1): MockIDBOpenDBRequest {
     const req = new MockIDBOpenDBRequest();
     queueMicrotask(() => {
+      if (this.simulateOpenError) {
+        req.triggerError(new DOMException('Database cannot be opened.', 'SecurityError'));
+        return;
+      }
       let db = this.databases.get(name);
       const isNew = !db;
       if (!db) {

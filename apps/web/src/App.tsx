@@ -80,13 +80,7 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
 
   // Flush avant déchargement de page (S2-8)
   useEffect(() => {
-    const handleBeforeUnload = () => {
-      if (autoSaveManagerRef.current?.isDirty()) {
-        void autoSaveManagerRef.current.flushSave(doc);
-      }
-    };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    return autoSaveManagerRef.current?.attachBeforeUnload(doc);
   }, [doc]);
 
   // Disparition temporisée du bandeau d'information

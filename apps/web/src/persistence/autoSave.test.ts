@@ -132,4 +132,75 @@ describe('S2-8 : Persistance & Sauvegarde Automatique IndexedDB (apps/web/src/pe
 
     expect(restoredDoc.getState().walls['w_persisted_host']?.start).toEqual({ x: 100, y: 100 });
   });
+
+  it('T-AUTOSAVE-06 : Enregistrement corrompu ou IndexedDB indisponible -> loadFromIndexedDB retourne null sans lever d’exception', async () => {
+    // 1. Injection directe d'un JSON corrompu dans le mock
+    const db = await new Promise<IDBDatabase>((resolve) => {
+      const req = mockIDB.open('mini_bim_autosave', 1);
+      req.onsuccess = () => resolve(req.result);
+    });
+    const tx = db.transaction('projects', 'readwrite');
+    tx.objectStore('projects').put({
+      id: 'current_project',
+      state: { schemaVersion: 2 },
+      json: '{"invalidJson": unclosed',
+      timestamp: 123456,
+    } as any);
+    await new Promise<void>((resolve) => {
+      tx.oncomplete = () => resolve();
+    });
+
+    // Lecture protégée : ne lève aucune exception et retourne null
+    const result = await loadFromIndexedDB(mockIDB as unknown as IDBFactory);
+    expect(result).toBeNull();
+
+    // 2. Simulation d'un IndexedDB totalement indisponible ou bloqué
+    mockIDB.simulateOpenError = true;
+    const resBlocked = await loadFromIndexedDB(mockIDB as unknown as IDBFactory);
+    expect(resBlocked).toBeNull();
+  });
+
+  it('T-AUTOSAVE-07 : Quota dépassé ou indisponibilité -> saveToIndexedDB intercepte l’erreur et retourne false', async () => {
+    const doc = BimDocument.createDefaultProject();
+
+    // 1. Échec à l'ouverture de la base
+    mockIDB.simulateOpenError = true;
+    const failedOpen = await saveToIndexedDB(doc, mockIDB as unknown as IDBFactory);
+    expect(failedOpen).toBe(false);
+
+    // 2. Échec lors de l'écriture (quota de stockage dépassé)
+    mockIDB.simulateOpenError = false;
+    const db = await new Promise<IDBDatabase>((resolve) => {
+      const req = mockIDB.open('mini_bim_autosave', 1);
+      req.onsuccess = () => resolve(req.result);
+    });
+    const store = (db as any)._getStore('projects');
+    expect(store).toBeDefined();
+    store.simulateQuotaError = true;
+
+    const failedQuota = await saveToIndexedDB(doc, mockIDB as unknown as IDBFactory);
+    expect(failedQuota).toBe(false);
+  });
+
+  it('T-AUTOSAVE-08 : AutoSaveManager.attachBeforeUnload déclenche flushSave lors de l’événement beforeunload si dirty', async () => {
+    const doc = BimDocument.createDefaultProject();
+    const manager = new AutoSaveManager(500, mockIDB as unknown as IDBFactory);
+    const flushSpy = vi.spyOn(manager, 'flushSave');
+
+    const detach = manager.attachBeforeUnload(doc);
+
+    // 1. Non sale (propre) : beforeunload ne déclenche pas flushSave
+    window.dispatchEvent(new Event('beforeunload'));
+    expect(flushSpy).not.toHaveBeenCalled();
+
+    // 2. Modifié (sale) : beforeunload déclenche immédiatement flushSave
+    manager.markDirty();
+    expect(manager.isDirty()).toBe(true);
+
+    window.dispatchEvent(new Event('beforeunload'));
+    expect(flushSpy).toHaveBeenCalledWith(doc);
+
+    detach();
+    manager.destroy();
+  });
 });
