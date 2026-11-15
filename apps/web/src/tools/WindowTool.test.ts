@@ -102,8 +102,9 @@ describe('WindowTool (apps/web)', () => {
       const addWinCmd = out.command as Commands.AddWindowCommand;
       expect(addWinCmd.window.hostWallId).toBe('w_test');
       expect(addWinCmd.window.offsetAlong).toBe(3050);
-      expect(addWinCmd.window.width).toBe(1200);
-      expect(addWinCmd.window.height).toBe(1400);
+      expect(addWinCmd.window.windowTypeId).toBeDefined();
+      expect(doc.getState().windowTypes[addWinCmd.window.windowTypeId]?.width).toBe(1200);
+      expect(doc.getState().windowTypes[addWinCmd.window.windowTypeId]?.height).toBe(1400);
       expect(addWinCmd.window.sillHeight).toBe(900);
     }
 

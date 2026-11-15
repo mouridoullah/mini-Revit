@@ -59,12 +59,9 @@ export function createDemoDocument(): BimDocument {
     new Commands.AddDoorCommand({
       id: 'door_demo',
       category: 'door',
-      kind: 'door',
       doorTypeId: 'door-type-900x2100',
       hostWallId: 'wall_south',
       offsetAlong: 2000,
-      width: 900,
-      height: 2100,
       swing: { side: 'right', direction: 'in' },
     }),
   );
@@ -73,12 +70,9 @@ export function createDemoDocument(): BimDocument {
     new Commands.AddWindowCommand({
       id: 'window_demo',
       category: 'window',
-      kind: 'window',
       windowTypeId: 'window-type-1200x1400-s900',
       hostWallId: 'wall_north',
       offsetAlong: 2000,
-      width: 1200,
-      height: 1400,
       sillHeight: 900,
     }),
   );

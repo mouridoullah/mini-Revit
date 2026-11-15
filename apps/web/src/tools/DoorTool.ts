@@ -144,16 +144,19 @@ export class DoorTool implements Tool {
       const doorId = generateId();
       const width = ctx.doorDefaults?.width ?? DEFAULT_DOOR_WIDTH;
       const height = ctx.doorDefaults?.height ?? DEFAULT_DOOR_HEIGHT;
-      const doorTypeId = `door-type-${width}x${height}`;
+      const existingDoorType = Object.values(ctx.doc.getState().doorTypes ?? {}).find(
+        (dt) => dt.width === width && dt.height === height,
+      );
+      const doorTypeId =
+        existingDoorType?.id ??
+        Object.keys(ctx.doc.getState().doorTypes ?? {})[0] ??
+        `door-type-${width}x${height}`;
       const command = new Commands.AddDoorCommand({
         id: doorId,
         category: 'door',
-        kind: 'door',
         doorTypeId,
         hostWallId: targetWallId,
         offsetAlong: targetOffset,
-        width,
-        height,
         swing: ctx.doorDefaults?.swing ?? { side: 'left', direction: 'in' },
       });
 

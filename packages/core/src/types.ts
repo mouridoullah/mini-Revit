@@ -144,13 +144,8 @@ export interface OpeningBase {
  */
 export interface Door extends OpeningBase {
   readonly category: 'door';
-  readonly kind?: 'door';
   readonly doorTypeId: ElementId;
   readonly swing: DoorSwing;
-  /** Largeur transitoire optionnelle pour compatibilité ascendante */
-  readonly width?: number;
-  /** Hauteur transitoire optionnelle pour compatibilité ascendante */
-  readonly height?: number;
 }
 
 /**
@@ -159,13 +154,8 @@ export interface Door extends OpeningBase {
  */
 export interface Window extends OpeningBase {
   readonly category: 'window';
-  readonly kind?: 'window';
   readonly windowTypeId: ElementId;
   readonly sillHeight: number; // Hauteur d'allège propre à l'instance en mm (>= 0)
-  /** Largeur transitoire optionnelle pour compatibilité ascendante */
-  readonly width?: number;
-  /** Hauteur transitoire optionnelle pour compatibilité ascendante */
-  readonly height?: number;
 }
 
 /**

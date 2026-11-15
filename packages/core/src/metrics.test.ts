@@ -6,6 +6,8 @@ import {
   type WallType,
   type Door,
   type Window,
+  type DoorType,
+  type WindowType,
   type Room,
   type Level,
   type BimState,
@@ -38,15 +40,29 @@ describe('Calculs de Surfaces et Métrés (metrics.ts)', () => {
         end: vec2(6000, 0),
       };
 
+      const doorType: DoorType = {
+        id: 'door-type-900x2100',
+        name: 'Porte 900x2100',
+        category: 'door_type',
+        width: 900,
+        height: 2100,
+      };
+
+      const winType: WindowType = {
+        id: 'window-type-1200x1400',
+        name: 'Fenêtre 1200x1400',
+        category: 'window_type',
+        width: 1200,
+        height: 1400,
+      };
+
       // Porte 0.9m × 2.1m = 1.89 m² (1 890 000 mm²)
       const door: Door = {
         id: 'd_01',
         category: 'door',
-        kind: 'door',
+        doorTypeId: doorType.id,
         hostWallId: wall.id,
         offsetAlong: 500,
-        width: 900,
-        height: 2100,
         swing: { side: 'right', direction: 'in' },
       };
 
@@ -54,15 +70,16 @@ describe('Calculs de Surfaces et Métrés (metrics.ts)', () => {
       const win: Window = {
         id: 'w_01',
         category: 'window',
-        kind: 'window',
+        windowTypeId: winType.id,
         hostWallId: wall.id,
         offsetAlong: 2500,
-        width: 1200,
-        height: 1400,
         sillHeight: 900,
       };
 
-      const metrics = computeWallMetrics(wall, wallType200, [door, win]);
+      const metrics = computeWallMetrics(wall, wallType200, [door, win], {
+        doorTypes: { [doorType.id]: doorType },
+        windowTypes: { [winType.id]: winType },
+      });
 
       // 1. Longueur = 6000 mm
       expect(metrics.lengthMm).toBe(6000);
@@ -204,15 +221,29 @@ describe('Calculs de Surfaces et Métrés (metrics.ts)', () => {
         end: vec2(0, 0),
       };
 
+      const doorType: DoorType = {
+        id: 'door-type-900x2100',
+        name: 'Porte 900x2100',
+        category: 'door_type',
+        width: 900,
+        height: 2100,
+      };
+
+      const winType: WindowType = {
+        id: 'window-type-1000x1400',
+        name: 'Fenêtre 1000x1400',
+        category: 'window_type',
+        width: 1000,
+        height: 1400,
+      };
+
       // Porte 900 × 2100 = 1.89 m² sur wSouth
       const door: Door = {
         id: 'door_s',
         category: 'door',
-        kind: 'door',
+        doorTypeId: doorType.id,
         hostWallId: 'w_s',
         offsetAlong: 500,
-        width: 900,
-        height: 2100,
         swing: { side: 'right', direction: 'in' },
       };
 
@@ -220,11 +251,9 @@ describe('Calculs de Surfaces et Métrés (metrics.ts)', () => {
       const win: Window = {
         id: 'win_n',
         category: 'window',
-        kind: 'window',
+        windowTypeId: winType.id,
         hostWallId: 'w_n',
         offsetAlong: 1500,
-        width: 1000,
-        height: 1400,
         sillHeight: 900,
       };
 
@@ -237,10 +266,12 @@ describe('Calculs de Surfaces et Métrés (metrics.ts)', () => {
       };
 
       const state: BimState = {
-        schemaVersion: 1,
+        schemaVersion: 2,
         units: 'mm',
         levels: { [levelRdc.id]: levelRdc },
         wallTypes: { [wallType200.id]: wallType200 },
+        doorTypes: { [doorType.id]: doorType },
+        windowTypes: { [winType.id]: winType },
         walls: { w_s: wSouth, w_e: wEast, w_n: wNorth, w_w: wWest },
         doors: { door_s: door },
         windows: { win_n: win },

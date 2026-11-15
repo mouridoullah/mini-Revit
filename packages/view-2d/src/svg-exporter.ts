@@ -230,7 +230,8 @@ export function generatePlanSvg(doc: DocumentFor2D, options: PlanSvgOptions = {}
 
     const ux = dx / len;
     const uy = dy / len;
-    const winWidth = win.width ?? 1200;
+    const wt = win.windowTypeId ? state.windowTypes[win.windowTypeId] : undefined;
+    const winWidth = wt?.width ?? 1200;
     const startX = host.start.x + ux * win.offsetAlong;
     const startY = host.start.y + uy * win.offsetAlong;
     const endX = host.start.x + ux * (win.offsetAlong + winWidth);

@@ -55,6 +55,7 @@
 | **ADR-044** | Étirement Élastique des Murs, Résolution de Connectivité, Compensation des Baies et Garde-fous | **Accepté**  | 15/11/2026 |
 | **ADR-045** | Modèle Dalles, SlabType, Migration de Schéma v1→v2 et Résolution des Trémies                   | **Accepté**  | 15/11/2026 |
 | **ADR-046** | PropertyInspector Unifié, SlabTool Interactif, Rendu 2D/3D Dalles et LevelSelector             | **Accepté**  | 15/11/2026 |
+| **ADR-047** | Purge des Champs Transitoires V1, Underlay Vectoriel Path2D et Snapping Inter-Niveaux          | **Accepté**  | 15/11/2026 |
 
 ---
 
@@ -1926,3 +1927,52 @@ La Phase 6.1a a posé le modèle métier immuable des dalles (`Slab`, `SlabType`
 - Classe IFC4 : `IfcSlab` avec `PredefinedType = .FLOOR.` (9ᵉ attribut ISO 10303-21).
 - Définition de profil : `IfcArbitraryClosedProfileDef` pour dalle pleine, `IfcArbitraryProfileDefWithVoids` pour dalle avec trémies.
 - Rattachement spatial `IfcRelContainedInSpatialStructure` vers le `IfcBuildingStorey` correspondant au `levelId`.
+
+---
+
+## ADR-047 : Purge des Champs Transitoires V1, Underlay Vectoriel Path2D et Snapping Inter-Niveaux
+
+### Statut
+
+**Accepté** (Phase 6.2 — Vue Fantôme et Purge Transitoire)
+
+### Date
+
+15 novembre 2026
+
+### Contexte
+
+La Phase 6.1b a certifié le modèle de dalles et son rendu 2D/3D. Pour assurer la compatibilité ascendante lors de la transition vers le schéma v2 (ADR-042), des champs transitoires optionnels subsistaient sur `Door` et `Window` (`width?`, `height?`, `kind?`). De plus, la modélisation multi-étages requiert de voir et d'aligner les parois du niveau actif $N$ sur celles de l'étage inférieur $N-1$ sans pixellisation ni surcharge cognitive.
+
+### Décisions d'Architecture
+
+#### 1. D1 — Localisation du Cache Path2D (Option β : Module Dédié Pur)
+
+- **Décision :** Implémenter le cache vectoriel d'underlay dans un module dédié et pur `@mini-bim/view-2d/src/underlay/UnderlayCache.ts`.
+- **Justification :** L'Option β garantit l'isolation stricte : zéro dépendance au DOM ou au canvas HTML, testabilité unitaire totale sous Vitest en environnement Node/JSDOM, et réutilisabilité pour d'autres sorties vectorielles (ex: générateur SVG). `View2D` encapsule simplement une instance d'UnderlayCache et pilote son cycle de vie.
+- **Principe d'invalidation sélective :** Le cache n'est invalidé que si au moins un identifiant de `changedIds` correspond à un mur ou une ouverture du niveau $N-1$. Si `changedIds` ne concerne que le niveau actif $N$, le `Path2D` en coordonnées mondes est réutilisé sans recompilation.
+
+#### 2. D2 — Contenu du Rendu Underlay (Option α : Murs + Ouvertures)
+
+- **Décision :** L'underlay affiche exclusivement les murs et les ouvertures hébergées (portes, fenêtres) du niveau $N-1$.
+- **Justification :** L'Option α offre une clarté visuelle optimale pour l'architecte. L'affichage des cotations ou dalles de l'étage inférieur encombrerait inutilement le plan de travail. Les parois sont dessinées en traits fins pointillés gris (`#9ca3af`, `lineWidth = 1 / scale`, `lineDash = [4 / scale, 4 / scale]`, `globalAlpha = 0.5`) tracées en arrière-plan sous le niveau actif.
+
+#### 3. D3 — Périmètre des Niveaux Visibles (Option α : N et N-1)
+
+- **Décision :** En 2D, l'utilisateur visualise strictement le niveau actif $N$ en premier plan et, en option, le niveau immédiatement inférieur $N-1$ en vue fantôme.
+- **Justification :** Les niveaux $N+1$ ou $N-2$ restent invisibles pour éviter toute ambiguïté de superposition. Un commutateur explicite « Afficher le niveau inférieur » dans la `Toolbar` permet d'activer ou désactiver l'underlay à la demande.
+
+#### 4. Purge Définitive des Champs Transitoires V1 (Breaking Change Typage)
+
+- **Suppression définitive dans `packages/core/src/types.ts` :**
+  - `Door.kind?`, `Door.width?`, `Door.height?`
+  - `Window.kind?`, `Window.width?`, `Window.height?`
+- **Conséquence :** Toutes les dimensions géométriques sont désormais obligatoirement résolues à travers les familles paramétriques partagées `doorTypes[door.doorTypeId]` et `windowTypes[window.windowTypeId]`.
+
+#### 5. Snapping Inter-Niveaux Déterministe
+
+- Aimantation magnétique active sur les sommets de murs de l'underlay ($N-1$) avec une tolérance constante en pixels écran :
+  $$\text{toleranceMonde} = \frac{12\text{ px}}{\text{scale}}$$
+- À zoom $1\times$, tolérance = $12\text{ mm}$ ; à zoom $0.1\times$, tolérance = $120\text{ mm}$ ; à zoom $10\times$, tolérance = $1.2\text{ mm}$.
+- Désactivable via l'option `snapToUnderlay: false`.
+

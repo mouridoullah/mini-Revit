@@ -778,12 +778,16 @@ export class UpdateDoorCommand implements Command {
       targetDoorTypeId = typeKey;
     }
 
+    const sanitizedDoorPatch = { ...this.patch };
+    delete (sanitizedDoorPatch as { width?: number }).width;
+    delete (sanitizedDoorPatch as { height?: number }).height;
+    delete (sanitizedDoorPatch as { kind?: string }).kind;
+
     const updatedDoor: Door = {
       ...existing,
-      ...this.patch,
+      ...sanitizedDoorPatch,
       id: existing.id,
       category: 'door',
-      kind: 'door',
       doorTypeId: targetDoorTypeId,
       hostWallId: existing.hostWallId,
     };
@@ -839,12 +843,16 @@ export class UpdateWindowCommand implements Command {
       targetWindowTypeId = typeKey;
     }
 
+    const sanitizedWindowPatch = { ...this.patch };
+    delete (sanitizedWindowPatch as { width?: number }).width;
+    delete (sanitizedWindowPatch as { height?: number }).height;
+    delete (sanitizedWindowPatch as { kind?: string }).kind;
+
     const updatedWindow: Window = {
       ...existing,
-      ...this.patch,
+      ...sanitizedWindowPatch,
       id: existing.id,
       category: 'window',
-      kind: 'window',
       windowTypeId: targetWindowTypeId,
       hostWallId: existing.hostWallId,
     };

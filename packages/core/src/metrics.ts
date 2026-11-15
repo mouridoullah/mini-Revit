@@ -4,10 +4,10 @@ import {
   type Wall,
   type WallType,
   type Opening,
-  type Door,
-  type Window,
   type Room,
   type Level,
+  type DoorType,
+  type WindowType,
 } from './types.js';
 import { type DetectedRoom, detectRooms } from './rooms/detect.js';
 import { isPointInPolygon } from '@mini-bim/geometry';
@@ -38,7 +38,12 @@ export function computeWallMetrics(
   wall: Wall,
   wallType: WallType,
   openings: readonly Opening[],
-  state?: BimState,
+  stateOrTypes?:
+    | BimState
+    | {
+        readonly doorTypes?: Readonly<Record<ElementId, DoorType>>;
+        readonly windowTypes?: Readonly<Record<ElementId, WindowType>>;
+      },
 ): WallMetrics {
   const dx = wall.end.x - wall.start.x;
   const dy = wall.end.y - wall.start.y;
@@ -54,17 +59,17 @@ export function computeWallMetrics(
   let totalOpeningAreaMm2 = 0;
 
   for (const op of hosted) {
-    if (op.kind === 'door' || op.category === 'door') {
+    if (op.category === 'door') {
       doorIds.push(op.id);
-      const dt = state?.doorTypes?.[(op as Door).doorTypeId];
-      const w = dt?.width ?? op.width ?? 0;
-      const h = dt?.height ?? op.height ?? 0;
+      const dt = stateOrTypes?.doorTypes?.[op.doorTypeId];
+      const w = dt?.width ?? 0;
+      const h = dt?.height ?? 0;
       totalOpeningAreaMm2 += w * h;
-    } else if (op.kind === 'window' || op.category === 'window') {
+    } else if (op.category === 'window') {
       windowIds.push(op.id);
-      const wt = state?.windowTypes?.[(op as Window).windowTypeId];
-      const w = wt?.width ?? op.width ?? 0;
-      const h = wt?.height ?? op.height ?? 0;
+      const wt = stateOrTypes?.windowTypes?.[op.windowTypeId];
+      const w = wt?.width ?? 0;
+      const h = wt?.height ?? 0;
       totalOpeningAreaMm2 += w * h;
     }
   }

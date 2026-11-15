@@ -277,7 +277,8 @@ describe('Viewport2D React Wrapper & Tools Integration (apps/web)', () => {
     expect(doors.length).toBe(1);
     expect(doors[0]?.hostWallId).toBe('w_door_host');
     expect(doors[0]?.offsetAlong).toBe(2500);
-    expect(doors[0]?.width).toBe(900);
+    const doorType = doc.getState().doorTypes[doors[0]!.doorTypeId];
+    expect(doorType?.width).toBe(900);
   });
 
   it('MoveWallTool + drag : drag d’un mur hôte déplace le mur, UpdateWallCommand est exécuté et la porte suit', () => {

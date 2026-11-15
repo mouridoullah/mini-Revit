@@ -97,8 +97,8 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
       const openingParams: OpeningGeometryParams[] = [
         ...wallDoors.map((d) => {
           const dt = state.doorTypes?.[d.doorTypeId];
-          const w = dt?.width ?? d.width ?? 900;
-          const h = dt?.height ?? d.height ?? 2100;
+          const w = dt?.width ?? 900;
+          const h = dt?.height ?? 2100;
           return {
             id: d.id,
             kind: 'door' as const,
@@ -171,8 +171,8 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
       const elevation = level?.elevation ?? 0;
 
       const wt = state.windowTypes?.[win.windowTypeId];
-      const winWidth = wt?.width ?? win.width ?? 1200;
-      const winHeight = wt?.height ?? win.height ?? 1400;
+      const winWidth = wt?.width ?? 1200;
+      const winHeight = wt?.height ?? 1400;
 
       const placeholder = createOpeningPlaceholder(
         {

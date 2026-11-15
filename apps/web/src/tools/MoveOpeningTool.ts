@@ -52,15 +52,13 @@ export class MoveOpeningTool implements Tool {
         return { kind: 'noop' };
       }
 
-      let openingWidth = opening.width;
-      if (openingWidth === undefined) {
-        if ('doorTypeId' in opening && opening.doorTypeId) {
-          openingWidth = state.doorTypes?.[opening.doorTypeId]?.width ?? 900;
-        } else if ('windowTypeId' in opening && opening.windowTypeId) {
-          openingWidth = state.windowTypes?.[opening.windowTypeId]?.width ?? 1200;
-        } else {
-          openingWidth = 900;
-        }
+      let openingWidth: number;
+      if ('doorTypeId' in opening && opening.doorTypeId) {
+        openingWidth = state.doorTypes?.[opening.doorTypeId]?.width ?? 900;
+      } else if ('windowTypeId' in opening && opening.windowTypeId) {
+        openingWidth = state.windowTypes?.[opening.windowTypeId]?.width ?? 1200;
+      } else {
+        openingWidth = 900;
       }
 
       this.state = {

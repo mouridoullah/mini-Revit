@@ -103,8 +103,9 @@ describe('DoorTool (apps/web)', () => {
       const addDoorCmd = out.command as Commands.AddDoorCommand;
       expect(addDoorCmd.door.hostWallId).toBe('w_test');
       expect(addDoorCmd.door.offsetAlong).toBe(2050);
-      expect(addDoorCmd.door.width).toBe(900);
-      expect(addDoorCmd.door.height).toBe(2100);
+      expect(addDoorCmd.door.doorTypeId).toBeDefined();
+      expect(doc.getState().doorTypes[addDoorCmd.door.doorTypeId]?.width).toBe(900);
+      expect(doc.getState().doorTypes[addDoorCmd.door.doorTypeId]?.height).toBe(2100);
       expect(addDoorCmd.door.swing).toEqual({ side: 'left', direction: 'in' });
     }
 

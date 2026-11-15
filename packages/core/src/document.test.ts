@@ -701,11 +701,13 @@ describe('BimDocument & CommandBus (document.ts)', () => {
           width: 800,
         }),
       );
-      expect(doc.getState().doors['door_update']?.swing).toEqual({
+      const updatedDoor = doc.getState().doors['door_update'];
+      expect(updatedDoor?.swing).toEqual({
         side: 'right',
         direction: 'out',
       });
-      expect(doc.getState().doors['door_update']?.width).toBe(800);
+      const updatedDoorType = doc.getState().doorTypes[updatedDoor!.doorTypeId];
+      expect(updatedDoorType?.width).toBe(800);
 
       doc.execute(
         new Commands.UpdateWindowCommand('win_update', {
