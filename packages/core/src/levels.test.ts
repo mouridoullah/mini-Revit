@@ -101,15 +101,33 @@ describe('Intégrité Altimétrique des Niveaux & setStoryHeight (Phase 6.0b / A
   it('T-LVL-04: Tolérance numérique : deux élévations distantes de moins de 1e-4 mm sont considérées coplanaires', () => {
     const doc = BimDocument.createDefaultProject();
 
-    const quasiSameLevel: Level = {
-      id: 'lvl_almost_zero',
-      name: 'Quasi Zéro',
-      elevation: 0.00005, // < 1e-4 mm
-    };
+    doc.execute(
+      new Commands.AddLevelCommand({
+        id: 'lvl_ref_2800',
+        name: 'Étage Réf 2800',
+        elevation: 2800.0,
+      }),
+    );
 
+    // Écart de 5e-5 mm (< 1e-4) -> Rejeté
+    const rejectedLevel: Level = {
+      id: 'lvl_too_close',
+      name: 'Étage Trop Proche',
+      elevation: 2800.00005,
+    };
     expect(() => {
-      doc.execute(new Commands.AddLevelCommand(quasiSameLevel));
+      doc.execute(new Commands.AddLevelCommand(rejectedLevel));
     }).toThrowError(/DUPLICATE_LEVEL_ELEVATION/);
+
+    // Écart de 2e-4 mm (> 1e-4) -> Accepté
+    const acceptedLevel: Level = {
+      id: 'lvl_distinct_ok',
+      name: 'Étage Distinct OK',
+      elevation: 2800.0002,
+    };
+    expect(() => {
+      doc.execute(new Commands.AddLevelCommand(acceptedLevel));
+    }).not.toThrow();
   });
 
   it('T-LVL-05: getSortedLevels trie strictement les niveaux par élévation croissante', () => {
@@ -244,16 +262,19 @@ describe('Intégrité Altimétrique des Niveaux & setStoryHeight (Phase 6.0b / A
       }),
     );
 
-    // Action : augmentation de la hauteur du RDC
+    const stateBefore = doc.getState();
+
+    // Action : augmentation de la hauteur du RDC (+400 mm)
     setStoryHeight(doc, 0, 3200);
     expect(doc.getState().levels['lvl_r1']?.elevation).toBe(3200);
     expect(doc.getState().levels['lvl_r2']?.elevation).toBe(6000);
 
-    // Annulation (Undo)
+    // Annulation (Undo) bit-à-bit
     expect(doc.canUndo()).toBe(true);
     doc.undo();
     expect(doc.getState().levels['lvl_r1']?.elevation).toBe(2800);
     expect(doc.getState().levels['lvl_r2']?.elevation).toBe(5600);
+    expect(doc.getState()).toEqual(stateBefore);
 
     // Rétablissement (Redo)
     expect(doc.canRedo()).toBe(true);

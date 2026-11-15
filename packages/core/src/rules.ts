@@ -847,13 +847,13 @@ export function validateDirty(
   const prevKeys = new Set<string>();
   for (const v of prevViolations) {
     const sortedIds = [...v.offendingIds].sort().join(',');
-    prevKeys.add(`${v.code}:${sortedIds}`);
+    prevKeys.add(`${v.code}:${sortedIds}:${v.message}`);
   }
 
-  // Trouver la première violation introduite ou non présente précédemment
+  // Trouver la première violation introduite ou aggravée (non strictement identique à previousState)
   for (const v of draftViolations) {
     const sortedIds = [...v.offendingIds].sort().join(',');
-    const key = `${v.code}:${sortedIds}`;
+    const key = `${v.code}:${sortedIds}:${v.message}`;
     if (!prevKeys.has(key)) {
       throw new BimValidationError(v.code, v.message, { offendingIds: v.offendingIds });
     }

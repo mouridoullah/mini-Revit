@@ -165,15 +165,15 @@ describe('DeleteWallCommand Refactoré — Équivalence Comportementale (T-CMD-0
     );
   });
 
-  it('T-CMD-05: getChangedIds() retourne la liste exhaustive ordonnée des IDs mutés par apply()', () => {
+  it('T-CMD-05: getChangedIds() retourne la liste exhaustive ordonnée des IDs mutés par apply() (Option B / ADR-041 §5)', () => {
     const doc = BimDocument.createDefaultProject();
     const levelId = Object.keys(doc.getState().levels)[0]!;
     const typeId = Object.keys(doc.getState().wallTypes)[0]!;
 
-    const wallId = 'w_test_changed';
+    // Boucle de 4 murs fermée
     doc.execute(
       new AddWallCommand({
-        id: wallId,
+        id: 'w_s',
         category: 'wall',
         typeId,
         levelId,
@@ -182,22 +182,91 @@ describe('DeleteWallCommand Refactoré — Équivalence Comportementale (T-CMD-0
       }),
     );
     doc.execute(
+      new AddWallCommand({
+        id: 'w_e',
+        category: 'wall',
+        typeId,
+        levelId,
+        start: vec2(4000, 0),
+        end: vec2(4000, 3000),
+      }),
+    );
+    doc.execute(
+      new AddWallCommand({
+        id: 'w_n',
+        category: 'wall',
+        typeId,
+        levelId,
+        start: vec2(4000, 3000),
+        end: vec2(0, 3000),
+      }),
+    );
+    doc.execute(
+      new AddWallCommand({
+        id: 'w_w',
+        category: 'wall',
+        typeId,
+        levelId,
+        start: vec2(0, 3000),
+        end: vec2(0, 0),
+      }),
+    );
+
+    // 2 portes sur w_s
+    doc.execute(
       new AddDoorCommand({
-        id: 'd_test',
+        id: 'd_1',
         category: 'door',
         kind: 'door',
-        hostWallId: wallId,
+        hostWallId: 'w_s',
         offsetAlong: 500,
         width: 900,
         height: 2100,
         swing: { side: 'left', direction: 'in' },
       }),
     );
+    doc.execute(
+      new AddDoorCommand({
+        id: 'd_2',
+        category: 'door',
+        kind: 'door',
+        hostWallId: 'w_s',
+        offsetAlong: 2500,
+        width: 900,
+        height: 2100,
+        swing: { side: 'right', direction: 'out' },
+      }),
+    );
 
-    const cmd = new DeleteWallCommand(wallId);
+    // 1 cotation référençant w_s
+    doc.execute(
+      new AddDimensionCommand({
+        id: 'dim_1',
+        category: 'dimension',
+        type: 'linear',
+        levelId,
+        references: ['w_s'],
+        offset: 200,
+        value: 4000,
+      }),
+    );
+
+    // 1 pièce hébergée par l'enceinte
+    doc.execute(
+      new AddRoomCommand({
+        id: 'room_1',
+        category: 'room',
+        levelId,
+        seed: vec2(2000, 1500),
+        name: 'Séjour',
+      }),
+    );
+
+    const cmd = new DeleteWallCommand('w_s');
     doc.execute(cmd);
 
-    expect(cmd.getChangedIds()).toEqual([wallId, 'd_test']);
+    // Sémantique Option B exacte : pivot en tête, cascades ordonnées, rooms
+    expect(cmd.getChangedIds()).toEqual(['w_s', 'd_1', 'd_2', 'dim_1', 'room_1']);
   });
 
   it('T-CMD-06: getAdditionalChangedIds() retourne les IDs des Rooms impactés (D1)', () => {

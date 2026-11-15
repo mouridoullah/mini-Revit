@@ -330,6 +330,47 @@ describe('Validation Différentielle Post-Condition (validateDirty / Phase 6.0b)
     }).toThrowError(/INVALID_WALL_LENGTH/);
   });
 
+  it('T-DIRTY-08b: Comportement différentiel : commande qui AGGRAVE la violation existante (déplacement faisant encore plus déborder la porte) -> rejet avec offendingIds', () => {
+    const doc = BimDocument.createDefaultProject();
+    const state = doc.getState();
+    const levelId = Object.keys(state.levels)[0]!;
+    const typeId = Object.keys(state.wallTypes)[0]!;
+
+    const corruptedWall: Wall = {
+      id: 'w_legacy_agg',
+      typeId,
+      levelId,
+      start: { x: 0, y: 0 },
+      end: { x: 2000, y: 0 },
+    };
+    const corruptedDoor: Door = {
+      id: 'd_corrupted_agg',
+      hostWallId: 'w_legacy_agg',
+      offsetAlong: 1500,
+      width: 900,
+      height: 2100,
+      category: 'door',
+      kind: 'door',
+      swing: { side: 'left', direction: 'in' },
+    };
+
+    const docWithWarning = new BimDocument({
+      ...state,
+      walls: { [corruptedWall.id]: corruptedWall },
+      doors: { [corruptedDoor.id]: corruptedDoor },
+    });
+
+    try {
+      docWithWarning.execute(new Commands.MoveOpeningCommand('d_corrupted_agg', 1600));
+      expect.unreachable('Devait rejeter l aggravation de la violation');
+    } catch (err: unknown) {
+      expect(err).toBeInstanceOf(BimValidationError);
+      const bErr = err as BimValidationError;
+      expect(bErr.code).toBe('INVALID_OPENING_POSITION');
+      expect(bErr.offendingIds).toContain('d_corrupted_agg');
+    }
+  });
+
   it('T-DIRTY-09: Rejet atomique : en cas de rejet par validateDirty, aucun patch n est empilé dans l historique', () => {
     const doc = BimDocument.createDefaultProject();
     const initialUndoCount = doc.canUndo();
