@@ -29,6 +29,7 @@ export type {
 export * as Commands from './commands.js';
 export {
   type Command,
+  type UpdateLevelOptions,
   AddWallCommand,
   UpdateWallCommand,
   DeleteWallCommand,
@@ -53,6 +54,7 @@ export {
 } from './commands.js';
 export {
   BimValidationError,
+  type RuleViolation,
   validateWall,
   validateWallType,
   validateLevel,
@@ -63,7 +65,10 @@ export {
   canDeleteWall,
   canDeleteLevel,
   canDeleteWallType,
+  collectViolationsForDirty,
+  validateDirty,
 } from './rules.js';
+export { getSortedLevels, getLevelStoryHeight, setStoryHeight } from './levels.js';
 export { generateId } from './ids.js';
 export { toJSON, fromJSON } from './serialization.js';
 export { HistoryStack, type HistoryEntry } from './history.js';

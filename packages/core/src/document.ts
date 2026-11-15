@@ -12,6 +12,7 @@ import { HistoryStack } from './history.js';
 import { toJSON, fromJSON } from './serialization.js';
 import { generateId } from './ids.js';
 import { DependencyGraph } from './dag/DependencyGraph.js';
+import { validateDirty } from './rules.js';
 
 /**
  * Gestionnaire documentaire central du projet Mini-BIM.
@@ -129,6 +130,9 @@ export class BimDocument {
       }
     }
     const changed = allChanged;
+
+    // Post-Condition Universelle Différentielle (ADR-041 §6 / Phase 6.0b)
+    validateDirty(nextState as BimState, changed, this.state);
 
     this.state = nextState as BimState;
 

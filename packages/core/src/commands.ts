@@ -190,7 +190,7 @@ export class AddLevelCommand implements Command {
         `A level with ID "${this.level.id}" already exists.`,
       );
     }
-    validateLevel(this.level);
+    validateLevel(this.level, draft);
     draft.levels[this.level.id] = this.level;
   }
 
@@ -199,12 +199,18 @@ export class AddLevelCommand implements Command {
   }
 }
 
+export interface UpdateLevelOptions {
+  readonly shiftSuperiorLevels?: boolean;
+}
+
 export class UpdateLevelCommand implements Command {
   public readonly name = 'UpdateLevel';
+  private shiftedLevelIds: ElementId[] = [];
 
   public constructor(
     public readonly levelId: ElementId,
     public readonly patch: Partial<Omit<Level, 'id'>>,
+    public readonly options?: UpdateLevelOptions,
   ) {}
 
   public apply(draft: BimState): void {
@@ -222,12 +228,32 @@ export class UpdateLevelCommand implements Command {
       id: existing.id,
     };
 
-    validateLevel(updatedLevel);
+    // Si l'élévation change et que le décalage des niveaux supérieurs est actif
+    this.shiftedLevelIds = [];
+    if (
+      this.patch.elevation !== undefined &&
+      Number.isFinite(this.patch.elevation) &&
+      this.patch.elevation !== existing.elevation &&
+      (this.options?.shiftSuperiorLevels ?? true)
+    ) {
+      const delta = this.patch.elevation - existing.elevation;
+      for (const [id, lvl] of Object.entries(draft.levels)) {
+        if (id !== this.levelId && lvl.elevation > existing.elevation) {
+          draft.levels[id] = {
+            ...lvl,
+            elevation: lvl.elevation + delta,
+          };
+          this.shiftedLevelIds.push(id);
+        }
+      }
+    }
+
+    validateLevel(updatedLevel, draft);
     draft.levels[this.levelId] = updatedLevel;
   }
 
   public getChangedIds(): readonly ElementId[] {
-    return [this.levelId];
+    return [this.levelId, ...this.shiftedLevelIds];
   }
 }
 
