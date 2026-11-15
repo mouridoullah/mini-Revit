@@ -52,7 +52,7 @@
 | **ADR-041** | Architecture du Graphe de Dépendances Minimal (DAG) et Moteur de Propagation Générique         | **Accepté**  | 15/11/2026 |
 | **ADR-042** | Généralisation du Modèle Type / Instance (`SlabType`, `DoorType`, `WindowType`)                | **Accepté**  | 15/11/2026 |
 | **ADR-043** | Migration de Schéma Documentaire v2 et Préservation Intégrale des Familles                     | **Accepté**  | 15/11/2026 |
-| **ADR-044** | Étirement Élastique des Murs, Résolution de Connectivité, Compensation des Baies et Garde-fous | **Proposé**  | 15/11/2026 |
+| **ADR-044** | Étirement Élastique des Murs, Résolution de Connectivité, Compensation des Baies et Garde-fous | **Accepté**  | 15/11/2026 |
 
 ---
 
@@ -1595,7 +1595,7 @@ Une migration simpliste assignant des types standards fixes (ex: tous les ouvran
 ## ADR-044 : Étirement Élastique des Murs, Résolution de Connectivité, Compensation des Baies et Garde-fous Géométriques
 
 - **Date :** 2026-11-15
-- **Statut :** Proposé (Soumis à l'audit contradictoire Phase 6.0c)
+- **Statut :** Accepté (Validé lors de la revue contradictoire Phase 6.0c)
 - **Auteur :** Antigravity (Lead Software Architect & Computational Geometry Engineer)
 - **Contexte :** Finalisation de la refonte architecturale préalable de la Saison 2 (Phase 6.0c). Implémentation du comportement BIM fondamental : lorsqu'un mur est translaté (`MoveWallCommand`), ses murs voisins connectés s'étirent élastiquement pour maintenir la fermeture topologique des jonctions sans corrompre les ouvertures hébergées ni les pièces.
 
@@ -1654,6 +1654,8 @@ Lorsqu'un mur voisin $B$ s'étire par son origine ($B.start$), son repère curvi
 - **Déclenchement légitime de `WALL_STRETCH_CYCLE` :**  
   La propagation récursive et la détection de cycle interviennent lorsqu'une commande sollicite le déplacement des deux extrémités d'un mur en chaîne (propagation en chaîne rigide ou cascade multi-niveaux où un mur intermédiaire collapse et transmet son déplacement à son extrémité opposée).  
   L'algorithme maintient un ensemble `visited = new Set<ElementId>()`. Si un mur déjà présent dans `visited` est à nouveau sollicité pour une mutation de sommet par la chaîne de propagation, l'opération est immédiatement interrompue avec l'erreur typée `WALL_STRETCH_CYCLE` et la liste des `offendingIds` formant la boucle fermée cinématique.
+  > [!NOTE] Caractère défensif de WALL_STRETCH_CYCLE  
+  > WALL_STRETCH_CYCLE est un garde-fou purement défensif. En Option α stricte (un seul mur déplacé par commande), il ne se déclenche jamais en usage normal. Le test T-MOVE-07 force une configuration défensive à double sollicitation du même sommet via une chaîne cyclique pour vérifier l'invariant topologique, mais aucun scénario nominal ne produit cette situation en V1.
 
 #### 3. Spécification Formelle de `computeWallStretch`
 
@@ -1734,6 +1736,34 @@ export function computeWallStretch(input: WallStretchInput): WallStretchResult;
   Les assertions vérifiant l'émission de `UpdateWallCommand` sont mises à jour pour vérifier l'émission de `MoveWallCommand(wallId, delta, { stretchNeighbors: true })`.
 - **`App.test.tsx` (Test de Crédibilité Phase 3.3) :**  
   Déplacer `wall_south` de $(500,0)$ étire élastiquement `wall_east` et `wall_west`. `door_demo` conserve son `offsetAlong = 2000`. `createWallMeshWithOpenings` est désormais appelé pour les 3 murs impactés. La pièce de 24 m² se transforme en parallélogramme fermé sans perte d'étanchéité.
+
+#### 6. Matrice d'Acceptation Consolidée (43 Tests Spécifiés)
+
+- **`packages/geometry/src/junctions/stretch.test.ts` (14 tests) :**
+  - `T-STRETCH-01` à `05` : L-junctions et T-junctions orthogonales/axiales.
+  - `T-STRETCH-06` : X-junction (4 murs concourants) $\to$ 2 voisins adjacents étirés, mur opposé stationnaire.
+  - `T-STRETCH-06b` : Jonction multi-branches (5 murs concourants).
+  - `T-STRETCH-07` : Jonction multi-branches générale.
+  - `T-STRETCH-08` & `09` : Parallèles bout-à-bout axiaux et perpendiculaires.
+  - `T-STRETCH-10` & `11` : Garde-fou `WALL_STRETCH_COLLAPSE` (rejet $L' < 100\text{ mm} \land L' < L$, bypass si déjà court).
+  - `T-STRETCH-12` : Garde-fou `WALL_STRETCH_REVERSED`.
+  - `T-STRETCH-13` : Rotation du voisin avec ouverture hébergée $\to$ projection `offsetAlong'` valide dans les bornes.
+- **`packages/core/src/commands-move.test.ts` (13 tests) :**
+  - `T-MOVE-01` à `06` : Mur isolé, jonctions L, X, compensation de baie, rollback sur COLLAPSE/REVERSED.
+  - `T-MOVE-07` : Détection défensive de `WALL_STRETCH_CYCLE`.
+  - `T-MOVE-08` : Cascade linéaire récursive (2 niveaux).
+  - `T-MOVE-09` & `10` : Réversibilité exacte Undo/Redo.
+  - `T-MOVE-11` : Préservation des `offendingIds` précis.
+  - `T-MOVE-12a` : Pièce fermée déformée $\to$ `Room` reste `enclosed` et sa surface est recalculée numériquement.
+  - `T-MOVE-12b` : Déplacement rompant une enceinte $\to$ `Room` passe `unenclosed` avec `area = 0` (non supprimée, ADR-039).
+- **`packages/core/src/rules-move.test.ts` (5 tests) :**
+  - `T-RULES-MOVE-01` à `05` : Intégration différentielle `validateDirty` sur les étirements de murs et ouvertures.
+- **`apps/web/src/tools/MoveWallTool.test.ts` (8 tests) :**
+  - `T-TOOL-MOVE-01` à `08` : Émission de `MoveWallCommand`, snap 10 mm, Escape, affichage d'erreur sur rejet, zéro mutation directe.
+- **`apps/web/src/App.test.tsx` (3 tests) :**
+  - `T-APP-MOVE-01` (Test de Crédibilité Phase 3.3 réhaussé) : Déplacement mur sud, étirement est/ouest, régénération 3D.
+  - `T-APP-MOVE-02` : Undo restaure tous les murs bit-à-bit.
+  - `T-APP-MOVE-03` : Validation différentielle sur maquette importée.
 
 ### Conséquences
 
