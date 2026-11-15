@@ -61,6 +61,7 @@ La double présence de `state` et `json` permet une désérialisation immédiate
 - Le mode de fonctionnement **local-first mono-onglet** est explicitement assumé en V1.
 - La concurrence multi-onglets n'est pas gérée en V1 : si deux onglets sont ouverts simultanément sur la même application, le dernier onglet effectuant une écriture écrase l'enregistrement précédent (stratégie standard *Last-Write-Wins*).
 - Une stratégie d'orchestration multi-onglets avec verrouillage distribué (`Web Locks API`) et synchronisation inter-onglets (`BroadcastChannel`) est officiellement reportée en Phase 9 (Collaboration & Cloud Sync).
+- **Sémantique de `beforeunload` (Best-effort)** : Le flush sur l'événement `beforeunload` est exécuté de manière *best-effort* (IndexedDB étant asynchrone par nature). La persistance réelle repose sur l'autosave debouncé à 500 ms. Un utilisateur qui ferme l'onglet dans la fenêtre de 500 ms suivant une modification peut voir cette dernière modification perdue si le runtime du navigateur interrompt le cycle de vie avant le commit de la transaction IndexedDB. Option α (secours synchrone `localStorage`) envisagée pour V1.1 si requis.
 
 ---
 
