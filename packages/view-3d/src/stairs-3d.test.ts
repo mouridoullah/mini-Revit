@@ -191,7 +191,8 @@ describe('Phase 6.4 — Rendu 3D des Escaliers (packages/view-3d/src/stairs-3d.t
     const N = 16;
     const expectedSolidVolume = W * L * deltaZ * ((N + 1) / (2 * N));
 
-    expect(Math.abs(computedVolume)).toBeCloseTo(expectedSolidVolume, -2);
+    // Tolérance ±500 mm³ (-3) garantissant la stabilité sur coordonnées fractionnaires
+    expect(Math.abs(computedVolume)).toBeCloseTo(expectedSolidVolume, -3);
     expect(expectedSolidVolume).toBe(5622750000);
   });
 

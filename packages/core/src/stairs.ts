@@ -110,8 +110,10 @@ export function computeHeadroomCutoffStep(
   }
 
   const exactK = maxClearance / geom.stepHeight;
-  // Premier k entier où H(k) < minHeadroom (strictement inférieur)
-  const cutoffK = Math.floor(exactK + 1e-9) + 1;
+  // Premier entier k où H(k) < minHeadroom (strictement inférieur) :
+  // Si exactK est entier (H(k) == minHeadroom), cutoff = exactK + 1.
+  // Si exactK n'est pas entier, cutoff = ceil(exactK) = floor(exactK) + 1.
+  const cutoffK = Math.floor(exactK) + 1;
   return Math.min(geom.numberOfSteps, Math.max(0, cutoffK));
 }
 
