@@ -70,6 +70,13 @@ describe('MoveWallTool — Tests d’Acceptation Phase 6.0c (apps/web)', () => {
       ctx,
     );
     expect(moveOut.kind).toBe('preview');
+    if (moveOut.kind === 'preview') {
+      expect(moveOut.preview).toEqual({
+        kind: 'line',
+        start: { x: 1100, y: 1000 },
+        end: { x: 5100, y: 1000 },
+      });
+    }
 
     // Relâchement du clic
     const upOut = tool.handle(

@@ -145,11 +145,14 @@ describe('Phase 6.0c — Wall Stretching Geometry (packages/geometry)', () => {
     const allWalls = [wallA, wallB, wallC, wallD, wallE];
     const connected = findConnectedWalls(wallA, allWalls);
 
-    // Mur C opposé filtré, les autres concourants restent
+    // Mur C opposé filtré, exactement 3 voisins transversaux/diagonaux concourants restent
+    expect(connected.length).toBe(3);
     const neighborIds = connected.map((c) => c.wallId);
     expect(neighborIds).not.toContain('wall_C');
     expect(neighborIds).toContain('wall_B');
     expect(neighborIds).toContain('wall_D');
+    expect(neighborIds).toContain('wall_E');
+    expect(neighborIds.sort()).toEqual(['wall_B', 'wall_D', 'wall_E']);
   });
 
   // T-STRETCH-07 : Multi-branch (murs en L, T et coins multiples)
