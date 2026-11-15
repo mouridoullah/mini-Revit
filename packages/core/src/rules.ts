@@ -786,6 +786,17 @@ export function checkSlabViolations(slab: Slab, state: BimState): RuleViolation[
     return violations;
   }
 
+  for (const pt of slab.boundary) {
+    if (!pt || !Number.isFinite(pt.x) || !Number.isFinite(pt.y)) {
+      violations.push({
+        code: 'INVALID_SLAB_BOUNDARY',
+        message: `Slab "${slab.id}" has non-finite boundary coordinates.`,
+        offendingIds: [slab.id],
+      });
+      return violations;
+    }
+  }
+
   const baseArea = signedArea(slab.boundary);
   if (Math.abs(baseArea) < 1e-4) {
     violations.push({

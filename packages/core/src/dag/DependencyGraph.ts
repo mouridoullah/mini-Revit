@@ -225,6 +225,9 @@ export class DependencyGraph {
           if (!w) continue;
           if (w.typeId) graph.addEdge(w.typeId, w.id);
           if (w.levelId) graph.addEdge(w.levelId, w.id);
+          if (w.topConstraint?.levelId) {
+            graph.addEdge(w.topConstraint.levelId, w.id);
+          }
         }
       }
 
@@ -245,11 +248,23 @@ export class DependencyGraph {
         }
       }
 
-      const slabs = (state as any).slabs;
+      const slabs = state.slabs;
       if (slabs) {
         for (const id in slabs) {
           const s = slabs[id];
-          if (s && s.levelId) graph.addEdge(s.levelId, s.id);
+          if (!s) continue;
+          if (s.levelId) graph.addEdge(s.levelId, s.id);
+          if (s.slabTypeId) graph.addEdge(s.slabTypeId, s.id);
+
+          // Arête slab(N+1) -> wall(N) pour les murs contraints par ce niveau (ADR-045 D2)
+          if (walls) {
+            for (const wallId in walls) {
+              const w = walls[wallId];
+              if (w && w.topConstraint?.levelId === s.levelId) {
+                graph.addEdge(s.id, w.id);
+              }
+            }
+          }
         }
       }
     } else {

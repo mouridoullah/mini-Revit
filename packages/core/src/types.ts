@@ -42,6 +42,7 @@ export interface WallType {
 export interface TopConstraint {
   readonly levelId: ElementId;
   readonly offset?: number; // décalage en mm (défaut: 0)
+  readonly topOffset?: number; // alias pour compatibilité
 }
 
 /**
