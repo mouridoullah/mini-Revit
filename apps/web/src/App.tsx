@@ -123,9 +123,12 @@ function AppContent() {
     (scale: 50 | 100 | 200) => {
       try {
         const docState = doc.getState();
-        const activeLevelId = Object.keys(docState.levels)[0] ?? '';
-        const levelName = activeLevelId ? docState.levels[activeLevelId]?.name : 'Étage';
-        const detected = activeLevelId ? detectRooms(docState, activeLevelId) : [];
+        const targetLevelId =
+          activeLevelId && docState.levels[activeLevelId]
+            ? activeLevelId
+            : Object.keys(docState.levels)[0] ?? '';
+        const levelName = targetLevelId ? docState.levels[targetLevelId]?.name : 'Étage';
+        const detected = targetLevelId ? detectRooms(docState, targetLevelId) : [];
         const roomsForSvg = detected.map((d) => ({
           polygon: d.polygon,
           areaMm2: d.areaMm2,
@@ -138,7 +141,7 @@ function AppContent() {
           title: `Plan d’Étage - ${levelName}`,
           project: 'Projet Mini-BIM',
           author: 'Mini-BIM Architect',
-          levelId: activeLevelId,
+          levelId: targetLevelId,
           rooms: roomsForSvg,
         });
 
@@ -157,7 +160,7 @@ function AppContent() {
         );
       }
     },
-    [doc],
+    [doc, activeLevelId],
   );
 
   const handleAddLevel = useCallback(() => {
@@ -324,9 +327,13 @@ function AppContent() {
       </div>
 
       {/* Panneau rétractable du tableau de métrés et surfaces */}
-      <MetricsPanel doc={doc} />
+      <MetricsPanel doc={doc} activeLevelId={activeLevelId} />
 
-      <StatusBar activeToolKind={activeToolKind} drawingLength={drawingLength} />
+      <StatusBar
+        activeToolKind={activeToolKind}
+        drawingLength={drawingLength}
+        activeLevelId={activeLevelId}
+      />
     </div>
   );
 }

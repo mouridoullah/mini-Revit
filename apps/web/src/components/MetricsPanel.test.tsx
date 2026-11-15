@@ -115,16 +115,18 @@ describe('Composant <MetricsPanel /> (Tableau de Métrés & Surfaces)', () => {
     const typeId = Object.keys(state.wallTypes)[0] ?? '';
     const levelId = Object.keys(state.levels)[0] ?? '';
 
-    doc.execute(
-      new Commands.AddWallCommand({
-        id: 'w_extra',
-        category: 'wall',
-        typeId,
-        levelId,
-        start: { x: 0, y: 1000 },
-        end: { x: 5000, y: 1000 },
-      }),
-    );
+    act(() => {
+      doc.execute(
+        new Commands.AddWallCommand({
+          id: 'w_extra',
+          category: 'wall',
+          typeId,
+          levelId,
+          start: { x: 0, y: 1000 },
+          end: { x: 5000, y: 1000 },
+        }),
+      );
+    });
 
     rerender(<MetricsPanel doc={doc} />);
 
@@ -218,5 +220,71 @@ describe('Composant <MetricsPanel /> (Tableau de Métrés & Surfaces)', () => {
 
     appendChildSpy.mockRestore();
     removeChildSpy.mockRestore();
+  });
+
+  it('MetricsPanel réagit automatiquement via doc.subscribe aux mutations et undo/redo sans rerender explicite (P1.2)', () => {
+    render(<MetricsPanel doc={doc} />);
+    act(() => {
+      vi.advanceTimersByTime(250);
+    });
+
+    // Linéaire initial = 20.00 m
+    expect(screen.getByText('20.00')).toBeDefined();
+
+    const state = doc.getState();
+    const typeId = Object.keys(state.wallTypes)[0] ?? '';
+    const levelId = Object.keys(state.levels)[0] ?? '';
+
+    // Exécution d'une commande sans appeler rerender()
+    act(() => {
+      doc.execute(
+        new Commands.AddWallCommand({
+          id: 'w_reactive',
+          category: 'wall',
+          typeId,
+          levelId,
+          start: { x: 0, y: 2000 },
+          end: { x: 3000, y: 2000 },
+        }),
+      );
+    });
+    act(() => {
+      vi.advanceTimersByTime(250);
+    });
+
+    // 20.00 + 3.00 = 23.00 m
+    expect(screen.getByText('23.00')).toBeDefined();
+
+    // Undo sans appeler rerender()
+    act(() => {
+      doc.undo();
+    });
+    act(() => {
+      vi.advanceTimersByTime(250);
+    });
+    expect(screen.getByText('20.00')).toBeDefined();
+  });
+
+  it('MetricsPanel synchronise son niveau avec activeLevelId (P1.1)', () => {
+    const level2: import('@mini-bim/core').Level = {
+      id: 'lvl_etage1',
+      name: 'Étage 1',
+      elevation: 3000,
+      height: 2800,
+    };
+    doc.execute(new Commands.AddLevelCommand(level2));
+
+    const { rerender } = render(<MetricsPanel doc={doc} activeLevelId="lvl_etage1" />);
+    act(() => {
+      vi.advanceTimersByTime(250);
+    });
+
+    const selector = screen.getByTestId('level-select') as HTMLSelectElement;
+    expect(selector.value).toBe('lvl_etage1');
+
+    // Changement de niveau actif vers le RDC
+    const rdcId = Object.keys(doc.getState().levels)[0]!;
+    rerender(<MetricsPanel doc={doc} activeLevelId={rdcId} />);
+    expect(selector.value).toBe(rdcId);
   });
 });

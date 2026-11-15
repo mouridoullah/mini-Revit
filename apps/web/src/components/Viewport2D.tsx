@@ -1,10 +1,17 @@
 import { useEffect, useRef } from 'react';
-import { type BimDocument, detectRooms } from '@mini-bim/core';
+import { type BimDocument, type BimState, detectRooms } from '@mini-bim/core';
 import { View2D, type DetectedRoomFor2D } from '@mini-bim/view-2d';
 import { useBimDocument } from '../hooks/useBimDocument.js';
 import { useResizeObserver } from '../hooks/useResizeObserver.js';
 import { type Tool, type ToolContext, type ToolEvent } from '../tools/types.js';
 import { convertPointerEvent, convertKeyEvent } from '../tools/toolGlue.js';
+
+function resolveActiveLevelId(state: BimState, propId?: string | null): string {
+  if (propId && state.levels[propId]) {
+    return propId;
+  }
+  return Object.keys(state.levels)[0] ?? '';
+}
 
 export interface Viewport2DProps {
   readonly tool?: Tool;
@@ -103,7 +110,7 @@ export function Viewport2D({
   useEffect(() => {
     if (viewRef.current) {
       const docState = doc.getState();
-      const currentLevelId = activeLevelIdProp ?? Object.keys(docState.levels)[0] ?? '';
+      const currentLevelId = resolveActiveLevelId(docState, activeLevelIdProp);
       if (currentLevelId) {
         const detected = detectRooms(docState, currentLevelId);
         const roomsFor2D: DetectedRoomFor2D[] = detected.map((d) => {
@@ -164,7 +171,7 @@ export function Viewport2D({
 
       const toolEvent = convertPointerEvent(e, canvas);
       const docState = doc.getState();
-      const currentLevelId = activeLevelIdProp ?? Object.keys(docState.levels)[0] ?? '';
+      const currentLevelId = resolveActiveLevelId(docState, activeLevelIdProp);
       const activeWallTypeId = Object.keys(docState.wallTypes)[0] ?? '';
       const activeSlabTypeId = Object.keys(docState.slabTypes ?? {})[0] ?? '';
       const ctx: ToolContext = {
@@ -215,13 +222,17 @@ export function Viewport2D({
       if (!toolEvent) return;
 
       const docState = doc.getState();
-      const activeLevelId = Object.keys(docState.levels)[0] ?? '';
+      const activeLevelId = resolveActiveLevelId(docState, activeLevelIdProp);
       const activeWallTypeId = Object.keys(docState.wallTypes)[0] ?? '';
+      const activeSlabTypeId = Object.keys(docState.slabTypes ?? {})[0] ?? '';
       const ctx: ToolContext = {
         doc,
         transform: view.getTransform(),
         activeLevelId,
         activeWallTypeId,
+        activeSlabTypeId,
+        underlayLevelId: underlayLevelIdProp ?? null,
+        snapToUnderlay: snapToUnderlayProp,
       };
 
       const output = tool.handle(toolEvent, ctx);
@@ -249,7 +260,7 @@ export function Viewport2D({
       if (!view) return;
       const rect = canvas.getBoundingClientRect();
       const docState = doc.getState();
-      const currentLevelId = activeLevelIdProp ?? Object.keys(docState.levels)[0] ?? '';
+      const currentLevelId = resolveActiveLevelId(docState, activeLevelIdProp);
       const activeWallTypeId = Object.keys(docState.wallTypes)[0] ?? '';
       const activeSlabTypeId = Object.keys(docState.slabTypes ?? {})[0] ?? '';
       const ctx: ToolContext = {

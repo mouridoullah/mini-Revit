@@ -393,6 +393,52 @@ describe('App Integration & Squelette Double Viewport (apps/web)', () => {
     cleanup();
   });
 
+  it('permet de changer de niveau actif et l’export SVG cible fidèlement le niveau actif sélectionné (P1.1)', async () => {
+    const doc = BimDocument.createDefaultProject();
+    const level1: import('@mini-bim/core').Level = {
+      id: 'lvl_etage_sup',
+      name: 'Étage 1 (R+1)',
+      elevation: 3000,
+      height: 2800,
+    };
+    doc.execute(new Commands.AddLevelCommand(level1));
+
+    let capturedBlob: Blob | null = null;
+    const createObjectURLMock = vi.fn().mockImplementation((blob: Blob) => {
+      capturedBlob = blob;
+      return 'blob:mock-svg-url';
+    });
+    window.URL.createObjectURL = createObjectURLMock;
+    window.URL.revokeObjectURL = vi.fn();
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+    const { getByTestId } = render(<App initialDoc={doc} />);
+
+    const levelSelect = getByTestId('level-selector') as HTMLSelectElement;
+    expect(levelSelect.value).toBe(Object.keys(doc.getState().levels)[0]);
+
+    // Sélectionner le niveau supérieur
+    act(() => {
+      fireEvent.change(levelSelect, { target: { value: 'lvl_etage_sup' } });
+    });
+    expect(levelSelect.value).toBe('lvl_etage_sup');
+
+    // Vérifier que la barre d'état affiche bien le niveau actif
+    const statusBar = document.querySelector('footer');
+    expect(statusBar?.textContent).toContain('Étage 1 (R+1)');
+
+    // Cliquer sur le bouton d'export SVG
+    const svgBtn = getByTestId('export-svg-btn');
+    act(() => {
+      fireEvent.click(svgBtn);
+    });
+
+    expect(createObjectURLMock).toHaveBeenCalled();
+    expect(capturedBlob).toBeDefined();
+
+    cleanup();
+  });
+
   it('importe fidèlement un fichier JSON valide et synchronise l’état global et StatusBar', async () => {
     // Créer un document avec seulement 1 mur
     const customDoc = BimDocument.createDefaultProject();

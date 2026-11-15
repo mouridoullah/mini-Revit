@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { BimDocument, Commands, type Wall, type Slab, type Level } from '@mini-bim/core';
 import { PropertyInspector } from './PropertyInspector.js';
 
@@ -264,5 +264,41 @@ describe('PropertyInspector — Panneau latéral d’inspection et d’édition 
     const warnings = screen.getByTestId('stair-warnings');
     expect(warnings).toBeDefined();
     expect(warnings.textContent).toContain('STAIR_BLONDEL_OUT_OF_SAFETY');
+  });
+
+  it('T-INSPECT-07 : actualisation réactive immédiate sur modification documentaire externe ou undo/redo (P1.2)', () => {
+    const wall: Wall = {
+      id: 'w-reactive',
+      category: 'wall',
+      typeId: wallTypeId,
+      levelId: level0Id,
+      start: { x: 0, y: 0 },
+      end: { x: 3000, y: 0 },
+      baseOffset: 100,
+    };
+    doc.execute(new Commands.AddWallCommand(wall));
+
+    render(<PropertyInspector doc={doc} selectedIds={['w-reactive']} />);
+
+    const baseOffsetInput = screen.getByTestId('wall-base-offset-input') as HTMLInputElement;
+    expect(baseOffsetInput.value).toBe('100');
+
+    // Modification externe via une commande (ex: outil, script, etc.)
+    act(() => {
+      doc.execute(new Commands.UpdateWallCommand('w-reactive', { baseOffset: 250 }));
+    });
+    expect(baseOffsetInput.value).toBe('250');
+
+    // Undo externe -> retour à 100
+    act(() => {
+      doc.undo();
+    });
+    expect(baseOffsetInput.value).toBe('100');
+
+    // Redo externe -> retour à 250
+    act(() => {
+      doc.redo();
+    });
+    expect(baseOffsetInput.value).toBe('250');
   });
 });

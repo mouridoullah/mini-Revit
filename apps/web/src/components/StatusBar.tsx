@@ -5,13 +5,18 @@ import { detectRooms } from '@mini-bim/core';
 export interface StatusBarProps {
   readonly activeToolKind?: ToolKind;
   readonly drawingLength?: number | null;
+  readonly activeLevelId?: string | null;
 }
 
 /**
  * Barre d'état inférieure affichant les métriques du projet architectural
  * et les instructions contextuelles de l'outil actif.
  */
-export function StatusBar({ activeToolKind = 'select', drawingLength }: StatusBarProps) {
+export function StatusBar({
+  activeToolKind = 'select',
+  drawingLength,
+  activeLevelId: activeLevelIdProp,
+}: StatusBarProps) {
   const { state } = useBimDocument();
 
   const wallCount = Object.keys(state.walls).length;
@@ -19,8 +24,12 @@ export function StatusBar({ activeToolKind = 'select', drawingLength }: StatusBa
   const doorCount = Object.keys(state.doors ?? {}).length;
   const windowCount = Object.keys(state.windows ?? {}).length;
   const levelCount = Object.keys(state.levels).length;
-  const activeLevelId = Object.keys(state.levels)[0] ?? '';
-  const activeLevel = Object.values(state.levels)[0]?.name ?? 'Aucun niveau';
+  const activeLevelId =
+    activeLevelIdProp && state.levels[activeLevelIdProp]
+      ? activeLevelIdProp
+      : Object.keys(state.levels)[0] ?? '';
+  const activeLevel =
+    (activeLevelId && state.levels[activeLevelId]?.name) || 'Aucun niveau';
 
   const detectedRooms = activeLevelId ? detectRooms(state, activeLevelId) : [];
   const totalRoomAreaM2 = (detectedRooms.reduce((acc, r) => acc + r.areaMm2, 0) / 1e6).toFixed(2);

@@ -206,6 +206,14 @@ export function PropertyInspector({
   const [, setTick] = useState(0);
   const forceUpdate = () => setTick((t) => t + 1);
 
+  // Abonnement réactif aux mutations documentaires (undo, redo, modifications externes)
+  useEffect(() => {
+    const unsubscribe = doc.subscribe(() => {
+      forceUpdate();
+    });
+    return unsubscribe;
+  }, [doc]);
+
   const isCollapsed = controlledCollapsed !== undefined ? controlledCollapsed : internalCollapsed;
 
   const toggle = () => {

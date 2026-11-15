@@ -3,6 +3,7 @@ import { type BimDocument, computeLevelMetrics, type LevelMetrics } from '@mini-
 
 export interface MetricsPanelProps {
   readonly doc: BimDocument;
+  readonly activeLevelId?: string | null;
   readonly isCollapsed?: boolean;
   readonly onToggleCollapse?: () => void;
 }
@@ -68,14 +69,27 @@ export function downloadCsvFile(content: string, filename: string): void {
  */
 export function MetricsPanel({
   doc,
+  activeLevelId,
   isCollapsed: externalCollapsed,
   onToggleCollapse,
 }: MetricsPanelProps) {
+  const [revision, setRevision] = useState(0);
+
+  // Abonnement réactif aux mutations documentaires (undo, redo, commandes)
+  useEffect(() => {
+    const unsubscribe = doc.subscribe(() => {
+      setRevision((r) => r + 1);
+    });
+    return unsubscribe;
+  }, [doc]);
+
   const state = doc.getState();
   const levels = useMemo(() => Object.values(state.levels), [state.levels]);
 
   const [selectedLevelId, setSelectedLevelId] = useState<string>(() => {
-    return levels[0]?.id ?? '';
+    return activeLevelId && state.levels[activeLevelId]
+      ? activeLevelId
+      : levels[0]?.id ?? '';
   });
 
   const [internalCollapsed, setInternalCollapsed] = useState<boolean>(false);
@@ -88,6 +102,13 @@ export function MetricsPanel({
       setInternalCollapsed((prev) => !prev);
     }
   };
+
+  // Synchroniser avec activeLevelId si passé en prop
+  useEffect(() => {
+    if (activeLevelId && state.levels[activeLevelId]) {
+      setSelectedLevelId(activeLevelId);
+    }
+  }, [activeLevelId, state.levels]);
 
   // Synchroniser le selectedLevelId si la liste des niveaux change
   useEffect(() => {
@@ -115,7 +136,7 @@ export function MetricsPanel({
     }, 200);
 
     return () => clearTimeout(timer);
-  }, [doc, state, selectedLevelId, levels]);
+  }, [doc, state, selectedLevelId, levels, revision]);
 
   const activeLevelName = state.levels[selectedLevelId]?.name ?? 'Niveau';
 
