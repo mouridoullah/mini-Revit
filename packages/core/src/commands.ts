@@ -763,19 +763,28 @@ export class UpdateDoorCommand implements Command {
       const curH = curType?.height ?? (existing as unknown as { height?: number }).height ?? 2100;
       const newW = rawPatch.width ?? curW;
       const newH = rawPatch.height ?? curH;
-      const typeKey = `door-type-${newW}x${newH}`;
+
       if (!draft.doorTypes) {
         (draft as { doorTypes: Record<ElementId, DoorType> }).doorTypes = {};
       }
-      if (!draft.doorTypes[typeKey]) {
+
+      // 1. Déduplication : rechercher si un DoorType équivalent existe déjà
+      const existingMatch = Object.values(draft.doorTypes).find(
+        (t) => t.width === newW && t.height === newH,
+      );
+
+      if (existingMatch) {
+        targetDoorTypeId = existingMatch.id;
+      } else {
+        const typeKey = `door-type-${newW}x${newH}`;
         draft.doorTypes[typeKey] = {
           id: typeKey,
           name: `Porte ${newW}×${newH} mm`,
           width: newW,
           height: newH,
         };
+        targetDoorTypeId = typeKey;
       }
-      targetDoorTypeId = typeKey;
     }
 
     const sanitizedDoorPatch = { ...this.patch };
@@ -827,11 +836,23 @@ export class UpdateWindowCommand implements Command {
       const curH = curType?.height ?? (existing as unknown as { height?: number }).height ?? 1400;
       const newW = rawPatch.width ?? curW;
       const newH = rawPatch.height ?? curH;
-      const typeKey = `window-type-${newW}x${newH}-s${existing.sillHeight}`;
+
       if (!draft.windowTypes) {
         (draft as { windowTypes: Record<ElementId, WindowType> }).windowTypes = {};
       }
-      if (!draft.windowTypes[typeKey]) {
+
+      // 1. Déduplication : rechercher si un WindowType équivalent existe déjà
+      const existingMatch = Object.values(draft.windowTypes).find(
+        (t) =>
+          t.width === newW &&
+          t.height === newH &&
+          (t.defaultSillHeight ?? 900) === (existing.sillHeight ?? 900),
+      );
+
+      if (existingMatch) {
+        targetWindowTypeId = existingMatch.id;
+      } else {
+        const typeKey = `window-type-${newW}x${newH}-s${existing.sillHeight}`;
         draft.windowTypes[typeKey] = {
           id: typeKey,
           name: `Fenêtre ${newW}×${newH} mm`,
@@ -839,8 +860,8 @@ export class UpdateWindowCommand implements Command {
           height: newH,
           defaultSillHeight: existing.sillHeight,
         };
+        targetWindowTypeId = typeKey;
       }
-      targetWindowTypeId = typeKey;
     }
 
     const sanitizedWindowPatch = { ...this.patch };

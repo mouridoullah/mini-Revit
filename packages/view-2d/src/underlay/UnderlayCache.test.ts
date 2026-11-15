@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { vec2 } from '@mini-bim/geometry';
 import {
   UnderlayCache,
@@ -139,6 +139,11 @@ describe('UnderlayCache (packages/view-2d/src/underlay/UnderlayCache.ts)', () =>
     expect(path.ops.length).toBe(0);
   });
 
+  it('T-UC-05b — compile() lève TypeError si input.levelId est manquant ou vide', () => {
+    expect(() => cache.compile({ levelId: '', walls: [] })).toThrow(TypeError);
+    expect(() => cache.compile(null as unknown as UnderlayInput)).toThrow(TypeError);
+  });
+
   it('T-UC-06 — getOrCompile effectue 1 compilation et 9 hits consécutifs sur 10 requêtes', () => {
     const input: UnderlayInput = {
       levelId: 'lvl_cached',
@@ -163,6 +168,27 @@ describe('UnderlayCache (packages/view-2d/src/underlay/UnderlayCache.ts)', () =>
 
     expect(cache.getHitCount()).toBe(9);
     expect(cache.getMissCount()).toBe(1);
+  });
+
+  it('T-UC-06b — espionnage explicite vi.spyOn(cache, "compile") appelé 1 seule fois sur 10 getOrCompile successifs', () => {
+    const input: UnderlayInput = {
+      levelId: 'lvl_cached_spy',
+      walls: [
+        {
+          id: 'w_spy',
+          start: vec2(0, 0),
+          end: vec2(3000, 0),
+          thickness: 200,
+        },
+      ],
+    };
+
+    const spy = vi.spyOn(cache, 'compile');
+    for (let i = 0; i < 10; i++) {
+      cache.getOrCompile(input);
+    }
+    expect(spy).toHaveBeenCalledTimes(1);
+    spy.mockRestore();
   });
 
   it('T-UC-07 — invalidate([wallId]) invalide le niveau concerné et force une recompilation', () => {
@@ -282,5 +308,14 @@ describe('UnderlayCache (packages/view-2d/src/underlay/UnderlayCache.ts)', () =>
     expect(() => cache.compile(input)).not.toThrow();
     const path = cache.compile(input) as unknown as MockPath2D;
     expect(path.ops.length).toBe(0);
+  });
+
+  it('T-UC-13 — MockPath2D valide strictement la finitude des coordonnées et rejette NaN/Infinity avec TypeError', () => {
+    const mock = new MockPath2D();
+    expect(() => mock.moveTo(NaN, 100)).toThrow(TypeError);
+    expect(() => mock.lineTo(100, Infinity)).toThrow(TypeError);
+    expect(() => mock.arc(0, 0, -50, 0, Math.PI)).toThrow(TypeError);
+    expect(() => mock.rect(0, 0, NaN, 200)).toThrow(TypeError);
+    expect(() => mock.addPath(null)).toThrow(TypeError);
   });
 });

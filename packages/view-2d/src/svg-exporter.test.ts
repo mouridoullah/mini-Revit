@@ -35,12 +35,29 @@ describe('Générateur de Plans SVG Imprimables (packages/view-2d/svg-exporter)'
       wallTypes: {
         wt_200: { thickness: 200 },
       },
+      doorTypes: {
+        'door-type-900x2100': {
+          id: 'door-type-900x2100',
+          name: 'Porte 900x2100',
+          width: 900,
+          height: 2100,
+        },
+      },
+      windowTypes: {
+        'window-type-1200x1400': {
+          id: 'window-type-1200x1400',
+          name: 'Fenêtre 1200x1400',
+          width: 1200,
+          height: 1400,
+          defaultSillHeight: 900,
+        },
+      },
       doors: {
         door_01: {
           id: 'door_01',
           hostWallId: 'w_south',
           offsetAlong: 2000,
-          width: 900,
+          doorTypeId: 'door-type-900x2100',
           swing: { side: 'right', direction: 'in' },
         },
       },
@@ -49,7 +66,7 @@ describe('Générateur de Plans SVG Imprimables (packages/view-2d/svg-exporter)'
           id: 'win_01',
           hostWallId: 'w_north',
           offsetAlong: 1500,
-          width: 1200,
+          windowTypeId: 'window-type-1200x1400',
         },
       },
       dimensions: {

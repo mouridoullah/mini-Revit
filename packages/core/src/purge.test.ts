@@ -139,4 +139,69 @@ describe('Phase 6.2a — Purge Définitive des Champs Transitoires V1', () => {
     expect(doors['d-rt']?.['kind']).toBeUndefined();
     expect(doors['d-rt']?.['doorTypeId']).toBe('door-type-900x2100');
   });
+
+  it('T-PURGE-05 : UpdateDoorCommand déduplique les DoorTypes existants et ne pollue pas l instance', () => {
+    const doc = BimDocument.createDefaultProject();
+    const state = doc.getState();
+    const levelId = Object.keys(state.levels)[0]!;
+    const wallTypeId = Object.keys(state.wallTypes)[0]!;
+
+    const defaultDoorTypeId = Object.keys(doc.getState().doorTypes)[0]!;
+
+    doc.execute(
+      new Commands.AddWallCommand({
+        id: 'w-dedup',
+        category: 'wall',
+        typeId: wallTypeId,
+        levelId,
+        start: { x: 0, y: 0 },
+        end: { x: 5000, y: 0 },
+      }),
+    );
+    doc.execute(
+      new Commands.AddDoorCommand({
+        id: 'd-dedup',
+        category: 'door',
+        doorTypeId: defaultDoorTypeId,
+        hostWallId: 'w-dedup',
+        offsetAlong: 1000,
+        swing: { side: 'left', direction: 'in' },
+      }),
+    );
+
+    // Initial : 1 DoorType (default-door-type, 900x2100)
+    const initialTypesCount = Object.keys(doc.getState().doorTypes).length;
+
+    // 1. Mise à jour vers 900x2100 (type déjà existant) : doit réutiliser et ne pas dupliquer
+    doc.execute(
+      new Commands.UpdateDoorCommand(
+        'd-dedup',
+        { width: 900, height: 2100 } as unknown as Partial<Door>,
+      ),
+    );
+    expect(Object.keys(doc.getState().doorTypes).length).toBe(initialTypesCount);
+    expect(doc.getState().doors['d-dedup']?.doorTypeId).toBe(defaultDoorTypeId);
+    expect('width' in (doc.getState().doors['d-dedup'] ?? {})).toBe(false);
+
+    // 2. Mise à jour vers de nouvelles dimensions 1000x2150 : crée un type déterministe
+    doc.execute(
+      new Commands.UpdateDoorCommand(
+        'd-dedup',
+        { width: 1000, height: 2150 } as unknown as Partial<Door>,
+      ),
+    );
+    expect(Object.keys(doc.getState().doorTypes).length).toBe(initialTypesCount + 1);
+    expect(doc.getState().doors['d-dedup']?.doorTypeId).toBe('door-type-1000x2150');
+    expect(doc.getState().doorTypes['door-type-1000x2150']?.width).toBe(1000);
+    expect(doc.getState().doorTypes['door-type-1000x2150']?.height).toBe(2150);
+
+    // 3. Ré-application de 1000x2150 : déduplication immédiate, aucun type supplémentaire
+    doc.execute(
+      new Commands.UpdateDoorCommand(
+        'd-dedup',
+        { width: 1000, height: 2150 } as unknown as Partial<Door>,
+      ),
+    );
+    expect(Object.keys(doc.getState().doorTypes).length).toBe(initialTypesCount + 1);
+  });
 });

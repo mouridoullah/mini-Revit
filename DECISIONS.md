@@ -1976,3 +1976,14 @@ La Phase 6.1b a certifié le modèle de dalles et son rendu 2D/3D. Pour assurer 
 - À zoom $1\times$, tolérance = $12\text{ mm}$ ; à zoom $0.1\times$, tolérance = $120\text{ mm}$ ; à zoom $10\times$, tolérance = $1.2\text{ mm}$.
 - Désactivable via l'option `snapToUnderlay: false`.
 
+#### 6. D4 — Arbitrage d'Équidistance de Snapping (Priorité Niveau Actif)
+
+- **Décision :** En cas d'équidistance parfaite (ou dans le même rayon de tolérance) entre un sommet de mur du niveau actif $N$ et un sommet de mur de l'underlay $N-1$, le sommet du niveau actif est **strictement prioritaire**.
+- **Justification :** Évite les ambiguïtés d'accroche UX et préserve la cohésion topologique du plan en cours d'édition (évite de créer des micro-décalages ou de s'aimanter par mégarde sur l'étage sous-jacent).
+
+#### 7. D5 — Tolérance de Compatibilité & Déduplication des Types dans `UpdateDoorCommand` / `UpdateWindowCommand`
+
+- **Contexte :** La purge des champs transitoires (`width?`, `height?`, `kind?`) sur `Door` et `Window` impose de piloter les dimensions via `doorTypeId` / `windowTypeId`. Pour préserver la compatibilité avec les scripts d'automatisation et les outils existants passant encore un patch `{ width, height }`, les commandes supportent ces attributs de manière transactionnelle.
+- **Règle de Déduplication Stricte :** Lors de l'application d'un patch avec dimensions, la commande inspecte d'abord le catalogue existant (`draft.doorTypes` / `draft.windowTypes`). Si un type constructif aux dimensions identiques existe déjà, il est réutilisé. Dans le cas contraire uniquement, un type déterministe est généré (ex: `door-type-1000x2150`).
+- **Périmètre du Modèle :** Conformément au standard BIM Type/Instance d'ADR-042, les types créés enrichissent le catalogue du projet et restent persistés même en cas de suppression de l'instance hôte. L'instance `Door` ou `Window` ne stocke aucun champ transitoire et référence exclusivement son `doorTypeId` / `windowTypeId`.
+

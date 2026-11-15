@@ -44,17 +44,31 @@ export interface UnderlayInput {
   readonly windows?: readonly WindowForUnderlay[];
 }
 
+function assertFiniteArgs(method: string, ...args: number[]): void {
+  for (let i = 0; i < args.length; i++) {
+    if (!Number.isFinite(args[i])) {
+      throw new TypeError(
+        `Failed to execute '${method}' on 'Path2D': The provided float value is non-finite.`,
+      );
+    }
+  }
+}
+
 /**
- * Implémentation de repli légère et inspectable de Path2D pour les environnements de test headless (Node.js/JSDOM).
+ * Implémentation de repli légère, inspectable et validante de Path2D
+ * pour les environnements de test headless (Node.js/JSDOM).
+ * Valide strictement la finitude des coordonnées (refuse NaN / Infinity).
  */
 export class MockPath2D {
   public readonly ops: Array<{ method: string; args: readonly unknown[] }> = [];
 
   public moveTo(x: number, y: number): void {
+    assertFiniteArgs('moveTo', x, y);
     this.ops.push({ method: 'moveTo', args: [x, y] });
   }
 
   public lineTo(x: number, y: number): void {
+    assertFiniteArgs('lineTo', x, y);
     this.ops.push({ method: 'lineTo', args: [x, y] });
   }
 
@@ -70,6 +84,12 @@ export class MockPath2D {
     endAngle: number,
     counterclockwise?: boolean,
   ): void {
+    assertFiniteArgs('arc', x, y, radius, startAngle, endAngle);
+    if (radius < 0) {
+      throw new TypeError(
+        "Failed to execute 'arc' on 'Path2D': The radius provided is negative.",
+      );
+    }
     this.ops.push({
       method: 'arc',
       args: [x, y, radius, startAngle, endAngle, counterclockwise ?? false],
@@ -77,10 +97,16 @@ export class MockPath2D {
   }
 
   public rect(x: number, y: number, w: number, h: number): void {
+    assertFiniteArgs('rect', x, y, w, h);
     this.ops.push({ method: 'rect', args: [x, y, w, h] });
   }
 
   public addPath(path: unknown, transform?: unknown): void {
+    if (!path) {
+      throw new TypeError(
+        "Failed to execute 'addPath' on 'Path2D': 1 argument required, but only 0 present.",
+      );
+    }
     this.ops.push({ method: 'addPath', args: [path, transform] });
   }
 }
@@ -113,6 +139,10 @@ export class UnderlayCache {
    * Compile un Path2D composé pour le niveau donné (murs + portes + fenêtres en coordonnées monde).
    */
   public compile(input: UnderlayInput): Path2D {
+    if (!input || typeof input.levelId !== 'string' || input.levelId.trim() === '') {
+      throw new TypeError("UnderlayCache.compile: 'input.levelId' must be a non-empty string.");
+    }
+
     const path = createUnderlayPath();
     const wallMap = new Map<string, WallForUnderlay>();
 
