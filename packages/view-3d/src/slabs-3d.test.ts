@@ -143,6 +143,41 @@ describe('view-3d — Rendu 3D des Dalles et Trémies (Milestone 6.1b-1)', () =>
     expect(rawMesh.indices.length).toBeGreaterThan(36);
     expect(rawMesh.boundingBox.min.z).toBe(-200);
     expect(rawMesh.boundingBox.max.z).toBe(0);
+
+    // Vérification de l'orientation stricte des normales des flancs (P4 / Complément n°22) :
+    // 1. Les flancs du trou (centre 2500, 2000) doivent pointer vers le vide intérieur du trou
+    // 2. Les flancs du contour extérieur doivent pointer vers l'extérieur du bâtiment
+    const holeCenter = { x: 2500, y: 2000 };
+    const slabCenter = { x: 2500, y: 2000 };
+    let holeFlankNormalsVerified = 0;
+    let outerFlankNormalsVerified = 0;
+
+    for (let i = 0; i < rawMesh.positions.length; i += 3) {
+      const px = rawMesh.positions[i]!;
+      const py = rawMesh.positions[i + 1]!;
+      const nx = rawMesh.normals[i]!;
+      const ny = rawMesh.normals[i + 1]!;
+      const nz = rawMesh.normals[i + 2]!;
+
+      // Ignorer les faces horizontales supérieure (+Z) et inférieure (-Z)
+      if (Math.abs(nz) > 0.5) continue;
+
+      // Est-ce un sommet de flanc de trou ?
+      if (px >= 1999 && px <= 3001 && py >= 1499 && py <= 2501) {
+        // La normale doit pointer vers le centre du trou (vers l'air libre)
+        const dot = nx * (holeCenter.x - px) + ny * (holeCenter.y - py);
+        expect(dot).toBeGreaterThan(0);
+        holeFlankNormalsVerified++;
+      } else {
+        // Sommet du contour extérieur : la normale doit pointer vers l'extérieur
+        const dot = nx * (px - slabCenter.x) + ny * (py - slabCenter.y);
+        expect(dot).toBeGreaterThan(0);
+        outerFlankNormalsVerified++;
+      }
+    }
+
+    expect(holeFlankNormalsVerified).toBe(16); // 4 quads * 4 sommets
+    expect(outerFlankNormalsVerified).toBe(16); // 4 quads * 4 sommets
   });
 
   it('T-SLAB-3D-03 : AABB exacte avec élévation et baseOffset', () => {

@@ -187,7 +187,7 @@ export function generatePlanSvg(doc: DocumentFor2D, options: PlanSvgOptions = {}
 
     // Position de feuillure
     const dt = door.doorTypeId ? state.doorTypes?.[door.doorTypeId] : undefined;
-    const doorWidth = dt?.width ?? door.width ?? 900;
+    const doorWidth = dt?.width ?? 900;
     const hingeX = host.start.x + ux * door.offsetAlong;
     const hingeY = host.start.y + uy * door.offsetAlong;
     const endX = host.start.x + ux * (door.offsetAlong + doorWidth);

@@ -260,13 +260,13 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
     if (op.kind === 'door') {
       const door = item as Door;
       const dt = state.doorTypes?.[door.doorTypeId];
-      opWidth = dt?.width ?? door.width ?? 900;
-      opHeight = dt?.height ?? door.height ?? 2100;
+      opWidth = dt?.width ?? 900;
+      opHeight = dt?.height ?? 2100;
     } else {
       const win = item as Window;
       const wt = state.windowTypes?.[win.windowTypeId];
-      opWidth = wt?.width ?? win.width ?? 1200;
-      opHeight = wt?.height ?? win.height ?? 1400;
+      opWidth = wt?.width ?? 1200;
+      opHeight = wt?.height ?? 1400;
     }
     const opOffset = item.offsetAlong;
 

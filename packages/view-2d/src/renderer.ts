@@ -316,7 +316,9 @@ export function drawOpeningDoor(
   const vy = ux;
 
   const halfT = wallThickness / 2;
-  const doorWidth = customDoorWidth ?? door.width ?? 900;
+  const dAny = door as unknown as Record<string, unknown>;
+  const fallbackWidth = typeof dAny['width'] === 'number' ? (dAny['width'] as number) : 900;
+  const doorWidth = customDoorWidth ?? fallbackWidth;
   const u0 = door.offsetAlong;
   const u1 = door.offsetAlong + doorWidth;
 
@@ -430,7 +432,9 @@ export function drawOpeningWindow(
   const vy = ux;
 
   const halfT = wallThickness / 2;
-  const winWidth = customWinWidth ?? window.width ?? 1200;
+  const wAny = window as unknown as Record<string, unknown>;
+  const fallbackWidth = typeof wAny['width'] === 'number' ? (wAny['width'] as number) : 1200;
+  const winWidth = customWinWidth ?? fallbackWidth;
   const u0 = window.offsetAlong;
   const u1 = window.offsetAlong + winWidth;
 
