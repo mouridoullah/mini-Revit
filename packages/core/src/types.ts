@@ -37,13 +37,25 @@ export interface WallType {
 }
 
 /**
- * Contrainte d'élévation supérieure d'un mur (ADR-040 / ADR-045).
+ * Contrainte d'élévation supérieure d'un mur (ADR-040 / ADR-045 / ADR-053).
+ * Discriminated union liant un mur soit à un niveau d'étage, soit à une toiture.
  */
-export interface TopConstraint {
-  readonly levelId: ElementId;
-  readonly offset?: number; // décalage en mm (défaut: 0)
-  readonly topOffset?: number; // alias pour compatibilité
-}
+export type TopConstraint =
+  | {
+      readonly kind?: 'level';
+      readonly levelId: ElementId;
+      readonly offset?: number; // décalage en mm (défaut: 0)
+      readonly topOffset?: number; // alias pour compatibilité
+    }
+  | {
+      readonly kind: 'roof';
+      readonly roofId?: ElementId;
+      readonly levelId?: undefined;
+      readonly offset?: number; // décalage en mm (défaut: 0)
+      readonly topOffset?: number; // alias pour compatibilité
+    };
+
+export type WallTopConstraint = TopConstraint;
 
 /**
  * Instance d'un mur linéaire placé dans le projet.
@@ -252,6 +264,62 @@ export interface Stair {
   readonly name?: string;
 }
 
+export type RoofFamily = 'flat' | 'gable';
+
+export interface BaseRoofType {
+  readonly id: ElementId;
+  readonly name: string;
+  readonly category: 'roofType';
+  readonly thickness: number; // épaisseur de toiture en mm (>= 100)
+  readonly materialId?: string;
+}
+
+export interface FlatRoofType extends BaseRoofType {
+  readonly family: 'flat';
+  readonly acrotereHeight?: number; // hauteur d'acrotère en mm
+}
+
+export interface GableRoofType extends BaseRoofType {
+  readonly family: 'gable';
+  readonly slopeDeg: number; // pente en degrés (5° à 60°)
+  readonly overhangMm: number; // débord de toit en mm (0 à 1500)
+}
+
+/**
+ * Famille paramétrique d'une toiture (ADR-053 [D1]).
+ * Discriminated union selon la famille constructive (toit plat ou toit à 2 versants).
+ */
+export type RoofType = FlatRoofType | GableRoofType;
+
+/**
+ * Instance d'une toiture posée sur le bâtiment (ADR-053 [D1]).
+ */
+export interface Roof {
+  readonly id: ElementId;
+  readonly category: 'roof';
+  readonly roofTypeId: ElementId;
+  readonly levelId: ElementId; // niveau de référence d'assise
+  readonly footprint: readonly Vec2[]; // empreinte fermée des murs d'appui (CCW)
+  readonly baseOffset?: number; // décalage altimétrique vs niveau (défaut: 0)
+  readonly ridgeAxis?: { readonly start: Vec2; readonly end: Vec2 }; // requis si family === 'gable'
+  readonly slopeOverrideDeg?: number; // surcharge optionnelle de pente
+  readonly overhangOverrideMm?: number; // surcharge optionnelle de débord
+  readonly name?: string;
+}
+
+/**
+ * Ouverture / trémie de toiture (lucarne, fenêtre de toit, conduit) (ADR-053 [D4]).
+ */
+export interface RoofOpening {
+  readonly id: ElementId;
+  readonly category: 'roofOpening';
+  readonly roofId: ElementId;
+  readonly offsetU: number; // abscisse locale
+  readonly offsetV: number; // ordonnée locale
+  readonly width: number;
+  readonly height: number;
+}
+
 /**
  * État documentaire immuable complet du projet Mini-BIM (Schéma v2 / Saison 2).
  * Normalisé sous forme de dictionnaires indexés par ElementId.
@@ -265,6 +333,7 @@ export interface BimState {
   readonly doorTypes: Record<ElementId, DoorType>;
   readonly windowTypes: Record<ElementId, WindowType>;
   readonly stairTypes?: Record<ElementId, StairType>;
+  readonly roofTypes?: Record<ElementId, RoofType>;
   readonly walls: Record<ElementId, Wall>;
   readonly slabs: Record<ElementId, Slab>;
   readonly doors: Record<ElementId, Door>;
@@ -272,6 +341,8 @@ export interface BimState {
   readonly rooms: Record<ElementId, Room>;
   readonly dimensions: Record<ElementId, Dimension>;
   readonly stairs?: Record<ElementId, Stair>;
+  readonly roofs?: Record<ElementId, Roof>;
+  readonly roofOpenings?: Record<ElementId, RoofOpening>;
 }
 
 /**

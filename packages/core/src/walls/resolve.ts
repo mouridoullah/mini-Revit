@@ -1,5 +1,7 @@
-import { type BimState, type Wall, type ElementId } from '../types.js';
+import { type Vec2, vec2 } from '@mini-bim/geometry';
+import { type BimState, type Wall, type ElementId, type Roof } from '../types.js';
 import { computeWallVerticalBounds } from '../walls.js';
+import { computeWallTopProfile, isWallCoveredByRoof } from '../roofs/top-profile.js';
 
 export interface ResolvedOpening {
   readonly id: ElementId;
@@ -7,56 +9,155 @@ export interface ResolvedOpening {
   readonly offsetAlong: number;
   readonly width: number;
   readonly height: number;
-  readonly sillHeight: number;       // Hauteur d'allège (0 pour porte, sillHeight pour fenêtre)
-  readonly sillZAbsolute: number;   // zBase + sillHeight
+  readonly sillHeight: number; // Hauteur d'allège (0 pour porte, sillHeight pour fenêtre)
+  readonly sillZAbsolute: number; // zBase + sillHeight
   readonly lintelZAbsolute: number; // zBase + sillHeight + height
 }
 
 export interface ResolvedWall {
   readonly wallId: ElementId;
-  readonly zBase: number;          // level.elevation + (wall.baseOffset ?? 0)
-  readonly zTop: number;           // computed from heightOverride > topConstraint > wallType.height
-  readonly height: number;         // zTop - zBase (>= 0)
-  readonly heightSource: 'override' | 'constraint' | 'nominal';
+  readonly zBase: number; // level.elevation + (wall.baseOffset ?? 0)
+  readonly zTop: number; // max(topProfile.y)
+  readonly height: number; // zTop - zBase (>= 0)
+  readonly heightSource: 'override' | 'constraint' | 'nominal'; // conservé pour rétrocompatibilité
+  readonly wallHeightSource: 'override' | 'level' | 'roof'; // ADR-053 [D2]
   readonly limitingSlabId?: ElementId;
+  readonly limitingRoofId?: ElementId;
   readonly openings: readonly ResolvedOpening[];
+  readonly topProfile: readonly Vec2[]; // polyligne (offsetAlong, zAbsolu) de u = 0 à u = L
 }
 
 /**
- * Résout la géométrie altimétrique et les ouvertures d'un mur architectural (ADR-049 / S1-1 + S1-4).
+ * Résout la géométrie altimétrique, le profil supérieur (topProfile) et les ouvertures d'un mur architectural
+ * (ADR-049 / ADR-053).
  *
  * Source unique de vérité pour :
  * - zBase : arase inférieure absolue (niveau + baseOffset)
- * - zTop : arase supérieure absolue (heightOverride > topConstraint/dalle > wallType nominal)
- * - height : hauteur libre effective du mur (zTop - zBase)
- * - openings : liste ordonnée des ouvertures avec cotes absolues sillZAbsolute et lintelZAbsolute
+ * - zTop : arase supérieure maximale absolue (max topProfile)
+ * - height : hauteur libre effective maximale (zTop - zBase)
+ * - topProfile : profil polygonal du sommet du mur (biseauté sous toiture ou rectangulaire)
+ * - openings : liste ordonnée des ouvertures avec cotes absolues
  *
  * @param wall Mur hôte
  * @param state État global du document BIM
  * @returns Géométrie résolue du mur
  */
 export function resolveWallGeometry(wall: Wall, state: BimState): ResolvedWall {
-  const bounds = computeWallVerticalBounds(wall, state);
+  const currentLevel = state.levels[wall.levelId];
+  const zBase = (currentLevel?.elevation ?? 0) + (wall.baseOffset ?? 0);
+  const wallType = state.wallTypes[wall.typeId];
+  const defaultHeight = wallType?.height ?? 2800;
 
+  const dx = wall.end.x - wall.start.x;
+  const dy = wall.end.y - wall.start.y;
+  const wallLength = Math.hypot(dx, dy);
+
+  let zTop: number;
+  let height: number;
+  let heightSource: 'override' | 'constraint' | 'nominal';
+  let wallHeightSource: 'override' | 'level' | 'roof';
+  let limitingSlabId: ElementId | undefined;
+  let limitingRoofId: ElementId | undefined;
+  let topProfile: Vec2[];
+
+  // 1. Priorité 1 : Surcharge manuelle explicite (heightOverride)
+  if (wall.heightOverride !== undefined && Number.isFinite(wall.heightOverride)) {
+    height = Math.max(0, wall.heightOverride);
+    zTop = zBase + height;
+    heightSource = 'override';
+    wallHeightSource = 'override';
+    topProfile = [vec2(0, zTop), vec2(wallLength, zTop)];
+  }
+  // 2. Priorité 2 : Contrainte explicite de niveau (topConstraint.kind === 'level')
+  else if (wall.topConstraint?.kind === 'level') {
+    const bounds = computeWallVerticalBounds(wall, state);
+    zTop = bounds.zTop;
+    height = bounds.heightEff;
+    heightSource = bounds.heightSource;
+    wallHeightSource = 'level';
+    limitingSlabId = bounds.limitingSlabId;
+    topProfile = [vec2(0, zTop), vec2(wallLength, zTop)];
+  }
+  // 3. Priorité 3 : Contrainte explicite de toiture (topConstraint.kind === 'roof')
+  else if (wall.topConstraint?.kind === 'roof') {
+    let targetRoof: Roof | undefined;
+    if (wall.topConstraint.roofId && state.roofs) {
+      targetRoof = state.roofs[wall.topConstraint.roofId];
+    }
+    if (!targetRoof && state.roofs) {
+      // Auto-détection si roofId omis
+      targetRoof = Object.values(state.roofs).find((r) => isWallCoveredByRoof(wall, r));
+    }
+
+    if (targetRoof) {
+      topProfile = computeWallTopProfile(wall, targetRoof, state);
+      zTop = Math.max(...topProfile.map((p) => p.y));
+      height = Math.max(0, zTop - zBase);
+      heightSource = 'constraint';
+      wallHeightSource = 'roof';
+      limitingRoofId = targetRoof.id;
+    } else {
+      // Fallback nominal si le toit n'est pas trouvé
+      zTop = zBase + defaultHeight;
+      height = defaultHeight;
+      heightSource = 'nominal';
+      wallHeightSource = 'level';
+      topProfile = [vec2(0, zTop), vec2(wallLength, zTop)];
+    }
+  }
+  // 4. Priorité 4 : Contrainte de niveau legacy ({ levelId } sans kind)
+  else if (wall.topConstraint?.levelId) {
+    const bounds = computeWallVerticalBounds(wall, state);
+    zTop = bounds.zTop;
+    height = bounds.heightEff;
+    heightSource = bounds.heightSource;
+    wallHeightSource = 'level';
+    limitingSlabId = bounds.limitingSlabId;
+    topProfile = [vec2(0, zTop), vec2(wallLength, zTop)];
+  }
+  // 5. Priorité 5 : Détection automatique sous toiture (ADR-053 [D8])
+  else {
+    let autoRoof: Roof | undefined;
+    if (state.roofs) {
+      autoRoof = Object.values(state.roofs).find((r) => isWallCoveredByRoof(wall, r));
+    }
+
+    if (autoRoof) {
+      topProfile = computeWallTopProfile(wall, autoRoof, state);
+      zTop = Math.max(...topProfile.map((p) => p.y));
+      height = Math.max(0, zTop - zBase);
+      heightSource = 'constraint';
+      wallHeightSource = 'roof';
+      limitingRoofId = autoRoof.id;
+    } else {
+      // Aucun toit ni contrainte : nominal
+      zTop = zBase + defaultHeight;
+      height = defaultHeight;
+      heightSource = 'nominal';
+      wallHeightSource = 'level';
+      topProfile = [vec2(0, zTop), vec2(wallLength, zTop)];
+    }
+  }
+
+  // 6. Résolution des ouvertures hébergées
   const openings: ResolvedOpening[] = [];
 
-  // 1. Portes hébergées
   if (state.doors) {
     for (const door of Object.values(state.doors)) {
       if (door.hostWallId === wall.id) {
         const dt = state.doorTypes?.[door.doorTypeId];
         const width = dt?.width ?? 900;
-        const height = dt?.height ?? 2100;
+        const doorHeight = dt?.height ?? 2100;
         const sillHeight = 0;
-        const sillZAbsolute = bounds.zBase + sillHeight;
-        const lintelZAbsolute = sillZAbsolute + height;
+        const sillZAbsolute = zBase + sillHeight;
+        const lintelZAbsolute = sillZAbsolute + doorHeight;
 
         openings.push({
           id: door.id,
           kind: 'door',
           offsetAlong: door.offsetAlong,
           width,
-          height,
+          height: doorHeight,
           sillHeight,
           sillZAbsolute,
           lintelZAbsolute,
@@ -65,23 +166,22 @@ export function resolveWallGeometry(wall: Wall, state: BimState): ResolvedWall {
     }
   }
 
-  // 2. Fenêtres hébergées
   if (state.windows) {
     for (const win of Object.values(state.windows)) {
       if (win.hostWallId === wall.id) {
         const wt = state.windowTypes?.[win.windowTypeId];
         const width = wt?.width ?? 1200;
-        const height = wt?.height ?? 1400;
+        const winHeight = wt?.height ?? 1400;
         const sillHeight = win.sillHeight ?? 0;
-        const sillZAbsolute = bounds.zBase + sillHeight;
-        const lintelZAbsolute = sillZAbsolute + height;
+        const sillZAbsolute = zBase + sillHeight;
+        const lintelZAbsolute = sillZAbsolute + winHeight;
 
         openings.push({
           id: win.id,
           kind: 'window',
           offsetAlong: win.offsetAlong,
           width,
-          height,
+          height: winHeight,
           sillHeight,
           sillZAbsolute,
           lintelZAbsolute,
@@ -90,16 +190,18 @@ export function resolveWallGeometry(wall: Wall, state: BimState): ResolvedWall {
     }
   }
 
-  // Trier les ouvertures par abscisse curviligne offsetAlong
   openings.sort((a, b) => a.offsetAlong - b.offsetAlong);
 
   return {
     wallId: wall.id,
-    zBase: bounds.zBase,
-    zTop: bounds.zTop,
-    height: bounds.heightEff,
-    heightSource: bounds.heightSource,
-    ...(bounds.limitingSlabId ? { limitingSlabId: bounds.limitingSlabId } : {}),
+    zBase,
+    zTop,
+    height,
+    heightSource,
+    wallHeightSource,
+    ...(limitingSlabId ? { limitingSlabId } : {}),
+    ...(limitingRoofId ? { limitingRoofId } : {}),
     openings,
+    topProfile,
   };
 }

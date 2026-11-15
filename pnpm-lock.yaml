@@ -90,6 +90,9 @@ importers:
       immer:
         specifier: ^11.0.0
         version: 11.2.10
+      polygon-clipping:
+        specifier: ^0.15.7
+        version: 0.15.7
       ulid:
         specifier: ^3.0.2
         version: 3.0.2

@@ -35,6 +35,12 @@ function getEntitiesForCategory(
         return state.stairs ?? {};
       case 'stairType':
         return state.stairTypes ?? {};
+      case 'roof':
+        return state.roofs ?? {};
+      case 'roofType':
+        return state.roofTypes ?? {};
+      case 'roofOpening':
+        return state.roofOpenings ?? {};
       default:
         return {};
     }

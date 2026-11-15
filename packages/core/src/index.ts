@@ -14,9 +14,16 @@ export type {
   SlabType,
   Stair,
   StairType,
+  Roof,
+  RoofType,
+  RoofOpening,
+  RoofFamily,
+  FlatRoofType,
+  GableRoofType,
   DoorType,
   WindowType,
   TopConstraint,
+  WallTopConstraint,
   Level,
   Layer,
   ElementId,
@@ -75,6 +82,15 @@ export {
   AddStairCommand,
   UpdateStairCommand,
   DeleteStairCommand,
+  AddRoofTypeCommand,
+  UpdateRoofTypeCommand,
+  DeleteRoofTypeCommand,
+  AddRoofCommand,
+  UpdateRoofCommand,
+  DeleteRoofCommand,
+  AddRoofOpeningCommand,
+  UpdateRoofOpeningCommand,
+  DeleteRoofOpeningCommand,
 } from './commands.js';
 export {
   BimValidationError,
@@ -93,6 +109,14 @@ export {
   validateStairBlondel,
   checkStairViolations,
   checkStairTypeViolations,
+  validateRoof,
+  validateRoofType,
+  validateRoofOpening,
+  checkRoofViolations,
+  checkRoofTypeViolations,
+  checkRoofOpeningViolations,
+  canDeleteRoof,
+  canDeleteRoofType,
   validateRoom,
   validateDimension,
   canDeleteWall,
@@ -113,6 +137,7 @@ export { getSortedLevels, getLevelStoryHeight, setStoryHeight } from './levels.j
 export { generateId } from './ids.js';
 export { toJSON, fromJSON } from './serialization.js';
 export { HistoryStack, type HistoryEntry } from './history.js';
+export * from './roofs/index.js';
 export * from './rooms/index.js';
 export * from './metrics.js';
 export { computeDimensionValue } from './dimensions/index.js';

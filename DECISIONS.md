@@ -61,6 +61,7 @@
 | **ADR-050** | Unification des Données Dérivées, Invalidation de Cache & Matériaux Partagés (S1-2, S2-3, S2-5) | **Accepté**  | 15/11/2026 |
 | **ADR-051** | Persistance Locale Automatique via IndexedDB & Sécurisation de Session (S2-8)                  | **Accepté**  | 15/11/2026 |
 | **ADR-052** | Dépendance Contrôlée de view-2d vers core pour Fonctions Pures (Amendement ADR-021 & ADR-029)  | **Accepté**  | 15/11/2026 |
+| **ADR-053** | Toitures (Plat & 2 Pans), Biseautage des Murs sous Toiture via topProfile et Trémies de Toit   | **Accepté**  | 15/11/2026 |
 
 ---
 

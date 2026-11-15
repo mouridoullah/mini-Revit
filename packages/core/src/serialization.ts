@@ -253,6 +253,18 @@ export function fromJSON(jsonString: string): BimState {
         `Wall "${id}" has non-positive length (${len} mm).`,
       );
     }
+
+    // Normalisation / Migration de topConstraint vers discriminated union (ADR-053 [D7])
+    if (w.topConstraint) {
+      const tc = w.topConstraint as unknown as Record<string, unknown>;
+      if (tc.kind === undefined && typeof tc.levelId === 'string') {
+        (w as { topConstraint: unknown }).topConstraint = {
+          kind: 'level',
+          levelId: tc.levelId,
+          offset: tc.offset ?? tc.topOffset ?? 0,
+        };
+      }
+    }
   }
 
   // 11. Validation des Portes (Door)
@@ -455,6 +467,55 @@ export function fromJSON(jsonString: string): BimState {
         !Number.isFinite(str.end.y)
       ) {
         throw new BimValidationError('MALFORMED_STAIR', `Malformed stair entry at "${id}".`);
+      }
+    }
+  }
+
+  // 17. Validation des Toitures si présentes (RoofTypes, Roofs, RoofOpenings, ADR-053)
+  if (state.roofTypes && typeof state.roofTypes === 'object' && !Array.isArray(state.roofTypes)) {
+    for (const [id, rt] of Object.entries(state.roofTypes)) {
+      if (
+        !rt ||
+        typeof rt !== 'object' ||
+        rt.id !== id ||
+        typeof rt.name !== 'string' ||
+        !Number.isFinite(rt.thickness) ||
+        (rt.family !== 'flat' && rt.family !== 'gable')
+      ) {
+        throw new BimValidationError('MALFORMED_ROOF_TYPE', `Malformed roofType entry at "${id}".`);
+      }
+    }
+  }
+
+  if (state.roofs && typeof state.roofs === 'object' && !Array.isArray(state.roofs)) {
+    for (const [id, rf] of Object.entries(state.roofs)) {
+      if (
+        !rf ||
+        typeof rf !== 'object' ||
+        rf.id !== id ||
+        rf.category !== 'roof' ||
+        typeof rf.roofTypeId !== 'string' ||
+        typeof rf.levelId !== 'string' ||
+        !Array.isArray(rf.footprint) ||
+        rf.footprint.length < 3
+      ) {
+        throw new BimValidationError('MALFORMED_ROOF', `Malformed roof entry at "${id}".`);
+      }
+    }
+  }
+
+  if (state.roofOpenings && typeof state.roofOpenings === 'object' && !Array.isArray(state.roofOpenings)) {
+    for (const [id, ro] of Object.entries(state.roofOpenings)) {
+      if (
+        !ro ||
+        typeof ro !== 'object' ||
+        ro.id !== id ||
+        ro.category !== 'roofOpening' ||
+        typeof ro.roofId !== 'string' ||
+        !Number.isFinite(ro.width) ||
+        !Number.isFinite(ro.height)
+      ) {
+        throw new BimValidationError('MALFORMED_ROOF_OPENING', `Malformed roofOpening entry at "${id}".`);
       }
     }
   }

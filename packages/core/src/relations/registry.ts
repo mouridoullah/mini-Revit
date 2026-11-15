@@ -84,4 +84,24 @@ export const RELATIONS_REGISTRY: readonly RelationDef[] = [
     targetCategory: 'level',
     onDelete: 'restrict',
   },
+  // 7. Toitures rattachées à leur type constructif et leur niveau d'assise (Restrict, ADR-053)
+  {
+    sourceCategory: 'roof',
+    field: 'roofTypeId',
+    targetCategory: 'roofType',
+    onDelete: 'restrict',
+  },
+  {
+    sourceCategory: 'roof',
+    field: 'levelId',
+    targetCategory: 'level',
+    onDelete: 'restrict',
+  },
+  // 8. Trémies de toitures hébergées par une toiture (Cascade, ADR-053)
+  {
+    sourceCategory: 'roofOpening',
+    field: 'roofId',
+    targetCategory: 'roof',
+    onDelete: 'cascade',
+  },
 ] as const;

@@ -235,7 +235,9 @@ export class DependencyGraph {
           if (!w) continue;
           if (w.typeId) graph.addEdge(w.typeId, w.id);
           if (w.levelId) graph.addEdge(w.levelId, w.id);
-          if (w.topConstraint?.levelId) {
+          if (w.topConstraint?.kind === 'roof' && w.topConstraint.roofId) {
+            graph.addEdge(w.topConstraint.roofId, w.id);
+          } else if (w.topConstraint?.levelId) {
             graph.addEdge(w.topConstraint.levelId, w.id);
           }
         }
@@ -296,6 +298,39 @@ export class DependencyGraph {
               }
             }
           }
+        }
+      }
+
+      const roofs = state.roofs;
+      if (roofs) {
+        for (const id in roofs) {
+          const r = roofs[id];
+          if (!r) continue;
+          if (r.roofTypeId) graph.addEdge(r.roofTypeId, r.id);
+          if (r.levelId) graph.addEdge(r.levelId, r.id);
+
+          // Arête DAG roof -> walls sous-jacents (ou wall.topConstraint.roofId)
+          if (walls) {
+            for (const wallId in walls) {
+              const w = walls[wallId];
+              if (!w) continue;
+              if (w.topConstraint?.kind === 'roof' && w.topConstraint.roofId === r.id) {
+                graph.addEdge(r.id, w.id);
+              } else if (!w.topConstraint || w.topConstraint.kind === 'roof') {
+                // Dépendance souple si le mur est sous l'emprise du toit
+                graph.addEdge(r.id, w.id);
+              }
+            }
+          }
+        }
+      }
+
+      const roofOpenings = state.roofOpenings;
+      if (roofOpenings) {
+        for (const id in roofOpenings) {
+          const ro = roofOpenings[id];
+          if (!ro) continue;
+          if (ro.roofId) graph.addEdge(ro.roofId, ro.id);
         }
       }
     } else {
