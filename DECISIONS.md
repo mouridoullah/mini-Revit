@@ -1448,8 +1448,8 @@ Dans un bâtiment à étages, si un mur du niveau $N$ s'élève jusqu'à l'élé
    - Pour tout niveau sale : vérifie la stricte unicité des élévations (`DUPLICATE_LEVEL_ELEVATION`).
    - Pour tout type sale : vérifie les épaisseurs et dimensions positives.
      Si une nouvelle contrainte est violée dans le dirty set, la transaction est **rejetée atomiquement**, le draft Immer est abandonné et rien n'est empilé dans l'historique Undo/Redo.  
-   **Politique de validation de l'état initial :**  
-   Le constructeur `BimDocument(initialState)` n'exécute pas `validateDirty` lors de l'instanciation initiale du document. La validation différentielle est active exclusivement sur les mutations exécutées via `execute(command)`. Cette politique permet le chargement, la consultation ou la migration contrôlée de documents historiques ou de maquettes d'importation comportant des avertissements préexistants, tout en garantissant qu'aucune nouvelle violation ou aggravation de violation ne peut être introduite par les commandes applicatives.
+     **Politique de validation de l'état initial :**  
+     Le constructeur `BimDocument(initialState)` n'exécute pas `validateDirty` lors de l'instanciation initiale du document. La validation différentielle est active exclusivement sur les mutations exécutées via `execute(command)`. Cette politique permet le chargement, la consultation ou la migration contrôlée de documents historiques ou de maquettes d'importation comportant des avertissements préexistants, tout en garantissant qu'aucune nouvelle violation ou aggravation de violation ne peut être introduite par les commandes applicatives.
 
 ### Conséquences
 
