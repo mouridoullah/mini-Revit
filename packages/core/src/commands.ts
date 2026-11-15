@@ -96,6 +96,9 @@ export class UpdateWallCommand implements Command {
       id: existing.id,
       category: 'wall',
     };
+    if ('heightOverride' in this.patch && this.patch.heightOverride === undefined) {
+      delete (updatedWall as { heightOverride?: number }).heightOverride;
+    }
 
     validateWall(updatedWall, draft as BimState);
     draft.walls[this.wallId] = updatedWall;

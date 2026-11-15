@@ -80,6 +80,10 @@ export type ToolEvent =
   | {
       readonly type: 'keydown';
       readonly key: string; // 'Escape', 'Enter', etc.
+    }
+  | {
+      readonly type: 'dblclick';
+      readonly screen: Vec2;
     };
 ```
 

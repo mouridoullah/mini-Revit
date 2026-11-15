@@ -180,7 +180,22 @@ export interface View2DOptions {
 | `emitCommand(command)` | Émet une commande vers les écouteurs sans JAMAIS muter le document. |
 | `dispose()` | Libère tous les écouteurs d'événements DOM et observateurs de redimensionnement. |
 
-### 5.3 Module de Hit-Testing Découplé (`hit-test.ts`)
+### 5.3 Typage des Formes Temporaires de Prévisualisation (`PreviewShape`)
+
+Les formes géométriques éphémères affichées pendant le tracé ou la sélection sont modélisées par l'union discriminée `PreviewShape` dans le repère monde architectural (mm, Y-up) :
+
+```typescript
+export type PreviewShape =
+  | { readonly kind: 'line'; readonly start: Vec2; readonly end: Vec2 }
+  | { readonly kind: 'rect'; readonly min: Vec2; readonly max: Vec2 }
+  | { readonly kind: 'polygon'; readonly points: readonly Vec2[] };
+```
+
+- **`line` (WallTool) :** Segment élastique pointillé bleu (`#2563eb`, tirets `[6, 6]`) avec pastilles aux extrémités.
+- **`rect` (SelectTool) :** Boîte englobante de sélection rectangulaire (`rgba(37, 99, 235, 0.1)`, contour tirets `[4, 4]`).
+- **`polygon` (SlabTool) :** Polygone de prévisualisation élastique semi-transparent (`rgba(37, 99, 235, 0.15)`, contour tirets `[6, 6]`) fermant dynamiquement le polygone entre le premier point et le curseur.
+
+### 5.4 Module de Hit-Testing Découplé (`hit-test.ts`)
 
 Conformément aux principes de modularité, la logique de détection de clic est extraite dans un module pur et indépendant (`hit-test.ts`), exporté par l'API publique du package pour être directement réutilisé par les outils interactifs (`WallTool`) en Phase 2.2 sans aucune duplication de code.
 
