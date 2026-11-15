@@ -345,3 +345,60 @@ Le package est validé à 100% en environnement headless Vitest / JSDOM (75 test
    - Pointillé régulier : `setLineDash([4 / scale, 4 / scale])`.
    - Opacité : `globalAlpha = 0.5`.
 
+---
+
+## 12. Rendu 2D des Escaliers & Prévisualisation (`drawStair`, `drawStairs` — Phase 6.4 / ADR-048)
+
+Livré en Phase 6.4 pour assurer la représentation graphique normalisée des circulations verticales en vue en plan 2D :
+
+```typescript
+export interface StairRenderConfig {
+  readonly strokeColor: string; // '#4b5563' standard
+  readonly strokeWidth: number; // 1.5px
+  readonly selectedColor: string; // '#2563eb'
+  readonly selectedStrokeWidth: number; // 2.5px
+  readonly walklineColor: string; // '#1d4ed8'
+  readonly walklineWidth: number; // 1.5px
+  readonly riserColor: string; // '#6b7280'
+  readonly riserWidth: number; // 1.0px
+  readonly startDotRadius: number; // 3.0px
+  readonly arrowSize: number; // 6.0px
+}
+
+export function drawStair(
+  ctx: CanvasRenderingContext2D,
+  stair: StairFor2D,
+  stairType: StairTypeFor2D,
+  transform: Transform2D,
+  isSelected: boolean,
+  config?: Partial<StairRenderConfig>,
+): void;
+
+export function drawStairs(
+  ctx: CanvasRenderingContext2D,
+  stairs: readonly StairFor2D[],
+  stairTypes: Readonly<Record<string, StairTypeFor2D>>,
+  transform: Transform2D,
+  selectedIds: ReadonlySet<string>,
+  config?: Partial<StairRenderConfig>,
+): void;
+```
+
+### Conventions Graphiques Normalisées (Norme NF P 01-010 / ISO 128) :
+
+1. **Ligne de foulée axiale fléchée :**
+   - Axe médian centré sur la largeur de l'escalier allant du pied (`start`) vers l'arrivée (`end`).
+   - Pastille circulaire pleine au départ au niveau bas (`startDotRadius = 3.0px`).
+   - Flèche directionnelle d'orientation à l'arrivée au niveau haut (`arrowSize = 6.0px`).
+2. **Nez de marches transversaux :**
+   - $N$ nez de marches espacés de la valeur du giron calculé $g$, perpendiculaires à la trajectoire de l'escalier.
+   - Tracé fin (`#6b7280`, épaisseur 1.0px).
+3. **Contour périphérique & sélection :**
+   - Contour rectangulaire d'emprise totale de la volée (`#4b5563`, épaisseur 1.5px).
+   - En cas de sélection active, surbrillance bleutée (`#2563eb`, épaisseur 2.5px).
+4. **Vue fantôme (Underlay N-1) :**
+   - Si un escalier est situé sur le niveau inférieur N-1, ses contours et ses marches sont projetés en pointillé neutre (`#9ca3af`, tiret 4px / scale) avec opacité 0.5 via `UnderlayCache`.
+5. **Prévisualisation interactive (`PreviewShape.kind === 'stair'`) :**
+   - Tracé en temps réel lors de l'interaction à deux clics de `StairTool`, avec affichage dynamique des nez de marches et de la ligne de foulée prévisionnels.
+
+

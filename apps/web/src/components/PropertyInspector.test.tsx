@@ -160,4 +160,110 @@ describe('PropertyInspector — Panneau latéral d’inspection et d’édition 
     // R+1 doit maintenant être à 3200 mm
     expect(doc.getState().levels[level1Id]?.elevation).toBe(3200);
   });
+
+  // Escaliers paramétriques (ADR-048 / Phase 6.4)
+  it('T-STAIR-INSP-01 : inspection d’un Escalier (nom, type, dénivelée, marches, contremarche, giron)', () => {
+    const stairId = 'stair-test';
+    const stairTypeId = Object.keys(doc.getState().stairTypes ?? {})[0]!;
+
+    doc.execute(
+      new Commands.AddStairCommand({
+        id: stairId,
+        category: 'stair',
+        stairTypeId,
+        bottomLevelId: level0Id,
+        topLevelId: level1Id,
+        start: { x: 0, y: 0 },
+        end: { x: 4845, y: 0 },
+        name: 'Escalier RDC',
+      }),
+    );
+
+    render(<PropertyInspector doc={doc} selectedIds={[stairId]} />);
+
+    expect(screen.getByTestId('inspector-stair-panel')).toBeDefined();
+    expect(screen.getByTestId('stair-id').textContent).toBe(stairId);
+    expect(screen.getByTestId('stair-rise-display').textContent).toContain('3000 mm');
+    expect(screen.getByTestId('stair-steps-display').textContent).toContain('17');
+    expect(screen.getByTestId('stair-riser-display').textContent).toContain('176.5 mm');
+    expect(screen.getByTestId('stair-tread-display').textContent).toContain('285.0 mm');
+  });
+
+  it('T-STAIR-INSP-02 : Badge Blondel Conforme (Vert) pour pas de foulée optimal', () => {
+    const stairId = 'stair-blondel-green';
+    const stairTypeId = Object.keys(doc.getState().stairTypes ?? {})[0]!;
+
+    // ΔZ = 3000, L = 4845 -> N = 17, h = 176.47, g = 285.0 -> 2h + g = 637.94 mm (Conforme Confort)
+    doc.execute(
+      new Commands.AddStairCommand({
+        id: stairId,
+        category: 'stair',
+        stairTypeId,
+        bottomLevelId: level0Id,
+        topLevelId: level1Id,
+        start: { x: 0, y: 0 },
+        end: { x: 4845, y: 0 },
+      }),
+    );
+
+    render(<PropertyInspector doc={doc} selectedIds={[stairId]} />);
+
+    const badge = screen.getByTestId('stair-blondel-badge');
+    expect(badge).toBeDefined();
+    expect(badge.textContent).toContain('Conforme (Confort)');
+    expect(badge.textContent).toContain('2h + g = 638 mm');
+  });
+
+  it('T-STAIR-INSP-03 : Inversion du sens de montée permute start et end', () => {
+    const stairId = 'stair-invert';
+    const stairTypeId = Object.keys(doc.getState().stairTypes ?? {})[0]!;
+
+    doc.execute(
+      new Commands.AddStairCommand({
+        id: stairId,
+        category: 'stair',
+        stairTypeId,
+        bottomLevelId: level0Id,
+        topLevelId: level1Id,
+        start: { x: 100, y: 200 },
+        end: { x: 4500, y: 200 },
+      }),
+    );
+
+    render(<PropertyInspector doc={doc} selectedIds={[stairId]} />);
+
+    const invertBtn = screen.getByTestId('stair-invert-direction-btn');
+    fireEvent.click(invertBtn);
+
+    const updatedStair = doc.getState().stairs?.[stairId]!;
+    expect(updatedStair.start).toEqual({ x: 4500, y: 200 });
+    expect(updatedStair.end).toEqual({ x: 100, y: 200 });
+  });
+
+  it('T-STAIR-INSP-04 : Avertissement de sécurité et badge rouge/jaune si hors confort/sécurité', () => {
+    const stairId = 'stair-steep';
+    const stairTypeId = Object.keys(doc.getState().stairTypes ?? {})[0]!;
+
+    // Escalier très court : L = 1000 mm pour ΔZ = 3000 mm -> g = 58.8 mm, 2h + g = 411.8 mm (< 560 mm)
+    doc.execute(
+      new Commands.AddStairCommand({
+        id: stairId,
+        category: 'stair',
+        stairTypeId,
+        bottomLevelId: level0Id,
+        topLevelId: level1Id,
+        start: { x: 0, y: 0 },
+        end: { x: 1000, y: 0 },
+      }),
+    );
+
+    render(<PropertyInspector doc={doc} selectedIds={[stairId]} />);
+
+    const badge = screen.getByTestId('stair-blondel-badge');
+    expect(badge.textContent).toContain('Hors Sécurité');
+
+    const warnings = screen.getByTestId('stair-warnings');
+    expect(warnings).toBeDefined();
+    expect(warnings.textContent).toContain('STAIR_BLONDEL_OUT_OF_SAFETY');
+  });
 });

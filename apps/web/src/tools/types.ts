@@ -4,7 +4,15 @@ import { type Transform2D, type PreviewShape, type Vec2 } from '@mini-bim/view-2
 /**
  * Identifiant du type d'outil interactif actif.
  */
-export type ToolKind = 'select' | 'wall' | 'door' | 'window' | 'moveWall' | 'moveOpening' | 'slab';
+export type ToolKind =
+  | 'select'
+  | 'wall'
+  | 'door'
+  | 'window'
+  | 'moveWall'
+  | 'moveOpening'
+  | 'slab'
+  | 'stair';
 
 /**
  * États possibles de la machine à états SelectTool.
@@ -97,6 +105,17 @@ export type SlabToolState =
     };
 
 /**
+ * États possibles de la machine à états StairTool (ADR-048).
+ */
+export type StairToolState =
+  | { readonly kind: 'idle' }
+  | {
+      readonly kind: 'drawing';
+      readonly startWorld: Vec2;
+      readonly currentWorld: Vec2;
+    };
+
+/**
  * Paramètres par défaut configurables pour l'insertion de portes.
  */
 export interface DoorDefaults {
@@ -166,6 +185,7 @@ export interface ToolContext {
   readonly activeLevelId: string;
   readonly activeWallTypeId?: string;
   readonly activeSlabTypeId?: string;
+  readonly activeStairTypeId?: string;
   readonly underlayLevelId?: string | null;
   readonly snapToUnderlay?: boolean;
   readonly doorDefaults?: DoorDefaults;
@@ -184,7 +204,8 @@ export interface Tool {
     | WindowToolState
     | MoveWallToolState
     | MoveOpeningToolState
-    | SlabToolState;
+    | SlabToolState
+    | StairToolState;
   handle(event: ToolEvent, ctx: ToolContext): ToolOutput;
   reset(): void;
 }

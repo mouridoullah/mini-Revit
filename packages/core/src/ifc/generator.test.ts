@@ -433,4 +433,120 @@ describe('Générateur IFC4 ISO 10303-21 (packages/core/ifc)', () => {
 
     ifcApi.CloseModel(modelId);
   });
+
+  // Escaliers paramétriques IFC4 (ADR-048)
+  it('T-STAIR-IFC-01 : Export IFC4 — génère IFCSTAIR (.STRAIGHT_RUN_STAIR.) et IFCSTAIRFLIGHT (.STRAIGHT.)', () => {
+    const doc = BimDocument.createDefaultProject();
+    const baseState = doc.getState();
+    const lvl0 = Object.keys(baseState.levels)[0]!;
+    const lvl1 = 'lvl_01';
+
+    const stairState: BimState = {
+      ...baseState,
+      levels: {
+        ...baseState.levels,
+        [lvl1]: { id: lvl1, name: 'Étage 1', elevation: 3000 },
+      },
+      stairTypes: {
+        st_timber: { id: 'st_timber', name: 'Escalier Bois 900', width: 900 },
+      },
+      stairs: {
+        stair_main: {
+          id: 'stair_main',
+          category: 'stair',
+          stairTypeId: 'st_timber',
+          bottomLevelId: lvl0,
+          topLevelId: lvl1,
+          start: { x: 1000, y: 1000 },
+          end: { x: 5200, y: 1000 },
+          name: 'Escalier Principal',
+        },
+      },
+    };
+
+    const ifcContent = exportToIfc(stairState);
+
+    expect(ifcContent).toContain('IFCSTAIR(');
+    expect(ifcContent).toContain('.STRAIGHT_RUN_STAIR.');
+    expect(ifcContent).toContain('IFCSTAIRFLIGHT(');
+    expect(ifcContent).toContain('.STRAIGHT.');
+    expect(ifcContent).toContain('Escalier Principal');
+  });
+
+  it('T-STAIR-IFC-02 : Relation d’agrégation — IFCRELAGGREGATES lie IFCSTAIR à IFCSTAIRFLIGHT', () => {
+    const doc = BimDocument.createDefaultProject();
+    const baseState = doc.getState();
+    const lvl0 = Object.keys(baseState.levels)[0]!;
+    const lvl1 = 'lvl_01';
+
+    const stairState: BimState = {
+      ...baseState,
+      levels: {
+        ...baseState.levels,
+        [lvl1]: { id: lvl1, name: 'Étage 1', elevation: 3000 },
+      },
+      stairTypes: {
+        st_timber: { id: 'st_timber', name: 'Escalier Bois 900', width: 900 },
+      },
+      stairs: {
+        stair_main: {
+          id: 'stair_main',
+          category: 'stair',
+          stairTypeId: 'st_timber',
+          bottomLevelId: lvl0,
+          topLevelId: lvl1,
+          start: { x: 1000, y: 1000 },
+          end: { x: 5200, y: 1000 },
+        },
+      },
+    };
+
+    const ifcContent = exportToIfc(stairState);
+
+    expect(ifcContent).toContain("IFCRELAGGREGATES(");
+    expect(ifcContent).toContain("'StairFlightAggregation'");
+  });
+
+  it('T-STAIR-IFC-03 : Validation structurelle web-ifc — IFCSTAIR et IFCSTAIRFLIGHT sont parsés sans erreur', async () => {
+    const doc = BimDocument.createDefaultProject();
+    const baseState = doc.getState();
+    const lvl0 = Object.keys(baseState.levels)[0]!;
+    const lvl1 = 'lvl_01';
+
+    const stairState: BimState = {
+      ...baseState,
+      levels: {
+        ...baseState.levels,
+        [lvl1]: { id: lvl1, name: 'Étage 1', elevation: 3000 },
+      },
+      stairTypes: {
+        st_timber: { id: 'st_timber', name: 'Escalier Bois 900', width: 900 },
+      },
+      stairs: {
+        stair_main: {
+          id: 'stair_main',
+          category: 'stair',
+          stairTypeId: 'st_timber',
+          bottomLevelId: lvl0,
+          topLevelId: lvl1,
+          start: { x: 1000, y: 1000 },
+          end: { x: 5200, y: 1000 },
+        },
+      },
+    };
+
+    const ifcContent = exportToIfc(stairState);
+
+    const ifcApi = new WebIFC.IfcAPI();
+    await ifcApi.Init();
+    const modelId = ifcApi.OpenModel(new TextEncoder().encode(ifcContent));
+
+    const stairs = ifcApi.GetLineIDsWithType(modelId, WebIFC.IFCSTAIR);
+    expect(stairs.size()).toBe(1);
+
+    const stairFlights = ifcApi.GetLineIDsWithType(modelId, WebIFC.IFCSTAIRFLIGHT);
+    expect(stairFlights.size()).toBe(1);
+
+    ifcApi.CloseModel(modelId);
+  });
 });

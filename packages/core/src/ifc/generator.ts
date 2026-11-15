@@ -7,6 +7,7 @@ import {
   type Level,
 } from '../types.js';
 import { detectRooms } from '../rooms/detect.js';
+import { computeStairGeometry } from '../stairs.js';
 import { isPointInPolygon, type Vec2 } from '@mini-bim/geometry';
 import { createIfcGuid, escapeIfcString } from './guid.js';
 
@@ -410,6 +411,82 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
         storeyElementsMap.get(slab.levelId) || storeyElementsMap.get(defaultLevel.id);
       if (elementsList) {
         elementsList.push(ifcSlab);
+      }
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Escaliers droits paramétriques (IfcStair & IfcStairFlight - ADR-048)
+  // -------------------------------------------------------------------------
+  if (state.stairs && Object.keys(state.stairs).length > 0) {
+    for (const stair of Object.values(state.stairs)) {
+      const stairType = state.stairTypes?.[stair.stairTypeId];
+      const width = stair.widthOverride ?? stairType?.width ?? 900;
+      const geom = computeStairGeometry(stair, state);
+
+      const dx = stair.end.x - stair.start.x;
+      const dy = stair.end.y - stair.start.y;
+      const len = Math.hypot(dx, dy);
+      const cos = len > 1e-4 ? dx / len : 1;
+      const sin = len > 1e-4 ? dy / len : 0;
+
+      const defaultStorey = storeyMap.get(defaultLevel.id);
+      const storeyInfo = storeyMap.get(stair.bottomLevelId) || defaultStorey;
+      if (!storeyInfo) continue;
+
+      // Placement de l'escalier à son point de départ au niveau bas
+      const ptStair = writer.add(
+        `IFCCARTESIANPOINT((${stair.start.x.toFixed(2)},${stair.start.y.toFixed(2)},0.))`,
+      );
+      const dirStairU = writer.add(`IFCDIRECTION((${cos.toFixed(6)},${sin.toFixed(6)},0.))`);
+      const placementStair3D = writer.add(`IFCAXIS2PLACEMENT3D(#${ptStair},#${dirZ},#${dirStairU})`);
+      const stairPlacement = writer.add(
+        `IFCLOCALPLACEMENT(#${storeyInfo.placementId},#${placementStair3D})`,
+      );
+
+      // Profil de la volée : rectangle centré sur Y de -halfW à +halfW, de X=0 à X=L
+      const halfW = width / 2;
+      const p1 = writer.add(`IFCCARTESIANPOINT((0.,${(-halfW).toFixed(2)}))`);
+      const p2 = writer.add(`IFCCARTESIANPOINT((${len.toFixed(2)},${(-halfW).toFixed(2)}))`);
+      const p3 = writer.add(`IFCCARTESIANPOINT((${len.toFixed(2)},${halfW.toFixed(2)}))`);
+      const p4 = writer.add(`IFCCARTESIANPOINT((0.,${halfW.toFixed(2)}))`);
+      const polyline = writer.add(`IFCPOLYLINE((#${p1},#${p2},#${p3},#${p4},#${p1}))`);
+      const flightProfile = writer.add(
+        `IFCARBITRARYCLOSEDPROFILEDEF(.AREA.,'StairFlightProfile',#${polyline})`,
+      );
+
+      const flightSolid = writer.add(
+        `IFCEXTRUDEDAREASOLID(#${flightProfile},#${placementWorld3D},#${dirZ},${geom.totalRise.toFixed(2)})`,
+      );
+      const flightShapeRep = writer.add(
+        `IFCSHAPEREPRESENTATION(#${geomSubContext},'Body','SweptSolid',(#${flightSolid}))`,
+      );
+      const flightProdShape = writer.add(`IFCPRODUCTDEFINITIONSHAPE($,$,(#${flightShapeRep}))`);
+
+      const flightPlacement = writer.add(
+        `IFCLOCALPLACEMENT(#${stairPlacement},#${placementWorld3D})`,
+      );
+      const flightGuid = createIfcGuid();
+      const ifcStairFlight = writer.add(
+        `IFCSTAIRFLIGHT('${flightGuid}',#${ownerHistory},'${escapeIfcString((stair.name || stair.id) + ' Volée')}',$,'Flight',#${flightPlacement},#${flightProdShape},$,${geom.numberOfSteps},${geom.numberOfSteps},${geom.stepHeight.toFixed(2)},${geom.stepDepth.toFixed(2)},.STRAIGHT.)`,
+      );
+
+      const stairGuid = createIfcGuid();
+      const ifcStair = writer.add(
+        `IFCSTAIR('${stairGuid}',#${ownerHistory},'${escapeIfcString(stair.name || stair.id)}',$,'Stair',#${stairPlacement},$,$,.STRAIGHT_RUN_STAIR.)`,
+      );
+
+      // Relation d'agrégation IfcRelAggregates entre IfcStair et IfcStairFlight
+      const relGuid = createIfcGuid();
+      writer.add(
+        `IFCRELAGGREGATES('${relGuid}',#${ownerHistory},'StairFlightAggregation',$,#${ifcStair},(#${ifcStairFlight}))`,
+      );
+
+      // Rattachement au niveau bas dans IfcRelContainedInSpatialStructure
+      const elementsList =
+        storeyElementsMap.get(stair.bottomLevelId) || storeyElementsMap.get(defaultLevel.id);
+      if (elementsList) {
+        elementsList.push(ifcStair);
       }
     }
   }

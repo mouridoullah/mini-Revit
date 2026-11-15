@@ -70,6 +70,8 @@ export function Toolbar({
         onSelectTool('moveOpening');
       } else if (e.key === 'l' || e.key === 'L') {
         onSelectTool('slab');
+      } else if (e.key === 'e' || e.key === 'E') {
+        onSelectTool('stair');
       }
     };
 
@@ -179,6 +181,24 @@ export function Toolbar({
             }}
           >
             Dalle (L)
+          </button>
+          <button
+            type="button"
+            data-testid="tool-stair-btn"
+            onClick={() => onSelectTool('stair')}
+            style={{
+              padding: '6px 12px',
+              fontSize: '12px',
+              fontWeight: activeToolKind === 'stair' ? 600 : 400,
+              borderRadius: '4px',
+              backgroundColor: activeToolKind === 'stair' ? '#2563eb' : '#374151',
+              color: activeToolKind === 'stair' ? '#ffffff' : '#d1d5db',
+              border: activeToolKind === 'stair' ? '1px solid #3b82f6' : '1px solid #4b5563',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease-in-out',
+            }}
+          >
+            Escalier (E)
           </button>
           <button
             type="button"

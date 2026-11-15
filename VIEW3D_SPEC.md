@@ -317,3 +317,43 @@ export function createSlabMesh(
 4. **Matériau Béton Standard & Raycasting :**
    - Matériau PBR standard béton (`#d1d5db`, rugosité 0.85).
    - Les métadonnées `userData: { category: 'slab' }` et `elementId: slab.id` permettent le picking 3D immédiat via `Scene3D.raycast`.
+
+---
+
+## 9. Maillage 3D des Escaliers Paramétriques (`createStairMesh` — Phase 6.4 / ADR-048)
+
+Livré en Phase 6.4 pour assurer la génération volumique crénelée étanche des escaliers droits reliant deux niveaux :
+
+```typescript
+export interface StairGeometryParams {
+  readonly id: string;
+  readonly start: { readonly x: number; readonly y: number };
+  readonly end: { readonly x: number; readonly y: number };
+  readonly widthOverride?: number;
+}
+
+export interface StairTypeGeometryParams {
+  readonly width: number;
+}
+
+export function createStairMesh(
+  stair: StairGeometryParams,
+  stairType: StairTypeGeometryParams,
+  bottomElevation: number,
+  topElevation: number,
+): RawMeshData | null;
+```
+
+### Invariants Topologiques et Rendu PBR :
+
+1. **Étanchéité Topologique & Caractéristique d'Euler-Poincaré :**
+   - Le solide de l'escalier est une surface fermée connexe de genre zéro sans T-junctions ni arêtes orphelines.
+   - Les marches (gérons horizontaux et contremarches verticales) et le dos inférieur incliné sont complétés par deux flancs latéraux triangulés par `earcut` (`triangulatePolygonWithHoles`).
+   - Le maillage vérifie rigoureusement la caractéristique d'Euler :
+     $$\chi = V - E + F = 2$$
+2. **Matériau Bois & Rendu Photoréaliste :**
+   - Matériau PBR warm wood tone (`#a0825a`, rugosité 0.6, métal 0.05).
+3. **Raycast Picking & Interaction 3D :**
+   - Associé au mesh Three.js via `stairMesh.userData = { category: 'stair', elementId: stair.id }`.
+   - Permet la sélection directe dans le viewport 3D et la synchronisation avec l'inspecteur de propriétés.
+

@@ -326,3 +326,20 @@ Cette convention assure une zone d'attraction ergonomique constante sous le poin
 - **Débrayable :** Contrôlé par `snapToUnderlay: boolean` (activé par défaut lorsque l'underlay est actif).
 - **Règle d'arbitrage à équidistance :** En cas d'ambiguïté spatiale (curseur équidistant d'un sommet du niveau actif et d'un sommet de l'underlay), le sommet du niveau actif est systématiquement prioritaire.
 - **Outils compatibles :** `WallTool` (points start et end), `SlabTool` (sommets du contour périphérique).
+
+### 7.7 `StairTool` (Modélisation d'Escaliers Paramétriques Droits — Phase 6.4)
+
+- **Raccourci clavier :** `E`
+- **Machine à états :**
+  - `idle` : aucun tracé en cours.
+  - `drawing` : pied d'escalier fixé (`startWorld`), prévisualisation élastique orientée (`kind: 'stair'`).
+- **Support interactionnel double :**
+  - Mode clic-glisser : `pointerdown` -> glisser au-delà de la largeur minimale -> `pointerup` (émet `AddStairCommand`).
+  - Mode deux clics : premier clic pour fixer `start`, déplacement du curseur, second clic pour fixer `end`.
+- **Aimantation et contraintes :**
+  - Snapping sur sommets de murs du niveau actif et de l'underlay ($12\text{ px} / \text{scale}$).
+  - Contrainte angulaire 45° sur maintien de la touche `Shift` (`snapAngle45`).
+  - Annulation par touche `Escape` et validation alternative par touche `Enter`.
+- **Résolution altimétrique automatique :**
+  - Attachement du pied à `activeLevelId`.
+  - Attachement de la tête au niveau immédiatement supérieur adjacent (`topLevelId`) par tri altimétrique des niveaux du document.
