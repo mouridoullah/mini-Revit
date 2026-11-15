@@ -46,4 +46,18 @@ describe('Pureté Architecturale et Absence de Dépendance Parasite (T-PUR-01 à
       );
     }
   });
+
+  it("T-PURE-MOVE-01: geometry/src/junctions/stretch.ts n'importe ni React ni Three ni DOM", () => {
+    const stretchFile = path.resolve(__dirname, '../../geometry/src/junctions/stretch.ts');
+    const content = fs.readFileSync(stretchFile, 'utf8');
+    const forbidden = /from\s+['"](react|react-dom|three)['"]/i;
+    expect(forbidden.test(content)).toBe(false);
+  });
+
+  it("T-PURE-MOVE-02: core/src/commands.ts n'importe ni React ni Three ni DOM ni geometry/mesh", () => {
+    const commandsFile = path.resolve(__dirname, 'commands.ts');
+    const content = fs.readFileSync(commandsFile, 'utf8');
+    const forbidden = /from\s+['"](react|react-dom|three|.*\/mesh.*)['"]/i;
+    expect(forbidden.test(content)).toBe(false);
+  });
 });

@@ -22,7 +22,14 @@ import {
 import { resolveCascadeDeletions } from './relations/cascade.js';
 import { detectRooms } from './rooms/detect.js';
 import { computeDimensionValue } from './dimensions/index.js';
-import { isPointInPolygon } from '@mini-bim/geometry';
+import {
+  isPointInPolygon,
+  computeWallStretch,
+  projectOpeningOffset,
+  findConnectedWalls,
+  WallStretchError,
+  type Vec2,
+} from '@mini-bim/geometry';
 
 /**
  * Interface fondamentale d'une commande transactionnelle de mutation d'état BIM.
@@ -106,6 +113,242 @@ export class UpdateWallCommand implements Command {
 
   public getChangedIds(): readonly ElementId[] {
     return [this.wallId, ...this.impactedDimensionIds];
+  }
+}
+
+/**
+ * Options d'exécution de MoveWallCommand.
+ */
+export interface MoveWallOptions {
+  /**
+   * Maintien élastique de la connectivité des murs voisins (défaut : true).
+   */
+  readonly stretchNeighbors?: boolean;
+  /**
+   * Propagation transitive en chaîne récursive (défaut : false).
+   */
+  readonly propagateChain?: boolean;
+}
+
+/**
+ * Déplacement paramétrique d'un mur avec maintien de connectivité des jonctions (ADR-044).
+ *
+ * Applique l'Option α (Revit-like elastic stretch) sur les voisins directs,
+ * compense l'abscisse curviligne offsetAlong des baies hébergées par projection monde (Option β),
+ * et préserve le statut des pièces (ADR-039).
+ */
+export class MoveWallCommand implements Command {
+  public readonly name = 'MoveWall';
+  private changedIds: ElementId[] = [];
+
+  public constructor(
+    public readonly wallId: ElementId,
+    public readonly delta: Vec2,
+    public readonly options: MoveWallOptions = {},
+  ) {}
+
+  public apply(draft: BimState): void {
+    const wall = draft.walls[this.wallId];
+    if (!wall) {
+      throw new BimValidationError(
+        'ELEMENT_NOT_FOUND',
+        `Cannot move wall: ID "${this.wallId}" not found.`,
+        { offendingIds: [this.wallId] },
+      );
+    }
+
+    if (this.delta.x === 0 && this.delta.y === 0) {
+      this.changedIds = [this.wallId];
+      return;
+    }
+
+    const stretchNeighbors = this.options.stretchNeighbors !== false;
+    const propagateChain = this.options.propagateChain === true;
+
+    // Déplacement initial du mur cible
+    const movedA: Wall = {
+      ...wall,
+      start: { x: wall.start.x + this.delta.x, y: wall.start.y + this.delta.y },
+      end: { x: wall.end.x + this.delta.x, y: wall.end.y + this.delta.y },
+    };
+    validateWall(movedA, draft as BimState);
+    draft.walls[this.wallId] = movedA;
+
+    const modifiedWallIds = new Set<ElementId>([this.wallId]);
+    const affectedOpeningIds = new Set<ElementId>();
+    const affectedRoomIds = new Set<ElementId>();
+
+    if (stretchNeighbors) {
+      const visited = new Set<ElementId>([this.wallId]);
+
+      interface StretchTask {
+        movedWall: { id: ElementId; start: Vec2; end: Vec2; levelId: ElementId };
+        delta: Vec2;
+        parentId?: ElementId;
+      }
+
+      const queue: StretchTask[] = [
+        {
+          movedWall: wall, // État géométrique avant translation
+          delta: this.delta,
+        },
+      ];
+
+      while (queue.length > 0) {
+        const task = queue.shift()!;
+        const levelWalls = Object.values(draft.walls).filter(
+          (w) => w.levelId === task.movedWall.levelId,
+        );
+
+        const connected = findConnectedWalls(task.movedWall, levelWalls);
+
+        for (const conn of connected) {
+          const neighborId = conn.wallId;
+          // Ignorer le mur parent qui vient de déclencher cette tâche
+          if (task.parentId && neighborId === task.parentId) {
+            continue;
+          }
+
+          if (visited.has(neighborId)) {
+            if (propagateChain) {
+              throw new BimValidationError(
+                'WALL_STRETCH_CYCLE',
+                `Cycle d'étirement détecté dans la chaîne cinématique fermée de murs.`,
+                { offendingIds: Array.from(visited) },
+              );
+            }
+            continue;
+          }
+
+          const neighbor = draft.walls[neighborId];
+          if (!neighbor) continue;
+
+          let stretchRes;
+          try {
+            stretchRes = computeWallStretch({
+              movedWall: task.movedWall,
+              delta: task.delta,
+              neighbor: { start: neighbor.start, end: neighbor.end },
+              connection: conn.connection,
+            });
+          } catch (err) {
+            if (err instanceof WallStretchError) {
+              throw new BimValidationError(err.code, err.message, {
+                offendingIds: [task.movedWall.id, neighborId],
+              });
+            }
+            throw err;
+          }
+
+          visited.add(neighborId);
+          modifiedWallIds.add(neighborId);
+
+          const oldNeighbor = { start: neighbor.start, end: neighbor.end };
+          const updatedNeighbor: Wall = {
+            ...neighbor,
+            start: stretchRes.newNeighborEndpoints.start,
+            end: stretchRes.newNeighborEndpoints.end,
+          };
+          validateWall(updatedNeighbor, draft as BimState);
+          draft.walls[neighborId] = updatedNeighbor;
+
+          // Compensation d'abscisse curviligne des baies (Option β d'ADR-044)
+          if (draft.doors) {
+            for (const [doorId, door] of Object.entries(draft.doors)) {
+              if (door.hostWallId === neighborId) {
+                const newOffset = projectOpeningOffset(
+                  door.offsetAlong,
+                  oldNeighbor,
+                  updatedNeighbor,
+                );
+                draft.doors[doorId] = {
+                  ...door,
+                  offsetAlong: newOffset,
+                };
+                affectedOpeningIds.add(doorId);
+              }
+            }
+          }
+
+          if (draft.windows) {
+            for (const [winId, win] of Object.entries(draft.windows)) {
+              if (win.hostWallId === neighborId) {
+                const newOffset = projectOpeningOffset(
+                  win.offsetAlong,
+                  oldNeighbor,
+                  updatedNeighbor,
+                );
+                draft.windows[winId] = {
+                  ...win,
+                  offsetAlong: newOffset,
+                };
+                affectedOpeningIds.add(winId);
+              }
+            }
+          }
+
+          // Si propagation en chaîne récursive demandée
+          if (propagateChain) {
+            queue.push({
+              movedWall: neighbor,
+              delta: task.delta,
+              parentId: task.movedWall.id,
+            });
+          }
+        }
+      }
+    }
+
+    // Mise à jour associative des cotations impactées
+    if (draft.dimensions) {
+      for (const [dimId, dim] of Object.entries(draft.dimensions)) {
+        const touches = dim.references.some((ref) => modifiedWallIds.has(ref));
+        if (touches) {
+          const newVal = computeDimensionValue(dim, draft as BimState);
+          draft.dimensions[dimId] = {
+            ...dim,
+            value: newVal,
+          };
+        }
+      }
+    }
+
+    // Mise à jour non-destructive des pièces du niveau (ADR-039 / ADR-044)
+    if (draft.rooms) {
+      const levelRooms = Object.values(draft.rooms).filter((r) => r.levelId === wall.levelId);
+      if (levelRooms.length > 0) {
+        const detected = detectRooms(draft as BimState, wall.levelId);
+        for (const room of levelRooms) {
+          const match = detected.find((d) => isPointInPolygon(room.seed, d.polygon));
+          if (match) {
+            draft.rooms[room.id] = {
+              ...room,
+              status: 'enclosed',
+              area: match.areaMm2 / 1_000_000,
+            };
+          } else {
+            draft.rooms[room.id] = {
+              ...room,
+              status: 'unenclosed',
+              area: 0,
+            };
+          }
+          affectedRoomIds.add(room.id);
+        }
+      }
+    }
+
+    const sortedNeighbors = Array.from(modifiedWallIds)
+      .filter((id) => id !== this.wallId)
+      .sort();
+    const sortedOpenings = Array.from(affectedOpeningIds).sort();
+    const sortedRooms = Array.from(affectedRoomIds).sort();
+
+    this.changedIds = [this.wallId, ...sortedNeighbors, ...sortedOpenings, ...sortedRooms];
+  }
+
+  public getChangedIds(): readonly ElementId[] {
+    return this.changedIds;
   }
 }
 

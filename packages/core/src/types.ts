@@ -118,6 +118,8 @@ export interface Room {
   readonly levelId: ElementId;
   readonly seed: Vec2; // point de repère pour associer le trou au Room
   readonly name: string; // "Séjour", "Chambre 1", etc.
+  readonly status?: 'enclosed' | 'unenclosed';
+  readonly area?: number;
 }
 
 /**

@@ -530,7 +530,7 @@ export function checkRoomViolations(room: Room, state: BimState): RuleViolation[
     return true;
   });
 
-  if (!isInsideClosedRoom) {
+  if (!isInsideClosedRoom && room.status !== 'unenclosed') {
     violations.push({
       code: 'ROOM_SEED_NOT_IN_CLOSED_AREA',
       message: `Room seed (${room.seed.x}, ${room.seed.y}) is not located inside any closed area on level "${room.levelId}".`,

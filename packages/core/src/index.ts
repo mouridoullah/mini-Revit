@@ -30,8 +30,10 @@ export * as Commands from './commands.js';
 export {
   type Command,
   type UpdateLevelOptions,
+  type MoveWallOptions,
   AddWallCommand,
   UpdateWallCommand,
+  MoveWallCommand,
   DeleteWallCommand,
   AddWallTypeCommand,
   UpdateWallTypeCommand,
