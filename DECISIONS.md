@@ -1432,7 +1432,9 @@ Dans un bâtiment à étages, si un mur du niveau $N$ s'élève jusqu'à l'élé
    `BimDocument.execute()` calcule ensuite :
    $$\text{changedFinal} = \text{union}(\text{getChangedIds}(), \text{dag.getDependents}(\text{getChangedIds}()))$$
    Le DAG capture les dépendants transitifs non directement mutés (ex : une ouverture devant être revalidée suite à un changement de type de mur), garantissant qu'aucun élément impacté n'est omis.  
-   **Conséquence pour `DeleteWallCommand` :** En 6.0a, `DeleteWallCommand.getChangedIds()` retourne `[wallId, ...openingIds, ...dimIds, ...roomIds]` (tout ce que `apply()` a supprimé du draft). En Phase 6.1, quand ADR-039 (statut dérivé) sera implémenté, `apply()` ne mutera plus les Rooms $\to$ `getChangedIds()` ne les inclura plus. Ce changement de comportement sera acté par mise à jour des tests concernés à ce moment-là.
+   **Conséquence pour `DeleteWallCommand` :** En 6.0a, `DeleteWallCommand.getChangedIds()` retourne `[wallId, ...openingIds, ...dimIds, ...roomIds]` (tout ce que `apply()` a supprimé du draft). En Phase 6.1, quand ADR-039 (statut dérivé) sera implémenté, `apply()` ne mutera plus les Rooms $\to$ `getChangedIds()` ne les inclura plus. Ce changement de comportement sera acté par mise à jour des tests concernés à ce moment-là.  
+   **Exception transitoire de compatibilité pour `AddDoorCommand` et `AddWindowCommand` :**  
+   Bien que `AddDoorCommand.apply()` et `AddWindowCommand.apply()` ne mutent techniquement que les dictionnaires `doors` ou `windows` dans le draft Immer (le mur hôte ne recevant pas de patch de mutation direct), ces deux commandes retournent `[this.door.id, this.door.hostWallId]` et `[this.window.id, this.window.hostWallId]`. Cette convention, introduite en Phase 3.1 (ADR-028 §3), permet aux viewports 2D/3D d'être directement notifiés de la régénération du solide de mur percé. Pour préserver à 100% la compatibilité avec les tests de réception existants (`document.test.ts:428` : `expect(res.changed).toEqual([doorId, wallId])`), cette convention est formellement maintenue jusqu'à la Phase 6.1 (où la notification du mur hôte sera déléguée aux dépendants amont/aval du DAG).
 6. **Post-Condition Universelle Différentielle (`validateDirty`) dans `execute()` :**  
    Pour éradiquer les vérifications ad-hoc par commande tout en évitant de bloquer des commandes innocentes sur des modèles avec des avertissements préexistants, `BimDocument.execute()` exécute une post-condition différentielle sur l'ensemble du dirty set avant validation transactionnelle :
    ```typescript
@@ -1445,7 +1447,9 @@ Dans un bâtiment à étages, si un mur du niveau $N$ s'élève jusqu'à l'élé
    - Pour toute dalle sale : exécute `validateSlab(slab, draftState)`.
    - Pour tout niveau sale : vérifie la stricte unicité des élévations (`DUPLICATE_LEVEL_ELEVATION`).
    - Pour tout type sale : vérifie les épaisseurs et dimensions positives.
-     Si une nouvelle contrainte est violée dans le dirty set, la transaction est **rejetée atomiquement**, le draft Immer est abandonné et rien n'est empilé dans l'historique Undo/Redo.
+     Si une nouvelle contrainte est violée dans le dirty set, la transaction est **rejetée atomiquement**, le draft Immer est abandonné et rien n'est empilé dans l'historique Undo/Redo.  
+   **Politique de validation de l'état initial :**  
+   Le constructeur `BimDocument(initialState)` n'exécute pas `validateDirty` lors de l'instanciation initiale du document. La validation différentielle est active exclusivement sur les mutations exécutées via `execute(command)`. Cette politique permet le chargement, la consultation ou la migration contrôlée de documents historiques ou de maquettes d'importation comportant des avertissements préexistants, tout en garantissant qu'aucune nouvelle violation ou aggravation de violation ne peut être introduite par les commandes applicatives.
 
 ### Conséquences
 
