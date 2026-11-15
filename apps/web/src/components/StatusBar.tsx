@@ -15,6 +15,7 @@ export function StatusBar({ activeToolKind = 'select', drawingLength }: StatusBa
   const { state } = useBimDocument();
 
   const wallCount = Object.keys(state.walls).length;
+  const slabCount = Object.keys(state.slabs ?? {}).length;
   const doorCount = Object.keys(state.doors ?? {}).length;
   const windowCount = Object.keys(state.windows ?? {}).length;
   const levelCount = Object.keys(state.levels).length;
@@ -42,6 +43,9 @@ export function StatusBar({ activeToolKind = 'select', drawingLength }: StatusBa
   } else if (activeToolKind === 'moveOpening') {
     toolMessage =
       'Outil : Déplacer Ouverture (O) — Clic-glisser une ouverture le long de son mur (snap 50 mm)';
+  } else if (activeToolKind === 'slab') {
+    toolMessage =
+      'Outil : Dalle (L) — Cliquer pour tracer les sommets, Entrée ou double-clic pour clore (Shift = ortho, Échap = annuler)';
   }
 
   return (
@@ -76,6 +80,11 @@ export function StatusBar({ activeToolKind = 'select', drawingLength }: StatusBa
         <span>
           Murs : <strong style={{ color: '#e5e7eb' }}>{wallCount}</strong>
         </span>
+        {slabCount > 0 && (
+          <span>
+            Dalles : <strong style={{ color: '#e5e7eb' }}>{slabCount}</strong>
+          </span>
+        )}
         {doorCount > 0 && (
           <span>
             Portes : <strong style={{ color: '#e5e7eb' }}>{doorCount}</strong>

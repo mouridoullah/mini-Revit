@@ -7,6 +7,7 @@ import { DoorTool } from './DoorTool.js';
 import { WindowTool } from './WindowTool.js';
 import { MoveWallTool } from './MoveWallTool.js';
 import { MoveOpeningTool } from './MoveOpeningTool.js';
+import { SlabTool } from './SlabTool.js';
 import { BimDocument } from '@mini-bim/core';
 import { Transform2D } from '@mini-bim/view-2d';
 import { type ToolContext } from './types.js';
@@ -214,5 +215,16 @@ describe('useActiveTool Hook', () => {
     expect(wallTool.getState().kind).toBe('idle');
     expect(result.current.activeToolKind).toBe('door');
     expect(result.current.activeTool).toBeInstanceOf(DoorTool);
+  });
+
+  it('bascule vers slab : SlabTool devient actif et est correctement instancié', () => {
+    const { result } = renderHook(() => useActiveTool('select'));
+
+    act(() => {
+      result.current.setActiveToolKind('slab');
+    });
+
+    expect(result.current.activeToolKind).toBe('slab');
+    expect(result.current.activeTool).toBeInstanceOf(SlabTool);
   });
 });

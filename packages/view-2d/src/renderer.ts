@@ -641,6 +641,34 @@ export function drawPreview(
     ctx.fillStyle = 'rgba(37, 99, 235, 0.1)';
     ctx.fillRect(left, top, width, height);
     ctx.strokeRect(left, top, width, height);
+  } else if (preview.kind === 'polygon') {
+    if (preview.points.length > 0) {
+      ctx.beginPath();
+      ctx.setLineDash([6, 6]);
+      ctx.strokeStyle = '#2563eb';
+      ctx.lineWidth = 2;
+      ctx.fillStyle = 'rgba(37, 99, 235, 0.15)';
+      const p0 = transform.worldToScreen(preview.points[0]!);
+      ctx.moveTo(p0.x, p0.y);
+      for (let i = 1; i < preview.points.length; i++) {
+        const pi = transform.worldToScreen(preview.points[i]!);
+        ctx.lineTo(pi.x, pi.y);
+      }
+      if (preview.points.length >= 3) {
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.stroke();
+
+      // Pastilles indicatrices aux sommets
+      ctx.fillStyle = '#2563eb';
+      for (const p of preview.points) {
+        const sp = transform.worldToScreen(p);
+        ctx.beginPath();
+        ctx.arc(sp.x, sp.y, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
   }
   ctx.restore();
 }

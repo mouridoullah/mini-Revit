@@ -4,7 +4,7 @@ import { type Transform2D, type PreviewShape, type Vec2 } from '@mini-bim/view-2
 /**
  * Identifiant du type d'outil interactif actif.
  */
-export type ToolKind = 'select' | 'wall' | 'door' | 'window' | 'moveWall' | 'moveOpening';
+export type ToolKind = 'select' | 'wall' | 'door' | 'window' | 'moveWall' | 'moveOpening' | 'slab';
 
 /**
  * États possibles de la machine à états SelectTool.
@@ -86,6 +86,17 @@ export type MoveOpeningToolState =
     };
 
 /**
+ * États possibles de la machine à états SlabTool.
+ */
+export type SlabToolState =
+  | { readonly kind: 'idle' }
+  | {
+      readonly kind: 'drawing';
+      readonly points: readonly Vec2[];
+      readonly currentWorld: Vec2;
+    };
+
+/**
  * Paramètres par défaut configurables pour l'insertion de portes.
  */
 export interface DoorDefaults {
@@ -131,6 +142,10 @@ export type ToolEvent =
   | {
       readonly type: 'keydown';
       readonly key: string; // 'Escape', 'Enter', etc.
+    }
+  | {
+      readonly type: 'dblclick';
+      readonly screen: Vec2;
     };
 
 /**
@@ -150,6 +165,7 @@ export interface ToolContext {
   readonly transform: Transform2D;
   readonly activeLevelId: string;
   readonly activeWallTypeId?: string;
+  readonly activeSlabTypeId?: string;
   readonly doorDefaults?: DoorDefaults;
   readonly windowDefaults?: WindowDefaults;
 }
@@ -165,7 +181,8 @@ export interface Tool {
     | DoorToolState
     | WindowToolState
     | MoveWallToolState
-    | MoveOpeningToolState;
+    | MoveOpeningToolState
+    | SlabToolState;
   handle(event: ToolEvent, ctx: ToolContext): ToolOutput;
   reset(): void;
 }

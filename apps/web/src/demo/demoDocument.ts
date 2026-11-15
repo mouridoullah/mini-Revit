@@ -107,5 +107,31 @@ export function createDemoDocument(): BimDocument {
     }),
   );
 
+  // Phase 6.1b : Dalle structurelle de plancher avec trémie technique (réservation)
+  const slabTypeId = Object.keys(doc.getState().slabTypes ?? {})[0] ?? 'default-slab-type';
+  doc.execute(
+    new Commands.AddSlabCommand({
+      id: 'slab_demo_ground',
+      category: 'slab',
+      name: 'Dalle Plancher RDC',
+      levelId,
+      slabTypeId,
+      boundary: [
+        { x: 0, y: 0 },
+        { x: 6000, y: 0 },
+        { x: 6000, y: 4000 },
+        { x: 0, y: 4000 },
+      ],
+      holes: [
+        [
+          { x: 3500, y: 1500 },
+          { x: 3500, y: 2500 },
+          { x: 4500, y: 2500 },
+          { x: 4500, y: 1500 },
+        ],
+      ],
+    }),
+  );
+
   return doc;
 }

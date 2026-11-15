@@ -65,6 +65,7 @@ HTMLCanvasElement.prototype.getContext = vi.fn().mockImplementation((id: string)
       lineTo: vi.fn(),
       stroke: vi.fn(),
       fill: vi.fn(),
+      clip: vi.fn(),
       fillRect: vi.fn(),
       strokeRect: vi.fn(),
       clearRect: vi.fn(),

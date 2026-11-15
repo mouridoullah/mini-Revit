@@ -37,17 +37,26 @@ describe('Viewport3D React Wrapper (apps/web)', () => {
     // - wall_west (sans ouverture) : 1 pièce pleine
     // - door_demo : 1 placeholder (boîte bois)
     // - window_demo : 1 placeholder (boîte vitrée)
-    // Total = 3 + 4 + 1 + 1 + 1 + 1 = 11 maillages
-    expect(addMeshSpy).toHaveBeenCalledTimes(11);
+    // - slab_demo_ground : 1 dalle structurelle avec trémie
+    // Total = 3 + 4 + 1 + 1 + 1 + 1 + 1 = 12 maillages
+    expect(addMeshSpy).toHaveBeenCalledTimes(12);
 
     // 2. Vérification des arguments passés à addMesh
     const calledElementIds = addMeshSpy.mock.calls.map((call) => call[0].elementId);
-    expect(calledElementIds).toHaveLength(11);
+    expect(calledElementIds).toHaveLength(12);
 
-    // Les IDs distincts couvrent exactement les 4 murs + 2 ouvertures
+    // Les IDs distincts couvrent exactement les 4 murs + 2 ouvertures + 1 dalle
     const uniqueIds = new Set(calledElementIds);
     expect(uniqueIds).toEqual(
-      new Set(['wall_south', 'wall_east', 'wall_north', 'wall_west', 'door_demo', 'window_demo']),
+      new Set([
+        'wall_south',
+        'wall_east',
+        'wall_north',
+        'wall_west',
+        'door_demo',
+        'window_demo',
+        'slab_demo_ground',
+      ]),
     );
 
     // 3. Vérification de la structure géométrique des tronçons de murs percés
@@ -74,8 +83,8 @@ describe('Viewport3D React Wrapper (apps/web)', () => {
       </BimDocumentProvider>,
     );
 
-    // Initialement 11 addMesh
-    expect(addMeshSpy).toHaveBeenCalledTimes(11);
+    // Initialement 12 addMesh
+    expect(addMeshSpy).toHaveBeenCalledTimes(12);
 
     // Déclenchement d'un re-render React
     rerender(
@@ -85,7 +94,7 @@ describe('Viewport3D React Wrapper (apps/web)', () => {
     );
 
     // addMesh n'a pas été rappelé (l'instance Scene3D est persistée dans sceneRef et le useEffect[] ne s'est pas réexécuté)
-    expect(addMeshSpy).toHaveBeenCalledTimes(11);
+    expect(addMeshSpy).toHaveBeenCalledTimes(12);
   });
 
   it('appelle scene.dispose() lors du démontage du composant (unmount)', () => {

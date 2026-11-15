@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, type ChangeEvent } from 'react';
 import { type ToolKind } from '../tools/types.js';
+import { type Level } from '@mini-bim/core';
+import { LevelSelector } from './LevelSelector.js';
 
 export interface ToolbarProps {
   readonly activeToolKind: ToolKind;
@@ -12,6 +14,9 @@ export interface ToolbarProps {
   readonly onLoadFile: (file: File) => void;
   readonly onExportIfc?: () => void;
   readonly onExportSvg?: (scale: 50 | 100 | 200) => void;
+  readonly levels?: readonly Level[];
+  readonly activeLevelId?: string;
+  readonly onSelectLevel?: (levelId: string) => void;
 }
 
 /**
@@ -30,6 +35,9 @@ export function Toolbar({
   onLoadFile,
   onExportIfc,
   onExportSvg,
+  levels,
+  activeLevelId,
+  onSelectLevel,
 }: ToolbarProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [planScale, setPlanScale] = useState<50 | 100 | 200>(100);
@@ -52,6 +60,8 @@ export function Toolbar({
         onSelectTool('moveWall');
       } else if (e.key === 'o' || e.key === 'O') {
         onSelectTool('moveOpening');
+      } else if (e.key === 'l' || e.key === 'L') {
+        onSelectTool('slab');
       }
     };
 
@@ -100,7 +110,7 @@ export function Toolbar({
             color: '#9ca3af',
           }}
         >
-          Phase 5 — IFC, Cotations 2D & Plans SVG
+          Phase 6 — Dalles, Niveaux & Inspecteur
         </span>
       </div>
 
@@ -143,6 +153,24 @@ export function Toolbar({
             }}
           >
             Tracer Mur (W)
+          </button>
+          <button
+            type="button"
+            data-testid="tool-slab-btn"
+            onClick={() => onSelectTool('slab')}
+            style={{
+              padding: '6px 12px',
+              fontSize: '12px',
+              fontWeight: activeToolKind === 'slab' ? 600 : 400,
+              borderRadius: '4px',
+              backgroundColor: activeToolKind === 'slab' ? '#2563eb' : '#374151',
+              color: activeToolKind === 'slab' ? '#ffffff' : '#d1d5db',
+              border: activeToolKind === 'slab' ? '1px solid #3b82f6' : '1px solid #4b5563',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease-in-out',
+            }}
+          >
+            Dalle (L)
           </button>
           <button
             type="button"
@@ -217,6 +245,18 @@ export function Toolbar({
             Déplacer Ouverture (O)
           </button>
         </div>
+
+        {/* Sélecteur d'étage actif (ADR-046 / Phase 6.1b) */}
+        {levels && activeLevelId && onSelectLevel && (
+          <>
+            <div style={{ width: '1px', height: '24px', backgroundColor: '#4b5563' }} />
+            <LevelSelector
+              levels={levels}
+              activeLevelId={activeLevelId}
+              onSelectLevel={onSelectLevel}
+            />
+          </>
+        )}
 
         <div style={{ width: '1px', height: '24px', backgroundColor: '#4b5563' }} />
 

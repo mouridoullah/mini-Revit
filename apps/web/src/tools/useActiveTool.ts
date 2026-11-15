@@ -6,6 +6,7 @@ import { DoorTool } from './DoorTool.js';
 import { WindowTool } from './WindowTool.js';
 import { MoveWallTool } from './MoveWallTool.js';
 import { MoveOpeningTool } from './MoveOpeningTool.js';
+import { SlabTool } from './SlabTool.js';
 
 export interface UseActiveToolResult {
   readonly activeToolKind: ToolKind;
@@ -16,7 +17,7 @@ export interface UseActiveToolResult {
 /**
  * Hook React orchestrant la gestion et l'activation exclusive des outils 2D.
  *
- * Maintient les 6 instances impératives des Tools (Select, Wall, Door, Window, MoveWall, MoveOpening)
+ * Maintient les 7 instances impératives des Tools (Select, Wall, Door, Window, MoveWall, MoveOpening, Slab)
  * et garantit la réinitialisation (.reset()) de l'outil sortant lors de tout basculement.
  */
 export function useActiveTool(initialKind: ToolKind = 'select'): UseActiveToolResult {
@@ -28,6 +29,7 @@ export function useActiveTool(initialKind: ToolKind = 'select'): UseActiveToolRe
   const windowToolRef = useRef<WindowTool | null>(null);
   const moveWallToolRef = useRef<MoveWallTool | null>(null);
   const moveOpeningToolRef = useRef<MoveOpeningTool | null>(null);
+  const slabToolRef = useRef<SlabTool | null>(null);
 
   if (!selectToolRef.current) selectToolRef.current = new SelectTool();
   if (!wallToolRef.current) wallToolRef.current = new WallTool();
@@ -35,6 +37,7 @@ export function useActiveTool(initialKind: ToolKind = 'select'): UseActiveToolRe
   if (!windowToolRef.current) windowToolRef.current = new WindowTool();
   if (!moveWallToolRef.current) moveWallToolRef.current = new MoveWallTool();
   if (!moveOpeningToolRef.current) moveOpeningToolRef.current = new MoveOpeningTool();
+  if (!slabToolRef.current) slabToolRef.current = new SlabTool();
 
   const selectTool = selectToolRef.current;
   const wallTool = wallToolRef.current;
@@ -42,6 +45,7 @@ export function useActiveTool(initialKind: ToolKind = 'select'): UseActiveToolRe
   const windowTool = windowToolRef.current;
   const moveWallTool = moveWallToolRef.current;
   const moveOpeningTool = moveOpeningToolRef.current;
+  const slabTool = slabToolRef.current;
 
   const setActiveToolKind = (nextKind: ToolKind) => {
     // Réinitialisation de l'outil sortant pour nettoyer les états transitoires (rubber-band, drag)
@@ -64,6 +68,9 @@ export function useActiveTool(initialKind: ToolKind = 'select'): UseActiveToolRe
       case 'moveOpening':
         moveOpeningTool.reset();
         break;
+      case 'slab':
+        slabTool.reset();
+        break;
     }
     setActiveToolKindState(nextKind);
   };
@@ -80,11 +87,13 @@ export function useActiveTool(initialKind: ToolKind = 'select'): UseActiveToolRe
         return moveWallTool;
       case 'moveOpening':
         return moveOpeningTool;
+      case 'slab':
+        return slabTool;
       case 'select':
       default:
         return selectTool;
     }
-  }, [activeToolKind, selectTool, wallTool, doorTool, windowTool, moveWallTool, moveOpeningTool]);
+  }, [activeToolKind, selectTool, wallTool, doorTool, windowTool, moveWallTool, moveOpeningTool, slabTool]);
 
   return {
     activeToolKind,

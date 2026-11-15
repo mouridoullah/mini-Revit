@@ -12,12 +12,13 @@ export interface Viewport2DProps {
   readonly onSelectionChanged?: (ids: readonly string[]) => void;
   readonly onDrawingLengthChange?: (length: number | null) => void;
   readonly onErrorChange?: (error: string | null) => void;
+  readonly activeLevelId?: string;
 }
 
 /**
  * Wrapper React du visualiseur en plan 2D impératif.
  * Règle d'or 3 : Instanciation unique dans useEffect, jamais recréé à chaque render.
- * Délègue les interactions aux machines à états de Tools (SelectTool, WallTool).
+ * Délègue les interactions aux machines à états de Tools (SelectTool, WallTool, SlabTool).
  */
 export function Viewport2D({
   tool,
@@ -25,6 +26,7 @@ export function Viewport2D({
   onSelectionChanged,
   onDrawingLengthChange,
   onErrorChange,
+  activeLevelId: activeLevelIdProp,
 }: Viewport2DProps = {}) {
   const { doc, state } = useBimDocument();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -79,13 +81,20 @@ export function Viewport2D({
     }
   }, [selection]);
 
-  // Mise à jour sur notification d'état documentaire et rafraîchissement des pièces
+  // Synchronisation activeLevelId
+  useEffect(() => {
+    if (viewRef.current) {
+      viewRef.current.setActiveLevelId(activeLevelIdProp ?? null);
+    }
+  }, [activeLevelIdProp]);
+
+  // Mise à jour sur notification d'état documentaire et rafraîchissement des pièces et dalles
   useEffect(() => {
     if (viewRef.current) {
       const docState = doc.getState();
-      const activeLevelId = Object.keys(docState.levels)[0] ?? '';
-      if (activeLevelId) {
-        const detected = detectRooms(docState, activeLevelId);
+      const currentLevelId = activeLevelIdProp ?? Object.keys(docState.levels)[0] ?? '';
+      if (currentLevelId) {
+        const detected = detectRooms(docState, currentLevelId);
         const roomsFor2D: DetectedRoomFor2D[] = detected.map((d) => {
           const roomEntity = d.existingRoomId ? docState.rooms[d.existingRoomId] : undefined;
           const roomObj: DetectedRoomFor2D = {
@@ -105,12 +114,18 @@ export function Viewport2D({
         });
         viewRef.current.setRooms(roomsFor2D);
       }
+      if (docState.slabs) {
+        const slabsFor2D = Object.values(docState.slabs).filter(
+          (sl) => !currentLevelId || sl.levelId === currentLevelId,
+        );
+        viewRef.current.setSlabs(slabsFor2D);
+      }
       if (docState.dimensions) {
         viewRef.current.setDimensions(Object.values(docState.dimensions));
       }
       viewRef.current.render(doc);
     }
-  }, [state, doc]);
+  }, [state, doc, activeLevelIdProp]);
 
   // Adaptation responsive de la taille du canvas
   useResizeObserver(containerRef, (width, height) => {
@@ -138,13 +153,15 @@ export function Viewport2D({
 
       const toolEvent = convertPointerEvent(e, canvas);
       const docState = doc.getState();
-      const activeLevelId = Object.keys(docState.levels)[0] ?? '';
+      const currentLevelId = activeLevelIdProp ?? Object.keys(docState.levels)[0] ?? '';
       const activeWallTypeId = Object.keys(docState.wallTypes)[0] ?? '';
+      const activeSlabTypeId = Object.keys(docState.slabTypes ?? {})[0] ?? '';
       const ctx: ToolContext = {
         doc,
         transform: view.getTransform(),
-        activeLevelId,
+        activeLevelId: currentLevelId,
         activeWallTypeId,
+        activeSlabTypeId,
       };
 
       const output = tool.handle(toolEvent, ctx);
@@ -214,21 +231,57 @@ export function Viewport2D({
       }
     };
 
+    const handleDblClick = (e: MouseEvent) => {
+      const view = viewRef.current;
+      if (!view) return;
+      const rect = canvas.getBoundingClientRect();
+      const docState = doc.getState();
+      const currentLevelId = activeLevelIdProp ?? Object.keys(docState.levels)[0] ?? '';
+      const activeWallTypeId = Object.keys(docState.wallTypes)[0] ?? '';
+      const activeSlabTypeId = Object.keys(docState.slabTypes ?? {})[0] ?? '';
+      const ctx: ToolContext = {
+        doc,
+        transform: view.getTransform(),
+        activeLevelId: currentLevelId,
+        activeWallTypeId,
+        activeSlabTypeId,
+      };
+
+      const toolEvent: ToolEvent = {
+        type: 'dblclick',
+        screen: { x: e.clientX - rect.left, y: e.clientY - rect.top },
+      };
+
+      const output = tool.handle(toolEvent, ctx);
+      if (output.kind === 'command') {
+        view.setPreview(null);
+        try {
+          doc.execute(output.command);
+          onErrorChange?.(null);
+        } catch (err) {
+          onErrorChange?.(err instanceof Error ? err.message : String(err));
+        }
+        onDrawingLengthChange?.(null);
+      }
+    };
+
     canvas.addEventListener('pointerdown', handlePointer);
     canvas.addEventListener('pointermove', handlePointer);
     canvas.addEventListener('pointerup', handlePointer);
+    canvas.addEventListener('dblclick', handleDblClick);
     window.addEventListener('keydown', handleKeyDown);
 
     return () => {
       canvas.removeEventListener('pointerdown', handlePointer);
       canvas.removeEventListener('pointermove', handlePointer);
       canvas.removeEventListener('pointerup', handlePointer);
+      canvas.removeEventListener('dblclick', handleDblClick);
       window.removeEventListener('keydown', handleKeyDown);
       tool.reset();
       viewRef.current?.setPreview(null);
       onDrawingLengthChange?.(null);
     };
-  }, [tool, doc, onDrawingLengthChange, onSelectionChanged]);
+  }, [tool, doc, onDrawingLengthChange, onSelectionChanged, activeLevelIdProp]);
 
   return (
     <div

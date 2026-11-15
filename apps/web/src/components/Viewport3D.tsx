@@ -5,6 +5,7 @@ import {
   createOpeningPlaceholder,
   createDoorPlaceholderMaterial,
   createWindowPlaceholderMaterial,
+  createSlabMesh,
   type OpeningGeometryParams,
 } from '@mini-bim/view-3d';
 import { useBimDocument } from '../hooks/useBimDocument.js';
@@ -65,11 +66,13 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
 
     const doors = state.doors ?? {};
     const windows = state.windows ?? {};
+    const slabs = state.slabs ?? {};
 
     const currentElementIds = new Set([
       ...Object.keys(state.walls),
       ...Object.keys(doors),
       ...Object.keys(windows),
+      ...Object.keys(slabs),
     ]);
 
     // 1. Suppression des maillages d'éléments supprimés (murs ou ouvertures en cascade)
@@ -184,6 +187,31 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
         elevation,
       );
       scene.updateMesh(placeholder, winMat);
+    }
+
+    // 5. Placeholders et maillages 3D des dalles structurelles (avec trémies)
+    for (const slab of Object.values(slabs)) {
+      const slabType = state.slabTypes?.[slab.slabTypeId];
+      if (!slabType) continue;
+
+      const level = state.levels[slab.levelId];
+      const elevation = level?.elevation ?? 0;
+
+      const slabMesh = createSlabMesh(
+        {
+          id: slab.id,
+          boundary: slab.boundary,
+          holes: slab.holes,
+          openings: slab.openings,
+          baseOffset: slab.baseOffset,
+        },
+        slabType,
+        elevation,
+      );
+
+      if (slabMesh) {
+        scene.updateSlabMesh(slab.id, slabMesh);
+      }
     }
 
     renderedElementIdsRef.current = currentElementIds;

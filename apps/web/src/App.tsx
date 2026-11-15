@@ -4,6 +4,7 @@ import { useBimDocument } from './hooks/useBimDocument.js';
 import { Toolbar } from './components/Toolbar.js';
 import { StatusBar } from './components/StatusBar.js';
 import { MetricsPanel } from './components/MetricsPanel.js';
+import { PropertyInspector } from './components/PropertyInspector.js';
 import { Viewport2D } from './components/Viewport2D.js';
 import { Viewport3D } from './components/Viewport3D.js';
 import { useActiveTool } from './tools/useActiveTool.js';
@@ -25,6 +26,18 @@ function AppContent() {
   const [selectedIds, setSelectedIds] = useState<readonly string[]>([]);
   const [drawingLength, setDrawingLength] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [activeLevelId, setActiveLevelId] = useState<string>(
+    () => Object.keys(doc.getState().levels)[0] ?? '',
+  );
+  const [isInspectorCollapsed, setIsInspectorCollapsed] = useState(false);
+
+  // Synchroniser activeLevelId si le document change (ex: import JSON)
+  useEffect(() => {
+    const levels = Object.keys(doc.getState().levels);
+    if (!levels.includes(activeLevelId)) {
+      setActiveLevelId(levels[0] ?? '');
+    }
+  }, [doc, activeLevelId]);
 
   // Raccourcis clavier globaux (Undo, Redo, Escape)
   useEffect(() => {
@@ -180,6 +193,9 @@ function AppContent() {
         onLoadFile={handleLoadFile}
         onExportIfc={handleExportIfc}
         onExportSvg={handleExportSvg}
+        levels={Object.values(doc.getState().levels)}
+        activeLevelId={activeLevelId}
+        onSelectLevel={setActiveLevelId}
       />
 
       {/* Bannière de notification d'erreur (ex. import corrompu) */}
@@ -219,45 +235,62 @@ function AppContent() {
         </aside>
       )}
 
-      <main
+      <div
         style={{
           flex: 1,
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gridTemplateRows: '100%',
+          display: 'flex',
+          flexDirection: 'row',
           overflow: 'hidden',
-          backgroundColor: '#d1d5db',
-          gap: '2px',
         }}
       >
-        <section
+        <main
           style={{
-            position: 'relative',
-            width: '100%',
-            height: '100%',
+            flex: 1,
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gridTemplateRows: '100%',
             overflow: 'hidden',
+            backgroundColor: '#d1d5db',
+            gap: '2px',
           }}
         >
-          <Viewport2D
-            tool={activeTool}
-            selection={selectedIds}
-            onSelectionChanged={setSelectedIds}
-            onDrawingLengthChange={setDrawingLength}
-            onErrorChange={setErrorMessage}
-          />
-        </section>
+          <section
+            style={{
+              position: 'relative',
+              width: '100%',
+              height: '100%',
+              overflow: 'hidden',
+            }}
+          >
+            <Viewport2D
+              tool={activeTool}
+              selection={selectedIds}
+              onSelectionChanged={setSelectedIds}
+              onDrawingLengthChange={setDrawingLength}
+              onErrorChange={setErrorMessage}
+              activeLevelId={activeLevelId}
+            />
+          </section>
 
-        <section
-          style={{
-            position: 'relative',
-            width: '100%',
-            height: '100%',
-            overflow: 'hidden',
-          }}
-        >
-          <Viewport3D selection={selectedIds} onSelectionChanged={setSelectedIds} />
-        </section>
-      </main>
+          <section
+            style={{
+              position: 'relative',
+              width: '100%',
+              height: '100%',
+              overflow: 'hidden',
+            }}
+          >
+            <Viewport3D selection={selectedIds} onSelectionChanged={setSelectedIds} />
+          </section>
+        </main>
+
+        <PropertyInspector
+          doc={doc}
+          selectedIds={selectedIds}
+          isCollapsed={isInspectorCollapsed}
+          onToggleCollapse={() => setIsInspectorCollapsed((p) => !p)}
+        />
+      </div>
 
       {/* Panneau rétractable du tableau de métrés et surfaces */}
       <MetricsPanel doc={doc} />

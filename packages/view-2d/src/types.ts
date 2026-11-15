@@ -319,7 +319,8 @@ export interface View2DOptions {
  */
 export type PreviewShape =
   | { readonly kind: 'line'; readonly start: Vec2; readonly end: Vec2 }
-  | { readonly kind: 'rect'; readonly min: Vec2; readonly max: Vec2 };
+  | { readonly kind: 'rect'; readonly min: Vec2; readonly max: Vec2 }
+  | { readonly kind: 'polygon'; readonly points: readonly Vec2[] };
 
 /**
  * Callback invoqué lors de l'émission d'une intention de commande de mutation.

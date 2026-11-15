@@ -88,3 +88,23 @@ export function snapToStep(value: number, step: number): number {
   }
   return rounded * step;
 }
+
+/**
+ * Aligne un point monde sur le sommet existant le plus proche si la distance est <= maxDistance.
+ */
+export function snapToVertices(point: Vec2, vertices: readonly Vec2[], maxDistance: number): Vec2 {
+  let closest: Vec2 | null = null;
+  let minDistSq = maxDistance * maxDistance;
+
+  for (const v of vertices) {
+    const dx = v.x - point.x;
+    const dy = v.y - point.y;
+    const distSq = dx * dx + dy * dy;
+    if (distSq <= minDistSq) {
+      minDistSq = distSq;
+      closest = v;
+    }
+  }
+
+  return closest ?? point;
+}
