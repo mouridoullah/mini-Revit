@@ -20,6 +20,7 @@ export {
   createOpeningPlaceholder,
   createRoomFloorMesh,
   createSlabMesh,
+  createStairMesh,
   type WallGeometryParams,
   type WallTypeGeometryParams,
   type OpeningGeometryParams,
@@ -27,6 +28,8 @@ export {
   type RoomFloorMeshParams,
   type SlabGeometryParams,
   type SlabTypeGeometryParams,
+  type StairGeometryParams,
+  type StairTypeGeometryParams,
 } from './mesh-generator.js';
 export { computeWallFootprint2d, extrudeWallPiece, type RawMeshData } from '@mini-bim/geometry';
 export type { SceneOptions, MeshHandle } from './types.js';

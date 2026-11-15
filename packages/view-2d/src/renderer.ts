@@ -18,6 +18,9 @@ import {
   type SlabFor2D,
   type SlabTypeFor2D,
   type SlabRenderConfig,
+  type StairFor2D,
+  type StairTypeFor2D,
+  type StairRenderConfig,
   type UnderlayRenderConfig,
 } from './types.js';
 
@@ -90,6 +93,17 @@ export const DEFAULT_UNDERLAY_RENDER_CONFIG: UnderlayRenderConfig = Object.freez
   opacity: 0.5,
 });
 
+export const DEFAULT_STAIR_RENDER_CONFIG: StairRenderConfig = Object.freeze({
+  fillColor: 'rgba(249, 250, 251, 0.75)',
+  strokeColor: '#374151',
+  strokeWidth: 1.5,
+  stepLineColor: '#4b5563',
+  walklineColor: '#2563eb',
+  walklineWidth: 1.5,
+  selectedStrokeColor: '#2563eb',
+  selectedStrokeWidth: 2.5,
+});
+
 /**
  * Configuration globale par défaut du rendu 2D.
  */
@@ -99,6 +113,7 @@ export const DEFAULT_VIEW2D_RENDER_CONFIG: View2DRenderConfig = Object.freeze({
   grid: DEFAULT_GRID_CONFIG,
   wall: DEFAULT_WALL_RENDER_CONFIG,
   slab: DEFAULT_SLAB_RENDER_CONFIG,
+  stair: DEFAULT_STAIR_RENDER_CONFIG,
   underlay: DEFAULT_UNDERLAY_RENDER_CONFIG,
   room: DEFAULT_ROOM_RENDER_CONFIG,
   dimension: DEFAULT_DIMENSION_RENDER_CONFIG,
@@ -681,6 +696,64 @@ export function drawPreview(
         ctx.fill();
       }
     }
+  } else if (preview.kind === 'stair') {
+    const dx = preview.end.x - preview.start.x;
+    const dy = preview.end.y - preview.start.y;
+    const len = Math.hypot(dx, dy);
+    const width = preview.width ?? 900;
+    if (len > 1e-4) {
+      const ux = dx / len;
+      const uy = dy / len;
+      const nx = -uy;
+      const ny = ux;
+      const halfW = width / 2;
+
+      const c1 = transform.worldToScreen({
+        x: preview.start.x - nx * halfW,
+        y: preview.start.y - ny * halfW,
+      });
+      const c2 = transform.worldToScreen({
+        x: preview.end.x - nx * halfW,
+        y: preview.end.y - ny * halfW,
+      });
+      const c3 = transform.worldToScreen({
+        x: preview.end.x + nx * halfW,
+        y: preview.end.y + ny * halfW,
+      });
+      const c4 = transform.worldToScreen({
+        x: preview.start.x + nx * halfW,
+        y: preview.start.y + ny * halfW,
+      });
+
+      ctx.beginPath();
+      ctx.setLineDash([6, 6]);
+      ctx.strokeStyle = '#2563eb';
+      ctx.lineWidth = 2;
+      ctx.fillStyle = 'rgba(37, 99, 235, 0.15)';
+      ctx.moveTo(c1.x, c1.y);
+      ctx.lineTo(c2.x, c2.y);
+      ctx.lineTo(c3.x, c3.y);
+      ctx.lineTo(c4.x, c4.y);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      const sStart = transform.worldToScreen(preview.start);
+      const sEnd = transform.worldToScreen(preview.end);
+      ctx.beginPath();
+      ctx.setLineDash([]);
+      ctx.moveTo(sStart.x, sStart.y);
+      ctx.lineTo(sEnd.x, sEnd.y);
+      ctx.stroke();
+
+      ctx.fillStyle = '#2563eb';
+      ctx.beginPath();
+      ctx.arc(sStart.x, sStart.y, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(sEnd.x, sEnd.y, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
   ctx.restore();
 }
@@ -1061,6 +1134,149 @@ export function drawUnderlay(
 }
 
 /**
+ * Dessine un escalier droit paramétrique en vue en plan 2D (ADR-048).
+ * Représente l'emprise rectangulaire, les nez de marches et la ligne de foulée
+ * axiale avec cercle d'ancrage en pied et flèche orientée en tête.
+ */
+export function drawStair(
+  ctx: CanvasRenderingContext2D,
+  transform: Transform2D,
+  stair: StairFor2D,
+  stairType?: StairTypeFor2D,
+  isSelected: boolean = false,
+  config: StairRenderConfig = DEFAULT_STAIR_RENDER_CONFIG,
+): void {
+  const dx = stair.end.x - stair.start.x;
+  const dy = stair.end.y - stair.start.y;
+  const len = Math.hypot(dx, dy);
+  const width = stair.widthOverride ?? stairType?.width ?? 900;
+  if (len <= 1e-4 || width <= 0) return;
+
+  const ux = dx / len;
+  const uy = dy / len;
+  const nx = -uy;
+  const ny = ux;
+  const halfW = width / 2;
+
+  // 4 coins en coordonnées monde
+  const c1 = { x: stair.start.x - nx * halfW, y: stair.start.y - ny * halfW };
+  const c2 = { x: stair.end.x - nx * halfW, y: stair.end.y - ny * halfW };
+  const c3 = { x: stair.end.x + nx * halfW, y: stair.end.y + ny * halfW };
+  const c4 = { x: stair.start.x + nx * halfW, y: stair.start.y + ny * halfW };
+
+  const sc1 = transform.worldToScreen(c1);
+  const sc2 = transform.worldToScreen(c2);
+  const sc3 = transform.worldToScreen(c3);
+  const sc4 = transform.worldToScreen(c4);
+
+  ctx.save();
+
+  // 1. Fond de l'emprise
+  ctx.beginPath();
+  ctx.moveTo(sc1.x, sc1.y);
+  ctx.lineTo(sc2.x, sc2.y);
+  ctx.lineTo(sc3.x, sc3.y);
+  ctx.lineTo(sc4.x, sc4.y);
+  ctx.closePath();
+  ctx.fillStyle = config.fillColor;
+  ctx.fill();
+
+  // 2. Lignes de nez de marches transversales
+  const nSteps = Math.max(3, Math.round(len / 280));
+  const stepDist = len / nSteps;
+  ctx.beginPath();
+  for (let i = 1; i < nSteps; i++) {
+    const mx = stair.start.x + ux * (i * stepDist);
+    const my = stair.start.y + uy * (i * stepDist);
+    const pA = transform.worldToScreen({ x: mx - nx * halfW, y: my - ny * halfW });
+    const pB = transform.worldToScreen({ x: mx + nx * halfW, y: my + ny * halfW });
+    ctx.moveTo(pA.x, pA.y);
+    ctx.lineTo(pB.x, pB.y);
+  }
+  ctx.strokeStyle = config.stepLineColor;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // 3. Ligne de foulée axiale
+  const sStart = transform.worldToScreen(stair.start);
+  const sEnd = transform.worldToScreen(stair.end);
+
+  ctx.beginPath();
+  ctx.moveTo(sStart.x, sStart.y);
+  ctx.lineTo(sEnd.x, sEnd.y);
+  ctx.strokeStyle = config.walklineColor;
+  ctx.lineWidth = config.walklineWidth;
+  ctx.stroke();
+
+  // Pastille / cercle de départ en pied
+  ctx.beginPath();
+  ctx.arc(sStart.x, sStart.y, 4, 0, Math.PI * 2);
+  ctx.fillStyle = config.walklineColor;
+  ctx.fill();
+
+  // Flèche d'arrivée en tête
+  const sDx = sEnd.x - sStart.x;
+  const sDy = sEnd.y - sStart.y;
+  const sLen = Math.hypot(sDx, sDy);
+  if (sLen > 8) {
+    const sUx = sDx / sLen;
+    const sUy = sDy / sLen;
+    const arrowSize = 8;
+    const a1 = {
+      x: sEnd.x - sUx * arrowSize - sUy * (arrowSize * 0.5),
+      y: sEnd.y - sUy * arrowSize + sUx * (arrowSize * 0.5),
+    };
+    const a2 = {
+      x: sEnd.x - sUx * arrowSize + sUy * (arrowSize * 0.5),
+      y: sEnd.y - sUy * arrowSize - sUx * (arrowSize * 0.5),
+    };
+    ctx.beginPath();
+    ctx.moveTo(sEnd.x, sEnd.y);
+    ctx.lineTo(a1.x, a1.y);
+    ctx.lineTo(a2.x, a2.y);
+    ctx.closePath();
+    ctx.fillStyle = config.walklineColor;
+    ctx.fill();
+  }
+
+  // 4. Contour périphérique de la volée (tracé en dernier pour netteté d'arête)
+  ctx.beginPath();
+  ctx.moveTo(sc1.x, sc1.y);
+  ctx.lineTo(sc2.x, sc2.y);
+  ctx.lineTo(sc3.x, sc3.y);
+  ctx.lineTo(sc4.x, sc4.y);
+  ctx.closePath();
+  ctx.strokeStyle = isSelected ? config.selectedStrokeColor : config.strokeColor;
+  ctx.lineWidth = isSelected ? config.selectedStrokeWidth : config.strokeWidth;
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+/**
+ * Dessine l'ensemble des escaliers du document associés au niveau actif.
+ */
+export function drawStairs(
+  ctx: CanvasRenderingContext2D,
+  transform: Transform2D,
+  stairs: Record<string, StairFor2D> | readonly StairFor2D[],
+  stairTypes: Record<string, StairTypeFor2D> = {},
+  selectedIds: ReadonlySet<string> = new Set(),
+  config: StairRenderConfig = DEFAULT_STAIR_RENDER_CONFIG,
+  levelFilter?: string | null,
+): void {
+  const stairList = Array.isArray(stairs) ? stairs : Object.values(stairs);
+  for (const stair of stairList) {
+    if (levelFilter && stair.bottomLevelId && stair.bottomLevelId !== levelFilter) {
+      continue;
+    }
+    const stairType = stair.stairTypeId ? stairTypes[stair.stairTypeId] : undefined;
+    const isSelected = selectedIds.has(stair.id);
+    drawStair(ctx, transform, stair, stairType, isSelected, config);
+  }
+}
+
+/**
  * Fonction pure orchestrant le cycle de rendu complet d'une vue en plan 2D.
  */
 export function renderPlanView(
@@ -1083,6 +1299,7 @@ export function renderPlanView(
     grid: { ...DEFAULT_GRID_CONFIG, ...config.grid },
     wall: { ...DEFAULT_WALL_RENDER_CONFIG, ...config.wall },
     slab: { ...DEFAULT_SLAB_RENDER_CONFIG, ...config.slab },
+    stair: { ...DEFAULT_STAIR_RENDER_CONFIG, ...config.stair },
     underlay: { ...DEFAULT_UNDERLAY_RENDER_CONFIG, ...config.underlay },
     room: { ...DEFAULT_ROOM_RENDER_CONFIG, ...config.room },
     dimension: { ...DEFAULT_DIMENSION_RENDER_CONFIG, ...config.dimension },
@@ -1111,6 +1328,19 @@ export function renderPlanView(
       state.slabTypes ?? {},
       selectedIds,
       mergedConfig.slab,
+      levelFilter,
+    );
+  }
+
+  // 3b. Escaliers droits paramétriques
+  if (state.stairs && Object.keys(state.stairs).length > 0) {
+    drawStairs(
+      ctx,
+      transform,
+      state.stairs,
+      state.stairTypes ?? {},
+      selectedIds,
+      mergedConfig.stair,
       levelFilter,
     );
   }

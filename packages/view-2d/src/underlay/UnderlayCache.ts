@@ -37,11 +37,34 @@ export interface WindowForUnderlay {
 /**
  * Entrée normalisée pour la compilation du cache vectoriel Path2D d'un niveau en underlay.
  */
+export interface StairForUnderlay {
+  readonly id: string;
+  readonly start: Vec2;
+  readonly end: Vec2;
+  readonly width: number;
+  readonly numberOfSteps?: number;
+}
+
 export interface UnderlayInput {
   readonly levelId: string;
   readonly walls: readonly WallForUnderlay[];
   readonly doors?: readonly DoorForUnderlay[];
   readonly windows?: readonly WindowForUnderlay[];
+  readonly stairs?: readonly StairForUnderlay[];
+}
+
+function assertArgCount(
+  method: string,
+  actualCount: number,
+  expectedCount: number,
+  optionalCount: number = 0,
+): void {
+  const min = expectedCount - optionalCount;
+  if (actualCount < min) {
+    throw new TypeError(
+      `Failed to execute '${method}' on 'Path2D': ${min} argument${min > 1 ? 's' : ''} required, but only ${actualCount} present.`,
+    );
+  }
 }
 
 function assertFiniteArgs(method: string, ...args: number[]): void {
@@ -57,17 +80,21 @@ function assertFiniteArgs(method: string, ...args: number[]): void {
 /**
  * Implémentation de repli légère, inspectable et validante de Path2D
  * pour les environnements de test headless (Node.js/JSDOM).
- * Valide strictement la finitude des coordonnées (refuse NaN / Infinity).
+ * Valide strictement l'arité et la finitude des coordonnées (refuse NaN / Infinity).
  */
 export class MockPath2D {
   public readonly ops: Array<{ method: string; args: readonly unknown[] }> = [];
 
-  public moveTo(x: number, y: number): void {
+  public moveTo(...args: [number, number]): void {
+    assertArgCount('moveTo', arguments.length, 2);
+    const [x, y] = args;
     assertFiniteArgs('moveTo', x, y);
     this.ops.push({ method: 'moveTo', args: [x, y] });
   }
 
-  public lineTo(x: number, y: number): void {
+  public lineTo(...args: [number, number]): void {
+    assertArgCount('lineTo', arguments.length, 2);
+    const [x, y] = args;
     assertFiniteArgs('lineTo', x, y);
     this.ops.push({ method: 'lineTo', args: [x, y] });
   }
@@ -77,13 +104,10 @@ export class MockPath2D {
   }
 
   public arc(
-    x: number,
-    y: number,
-    radius: number,
-    startAngle: number,
-    endAngle: number,
-    counterclockwise?: boolean,
+    ...args: [number, number, number, number, number, boolean?]
   ): void {
+    assertArgCount('arc', arguments.length, 6, 1);
+    const [x, y, radius, startAngle, endAngle, counterclockwise] = args;
     assertFiniteArgs('arc', x, y, radius, startAngle, endAngle);
     if (radius < 0) {
       throw new TypeError(
@@ -96,12 +120,16 @@ export class MockPath2D {
     });
   }
 
-  public rect(x: number, y: number, w: number, h: number): void {
+  public rect(...args: [number, number, number, number]): void {
+    assertArgCount('rect', arguments.length, 4);
+    const [x, y, w, h] = args;
     assertFiniteArgs('rect', x, y, w, h);
     this.ops.push({ method: 'rect', args: [x, y, w, h] });
   }
 
-  public addPath(path: unknown, transform?: unknown): void {
+  public addPath(...args: [unknown, unknown?]): void {
+    assertArgCount('addPath', arguments.length, 2, 1);
+    const [path, transform] = args;
     if (!path) {
       throw new TypeError(
         "Failed to execute 'addPath' on 'Path2D': 1 argument required, but only 0 present.",
@@ -254,6 +282,44 @@ export class UnderlayCache {
       path.lineTo(pB0.x, pB0.y);
       path.moveTo(pA1.x, pA1.y);
       path.lineTo(pB1.x, pB1.y);
+    }
+
+    // 4. Empreintes 2D des escaliers sous-jacents (ADR-048)
+    for (const st of input.stairs ?? []) {
+      const dx = st.end.x - st.start.x;
+      const dy = st.end.y - st.start.y;
+      const len = Math.hypot(dx, dy);
+      if (len <= 1e-4 || st.width <= 0) continue;
+
+      const u = vec2(dx / len, dy / len);
+      const n = vec2(-u.y, u.x);
+      const halfW = st.width / 2;
+
+      // Contour rectangulaire de la volée
+      const p1 = vec2(st.start.x - n.x * halfW, st.start.y - n.y * halfW);
+      const p2 = vec2(st.end.x - n.x * halfW, st.end.y - n.y * halfW);
+      const p3 = vec2(st.end.x + n.x * halfW, st.end.y + n.y * halfW);
+      const p4 = vec2(st.start.x + n.x * halfW, st.start.y + n.y * halfW);
+
+      path.moveTo(p1.x, p1.y);
+      path.lineTo(p2.x, p2.y);
+      path.lineTo(p3.x, p3.y);
+      path.lineTo(p4.x, p4.y);
+      path.closePath();
+
+      // Nez de marches
+      const nSteps = st.numberOfSteps ?? Math.max(3, Math.round(len / 280));
+      const stepDist = len / nSteps;
+      for (let i = 1; i < nSteps; i++) {
+        const mx = st.start.x + u.x * (i * stepDist);
+        const my = st.start.y + u.y * (i * stepDist);
+        path.moveTo(mx - n.x * halfW, my - n.y * halfW);
+        path.lineTo(mx + n.x * halfW, my + n.y * halfW);
+      }
+
+      // Ligne de foulée axiale
+      path.moveTo(st.start.x, st.start.y);
+      path.lineTo(st.end.x, st.end.y);
     }
 
     return path;

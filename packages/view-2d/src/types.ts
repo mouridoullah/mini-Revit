@@ -100,6 +100,30 @@ export interface DimensionFor2D {
 }
 
 /**
+ * Paramètres neutres d'un type d'escalier pour le tracé 2D (ADR-048).
+ */
+export interface StairTypeFor2D {
+  readonly id: string;
+  readonly name?: string;
+  readonly width: number;
+}
+
+/**
+ * Paramètres neutres d'un escalier pour le tracé en plan 2D (ADR-048).
+ */
+export interface StairFor2D {
+  readonly id: string;
+  readonly category?: 'stair';
+  readonly stairTypeId: string;
+  readonly bottomLevelId: string;
+  readonly topLevelId: string;
+  readonly start: Vec2;
+  readonly end: Vec2;
+  readonly widthOverride?: number;
+  readonly name?: string;
+}
+
+/**
  * Interface structurelle neutre d'un document pour la vue en plan 2D.
  * Permet à View2D de consommer BimDocument sans dépendance directe ni import de @mini-bim/core.
  */
@@ -137,6 +161,8 @@ export interface DocumentFor2D {
         >
       | undefined;
     readonly dimensions?: Record<string, DimensionFor2D> | undefined;
+    readonly stairTypes?: Record<string, StairTypeFor2D> | undefined;
+    readonly stairs?: Record<string, StairFor2D> | undefined;
   };
 }
 
@@ -294,6 +320,17 @@ export interface UnderlayRenderConfig {
   readonly opacity: number;
 }
 
+export interface StairRenderConfig {
+  readonly fillColor: string;
+  readonly strokeColor: string;
+  readonly strokeWidth: number;
+  readonly stepLineColor: string;
+  readonly walklineColor: string;
+  readonly walklineWidth: number;
+  readonly selectedStrokeColor: string;
+  readonly selectedStrokeWidth: number;
+}
+
 /**
  * Configuration globale du moteur de rendu 2D.
  */
@@ -308,6 +345,8 @@ export interface View2DRenderConfig {
   readonly wall: WallRenderConfig;
   /** Configuration de rendu des dalles */
   readonly slab?: SlabRenderConfig;
+  /** Configuration de rendu des escaliers */
+  readonly stair?: StairRenderConfig;
   /** Configuration de rendu de la vue fantôme */
   readonly underlay?: UnderlayRenderConfig;
   /** Configuration de rendu des pièces */
@@ -342,7 +381,8 @@ export interface View2DOptions {
 export type PreviewShape =
   | { readonly kind: 'line'; readonly start: Vec2; readonly end: Vec2 }
   | { readonly kind: 'rect'; readonly min: Vec2; readonly max: Vec2 }
-  | { readonly kind: 'polygon'; readonly points: readonly Vec2[] };
+  | { readonly kind: 'polygon'; readonly points: readonly Vec2[] }
+  | { readonly kind: 'stair'; readonly start: Vec2; readonly end: Vec2; readonly width?: number };
 
 /**
  * Callback invoqué lors de l'émission d'une intention de commande de mutation.

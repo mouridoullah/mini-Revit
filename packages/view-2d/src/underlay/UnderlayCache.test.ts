@@ -318,4 +318,42 @@ describe('UnderlayCache (packages/view-2d/src/underlay/UnderlayCache.ts)', () =>
     expect(() => mock.rect(0, 0, NaN, 200)).toThrow(TypeError);
     expect(() => mock.addPath(null)).toThrow(TypeError);
   });
+
+  it('T-UC-14 — MockPath2D valide l arité des arguments et rejette moveTo avec 1 argument', () => {
+    const mock = new MockPath2D();
+    // @ts-expect-error test arité
+    expect(() => mock.moveTo(100)).toThrow(TypeError);
+    // @ts-expect-error test arité
+    expect(() => mock.lineTo(100)).toThrow(TypeError);
+  });
+
+  it('T-UC-15 — MockPath2D valide l arité des arguments et rejette arc avec moins de 5 arguments', () => {
+    const mock = new MockPath2D();
+    // @ts-expect-error test arité
+    expect(() => mock.arc(0, 0)).toThrow(TypeError);
+    // @ts-expect-error test arité
+    expect(() => mock.rect(0, 0, 100)).toThrow(TypeError);
+  });
+
+  it('T-STAIR-UC-01 — compile avec un escalier génère le contour, les nez de marches et la ligne de foulée', () => {
+    const input: UnderlayInput = {
+      levelId: 'lvl_stair',
+      walls: [],
+      stairs: [
+        {
+          id: 'st_underlay',
+          start: vec2(0, 0),
+          end: vec2(4000, 0),
+          width: 900,
+          numberOfSteps: 10,
+        },
+      ],
+    };
+
+    const path = cache.compile(input) as unknown as MockPath2D;
+    expect(path.ops.length).toBeGreaterThan(0);
+
+    const closeOps = path.ops.filter((o) => o.method === 'closePath');
+    expect(closeOps.length).toBe(1); // contour fermé de la volée
+  });
 });

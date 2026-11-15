@@ -29,6 +29,7 @@ export class Scene3D {
   private readonly defaultMaterial: THREE.MeshStandardMaterial;
   private readonly highlightMaterial: THREE.MeshStandardMaterial;
   private readonly slabMaterial: THREE.MeshStandardMaterial;
+  private readonly stairMaterial: THREE.MeshStandardMaterial;
 
   /**
    * Registre des maillages architecturaux indexés par elementId.
@@ -116,6 +117,12 @@ export class Scene3D {
       color: 0xd1d5db,
       roughness: 0.85,
       metalness: 0.05,
+      side: THREE.DoubleSide,
+    });
+    this.stairMaterial = new THREE.MeshStandardMaterial({
+      color: 0xa0825a,
+      roughness: 0.7,
+      metalness: 0.1,
       side: THREE.DoubleSide,
     });
 
@@ -307,6 +314,36 @@ export class Scene3D {
   }
 
   /**
+   * Ajoute un escalier dans la scène 3D avec un matériau bois structuré (#a0825a).
+   */
+  public addStairMesh(stairId: string, rawMesh: RawMeshData): THREE.Mesh {
+    return this.addMesh(
+      {
+        ...rawMesh,
+        elementId: stairId,
+        userData: {
+          elementId: stairId,
+          category: 'stair',
+          ...(rawMesh.userData ?? {}),
+        },
+      },
+      this.stairMaterial,
+    );
+  }
+
+  /**
+   * Met à jour un escalier (libère l'ancienne géométrie et remplace le mesh).
+   */
+  public updateStairMesh(stairId: string, rawMesh: RawMeshData): THREE.Mesh {
+    this.removeMesh(stairId);
+    return this.addStairMesh(stairId, rawMesh);
+  }
+
+  public removeStairMesh(stairId: string): void {
+    this.removeMesh(stairId);
+  }
+
+  /**
    * Applique ou retire la surbrillance de sélection sur les éléments spécifiés.
    * Bascule le matériau entre son matériau de base (ou defaultMaterial) et highlightMaterial (#2563eb).
    *
@@ -445,6 +482,7 @@ export class Scene3D {
     this.defaultMaterial.dispose();
     this.highlightMaterial.dispose();
     this.slabMaterial.dispose();
+    this.stairMaterial.dispose();
 
     // 5. Vider la scène Three.js
     this.scene.clear();

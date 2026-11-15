@@ -251,11 +251,56 @@ export class View2D {
     const effectiveOpenings = this.openings.length > 0 ? this.openings : undefined;
     const effectiveRooms = this.rooms.length > 0 ? this.rooms : undefined;
     const effectiveDimensions = this.dimensions.length > 0 ? this.dimensions : undefined;
-    const effectiveSlabs = this.slabs.length > 0 ? this.slabs : undefined;
+    const state = effectiveDoc.getState();
+
+    let effectiveSlabs: readonly SlabFor2D[] | undefined =
+      this.slabs.length > 0 ? this.slabs : undefined;
+
+    if (!effectiveSlabs && state.slabs) {
+      effectiveSlabs = Object.values(state.slabs).map((s) => {
+        const stairShafts: Vec2[][] = [];
+        if (state.stairs) {
+          for (const st of Object.values(state.stairs)) {
+            if (st.topLevelId === s.levelId) {
+              const stType = st.stairTypeId ? state.stairTypes?.[st.stairTypeId] : undefined;
+              const nominalWidth = st.widthOverride ?? stType?.width ?? 900;
+              const shaftWidth = nominalWidth + 100;
+              const halfWidth = shaftWidth / 2;
+              const endExtension = 100;
+              const dx = st.end.x - st.start.x;
+              const dy = st.end.y - st.start.y;
+              const len = Math.hypot(dx, dy);
+              if (len > 1e-4) {
+                const ux = dx / len;
+                const uy = dy / len;
+                const nx = -uy;
+                const ny = ux;
+                const pStartX = st.start.x - ux * endExtension;
+                const pStartY = st.start.y - uy * endExtension;
+                const pEndX = st.end.x + ux * endExtension;
+                const pEndY = st.end.y + uy * endExtension;
+                stairShafts.push([
+                  { x: pStartX - nx * halfWidth, y: pStartY - ny * halfWidth },
+                  { x: pEndX - nx * halfWidth, y: pEndY - ny * halfWidth },
+                  { x: pEndX + nx * halfWidth, y: pEndY + ny * halfWidth },
+                  { x: pStartX + nx * halfWidth, y: pStartY + ny * halfWidth },
+                ]);
+              }
+            }
+          }
+        }
+        if (stairShafts.length > 0) {
+          return {
+            ...s,
+            openings: [...(s.openings ?? []), ...stairShafts],
+          };
+        }
+        return s;
+      });
+    }
 
     let underlayPath: Path2D | null = null;
     if (this.underlayLevelId) {
-      const state = effectiveDoc.getState();
       const underlayWalls = Object.values(state.walls ?? {})
         .filter((w) => w.levelId === this.underlayLevelId)
         .map((w) => ({
@@ -296,11 +341,24 @@ export class View2D {
           };
         });
 
+      const underlayStairs = Object.values(state.stairs ?? {})
+        .filter((st) => st.bottomLevelId === this.underlayLevelId)
+        .map((st) => {
+          const stType = st.stairTypeId ? state.stairTypes?.[st.stairTypeId] : undefined;
+          return {
+            id: st.id,
+            start: st.start,
+            end: st.end,
+            width: st.widthOverride ?? stType?.width ?? 900,
+          };
+        });
+
       const underlayInput: UnderlayInput = {
         levelId: this.underlayLevelId,
         walls: underlayWalls,
         doors: underlayDoors,
         windows: underlayWindows,
+        stairs: underlayStairs,
       };
 
       underlayPath = this.underlayCache.getOrCompile(underlayInput);

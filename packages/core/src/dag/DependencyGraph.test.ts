@@ -377,4 +377,136 @@ describe('DependencyGraph — Graphe de Dépendances Minimal (T-DAG-01 à 17)', 
     expect(dependents.length).toBe(99);
     expect(duration).toBeLessThan(1); // < 1 ms
   });
+
+  // Escaliers & Trémies dérivées (ADR-048 §5)
+  it('T-DAG-STAIR-01 : build(state avec escalier) crée les arêtes vers la dalle haute et les niveaux', () => {
+    const stairId = 'stair_01';
+    const stairTypeId = 'stair_type_01';
+    const lvl0 = 'lvl_0';
+    const lvl1 = 'lvl_1';
+    const slabUpperId = 'slab_lvl1';
+
+    const state = createMockState({
+      levels: {
+        [lvl0]: { id: lvl0, name: 'RDC', elevation: 0 },
+        [lvl1]: { id: lvl1, name: 'R+1', elevation: 3000 },
+      },
+      stairTypes: {
+        [stairTypeId]: { id: stairTypeId, name: 'Escalier 900', width: 900 },
+      },
+      stairs: {
+        [stairId]: {
+          id: stairId,
+          category: 'stair',
+          stairTypeId,
+          bottomLevelId: lvl0,
+          topLevelId: lvl1,
+          start: { x: 0, y: 0 },
+          end: { x: 4000, y: 0 },
+        },
+      },
+      slabs: {
+        [slabUpperId]: {
+          id: slabUpperId,
+          category: 'slab',
+          slabTypeId: 'st_200',
+          levelId: lvl1,
+          boundary: [{ x: 0, y: 0 }, { x: 10000, y: 0 }, { x: 10000, y: 10000 }, { x: 0, y: 10000 }],
+        },
+      },
+    });
+
+    const dag = DependencyGraph.build(state);
+
+    // stair -> slabUpperId (topLevelId)
+    expect(dag.getDependents(stairId)).toContain(slabUpperId);
+    expect(dag.getDependencies(slabUpperId)).toContain(stairId);
+
+    // stairType -> stair
+    expect(dag.getDependents(stairTypeId)).toContain(stairId);
+
+    // lvl0 -> stair, lvl1 -> stair
+    expect(dag.getDependents(lvl0)).toContain(stairId);
+    expect(dag.getDependents(lvl1)).toContain(stairId);
+  });
+
+  it('T-DAG-STAIR-02 : getDependents(stairId) retourne la dalle supérieure en dépendance transitive', () => {
+    const stairId = 'stair_01';
+    const slabUpperId = 'slab_lvl1';
+
+    const state = createMockState({
+      stairs: {
+        [stairId]: {
+          id: stairId,
+          category: 'stair',
+          stairTypeId: 'st_type',
+          bottomLevelId: 'lvl_0',
+          topLevelId: 'lvl_1',
+          start: { x: 0, y: 0 },
+          end: { x: 4000, y: 0 },
+        },
+      },
+      slabs: {
+        [slabUpperId]: {
+          id: slabUpperId,
+          category: 'slab',
+          slabTypeId: 'st_200',
+          levelId: 'lvl_1',
+          boundary: [{ x: 0, y: 0 }, { x: 5000, y: 0 }, { x: 5000, y: 5000 }, { x: 0, y: 5000 }],
+        },
+      },
+    });
+
+    const dag = DependencyGraph.build(state);
+    const deps = dag.getDependents(stairId);
+    expect(deps).toEqual([slabUpperId]);
+  });
+
+  it('T-DAG-STAIR-03 : Modification du niveau ou type d’escalier invalide en cascade l’escalier et la dalle', () => {
+    const stairId = 'stair_01';
+    const stairTypeId = 'stair_type_01';
+    const lvl1 = 'lvl_1';
+    const slabUpperId = 'slab_lvl1';
+
+    const state = createMockState({
+      levels: {
+        [lvl1]: { id: lvl1, name: 'R+1', elevation: 3000 },
+      },
+      stairTypes: {
+        [stairTypeId]: { id: stairTypeId, name: 'Escalier 900', width: 900 },
+      },
+      stairs: {
+        [stairId]: {
+          id: stairId,
+          category: 'stair',
+          stairTypeId,
+          bottomLevelId: 'lvl_0',
+          topLevelId: lvl1,
+          start: { x: 0, y: 0 },
+          end: { x: 4000, y: 0 },
+        },
+      },
+      slabs: {
+        [slabUpperId]: {
+          id: slabUpperId,
+          category: 'slab',
+          slabTypeId: 'st_200',
+          levelId: lvl1,
+          boundary: [{ x: 0, y: 0 }, { x: 5000, y: 0 }, { x: 5000, y: 5000 }, { x: 0, y: 5000 }],
+        },
+      },
+    });
+
+    const dag = DependencyGraph.build(state);
+
+    // Si on modifie le stairType, stair et slabUpperId sont tous deux dans la cascade transitive
+    const typeDependents = dag.getDependents(stairTypeId);
+    expect(typeDependents).toContain(stairId);
+    expect(typeDependents).toContain(slabUpperId);
+
+    // Si on modifie le niveau R+1, stair et slabUpperId sont invalidés
+    const levelDependents = dag.getDependents(lvl1);
+    expect(levelDependents).toContain(stairId);
+    expect(levelDependents).toContain(slabUpperId);
+  });
 });

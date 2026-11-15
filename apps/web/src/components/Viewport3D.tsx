@@ -6,8 +6,10 @@ import {
   createDoorPlaceholderMaterial,
   createWindowPlaceholderMaterial,
   createSlabMesh,
+  createStairMesh,
   type OpeningGeometryParams,
 } from '@mini-bim/view-3d';
+import { computeStairShaft } from '@mini-bim/core';
 import { useBimDocument } from '../hooks/useBimDocument.js';
 import { useResizeObserver } from '../hooks/useResizeObserver.js';
 
@@ -67,12 +69,14 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
     const doors = state.doors ?? {};
     const windows = state.windows ?? {};
     const slabs = state.slabs ?? {};
+    const stairs = state.stairs ?? {};
 
     const currentElementIds = new Set([
       ...Object.keys(state.walls),
       ...Object.keys(doors),
       ...Object.keys(windows),
       ...Object.keys(slabs),
+      ...Object.keys(stairs),
     ]);
 
     // 1. Suppression des maillages d'éléments supprimés (murs ou ouvertures en cascade)
@@ -197,12 +201,20 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
       const level = state.levels[slab.levelId];
       const elevation = level?.elevation ?? 0;
 
+      // Dériver dynamiquement les trémies d'escaliers arrivant sur ce niveau (ADR-048 D5)
+      const stairShafts: { x: number; y: number }[][] = [];
+      for (const st of Object.values(stairs)) {
+        if (st.topLevelId === slab.levelId) {
+          stairShafts.push(computeStairShaft(st, state) as unknown as { x: number; y: number }[]);
+        }
+      }
+
       const slabMesh = createSlabMesh(
         {
           id: slab.id,
           boundary: slab.boundary,
           holes: slab.holes,
-          openings: slab.openings,
+          openings: [...(slab.openings ?? []), ...stairShafts],
           baseOffset: slab.baseOffset,
         },
         slabType,
@@ -211,6 +223,31 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
 
       if (slabMesh) {
         scene.updateSlabMesh(slab.id, slabMesh);
+      }
+    }
+
+    // 6. Maillages 3D des escaliers paramétriques (maillage crénelé ADR-048 D4)
+    for (const stair of Object.values(stairs)) {
+      const stairType = state.stairTypes?.[stair.stairTypeId];
+      const bottomLevel = state.levels[stair.bottomLevelId];
+      const topLevel = state.levels[stair.topLevelId];
+      const bottomElevation = bottomLevel?.elevation ?? 0;
+      const topElevation = topLevel?.elevation ?? bottomElevation + 2800;
+
+      const stairMesh = createStairMesh(
+        {
+          id: stair.id,
+          start: stair.start,
+          end: stair.end,
+          widthOverride: stair.widthOverride,
+          bottomElevation,
+          topElevation,
+        },
+        stairType ? { width: stairType.width } : undefined,
+      );
+
+      if (stairMesh) {
+        scene.updateStairMesh(stair.id, stairMesh);
       }
     }
 

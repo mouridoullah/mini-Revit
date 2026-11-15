@@ -320,4 +320,132 @@ describe('view-3d — Rendu 3D des Dalles et Trémies (Milestone 6.1b-1)', () =>
     // Nettoyage global
     expect(() => scene.dispose()).not.toThrow();
   });
+
+  // Dérivation de trémies d'escaliers (ADR-048 D5)
+  it('T-SLAB-STAIR-01 : Trémie d’escalier dérivée — createSlabMesh prend openings sans toucher slab.holes', () => {
+    // Trémie dérivée d'un escalier de 900 mm de large et 3000 mm de long :
+    // Dégagements prescrits : +50 mm latéraux (main courante) et +100 mm en extrémités
+    // Dimensions trémie : 1000 mm x 3200 mm
+    const stairShaft = [
+      { x: 1000, y: 1000 },
+      { x: 4200, y: 1000 },
+      { x: 4200, y: 2000 },
+      { x: 1000, y: 2000 },
+    ];
+
+    const slabWithoutHoles = {
+      id: 'slab-upper',
+      boundary: [
+        { x: 0, y: 0 },
+        { x: 8000, y: 0 },
+        { x: 8000, y: 6000 },
+        { x: 0, y: 6000 },
+      ],
+      holes: [] as { x: number; y: number }[][], // slab.holes reste vide
+      openings: [stairShaft], // Trémie injectée dynamiquement
+    };
+
+    const meshWithShaft = createSlabMesh(
+      slabWithoutHoles,
+      { thickness: 200 },
+      3000,
+    );
+
+    const meshSolid = createSlabMesh(
+      { ...slabWithoutHoles, openings: [] },
+      { thickness: 200 },
+      3000,
+    );
+
+    expect(meshWithShaft).not.toBeNull();
+    expect(meshSolid).not.toBeNull();
+    // Le maillage avec trémie comporte plus de triangles (pour contourner le trou)
+    expect(meshWithShaft!.indices.length).toBeGreaterThan(meshSolid!.indices.length);
+    // slab.holes original n'a pas été muté
+    expect(slabWithoutHoles.holes).toHaveLength(0);
+  });
+
+  it('T-SLAB-STAIR-02 : Conservation du volume — le volume de la dalle diminue exactement de la trémie', () => {
+    const shaftW = 1000;
+    const shaftL = 3200;
+    const thickness = 200;
+    const stairShaft = [
+      { x: 2000, y: 2000 },
+      { x: 2000 + shaftL, y: 2000 },
+      { x: 2000 + shaftL, y: 2000 + shaftW },
+      { x: 2000, y: 2000 + shaftW },
+    ];
+
+    const rawMesh = createSlabMesh(
+      {
+        id: 'slab-upper-vol',
+        boundary: [
+          { x: 0, y: 0 },
+          { x: 8000, y: 0 },
+          { x: 8000, y: 6000 },
+          { x: 0, y: 6000 },
+        ],
+        openings: [stairShaft],
+      },
+      { thickness },
+      3000,
+    )!;
+
+    let computedVolume = 0;
+    const pos = rawMesh.positions;
+    const idx = rawMesh.indices;
+    for (let i = 0; i < idx.length; i += 3) {
+      const i0 = idx[i]! * 3;
+      const i1 = idx[i + 1]! * 3;
+      const i2 = idx[i + 2]! * 3;
+
+      const v0x = pos[i0]!, v0y = pos[i0 + 1]!, v0z = pos[i0 + 2]!;
+      const v1x = pos[i1]!, v1y = pos[i1 + 1]!, v1z = pos[i1 + 2]!;
+      const v2x = pos[i2]!, v2y = pos[i2 + 1]!, v2z = pos[i2 + 2]!;
+
+      const crossX = v1y * v2z - v1z * v2y;
+      const crossY = v1z * v2x - v1x * v2z;
+      const crossZ = v1x * v2y - v1y * v2x;
+
+      computedVolume += (v0x * crossX + v0y * crossY + v0z * crossZ) / 6;
+    }
+
+    const expectedVolume = (8000 * 6000 - shaftL * shaftW) * thickness;
+    expect(Math.abs(computedVolume)).toBeCloseTo(expectedVolume, -4);
+  });
+
+  it('T-SLAB-STAIR-03 : Découpe de trémie avec trous existants — cumul propre sans conflit', () => {
+    const manualHole = [
+      { x: 1000, y: 1000 },
+      { x: 1500, y: 1000 },
+      { x: 1500, y: 1500 },
+      { x: 1000, y: 1500 },
+    ];
+    const stairShaft = [
+      { x: 4000, y: 2000 },
+      { x: 7000, y: 2000 },
+      { x: 7000, y: 3000 },
+      { x: 4000, y: 3000 },
+    ];
+
+    const mesh = createSlabMesh(
+      {
+        id: 'slab-multi-holes',
+        boundary: [
+          { x: 0, y: 0 },
+          { x: 8000, y: 0 },
+          { x: 8000, y: 6000 },
+          { x: 0, y: 6000 },
+        ],
+        holes: [manualHole],
+        openings: [stairShaft],
+      },
+      { thickness: 200 },
+      3000,
+    );
+
+    expect(mesh).not.toBeNull();
+    expect(mesh!.boundingBox.max.z).toBe(3000); // zSup = elevation + baseOffset
+    expect(mesh!.boundingBox.min.z).toBe(2800); // zInf = zSup - thickness
+  });
 });
