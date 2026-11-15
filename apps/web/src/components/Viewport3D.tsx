@@ -7,6 +7,8 @@ import {
   createWindowPlaceholderMaterial,
   createSlabMesh,
   createStairMesh,
+  solveWallJunctions,
+  type WallInput,
   type OpeningGeometryParams,
 } from '@mini-bim/view-3d';
 import { computeStairShaft } from '@mini-bim/core';
@@ -86,7 +88,44 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
       }
     }
 
-    // 2. Mise à jour ou ajout des murs percés de leurs ouvertures
+    // 2. Résolution des jonctions de murs par niveau (L, T, X) pour maillage net sans superposition
+    const wallsByLevel = new Map<string, (typeof state.walls)[string][]>();
+    for (const wall of Object.values(state.walls)) {
+      const list = wallsByLevel.get(wall.levelId) ?? [];
+      list.push(wall);
+      wallsByLevel.set(wall.levelId, list);
+    }
+
+    const resolvedPolygonsByWallId = new Map<string, readonly { readonly x: number; readonly y: number }[]>();
+    for (const [, levelWalls] of wallsByLevel) {
+      const wallInputs: WallInput[] = [];
+      for (const w of levelWalls) {
+        const wt = state.wallTypes[w.typeId];
+        if (!wt) continue;
+        const len = Math.hypot(w.end.x - w.start.x, w.end.y - w.start.y);
+        if (len > 0.001 && wt.thickness > 0) {
+          wallInputs.push({
+            id: w.id,
+            start: w.start,
+            end: w.end,
+            thickness: wt.thickness,
+            locationLine: 'center',
+          });
+        }
+      }
+      if (wallInputs.length > 0) {
+        try {
+          const solution = solveWallJunctions(wallInputs);
+          for (const rw of solution.walls) {
+            resolvedPolygonsByWallId.set(rw.id, rw.polygon);
+          }
+        } catch {
+          // Fallback gracieux sur l'emprise nominale
+        }
+      }
+    }
+
+    // 2b. Mise à jour ou ajout des murs percés de leurs ouvertures
     for (const wall of Object.values(state.walls)) {
       const wallType = state.wallTypes[wall.typeId];
       if (!wallType) continue;
@@ -127,12 +166,14 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
         }),
       ];
 
-      // Générer les tronçons solides découpés (murs percés 2.5D)
+      // Générer les tronçons solides découpés (murs percés 2.5D avec jonctions résolues)
+      const resolvedPoly = resolvedPolygonsByWallId.get(wall.id);
       const pieces = createWallMeshWithOpenings({
         wall,
         wallType,
         openings: openingParams,
         elevation,
+        ...(resolvedPoly ? { polygon: resolvedPoly } : {}),
       });
 
       // Remplacement atomique de l'ensemble des tronçons solides du mur (ancien maillage libéré)

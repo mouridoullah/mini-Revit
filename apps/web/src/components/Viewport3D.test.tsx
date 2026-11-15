@@ -341,4 +341,26 @@ describe('Viewport3D React Wrapper (apps/web)', () => {
     );
     expect(updatedDoorCall).toBeDefined();
   });
+
+  it('Viewport3D passe les polygones de jonction résolus (solveWallJunctions) à createWallMeshWithOpenings (P1.3)', () => {
+    const doc = createDemoDocument();
+    const createWallMeshWithOpeningsSpy = vi.spyOn(Scene3DModule, 'createWallMeshWithOpenings');
+
+    render(
+      <BimDocumentProvider initialDoc={doc}>
+        <Viewport3D />
+      </BimDocumentProvider>,
+    );
+
+    // Les 4 murs de la démo sont connectés en L
+    expect(createWallMeshWithOpeningsSpy).toHaveBeenCalledTimes(4);
+    for (const call of createWallMeshWithOpeningsSpy.mock.calls) {
+      const params = call[0];
+      // Chaque mur a un polygone résolu fourni par solveWallJunctions
+      expect(params.polygon).toBeDefined();
+      expect(params.polygon?.length).toBeGreaterThanOrEqual(4);
+    }
+
+    createWallMeshWithOpeningsSpy.mockRestore();
+  });
 });

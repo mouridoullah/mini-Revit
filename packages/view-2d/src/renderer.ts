@@ -1,4 +1,11 @@
-import { computeWallFootprint2d, vec2 } from '@mini-bim/geometry';
+import {
+  computeWallFootprint2d,
+  vec2,
+  solveWallJunctions,
+  type WallInput,
+  type Vec2,
+  GEOM_CONFIG,
+} from '@mini-bim/geometry';
 import { type Transform2D } from './transform.js';
 import {
   type GridConfig,
@@ -259,6 +266,7 @@ export function drawWall(
   wallType: WallTypeFor2D,
   isSelected: boolean = false,
   config: WallRenderConfig = DEFAULT_WALL_RENDER_CONFIG,
+  resolvedPolygon?: readonly Vec2[] | undefined,
 ): void {
   // 1. Calcul de l'emprise 2D géométrique via le noyau mathématique pur
   const footprint = computeWallFootprint2d({
@@ -268,20 +276,22 @@ export function drawWall(
     locationLine: 'center',
   });
 
-  const [v0, v1, v2, v3] = footprint.vertices;
-  const s0 = transform.worldToScreen(v0);
-  const s1 = transform.worldToScreen(v1);
-  const s2 = transform.worldToScreen(v2);
-  const s3 = transform.worldToScreen(v3);
+  const vertices =
+    resolvedPolygon && resolvedPolygon.length >= 3 ? resolvedPolygon : footprint.vertices;
+  const screenPoints = vertices.map((v) => transform.worldToScreen(v));
+  if (screenPoints.length < 3) return;
+
+  const first = screenPoints[0]!;
 
   ctx.save();
 
   // 2. Poché architectural (Remplissage)
   ctx.beginPath();
-  ctx.moveTo(s0.x, s0.y);
-  ctx.lineTo(s1.x, s1.y);
-  ctx.lineTo(s2.x, s2.y);
-  ctx.lineTo(s3.x, s3.y);
+  ctx.moveTo(first.x, first.y);
+  for (let i = 1; i < screenPoints.length; i++) {
+    const pt = screenPoints[i]!;
+    ctx.lineTo(pt.x, pt.y);
+  }
   ctx.closePath();
 
   ctx.fillStyle = isSelected ? config.selectedFillColor : config.fillColor;
@@ -609,6 +619,9 @@ export function drawWalls(
   config: WallRenderConfig = DEFAULT_WALL_RENDER_CONFIG,
   levelFilter?: string | null,
 ): void {
+  const wallInputs: WallInput[] = [];
+  const levelWalls: WallFor2D[] = [];
+
   for (const wall of Object.values(walls)) {
     if (levelFilter && wall.levelId && wall.levelId !== levelFilter) {
       continue;
@@ -619,8 +632,40 @@ export function drawWalls(
       continue;
     }
 
+    const len = Math.hypot(wall.end.x - wall.start.x, wall.end.y - wall.start.y);
+    if (len > GEOM_CONFIG.EPSILON_DISTANCE && wallType.thickness > 0) {
+      wallInputs.push({
+        id: wall.id,
+        start: wall.start,
+        end: wall.end,
+        thickness: wallType.thickness,
+        locationLine: 'center',
+      });
+    }
+    levelWalls.push(wall);
+  }
+
+  const resolvedPolygons = new Map<string, readonly Vec2[]>();
+  if (wallInputs.length > 0) {
+    try {
+      const solution = solveWallJunctions(wallInputs);
+      for (const rw of solution.walls) {
+        resolvedPolygons.set(rw.id, rw.polygon);
+      }
+    } catch {
+      // Fallback silencieux sur l'emprise nominale rectangulaire
+    }
+  }
+
+  for (const wall of levelWalls) {
+    const wallType = wall.typeId ? wallTypes[wall.typeId] : undefined;
+    if (!wallType) {
+      continue;
+    }
+
     const isSelected = selectedIds.has(wall.id);
-    drawWall(ctx, transform, wall, wallType, isSelected, config);
+    const resolvedPoly = resolvedPolygons.get(wall.id);
+    drawWall(ctx, transform, wall, wallType, isSelected, config, resolvedPoly);
   }
 }
 

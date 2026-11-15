@@ -37,6 +37,7 @@ export interface WallWithOpeningsParams {
   readonly wallType: WallTypeGeometryParams;
   readonly openings: readonly OpeningGeometryParams[];
   readonly elevation?: number;
+  readonly polygon?: readonly Vec2[] | undefined;
 }
 
 /**
@@ -47,12 +48,15 @@ export interface WallWithOpeningsParams {
  * Garantit que chaque RawMeshData.elementId === wall.id pour la cohérence du picking 3D.
  */
 export function createWallMeshWithOpenings(params: WallWithOpeningsParams): RawMeshData[] {
-  const footprint = computeWallFootprint2d({
-    start: params.wall.start,
-    end: params.wall.end,
-    thickness: params.wallType.thickness,
-    locationLine: 'center',
-  });
+  const footprintVertices =
+    params.polygon && params.polygon.length >= 3
+      ? params.polygon
+      : computeWallFootprint2d({
+          start: params.wall.start,
+          end: params.wall.end,
+          thickness: params.wallType.thickness,
+          locationLine: 'center',
+        }).vertices;
 
   const elevation = params.elevation ?? 0;
 
@@ -73,7 +77,7 @@ export function createWallMeshWithOpenings(params: WallWithOpeningsParams): RawM
       end: vec2(params.wall.end.x, params.wall.end.y),
       thickness: params.wallType.thickness,
       height: params.wallType.height,
-      polygon: footprint.vertices,
+      polygon: footprintVertices,
     },
     openingsInput,
   );

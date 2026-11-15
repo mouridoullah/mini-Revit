@@ -31,5 +31,13 @@ export {
   type StairGeometryParams,
   type StairTypeGeometryParams,
 } from './mesh-generator.js';
-export { computeWallFootprint2d, extrudeWallPiece, type RawMeshData } from '@mini-bim/geometry';
+export {
+  computeWallFootprint2d,
+  extrudeWallPiece,
+  solveWallJunctions,
+  type RawMeshData,
+  type WallInput,
+  type ResolvedWall,
+  type JunctionSolution,
+} from '@mini-bim/geometry';
 export type { SceneOptions, MeshHandle } from './types.js';

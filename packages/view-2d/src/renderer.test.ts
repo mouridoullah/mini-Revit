@@ -194,6 +194,49 @@ describe('Renderer 2D (renderer.ts)', () => {
     expect(mock.filterCalls('fill')).toHaveLength(2);
   });
 
+  it('drawWalls intègre solveWallJunctions pour biseauter les angles en L (P1.3)', () => {
+    const { mock } = createMockCanvas(800, 600);
+    const transform = new Transform2D();
+
+    const wallTypes: Record<string, WallType> = {
+      wt_1: { id: 'wt_1', name: 'T1', thickness: 200, height: 2800 },
+    };
+
+    // Deux murs formant un angle en L à (4000, 0)
+    const walls: Record<string, Wall> = {
+      w1: {
+        id: 'w1',
+        category: 'wall',
+        typeId: 'wt_1',
+        levelId: 'lvl_rdc',
+        start: vec2(0, 0),
+        end: vec2(4000, 0),
+      },
+      w2: {
+        id: 'w2',
+        category: 'wall',
+        typeId: 'wt_1',
+        levelId: 'lvl_rdc',
+        start: vec2(4000, 0),
+        end: vec2(4000, 3000),
+      },
+    };
+
+    drawWalls(
+      mock.ctx,
+      transform,
+      walls,
+      wallTypes,
+      new Set(),
+      DEFAULT_WALL_RENDER_CONFIG,
+      'lvl_rdc',
+    );
+
+    // 2 murs rendus
+    expect(mock.filterCalls('fill')).toHaveLength(2);
+    expect(mock.filterCalls('stroke')).toHaveLength(4); // 2 contours + 2 axes
+  });
+
   it('renderPlanView orchestre le cycle complet de rendu sans crash', () => {
     const { mock } = createMockCanvas(800, 600);
     const transform = new Transform2D();

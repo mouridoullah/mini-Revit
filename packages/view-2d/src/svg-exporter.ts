@@ -1,4 +1,10 @@
-import { computeWallFootprint2d, type Vec2 } from '@mini-bim/geometry';
+import {
+  computeWallFootprint2d,
+  solveWallJunctions,
+  type WallInput,
+  type Vec2,
+  GEOM_CONFIG,
+} from '@mini-bim/geometry';
 import { type DocumentFor2D, type DimensionFor2D, type DetectedRoomFor2D } from './types.js';
 
 /**
@@ -144,8 +150,36 @@ export function generatePlanSvg(doc: DocumentFor2D, options: PlanSvgOptions = {}
   }
 
   // -------------------------------------------------------------------------
-  // 2. Couche Murs (Walls)
+  // 2. Couche Murs (Walls) avec jonctions résolues
   // -------------------------------------------------------------------------
+  const wallInputs: WallInput[] = [];
+  for (const wall of allWalls) {
+    const wallType = wall.typeId ? state.wallTypes[wall.typeId] : undefined;
+    const thickness = wallType?.thickness ?? 200;
+    const len = Math.hypot(wall.end.x - wall.start.x, wall.end.y - wall.start.y);
+    if (len > GEOM_CONFIG.EPSILON_DISTANCE && thickness > 0) {
+      wallInputs.push({
+        id: wall.id,
+        start: wall.start,
+        end: wall.end,
+        thickness,
+        locationLine: 'center',
+      });
+    }
+  }
+
+  const resolvedPolygons = new Map<string, readonly Vec2[]>();
+  if (wallInputs.length > 0) {
+    try {
+      const solution = solveWallJunctions(wallInputs);
+      for (const rw of solution.walls) {
+        resolvedPolygons.set(rw.id, rw.polygon);
+      }
+    } catch {
+      // Fallback silencieux sur l'emprise nominale
+    }
+  }
+
   for (const wall of allWalls) {
     const wallType = wall.typeId ? state.wallTypes[wall.typeId] : undefined;
     const thickness = wallType?.thickness ?? 200;
@@ -156,7 +190,8 @@ export function generatePlanSvg(doc: DocumentFor2D, options: PlanSvgOptions = {}
       thickness,
       locationLine: 'center',
     });
-    const ptsStr = footprint.vertices
+    const vertices = resolvedPolygons.get(wall.id) ?? footprint.vertices;
+    const ptsStr = vertices
       .map((p) => `${toSvgX(p.x).toFixed(2)},${toSvgY(p.y).toFixed(2)}`)
       .join(' ');
 
