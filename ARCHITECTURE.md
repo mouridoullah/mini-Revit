@@ -37,7 +37,7 @@ flowchart TD
     subgraph AppLayer ["Couche Application"]
         Tools["Machines à états des Outils (WallTool, DoorTool, SelectTool)"]
         Snapping["Moteur d'Accrochage (Snapping Engine - R-Tree)"]
-        CommandBus["Command Bus & Transaction Manager (Undo/Redo)"]
+        ToolDispatcher["Gestionnaire d'Outils & Dispatcher d'Intentions"]
     end
 
     subgraph Viewports ["Moteurs de Rendu des Vues (Impératifs)"]
@@ -48,7 +48,8 @@ flowchart TD
 
     subgraph CoreDomain ["Noyau BIM Core (TypeScript Pur)"]
         Document["BimDocument (Murs, Baies, Pièces, Cotes, Dalles, Niveaux)"]
-        CommandBus["Commandes Transactionnelles & Undo/Redo (Immer)"]
+        CommandBus["Command Bus Transactionnel & Undo/Redo (Immer)"]
+        DagEngine["Graphe de Dépendances Minimal DAG & Propagation (ADR-041)"]
         RelationsEngine["Moteur de Relations Déclaratives & Cascades (ADR-038)"]
         RulesEngine["Validateur Métier d'Invariants (BimValidationError)"]
         IFCExporter["Générateur IFC4 ISO 10303-21 Pur TS"]
@@ -70,8 +71,10 @@ flowchart TD
     ReactUI --> Tools
     ReactUI --> UIStore
     Tools --> Snapping
-    Tools --> CommandBus
+    Tools --> ToolDispatcher
+    ToolDispatcher --> CommandBus
     CommandBus --> Document
+    Document --> DagEngine
     Document --> RelationsEngine
     Document --> RulesEngine
     Document --> GeometryKernel

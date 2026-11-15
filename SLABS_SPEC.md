@@ -1,38 +1,54 @@
 # SPÉCIFICATION TECHNIQUE — DALLES (SLABS) & MULTI-NIVEAUX
 
-**Version :** 1.0  
+**Version :** 1.1  
 **Date :** 15 novembre 2026  
-**Statut :** Spécification Validée (Phase 6)  
+**Statut :** Spécification Validée (Phase 6 — Révisée suite à l'Audit Croisé Claude / Lead Architect)  
 **Auteurs :** Lead Software Architect & Computational Geometry Engineer
 
 ---
 
 ## 1. Objet et Portée
 
-Ce document définit les spécifications formelles, les conventions géométriques et les règles d'intégrité métier pour l'implémentation des **Dalles horizontales (`Slab`)**, de la **gestion multi-étages (`Multi-Level`)** et du **rendu fantôme (`Underlay`)** au sein de Mini-BIM.
+Ce document définit les spécifications formelles, les conventions géométriques et les règles d'intégrité métier pour l'implémentation des **Dalles horizontales (`Slab`)**, de leurs types constructifs (**`SlabType`**), de la **gestion multi-étages (`Multi-Level`)** et du **rendu fantôme (`Underlay`)** au sein de Mini-BIM.
+
+Cette version 1.1 intègre les arbitrages issus de l'audit critique de conception :
+
+- Généralisation du pattern Revit Type / Instance via `SlabType` (ADR-042).
+- Intégration native dans le Graphe de Dépendances Minimal (`DependencyGraph`, ADR-041).
+- Dérivation fonctionnelle pure des trémies d'escalier (règle de la source unique de vérité).
+- Roadmap formalisée pour l'associativité des contours de dalles.
+- Stratégie de tests à base de propriétés (`fast-check`).
 
 ---
 
 ## 2. Modèle de Données Déclaratif (`@mini-bim/core`)
 
-### 2.1 Types TypeScript
+### 2.1 Types TypeScript (ADR-042)
 
 ```typescript
 import { type ElementId, type Vec2 } from '../types.js';
 
+export interface SlabType {
+  readonly id: ElementId;
+  readonly name: string; // Ex: "Dalle Béton Armé 200 mm", "Plancher Bois 160 mm"
+  readonly thickness: number; // Épaisseur constructive en mm (strictement > 0)
+  readonly materialId?: string;
+}
+
 export interface Slab {
   readonly id: ElementId;
   readonly category: 'slab';
-  readonly levelId: ElementId;
+  readonly slabTypeId: ElementId; // Référence vers state.slabTypes
+  readonly levelId: ElementId; // Référence vers state.levels
   readonly boundary: readonly Vec2[]; // Contour extérieur fermé CCW
-  readonly holes: readonly (readonly Vec2[])[]; // Trémies intérieures fermées CW
-  readonly thickness: number; // Épaisseur constructive en mm (strictement > 0)
+  readonly holes: readonly (readonly Vec2[])[]; // Trémies manuelles intérieures fermées CW
   readonly baseOffset?: number; // Décalage altimétrique optionnel (défaut: 0)
   readonly name?: string; // Libellé optionnel (ex: "Dalle RDC", "Plancher haut")
 }
 
 export interface BimState {
-  // ... champs existants ...
+  // ... entités existantes (walls, doors, windows, rooms, dimensions, levels) ...
+  readonly slabTypes: Record<ElementId, SlabType>;
   readonly slabs: Record<ElementId, Slab>;
 }
 ```
@@ -45,8 +61,9 @@ Dans le standard BIM (Revit, IFC) :
 - La dalle structurelle est donc positionnée **sous** le niveau de référence :
   $$ \begin{aligned}
   Z_{\text{sup}} &= \text{level.elevation} + (\text{slab.baseOffset} \mathbin{??} 0) \\
-  Z_{\text{inf}} &= Z_{\text{sup}} - \text{slab.thickness}
+  Z_{\text{inf}} &= Z_{\text{sup}} - \text{slabType.thickness}
   \end{aligned}$$
+
   $$
 - **Conséquence directe :** Les murs posés sur ce niveau ($Z = \text{level.elevation}$) reposent exactement sur la face supérieure de la dalle, sans aucun chevauchement ou conflit volumique.
 - **Invariant de Non-Interpénétration Volumique (Test Discriminant) :**
@@ -57,78 +74,120 @@ Dans le standard BIM (Revit, IFC) :
 
 ---
 
-## 3. Commandes Transactionnelles (`immer`) & Règles de Cascade
+## 3. Dérivation des Trémies d'Escalier (Règle de Vérité Unique)
 
-| Commande            | Paramètres                                | Effet sur `draft.slabs`                    | `getChangedIds()` |
-| ------------------- | ----------------------------------------- | ------------------------------------------ | ----------------- |
-| `AddSlabCommand`    | `slab: Slab`                              | Insère la dalle après validation complète. | `[slab.id]`       |
-| `UpdateSlabCommand` | `slabId: ElementId, patch: Partial<Slab>` | Applique le patch et re-valide l'entité.   | `[slab.id]`       |
-| `DeleteSlabCommand` | `slabId: ElementId`                       | Supprime la dalle du modèle.               | `[slabId]`        |
+Pour éviter tout risque de désynchronisation entre un escalier et la réservation qu'il traverse (critique de Claude sur la duplication d'état) :
 
-### Règles de Suppression et de Cascade :
-
-1. **Suppression de Mur (`DeleteWallCommand`) :**
-   - Une dalle est une entité horizontale indépendante (non hébergée par un mur).
-   - La suppression d'un mur porteur ou mitoyen **ne supprime pas** la dalle.
-2. **Suppression de Niveau (`DeleteLevelCommand`) :**
-   - Règle de protection d'intégrité référentielle stricte : si un niveau héberge encore des murs, des portes, des fenêtres, des pièces ou des dalles, la commande `DeleteLevelCommand` est **rejetée** avec l'erreur `DELETE_LEVEL_REJECTED`.
-   - L'utilisateur doit préalablement vider ou réassigner les éléments du niveau.
-     | `DeleteSlabCommand` | `slabId: ElementId` | Supprime la dalle du modèle. | `[slabId]` |
-
-### Invariant Undo / Redo
-
-Toute opération sur une dalle doit restaurer l'état documentaire bit-à-bit (`expect(doc.state).toEqual(stateBefore)`).
+1. **Source Unique de Vérité :**  
+   Le champ `slab.holes` stocke **exclusivement les trémies et réservations manuelles** dessinées par l'utilisateur. La trémie requise pour le passage d'un escalier n'est **jamais stockée en dur** dans `slab.holes`.
+2. **Fonction Pure de Dérivation (`computeEffectiveHoles`) :**  
+   Avant toute opération de rendu 2D, de maillage 3D ou d'export IFC, les trémies effectives de la dalle sont calculées à la demande :
+   $$\text{holes}_{\text{effective}}(\text{slab}, \text{stairs}) = \text{slab.holes} \cup \bigcup_{s \in \text{stairs}, s.\text{topLevelId} = \text{slab.levelId}} \text{computeStairShaft}(s)$$
+3. **Conséquence :**  
+   Si un escalier est déplacé, redimensionné ou supprimé, la trémie correspondante dans la dalle supérieure s'ajuste ou disparaît immédiatement, sans aucun risque de trou orphelin persistant.
 
 ---
 
-## 4. Règles Métier et Codes d'Erreur (`validateSlab`)
+## 4. Commandes Transactionnelles (`immer`) & Intégration DAG
 
-### 4.1 Normalisation Automatique des Contours
+### 4.1 Catalogue des Commandes
 
-Pour maximiser la tolérance UX :
+| Commande                | Paramètres                                    | Rôle Métier                                       |
+| ----------------------- | --------------------------------------------- | ------------------------------------------------- |
+| `AddSlabTypeCommand`    | `slabType: SlabType`                          | Déclare un nouveau type de dalle.                 |
+| `UpdateSlabTypeCommand` | `typeId: ElementId, patch: Partial<SlabType>` | Modifie les caractéristiques du type (épaisseur). |
+| `DeleteSlabTypeCommand` | `typeId: ElementId`                           | Supprime le type (rejeté si utilisé).             |
+| `AddSlabCommand`        | `slab: Slab`                                  | Insère une dalle après validation complète.       |
+| `UpdateSlabCommand`     | `slabId: ElementId, patch: Partial<Slab>`     | Applique un patch et revalide l'entité.           |
+| `DeleteSlabCommand`     | `slabId: ElementId`                           | Supprime la dalle du modèle.                      |
+
+### 4.2 Déclaration dans le `RELATIONS_REGISTRY` & DAG (ADR-038 / ADR-041)
+
+```typescript
+// Enregistrement déclaratif des relations de la Dalle :
+{
+  sourceCategory: 'slab',
+  field: 'levelId',
+  targetCategory: 'level',
+  onDelete: 'restrict', // Interdit la suppression d'un niveau portant des dalles
+},
+{
+  sourceCategory: 'slab',
+  field: 'slabTypeId',
+  targetCategory: 'slabType',
+  onDelete: 'restrict', // Interdit la suppression d'un type de dalle utilisé
+}
+```
+
+- **Suppression d'un Mur (`DeleteWallCommand`) :** Une dalle est une entité horizontale indépendante ; supprimer un mur porteur ne supprime pas la dalle.
+- **Suppression d'un Niveau (`DeleteLevelCommand`) :** Rejetée avec l'erreur typée `DELETE_LEVEL_REJECTED` si le niveau porte des dalles ou des murs.
+- **Suppression d'un Type (`DeleteSlabTypeCommand`) :** Rejetée avec l'erreur typée `DELETE_TYPE_REJECTED` si le type est encore référencé par au moins une dalle.
+- **Invariant Undo / Redo :** Toute opération restaure bit-à-bit l'état documentaire exact (`expect(doc.state).toEqual(stateBefore)`).
+
+---
+
+## 5. Règles Métier et Codes d'Erreur (`validateSlab` & `validateSlabType`)
+
+### 5.1 Normalisation Automatique des Contours
 
 - Le contour extérieur `boundary` est automatiquement normalisé en sens trigonométrique (**CCW**) lors de l'exécution de la commande (inversion automatique si l'utilisateur saisit les points en sens horaire).
-- Les trémies `holes` sont automatiquement normalisées en sens horaire (**CW**).
+- Les trémies manuelles `holes` sont automatiquement normalisées en sens horaire (**CW**).
 
-### 4.2 Invariants et Exceptions Typées (`BimValidationError`)
+### 5.2 Invariants et Exceptions Typées (`BimValidationError`)
 
-La fonction pure `validateSlab(slab: Slab, state: BimState): void` vérifie les invariants suivants :
+La fonction pure `validateSlab(slab: Slab, state: BimState): void` vérifie :
 
-1. `UNKNOWN_LEVEL` : Le `slab.levelId` doit correspondre à un niveau existant dans `state.levels`.
-2. `INVALID_SLAB_THICKNESS` : L'épaisseur `thickness` doit être un nombre fini strictement positif ($\ge 50\text{ mm}$).
-3. `INVALID_SLAB_BOUNDARY` : Le contour extérieur `boundary` doit comporter au moins 3 sommets non colinéaires et une aire signée non nulle ($\ge 0,1\text{ m}^2$).
+1. `UNKNOWN_LEVEL` : Le `slab.levelId` doit exister dans `state.levels`.
+2. `UNKNOWN_SLAB_TYPE` : Le `slab.slabTypeId` doit exister dans `state.slabTypes`.
+3. `INVALID_SLAB_BOUNDARY` : Le contour extérieur `boundary` doit comporter au moins 3 sommets non colinéaires et une surface $\ge 0,1\text{ m}^2$.
 4. `SELF_INTERSECTING_SLAB` : Le contour extérieur ne doit présenter aucune auto-intersection d'arêtes.
-5. `HOLE_OUTSIDE_SLAB` : Chaque trémie dans `holes` doit être géométriquement contenue dans le polygone `boundary`. Les contacts et tangences avec les bords de dalle (trémie adossée à un mur porteur) sont acceptés ; seul le débordement strict à l'extérieur est rejeté.
+5. `HOLE_OUTSIDE_SLAB` : Chaque trémie dans `holes` doit être géométriquement contenue dans le polygone `boundary`. Les contacts et tangences avec les bords de dalle (trémie adossée à un mur de façade) sont acceptés ; seul le débordement strict à l'extérieur est rejeté.
 6. `INTERSECTING_HOLES` : Deux trémies ne peuvent pas se chevaucher ou s'auto-intersecter.
+
+La fonction pure `validateSlabType(slabType: SlabType): void` vérifie :
+
+- `INVALID_SLAB_THICKNESS` : L'épaisseur `thickness` doit être un nombre fini strictement positif ($\ge 50\text{ mm}$).
 
 ---
 
-## 5. Pipeline Géométrique et Rendu 3D (`@mini-bim/view-3d`)
+## 6. Roadmap d'Associativité des Dalles
+
+Afin de concilier simplicité de livraison et ambition BIM professionnelle :
+
+| Phase         | Mode de Définition de Dalle             | Comportement lors du Déplacement d'un Mur                                                                                                                          |
+| ------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Phase 6.1** | **Contour Manuel par Clics**            | Le contour de la dalle est statique. Les sommets s'aimantent sur les angles de murs lors du tracé initial.                                                         |
+| **Phase 6.2** | **Création depuis Pièce ("Pick Room")** | L'utilisateur clique sur une pièce pour générer instantanément une dalle épousant le contour fermé intérieur.                                                      |
+| **Phase 7+**  | **Mode Associatif Dynamique**           | Les arêtes de la dalle sont liées aux axes ou nus extérieurs des murs porteurs ; le déplacement d'un mur translate automatiquement la rive de la dalle via le DAG. |
+
+---
+
+## 7. Pipeline Géométrique et Rendu 3D (`@mini-bim/view-3d`)
 
 1. **Triangulation des faces horizontales :**
-   - Utilisation d'`earcut` pour trianguler le polygone concave avec trous.
+   - Utilisation d'`earcut` pour trianguler le polygone concave avec trous effectifs (`holes_effective`).
    - Face supérieure orientée vers le haut ($+Z$) à $Z = Z_{\text{sup}}$.
    - Face inférieure orientée vers le bas ($-Z$) à $Z = Z_{\text{inf}}$ avec ordre d'indices inversé.
 2. **Génération des tranches verticales latérales :**
    - Murs de rive extérieurs : quads verticaux reliant chaque segment $(P_i, P_{i+1})$ entre $Z_{\text{sup}}$ et $Z_{\text{inf}}$, orientés vers l'extérieur.
-   - Parois de trémies intérieures : quads verticaux reliant les segments de trous, orientés vers l'intérieur de la réservation.
+   - Parois de trémies : quads verticaux reliant les segments de trous, orientés vers l'intérieur de la réservation.
 3. **Format du maillage :** `RawMeshData` (positions Float32, normales Float32, indices Uint32). Le solide résultant est rigoureusement **étanche (watertight/manifold)**.
 
 ---
 
-## 6. Rendu 2D en Plan (`@mini-bim/view-2d`)
+## 8. Rendu 2D en Plan (`@mini-bim/view-2d`)
 
-1. **Contour en plan :** Tracé du contour `boundary` en ligne continue avec poché léger ou hachure standard béton.
-2. **Trémies d'escalier :** Tracé des réservations `holes` avec diagonales normalisées (croix de réservation architecturale).
+1. **Contour en plan :** Tracé du contour `boundary` en ligne continue avec poché discret béton (`#f3f4f6`).
+2. **Trémies :** Tracé des réservations avec croix architecturale en diagonales.
 3. **Mode Underlay (Vue Fantôme de l'étage inférieur) :**
-   - Si le niveau actif est $N$ et que l'option Underlay est activée, les murs du niveau $N-1$ sont dessinés en traits fins pointillés gris clair (`#9ca3af`).
-   - L'utilisateur peut ainsi aligner les nouvelles cloisons ou façades directement sur les porteurs du dessous.
+   - Si le niveau actif est $N$ et que l'option Underlay est activée, les murs et baies du niveau $N-1$ sont dessinés en traits fins pointillés gris moyen (`#9ca3af`).
+   - Tolérance d'aimantation (snapping) inter-niveaux fixée en pixels écran ($12\text{ px} / \text{scale}$).
 
 ---
 
-## 7. Export IFC4 (`IfcSlab`)
+## 9. Export IFC4 (`IfcSlab`)
 
-La dalle est traduite dans le fichier STEP ISO 10303-21 en respectant strictement l'ordonnancement des 9 attributs du schéma IFC4 (`PredefinedType` en 9ᵉ position) :
+Traduction conforme STEP ISO 10303-21 respectant les 9 attributs d'IFC4 (`PredefinedType` en 9ᵉ position) :
 
 ```step
 #200=IFCARBITRARYPROFILEDEFWITHVOIDS(.AREA.,'SlabProfile',#201,(#202));
@@ -141,14 +200,29 @@ La dalle est traduite dans le fichier STEP ISO 10303-21 en respectant strictemen
 
 ---
 
-## 8. Critères d'Acceptation et Décompte des Tests (Phase 6.1)
+## 10. Tests à Base de Propriétés (`fast-check`)
+
+En complément des tests unitaires déterministes, la suite de tests de Phase 6.1 intègre `fast-check` pour vérifier les invariants universels :
+
+1. **Propriété d'Invariance d'Undo/Redo :**  
+   Pour toute séquence aléatoire de $K$ commandes valides tirées au hasard (`AddSlab`, `UpdateSlab`, `AddWall`, `DeleteWall`, etc.), défaire les $K$ commandes successivement doit restaurer exactement l'état documentaire de départ :
+   $$\forall s_0, \forall (c_1, \dots, c_K), \quad \text{undo}^K(\text{apply}^K(s_0)) \equiv s_0$$
+2. **Propriété de Résilience de `validateSlab` :**  
+   Fuzzing sur des polygones arbitraires générés aléatoirement (sommets superposés, segments croisés, sens horaire inversé) : `validateSlab` ne doit jamais lever d'exception non gérée (seules des instances de `BimValidationError` typées sont admises).
+3. **Propriété de Non-Interpénétration Volumique :**  
+   Sur un échantillon aléatoire de niveaux et d'épaisseurs de dalles :
+   $$\text{Volume}(wall \cap slab) \equiv 0$$
+
+---
+
+## 11. Critères d'Acceptation et Décompte des Tests (Phase 6.1)
 
 1. **Noyau (`@mini-bim/core`) :**
-   - 100% des commandes de dalles testées (Add, Update, Delete).
-   - Validation stricte des 6 codes d'erreur.
-   - Restauration Undo/Redo bit-à-bit.
-   - Sérialisation et rétrocompatibilité (fichiers Phase 5 sans dalles ouverts sans erreur).
-2. **Géométrie & Rendu :**
-   - Maillage 3D étanche avec calcul automatique de volume ($V = \text{Aire} \times \text{Épaisseur} - \sum V_{\text{trous}}$).
-   - Rendu 2D avec distinction visuelle des trémies.
+   - 100% des commandes testées (`Slab` et `SlabType`).
+   - Moteur DAG minimal opérationnel et validé par les tests de cascades.
+   - Validation stricte des 6 codes d'erreur de `validateSlab` et du code de `validateSlabType`.
+   - Restauration Undo/Redo bit-à-bit et tests de propriétés `fast-check` au vert.
+   - Sérialisation et rétrocompatibilité (fichiers V1.0 sans dalles migrés automatiquement sans erreur).
+2. **UI (`apps/web`) :**
+   - Panneau d'inspection minimal intégré (édition directe du nom, type, épaisseur et altitude de l'élément sélectionné).
 3. **Zéro Régression :** Les 507 tests existants restent 100% verts.

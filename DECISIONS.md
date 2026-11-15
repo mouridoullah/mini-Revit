@@ -1348,4 +1348,143 @@ Dans un bâtiment à étages, si un mur du rez-de-chaussée (RDC) s'élève jusq
 - Zéro collision géométrique dans les modèles exportés en IFC4.
 - Préparation de l'infrastructure pour l'attachement aux versants de toiture en Phase 7.
 
-- Cohérence tridimensionnelle parfaite entre l'escalier et le trou de plancher qui le surplombe.
+---
+
+## ADR-041 : Architecture du Graphe de Dépendances Minimal (DAG) et Moteur de Propagation Générique
+
+- **Date :** 2026-11-15
+- **Statut :** Accepté
+- **Auteur :** Antigravity (Lead Software Architect & Computational Geometry Engineer)
+- **Contexte :** Résolution de la dette d'extensibilité identifiée lors de l'audit croisé Claude / Architecte. Le principe architectural n°4 ("Propagation réactive par DAG") était jusqu'alors implémenté de manière ad-hoc via des listes d'IDs codées en dur dans chaque commande Immer (`getChangedIds()`), violant le principe Ouvert/Fermé (Open-Closed Principle).
+
+### Problème
+
+À chaque nouvelle catégorie BIM introduite (dalles en Phase 6, toitures en Phase 7, composants en Phase 8, gaines et tuyaux en Phase 9), les commandes existantes (`DeleteWallCommand`, `DeleteLevelCommand`, etc.) devaient être réouvertes pour y ajouter la logique de cascade manuelle. Sans DAG centralisé :
+
+1. `getChangedIds()` risquait d'omettre des dépendants, empêchant l'invalidation propre des caches géométriques ou du rendu.
+2. Les contraintes d'intégrité (ex: interdiction de supprimer un niveau référencé) nécessitaient un parcours itératif spécifique dans chaque commande.
+
+### Décisions Prises
+
+1. **Option A retenue (DAG Minimal en TypeScript Pur) :**  
+   Implémentation dans `@mini-bim/core` d'une structure de graphe dirigé acyclique compacte (~100 à 150 lignes de code) sans dépendance externe, couplée au `RELATIONS_REGISTRY` (ADR-038).
+2. **Structure du DAG (`DependencyGraph`) :**
+   ```typescript
+   export class DependencyGraph {
+     private readonly forward = new Map<ElementId, Set<ElementId>>(); // parent -> enfants dépendants
+     private readonly reverse = new Map<ElementId, Set<ElementId>>(); // enfant -> parents référencés
+
+     addEdge(parent: ElementId, child: ElementId): void;
+     removeEdge(parent: ElementId, child: ElementId): void;
+     removeNode(id: ElementId): void;
+     getDependents(id: ElementId): readonly ElementId[]; // fermeture transitive aval
+     getDependencies(id: ElementId): readonly ElementId[]; // parents amont directs
+     getChangedIds(modifiedRootIds: readonly ElementId[]): readonly ElementId[]; // tri topologique
+   }
+   ```
+3. **Alimentation Dynamique à partir de `RELATIONS_REGISTRY` :**  
+   À l'insertion ou la modification d'une entité, le graphe est alimenté automatiquement :
+   - Baie `door` / `window` $\to$ arc `hostWallId` $\to$ `doorId`
+   - Cotation `dim` $\to$ arcs `references[i]` $\to$ `dimId`
+   - Dalle / Mur `e` $\to$ arc `levelId` $\to$ `e.id`
+   - Mur avec contrainte supérieure `topConstraint` $\to$ arc `topConstraint.levelId` $\to$ `wall.id`
+   - Trémie d'escalier $\to$ arc `stair.id` $\to$ `slab.id`
+4. **Suppression Générique Déduite par le Graphe :**  
+   Le moteur générique de cascade (`resolveCascadeDeletions`, ADR-038) interroge le DAG :
+   - Si `onDelete: 'cascade'`, suppression récursive de la fermeture transitive.
+   - Si `onDelete: 'restrict'` et qu'il existe des arcs entrants, rejet immédiat avec `DELETE_REJECTED`.
+   - Si `onDelete: 'detach'`, réinitialisation des clés étrangères orphelines.
+5. **Calcul Automatique et Déterministe de `getChangedIds()` :**  
+   `BimDocument.execute()` ne s'appuie plus sur des listes empiriques manuelles : l'union des entités modifiées et de leurs dépendants calculés par le DAG constitue la liste immuable de `getChangedIds()`.
+
+### Conséquences
+
+- Respect total d'Open/Closed : ajouter une entité (dalle, toiture) ne touche jamais aux commandes des autres entités.
+- Algorithme ultra-rapide par parcours en largeur (BFS) en $\mathcal{O}(V + E)$ ($\ll 0.1\text{ ms}$).
+- Détection immédiate de tout cycle éventuel d'invalidation.
+
+---
+
+## ADR-042 : Généralisation du Modèle Type / Instance (`SlabType`, `DoorType`, `WindowType`)
+
+- **Date :** 2026-11-15
+- **Statut :** Accepté
+- **Auteur :** Antigravity (Lead Software Architect & Computational Geometry Engineer)
+- **Contexte :** Anticipation architecturale de la Phase 6.1 et de la bibliothèque de composants (Phase 8)
+
+### Problème
+
+En V1.0, seule l'entité `Wall` disposait d'un type formel (`WallType`), tandis que `Door`, `Window` et le premier jet de `Slab` stockaient leurs propriétés dimensionnelles constructives directement sur l'instance (`door.width`, `door.height`, `window.sillHeight`, `slab.thickness`).
+Pour la Phase 8 (catalogue de familles et composants paramétriques), l'absence de types pour les portes, fenêtres et dalles aurait forcé une migration de schéma cassante et coûteuse.
+
+### Décisions Prises
+
+1. **Standardisation Globale du Modèle Type / Instance :**  
+   Toutes les entités architecturales hôtes et hébergées sont séparées en Type constructif et Instance géométrique :
+   - **`SlabType` :**
+     ```typescript
+     export interface SlabType {
+       readonly id: ElementId;
+       readonly name: string; // ex: "Dalle BA 200 mm"
+       readonly thickness: number; // mm (> 0)
+       readonly materialId?: string;
+     }
+     export interface Slab {
+       readonly id: ElementId;
+       readonly category: 'slab';
+       readonly slabTypeId: ElementId;
+       readonly levelId: ElementId;
+       readonly boundary: readonly Vec2[];
+       readonly holes: readonly (readonly Vec2[])[];
+       readonly baseOffset?: number; // mm (décalage propre à l'instance, défaut: 0)
+       readonly name?: string;
+     }
+     ```
+   - **`DoorType` :**
+     ```typescript
+     export interface DoorType {
+       readonly id: ElementId;
+       readonly name: string; // ex: "Porte Isoplane 900x2100"
+       readonly width: number; // mm
+       readonly height: number; // mm
+     }
+     export interface Door {
+       readonly id: ElementId;
+       readonly category: 'door';
+       readonly doorTypeId: ElementId;
+       readonly hostWallId: ElementId;
+       readonly distanceAlongWall: number;
+       readonly swing: 'left' | 'right';
+     }
+     ```
+   - **`WindowType` :**
+     ```typescript
+     export interface WindowType {
+       readonly id: ElementId;
+       readonly name: string; // ex: "Fenêtre Châssis 1200x1400"
+       readonly width: number; // mm
+       readonly height: number; // mm
+       readonly defaultSillHeight: number; // mm
+     }
+     export interface Window {
+       readonly id: ElementId;
+       readonly category: 'window';
+       readonly windowTypeId: ElementId;
+       readonly hostWallId: ElementId;
+       readonly distanceAlongWall: number;
+       readonly sillHeight: number; // mm (surchargeable par instance)
+     }
+     ```
+2. **Types par Défaut dans le Modèle :**  
+   `createEmptyDocument()` et `demoDocument` initialisent systématiquement des types standards préconfigurés :
+   - `default-wall-type` (200 mm, hauteur 2800 mm)
+   - `default-slab-type` (200 mm)
+   - `default-door-type` (900 × 2100 mm)
+   - `default-window-type` (1200 × 1400 mm, allège 900 mm)
+3. **Rétrocompatibilité Transparente (Migration Schéma JSON) :**  
+   Le désérialiseur JSON (`deserializeBimDocument`) convertit à la volée les fichiers de sauvegarde V1.0 en assignant les types par défaut correspondants, préservant 100% de rétrocompatibilité sans erreur.
+
+### Conséquences
+
+- Modifier l'épaisseur d'un `SlabType` ou la largeur d'un `DoorType` répercute automatiquement la mise à jour sur toutes les instances associées via le DAG.
+- Architecture parfaitement prête pour la bibliothèque d'équipements de la Phase 8.

@@ -173,9 +173,9 @@ _Dépendances : Phase 1.1 à 1.3 (`@mini-bim/geometry`), Phase 1.4 (`@mini-bim/v
 
 ---
 
-### Phase 2.5 — Panneau d'Inspection des Propriétés et Édition d'Attributs (Planifié en Phase 6.3)
+### Phase 2.5 — Panneau d'Inspection des Propriétés et Édition d'Attributs (Séquencé en Phase 6.1 & 6.3)
 
-- **Statut :** Planifié pour livraison conjointe avec le sélecteur de niveau et `SlabTool` en Phase 6.3.
+- **Statut :** Un premier inspecteur minimal est livré dès la Phase 6.1 (édition du nom, type, épaisseur, niveau/altitude) pour rendre les dalles immédiatement utilisables sans manipulation de JSON brut, puis enrichi en Phase 6.3 pour couvrir l'ensemble des cotes, styles et matériaux.
 - Panneau latéral d'inspection des propriétés de l'élément sélectionné : édition en direct des épaisseurs de dalles (`thickness`), cotes de niveaux (`elevation`, `height`), types de murs et cotes de portes/fenêtres via les commandes Immer correspondantes.
 
 ---
@@ -266,24 +266,30 @@ flowchart LR
 
 - **Objectif :** Dépasser le simple niveau unique pour modéliser des édifices multi-étages complets avec leurs planchers horizontaux, trémies et circulations verticales.
 - **Sous-phases :**
-  - **6.1 Modèle Dalles & Niveaux (`@mini-bim/core`) :**
-    - Entité `Slab` dans `BimState.slabs` : `id`, `levelId`, `boundary: Vec2[]` (contour extérieur CCW), `holes: Vec2[][]` (trémies CW), `thickness: number` (ex: 200 mm), `baseOffset: number`.
-    - Commandes transactionnelles Immer : `AddSlabCommand`, `UpdateSlabCommand`, `DeleteSlabCommand`.
-    - Commandes de Niveaux : `AddLevelCommand`, `UpdateLevelCommand`, `DeleteLevelCommand` avec gestion paramétrique des élévations ($Z = \sum \text{hauteurs}$).
-    - Validation métier stricte (`validateSlab`) : non-auto-intersection, aire minimale, inclusion stricte des trémies à l'intérieur du contour extérieur.
-    - Export IFC4 étendu : `IfcSlab` (`.FLOOR.`, `.BASESLAB.`) avec extrusion solide descendante et relations `IfcRelContainedInSpatialStructure`.
+  - **6.1 Modèle Dalles & Niveaux, Graphe DAG et Inspecteur Minimal (`@mini-bim/core`, `apps/web`) :**
+    - **Architecture DAG & Relations Déclaratives (ADR-041, ADR-038) :** `DependencyGraph` compact (~100 lignes) gérant la propagation automatique des invalidations pour `getChangedIds()` et résolvant les cascades de suppression génériques sans hardcoding.
+    - **Généralisation Type / Instance (ADR-042) :** Entité `SlabType` (`id`, `name`, `thickness`, `materialId`) et réalignement de `DoorType` et `WindowType`.
+    - **Entité Dalle (`Slab`) :** `id`, `slabTypeId`, `levelId`, `boundary: Vec2[]` (contour extérieur CCW), `holes: Vec2[][]` (trémies manuelles CW), `baseOffset: number`.
+    - **Dérivation des Trémies d'Escalier (Règle de la Source Unique) :** `slab.holes` conserve uniquement les trémies manuelles ; les réservations d'escalier sont dérivées dynamiquement par $\text{holes}_{\text{effective}} = \text{slab.holes} \cup \bigcup \text{stairOpening}$.
+    - **Commandes Transactionnelles Immer :** `AddSlabCommand`, `UpdateSlabCommand`, `DeleteSlabCommand`, `AddSlabTypeCommand`, `UpdateSlabTypeCommand`, `DeleteSlabTypeCommand`, et commandes de niveaux (`AddLevel`, `UpdateLevel`, `DeleteLevel` avec `DELETE_LEVEL_REJECTED` si le niveau porte des dalles/murs).
+    - **Validation Métier (`validateSlab` & `validateSlabType`) :** Les 6 codes d'erreur (`UNKNOWN_LEVEL`, `UNKNOWN_SLAB_TYPE`, `INVALID_SLAB_BOUNDARY`, `SELF_INTERSECTING_SLAB`, `HOLE_OUTSIDE_SLAB`, `INTERSECTING_HOLES`) + `INVALID_SLAB_THICKNESS`. Tolérance de contact/tangence sur la rive.
+    - **Invariant de Non-Interpénétration Volumique :** Dalle négative sous le niveau ($Z_{\text{sup}} = \text{elevation}$, $Z_{\text{inf}} = Z_{\text{sup}} - \text{thickness}$), garantissant $\text{Volume}(wall \cap slab) = 0$.
+    - **Panneau d'Inspection Minimal (`apps/web`) :** Panneau latéral réactif permettant d'éditer le nom, le type, l'épaisseur, le niveau et l'altitude de l'élément sélectionné sans passer par le JSON brut.
+    - **Tests à Base de Propriétés (`fast-check`) :** Invariance bit-à-bit d'undo/redo sur séquences aléatoires et fuzzing géométrique des polygones de dalle.
+    - **Export IFC4 :** `IfcSlab` (`.FLOOR.`, 9ᵉ attribut ISO 10303-21) et relations `IfcRelContainedInSpatialStructure`.
   - **6.2 Rendu 2D, 3D & Vue Fantôme Underlay (`@mini-bim/view-2d`, `@mini-bim/view-3d`) :**
-    - Rendu 3D Three.js : triangulation polygonale concave avec trous (`earcut`) et extrusion descendante de la dalle depuis l'élévation du niveau (`Z = level.elevation`).
-    - Rendu 2D Canvas : affichage du contour de la dalle avec hachure béton ou bordure stylisée, trémies transparentes.
-    - Rendu Underlay (Vue Fantôme) : affichage en grisé estompé (traits pointillés gris clair) des murs porteurs du niveau inférieur ($N-1$) sur le plan actif.
+    - Rendu 3D Three.js : triangulation polygonale concave avec trous effectifs (`earcut`) et extrusion descendante de la dalle depuis l'élévation du niveau (`Z = level.elevation`).
+    - Rendu 2D Canvas : affichage du contour de la dalle avec hachure béton ou bordure stylisée, trémies transparentes avec croix de réservation.
+    - Rendu Underlay (Vue Fantôme) : affichage en grisé estompé (traits pointillés gris moyen `#9ca3af`) des murs et baies du niveau inférieur ($N-1$) sur le plan actif.
+    - Snapping d'accrochage inter-niveaux basé sur une tolérance fixe en pixels écran ($12\text{ px} / \text{scale}$).
   - **6.3 Outils Interactifs UI (`apps/web`) :**
     - `SlabTool` (Raccourci `L`) : dessin polygonal de dalles par clics consécutifs avec magnétisme sur les angles de murs extérieurs.
     - Sélecteur de Niveau UI (`LevelSelector`) dans la barre d'outils supérieure : passage instantané du RDC au R+1, avec synchronisation du plan 2D et de la caméra 3D.
-    - Snapping vertical inter-niveaux : alignement direct des murs de l'étage sur les murs du niveau inférieur grâce à l'Underlay.
+    - Extension du Panneau d'Inspection des Propriétés : gestion des matériaux, couches composites et surcharges graphiques.
   - **6.4 Escalier Paramétrique Droit (`Stair`) :**
     - Modèle `Stair` : point de départ, point d'arrivée, niveau bas, niveau haut, largeur de volée.
     - Calcul automatique de la formule de sécurité et de confort de Blondel : $2h + g \approx 64\text{ cm}$.
-    - Génération automatique de la trémie correspondante dans la dalle du niveau supérieur.
+    - Dérivation automatique de la trémie correspondante dans la dalle du niveau supérieur sans duplication d'état.
     - Rendu 2D avec flèche de sens de montée et ligne de foulée, maillage 3D crénelé de volée de marches.
 
 ---
@@ -291,10 +297,14 @@ flowchart LR
 ### Phase 7 — Toitures (Roofs), Pentes & Vues en Coupe Dynamiques (Sections)
 
 - **Objectif :** Clore l'enveloppe extérieure du bâtiment par le haut et fournir les outils d'inspection en coupe indispensables aux permis de construire.
+- **Jalon d'Arbitrage Architectural Préalable (Toitures & Biseautage de Murs) :**
+  - _Option A (Recommandation Claude / CSG pure) :_ Définition d'un « plan de sommet incliné par pièce de mur ». Chaque tranche de mur résolue par le moteur de jonctions calcule sa hauteur à ses extrémités via l'équation du plan de toiture, produisant des prismes trapézoïdaux exacts sans calcul booléen 3D lourd.
+  - _Option B (Prismes à sommet plat découpés par B-Rep) :_ Découpe des solides de murs verticaux par un plan de coupe 3D B-Rep / CSG booléenne.
+  - _Arbitrage formel consigné dans `ROOFS_SPEC.md` avant tout début de développement de la Phase 7._
 - **Fonctionnalités :**
   - **Toitures Paramétriques (`Roof`) :** Toiture terrasse étanchée ou toiture à 1 ou 2 pans inclinés (`gable`) avec angle de pente ($0^\circ$ à $60^\circ$) et débord de toit (_eaves_).
   - **Attachement Automatique des Murs (`Wall Attachment`) :** Les murs sous toiture s'étirent et leurs sommets sont biseautés automatiquement pour épouser la sous-face des versants de toiture.
-  - **Ligne de Coupe Dynamique (`SectionView`) :** Tracé d'une ligne de coupe A-A sur le plan 2D $\to$ génération instantanée d'une vue vectorielle en coupe verticale avec pochés des parois traversées (murs, dalles, toiture).
+  - **Ligne de Coupe Dynamique (`SectionView`) :** Tracé d'une ligne de coupe A-A sur le plan 2D $\to$ génération instantanée d'une vue vectorielle en coupe verticale avec union 2D des polygones coupés et pochés des parois traversées (murs, dalles, toiture).
   - **Plan de Coupe 3D Interactif :** Clipping plane matériel WebGL Three.js pour écorcher la maquette 3D à n'importe quelle altitude.
 
 ---
@@ -303,7 +313,7 @@ flowchart LR
 
 - **Objectif :** Meubler et équiper les espaces pour valider l'habitabilité, l'accessibilité PMR et enrichir les rendus.
 - **Fonctionnalités :**
-  - **Catalogue d'Équipements (`ComponentType`) :** Sanitaires (WC, lavabo, douche, baignoire), Cuisine (évier, plaques, réfrigérateur), Mobilier (lit, table, chaises).
+  - **Catalogue d'Équipements (`ComponentType`, ADR-042) :** Sanitaires (WC, lavabo, douche, baignoire), Cuisine (évier, plaques, réfrigérateur), Mobilier (lit, table, chaises).
   - **Outil d'Insertion (`ComponentTool`) :** Placement interactif par clic sur plan avec rotation à 90° par la touche `Espace`.
   - **Représentation Hybride 2D/3D :** Symbole graphique vectoriel normalisé en plan 2D et maillage 3D basse consommation géométrique sous Three.js.
   - **Cotations Altimétriques :** Symboles de niveau altimétrique normalisés (+0.00, +2.80) en plan et en coupe.
@@ -312,8 +322,24 @@ flowchart LR
 
 ### Phase 9 — Coordination Technique (MEP), Détection de Collisions & Import IFC
 
-- **Objectif :** Atteindre la maturité d'une suite BIM pluridisciplinaire avec réseaux fluides/aérauliques et interopérabilité bidirectionnelle complète.
-- **Fonctionnalités :**
-  - **Réseaux MEP Topologiques :** Tuyauteries sanitaires (eau froide, eau chaude, évacuation), gaines de ventilation et chemins de câbles avec connecteurs (ports) dérivés.
-  - **Détection Automatique de Collisions (Clash Detection) :** Algorithme géométrique d'Ericson (intersection segment-segment 3D et boîtes englobantes orientées OBB) détectant les collisions tuyaux/murs et tuyaux/dalles, avec mise en évidence rouge dans l'UI.
-  - **Import IFC4 (Modèle de Référence Fédéré / Underlay 3D) :** Chargement en lecture seule d'une maquette IFC externe via `web-ifc` pour superposition 3D (Coordination Reference View) et détection de collisions, sans tentative de conversion destructrice en solides paramétriques natifs.
+- **Objectif :** Atteindre la maturité d'une suite BIM pluridisciplinaire avec réseaux fluides/aérauliques et interopérabilité bidirectionnelle complète, découpée en 5 sous-phases étanches.
+- **Sous-phases :**
+  - **9.1 Banc de Performance Synthétique & Scalabilité (1 000 et 10 000 Murs) :**
+    - Générateur de scènes synthétiques massives (1 000 et 10 000 murs avec ouvertures, dalles et cotes).
+    - Benchmarking du DAG de dépendances, de l'index spatial (QuadTree), et du framerate de rendu 2D/3D ($> 30\text{ FPS}$ via `InstancedMesh` Three.js).
+    - Validation de la complexité mémoire $\mathcal{O}(N)$ et des temps de réaction UI ($< 16\text{ ms}$).
+  - **9.2 Noyau MEP & Modèle Topologique des Réseaux Techniques (`@mini-bim/core`) :**
+    - Modèle de données MEP (gaines aérauliques `Duct`, tuyauteries `Pipe`, chemins de câbles `CableTray`).
+    - Connecteurs et ports (`Port`, `Connector`) avec typage de fluide (air soufflé/repris, eau mitigée, évacuation EU/EV).
+    - Graphe de flux orienté, continuités, dimensionnement automatique et calcul de pertes de charge.
+  - **9.3 Rendu 2D/3D & Outils Interactifs MEP (`apps/web`, `view-2d`, `view-3d`) :**
+    - Tracé interactif de gaines et conduites avec routage automatique des coudes (45°/90°) et tés.
+    - Rendu 2D symbolique unifilaire et bifilaire.
+    - Rendu 3D instancié temps réel sous Three.js.
+  - **9.4 Moteur de Détection Automatique de Collisions (Clash Detection Engine) :**
+    - Algorithmes d'intersection géométrique 3D rapide (BVH / boîtes englobantes orientées OBB / Ericson segment-segment).
+    - Détection des conflits interdisciplinaires (tuyau traversant un porteur sans réservation, gaine traversant une dalle sans trémie).
+    - Rapport d'interférences dans l'UI avec boîtes englobantes, volume de clash, sévérité (hard clash vs clearance) et suivi de statut.
+  - **9.5 Modèle de Référence Fédéré IFC en Lecture Seule (Read-Only Reference Underlay) :**
+    - Chargement sans perte de fichiers IFC externes via `web-ifc` pour coordination interdisciplinaire.
+    - Affichage 3D en transparence / matériau de coordination et projection 2D en plan/coupe, sans conversion destructive vers le modèle interne.
