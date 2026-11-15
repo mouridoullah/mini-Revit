@@ -266,22 +266,23 @@ flowchart LR
 
 - **Objectif :** Dépasser le simple niveau unique pour modéliser des édifices multi-étages complets avec leurs planchers horizontaux, trémies et circulations verticales.
 - **Sous-phases :**
-  - **6.0a Socle DAG Minimal, Registre des Relations & Refactor Pur (`@mini-bim/core`) :**
+  - **6.0a Socle DAG Minimal, Registre des Relations & Refactor Pur (`@mini-bim/core`) [LIVRÉ & CERTIFIÉ] :**
     - **Refactor Préalable Sécurisé :** Réingénierie interne sans rupture fonctionnelle ni modification du schéma JSON v1 existant.
     - **Moteur DAG Minimal (ADR-041) :** Implémentation de `DependencyGraph` compact (~100–150 lignes de code pur) gérant la propagation automatique des invalidations pour `getChangedIds()`.
     - **Relations Déclaratives & Cascades Génériques (ADR-038) :** `RELATIONS_REGISTRY` centralisant les dépendances (`door -> wall`, `window -> wall`, `dimension -> wall`, `wall -> level`, `wall -> wallType`). Remplacement de la cascade codée en dur de `DeleteWallCommand` par `resolveCascadeDeletions`.
     - **Unification des Erreurs de Suppression :** Unification sous le code d'erreur `DELETE_RESTRICTED` avec `blockingIds: ElementId[]`.
     - **Garantie de Non-Régression Absolue :** 100% des 507 tests existants restent strictement inchangés et verts.
-  - **6.0b Validation Différentielle Post-Condition (`@mini-bim/core`) :**
+  - **6.0b Validation Différentielle Post-Condition (`@mini-bim/core`) [LIVRÉ & CERTIFIÉ] :**
     - **Post-Condition Universelle `validateDirty` :** Validation différentielle dans `BimDocument.execute()` : la transaction n'est rejetée que si elle introduit une nouvelle violation sur le dirty set ou aggrave une violation existante, évitant de bloquer des opérations innocentes sur des modèles avec des avertissements pré-existants.
     - **Erreurs Enrichies :** Erreurs `BimValidationError` enrichies de `offendingIds: ElementId[]` permettant le surlignage immédiat dans l'interface utilisateur.
     - **Intégrité Altimétrique des Niveaux :** Règle de stricte unicité et d'élévations distinctes (`DUPLICATE_LEVEL_ELEVATION`). Helper métier `setStoryHeight(state, levelIndex, height)`.
-  - **6.0c Maintien de Connectivité des Jonctions & Étirement des Murs (`@mini-bim/geometry`, `@mini-bim/core`, `apps/web`) :**
+  - **6.0c Maintien de Connectivité des Jonctions & Étirement des Murs (`@mini-bim/geometry`, `@mini-bim/core`, `apps/web`) [LIVRÉ & CERTIFIÉ] :**
     - **Détection Point-Segment :** Détection de connectivité dynamique basée sur la distance point-segment ($\text{dist}(P_i, \text{segment}(w_j)) \le 1.0\text{ mm}$), capturant aussi les branches de T-jonctions connectées au milieu d'un mur déplacé.
-    - **Calcul des Sommets Communs :** Recalcul par intersection des droites d'axes $\mathbf{P}' = \mathcal{D}_B \cap \mathcal{D}_A'$ avec seuil de quasi-parallélisme ($|\sin \theta| < 0.05 \implies \text{WALL\_STRETCH\_PARALLEL}$).
-    - **Garde-Fous d'Élasticité :** Rejet de l'effondrement uniquement si la longueur passe sous le seuil UX de 100 mm **et** diminue ($L' < 100\text{ mm} \land L' < L$), et rejet du retournement d'orientation ($\vec{v}' \cdot \vec{v} \le 0$).
-    - **Compensation Curviligne :** Compensation automatique de `offsetAlong` pour les ouvertures hébergées sur le mur voisin si étiré depuis son origine (`start`).
-    - **Mise à jour Délibérée des Tests :** Actualisation contrôlée des tests de `MoveWallTool` pour acter le comportement BIM d'étirement élastique tout en maintenant 100% de tests verts.
+    - **Calcul des Sommets Communs (ADR-044) :** Option α (suivi rigide de l'extrémité $P_B' = P_A + \vec{\Delta}$) et Option β (projection monde de la baie hébergée sur le voisin $\text{offsetAlong}' = (M - P_B') \cdot \vec{u}_B'$). Intersection de droites directrices $\mathcal{D}_B \cap \mathcal{D}_{A'}$ pour les connexions en T (`mid`).
+    - **Garde-Fous d'Élasticité :** Rejet de l'effondrement uniquement si la longueur passe sous le seuil UX de 100 mm **et** diminue ($L' < 100\text{ mm} \land L' < L$), rejet du retournement d'orientation ($\vec{v}' \cdot \vec{v} \le 0$), garde-fou de parallélisme $|\sin \theta| < 0.05$ pour les T-junctions, et détection de cycle avec Set d'ancêtres.
+    - **Préservation Non-Destructive des Pièces (ADR-039) :** Rejet d'aucune Room en cas d'ouverture d'enceinte ; la pièce passe à `status: 'unenclosed'`, surface 0, sans suppression dans le state.
+    - **MoveWallCommand & MoveWallTool :** Intégration complète dans l'outil interactif de translation avec snap 10 mm, retour visuel continu et invalidation fine des viewports 2D/3D via `res.changed`.
+    - **100% Tests Verts Monorepo :** 620 tests passants (0 régression, 0 échec).
   - **6.1 Modèle Dalles & Niveaux, Schéma v2 et Inspecteur Minimal (`@mini-bim/core`, `apps/web`) :**
     - **Migration Documentaire vers Schéma v2 (ADR-043) :** Fonction pure `migrateSchemaV1toV2` extrayant automatiquement les familles distinctes de portes $(width, height)$ et fenêtres $(width, height, sillHeight)$ sans aucune perte dimensionnelle. Fixation de `heightOverride` uniquement si un niveau supérieur existe et présente un écart différent de `wallType.height` (les murs standards de Saison 1 restent en mode automatique et s'adaptent naturellement lors de l'ajout d'étages). Tests de non-régression sur fixtures de référence Phase 5.
     - **Généralisation Type / Instance (ADR-042) :** Entité `SlabType` (`id`, `name`, `thickness`, `materialId`) et réalignement de `DoorType` et `WindowType`.
