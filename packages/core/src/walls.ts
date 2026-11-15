@@ -1,9 +1,23 @@
-import { type BimState, type Wall } from './types.js';
+import { type BimState, type Wall, type ElementId } from './types.js';
 import { isPointInPolygon, computeEffectiveSlabPolygon, vec2, type Vec2 } from '@mini-bim/geometry';
 
 export interface ComputeWallEffectiveHeightOptions {
   /** Échantillonnage supplémentaire le long du mur si nécessaire (par défaut [start, mid, end]). */
   readonly samplePointsCount?: number;
+}
+
+/**
+ * Résultat complet de la résolution altimétrique d'un mur (ADR-045 D2).
+ */
+export interface WallEffectiveHeightResult {
+  /** Arase inférieure du mur en coordonnées mondes Z (mm). */
+  readonly zBase: number;
+  /** Arase supérieure effective du mur (sous-face de plancher ou cible) en coordonnées mondes Z (mm). */
+  readonly zTop: number;
+  /** Hauteur effective du mur en mm (zTop - zBase, >= 0). */
+  readonly heightEff: number;
+  /** ID de la dalle dont la sous-face a limité l'arase supérieure, le cas échéant. */
+  readonly limitingSlabId?: ElementId;
 }
 
 /**
@@ -51,27 +65,25 @@ function isWallCoveredBySlab(
 }
 
 /**
- * Calcule la hauteur effective d'un mur en résolvant rigoureusement son altimétrie
- * et ses contraintes supérieures (ADR-045 [D2]).
- *
- * Ordre de priorité strict :
- * 1. `wall.heightOverride` : Surcharge manuelle explicite (priorité absolue).
- * 2. `wall.topConstraint` : Contrainte altimétrique vers un niveau supérieur :
- *    - Calcule l'arase de base du mur : `Z_base = currentLevel.elevation + (wall.baseOffset ?? 0)`.
- *    - Calcule l'arase nominale cible : `Z_top_nom = targetLevel.elevation + (topConstraint.topOffset ?? 0)`.
- *    - Recherche des dalles sur `targetLevel` couvrant le mur. Si couvertes, l'arase supérieure
- *      s'arrête à la sous-face de la dalle : `Z_inf_slab = targetLevel.elevation + (slab.baseOffset ?? 0) - slabType.thickness`.
- *    - `effectiveHeight = Math.max(0, Z_top - Z_base)`.
- * 3. Fallback standard : `wallType.height` (hauteur nominale de la famille).
+ * Résout les bornes altimétriques et arases d'un mur (ADR-045 D2).
+ * Retourne { zBase, zTop, heightEff, limitingSlabId }.
  */
-export function computeWallEffectiveHeight(
+export function computeWallVerticalBounds(
   wall: Wall,
   state: BimState,
   _options?: ComputeWallEffectiveHeightOptions,
-): number {
+): WallEffectiveHeightResult {
+  const currentLevel = state.levels[wall.levelId];
+  const zBase = (currentLevel?.elevation ?? 0) + (wall.baseOffset ?? 0);
+
   // Priorité 1 : Surcharge manuelle explicite
   if (wall.heightOverride !== undefined && Number.isFinite(wall.heightOverride)) {
-    return Math.max(0, wall.heightOverride);
+    const heightEff = Math.max(0, wall.heightOverride);
+    return {
+      zBase,
+      zTop: zBase + heightEff,
+      heightEff,
+    };
   }
 
   const wallType = state.wallTypes[wall.typeId];
@@ -79,16 +91,19 @@ export function computeWallEffectiveHeight(
 
   // Priorité 2 : Contrainte supérieure de niveau
   if (wall.topConstraint?.levelId) {
-    const currentLevel = state.levels[wall.levelId];
     const targetLevel = state.levels[wall.topConstraint.levelId];
 
     if (!currentLevel || !targetLevel) {
-      return defaultHeight;
+      return {
+        zBase,
+        zTop: zBase + defaultHeight,
+        heightEff: defaultHeight,
+      };
     }
 
-    const zBase = currentLevel.elevation + (wall.baseOffset ?? 0);
     const topOffset = wall.topConstraint.topOffset ?? wall.topConstraint.offset ?? 0;
     let zTop = targetLevel.elevation + topOffset;
+    let limitingSlabId: ElementId | undefined;
 
     // Rechercher les dalles associées au niveau supérieur
     if (state.slabs) {
@@ -115,14 +130,39 @@ export function computeWallEffectiveHeight(
         if (isWallCoveredBySlab(wall, effectivePolygon)) {
           // Arase inférieure (sous-face) de la dalle
           const zInfSlab = targetLevel.elevation + (slab.baseOffset ?? 0) - slabType.thickness;
-          zTop = Math.min(zTop, zInfSlab);
+          if (zInfSlab < zTop) {
+            zTop = zInfSlab;
+            limitingSlabId = slab.id;
+          }
         }
       }
     }
 
-    return Math.max(0, zTop - zBase);
+    const heightEff = Math.max(0, zTop - zBase);
+    return {
+      zBase,
+      zTop,
+      heightEff,
+      ...(limitingSlabId ? { limitingSlabId } : {}),
+    };
   }
 
   // Priorité 3 : Hauteur nominale du type de mur
-  return defaultHeight;
+  return {
+    zBase,
+    zTop: zBase + defaultHeight,
+    heightEff: defaultHeight,
+  };
+}
+
+/**
+ * Calcule la hauteur effective d'un mur en résolvant rigoureusement son altimétrie
+ * et ses contraintes supérieures (ADR-045 [D2]).
+ */
+export function computeWallEffectiveHeight(
+  wall: Wall,
+  state: BimState,
+  options?: ComputeWallEffectiveHeightOptions,
+): number {
+  return computeWallVerticalBounds(wall, state, options).heightEff;
 }

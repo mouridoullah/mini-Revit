@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { vec2, type Vec2 } from '@mini-bim/geometry';
 import { BimDocument } from './document.js';
 import { AddLevelCommand, AddWallCommand, AddSlabCommand } from './commands.js';
-import { computeWallEffectiveHeight } from './walls.js';
+import { computeWallEffectiveHeight, computeWallVerticalBounds } from './walls.js';
 import { type Wall, type Slab } from './types.js';
 
 describe('Phase 6.1a — computeWallEffectiveHeight (packages/core/src/walls-top.test.ts)', () => {
@@ -229,5 +229,42 @@ describe('Phase 6.1a — computeWallEffectiveHeight (packages/core/src/walls-top
 
     const h = computeWallEffectiveHeight(doc.getState().walls['w_inverted']!, doc.getState());
     expect(h).toBe(0);
+  });
+
+  it('T-WALL-TOP-09 : computeWallVerticalBounds retourne { zBase, zTop, heightEff, limitingSlabId } (ADR-045 D2)', () => {
+    const { doc, levelRdcId, levelR1Id, wallTypeId, defaultSlabTypeId } = setupTestScenario();
+
+    const slabId = 'slab_bounds_test';
+    const slab: Slab = {
+      id: slabId,
+      category: 'slab',
+      slabTypeId: defaultSlabTypeId, // thickness: 200
+      levelId: levelR1Id, // elevation: 3000
+      boundary: [vec2(-1000, -1000), vec2(6000, -1000), vec2(6000, 6000), vec2(-1000, 6000)],
+      baseOffset: -50,
+    };
+    doc.execute(new AddSlabCommand(slab));
+
+    const wall: Wall = {
+      id: 'w_bounds',
+      category: 'wall',
+      typeId: wallTypeId,
+      levelId: levelRdcId,
+      start: vec2(0, 0),
+      end: vec2(4000, 0),
+      baseOffset: 100,
+      topConstraint: { levelId: levelR1Id, topOffset: 0 },
+    };
+    doc.execute(new AddWallCommand(wall));
+
+    const bounds = computeWallVerticalBounds(doc.getState().walls['w_bounds']!, doc.getState());
+    // Z_base = 0 + 100 = 100
+    // Z_top = 3000 + (-50) - 200 = 2750
+    // heightEff = 2750 - 100 = 2650
+    // limitingSlabId = 'slab_bounds_test'
+    expect(bounds.zBase).toBe(100);
+    expect(bounds.zTop).toBe(2750);
+    expect(bounds.heightEff).toBe(2650);
+    expect(bounds.limitingSlabId).toBe(slabId);
   });
 });

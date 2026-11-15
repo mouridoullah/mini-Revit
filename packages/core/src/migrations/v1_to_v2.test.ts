@@ -401,4 +401,55 @@ describe('Migration Schéma v1 → v2 (packages/core/src/migrations/v1_to_v2.ts)
     expect(Object.keys(res.doorTypes)).toHaveLength(2); // 900 et 800
     expect(Object.keys(res.windowTypes)).toHaveLength(1); // 1200x1400
   });
+
+  it('T-MIG-16 : Déterminisme absolu des IDs synthétisés — deux migrations produisent un JSON strictement identique bit-à-bit', () => {
+    const v1: V1BimState = {
+      ...baseV1,
+      doors: {
+        d1: {
+          id: 'd1',
+          category: 'door',
+          hostWallId: 'w1',
+          offsetAlong: 500,
+          width: 900,
+          height: 2100,
+          swing: { side: 'right', direction: 'in' },
+        },
+        d2: {
+          id: 'd2',
+          category: 'door',
+          hostWallId: 'w1',
+          offsetAlong: 2000,
+          width: 800,
+          height: 2000,
+          swing: { side: 'left', direction: 'out' },
+        },
+      },
+      windows: {
+        win1: {
+          id: 'win1',
+          category: 'window',
+          hostWallId: 'w1',
+          offsetAlong: 3500,
+          width: 1200,
+          height: 1400,
+          sillHeight: 900,
+        },
+      },
+    };
+
+    const resA = migrateSchemaV1toV2(v1);
+    const resB = migrateSchemaV1toV2(v1);
+
+    // Comparaison structurelle profonde
+    expect(resA).toEqual(resB);
+
+    // Comparaison textuelle JSON stricte : zéro entropie
+    expect(JSON.stringify(resA)).toBe(JSON.stringify(resB));
+
+    // Vérification de la forme déterministe des identifiants
+    expect(resA.doors['d1']?.doorTypeId).toBe('door-type-900x2100');
+    expect(resA.doors['d2']?.doorTypeId).toBe('door-type-800x2000');
+    expect(resA.windows['win1']?.windowTypeId).toBe('window-type-1200x1400-s900');
+  });
 });

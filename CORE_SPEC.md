@@ -73,6 +73,7 @@ export interface WindowType {
 export interface TopConstraint {
   readonly levelId: ElementId;
   readonly offset?: number; // décalage en mm (défaut: 0)
+  readonly topOffset?: number; // alias optionnel pour compatibilité ascendante
 }
 
 export interface Wall {
@@ -269,6 +270,14 @@ Toute violation de règle métier lève immédiatement une exception explicite `
 9. **Intégrité Altimétrique des Niveaux :**  
    Deux niveaux ne peuvent partager strictement la même élévation ($\forall i \ne j, \text{elevation}_i \ne \text{elevation}_j$), évitant toute ambiguïté de tri ou hauteur d'étage nulle. En cas de doublon, rejet immédiat avec `DUPLICATE_LEVEL_ELEVATION` (`offendingIds: [levelA.id, levelB.id]`).
    - Helper métier : `setStoryHeight(state, levelIndex, height)` calculant l'élévation absolue requise pour le niveau supérieur et émettant `UpdateLevelCommand(level_{index+1}, { elevation: level_index.elevation + height })`.
+10. **Résolution Altimétrique des Murs et Arases Supérieures (`computeWallVerticalBounds`, ADR-045 D2) :**  
+    Pour tout mur $W$, ses arases et hauteurs effectives sont résolues de manière pure :
+
+- $Z_{\text{base}} = L_N.\text{elevation} + (W.\text{baseOffset} \mathbin{?} 0)$.
+- Priorité 1 : `heightOverride !== undefined` $\implies H_{\text{eff}} = \text{heightOverride}$, $Z_{\text{top}} = Z_{\text{base}} + H_{\text{eff}}$.
+- Priorité 2 : `topConstraint.levelId` $\implies Z_{\text{top\_nom}} = L_{\text{target}}.\text{elevation} + (\text{topOffset} \mathbin{?} \text{offset} \mathbin{?} 0)$. Si des dalles sur $L_{\text{target}}$ couvrent le mur, $Z_{\text{top}} = \min(Z_{\text{top\_nom}}, \min_s Z_{\text{inf}}(s))$ avec $Z_{\text{inf}}(s) = L_{\text{target}}.\text{elevation} + (s.\text{baseOffset} \mathbin{?} 0) - \text{slabType}_s.\text{thickness}$. $H_{\text{eff}} = \max(0, Z_{\text{top}} - Z_{\text{base}})$.
+- Priorité 3 : Fallback nominal $\implies H_{\text{eff}} = \text{wallType.height}$, $Z_{\text{top}} = Z_{\text{base}} + H_{\text{eff}}$.
+- Fonctions exportées : `computeWallVerticalBounds(wall, state)` $\to$ `WallEffectiveHeightResult` (`{ zBase, zTop, heightEff, limitingSlabId }`) et `computeWallEffectiveHeight(wall, state)` $\to$ `number`.
 
 ---
 

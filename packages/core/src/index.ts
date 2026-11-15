@@ -96,7 +96,12 @@ export * from './rooms/index.js';
 export * from './metrics.js';
 export { computeDimensionValue } from './dimensions/index.js';
 export { exportToIfc, type IfcExportOptions } from './ifc/generator.js';
-export { computeWallEffectiveHeight, type ComputeWallEffectiveHeightOptions } from './walls.js';
+export {
+  computeWallEffectiveHeight,
+  computeWallVerticalBounds,
+  type ComputeWallEffectiveHeightOptions,
+  type WallEffectiveHeightResult,
+} from './walls.js';
 export { DependencyGraph } from './dag/DependencyGraph.js';
 export { RELATIONS_REGISTRY } from './relations/registry.js';
 export { resolveCascadeDeletions, type CascadeResult } from './relations/cascade.js';

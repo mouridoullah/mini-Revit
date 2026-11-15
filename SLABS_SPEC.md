@@ -41,7 +41,8 @@ export interface Slab {
   readonly slabTypeId: ElementId; // Référence vers state.slabTypes
   readonly levelId: ElementId; // Référence vers state.levels
   readonly boundary: readonly Vec2[]; // Contour extérieur fermé CCW
-  readonly holes: readonly (readonly Vec2[])[]; // Trémies manuelles intérieures fermées CW
+  readonly holes?: readonly (readonly Vec2[])[]; // Trémies manuelles intérieures fermées CW
+  readonly openings?: readonly (readonly Vec2[])[]; // Trémies traversantes dérivées (Phase 6.4 / ADR-037 / ADR-045)
   readonly baseOffset?: number; // Décalage altimétrique optionnel (défaut: 0)
   readonly name?: string; // Libellé optionnel (ex: "Dalle RDC", "Plancher haut")
 }
