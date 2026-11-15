@@ -1,10 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { BimDocument } from './document.js';
-import {
-  AddWallCommand,
-  MoveWallCommand,
-  AddDoorCommand,
-} from './commands.js';
+import { AddWallCommand, MoveWallCommand, AddDoorCommand } from './commands.js';
 import { BimValidationError } from './rules.js';
 
 function createBaseDoc(): { doc: BimDocument; levelId: string; typeId: string } {
@@ -106,9 +102,9 @@ describe('Phase 6.0c — MoveWall Rules & Differential validateDirty Tests', () 
 
     // Déplacer A de y=+1100 mm : wB.start passe de (4000,0) à (4000,1100).
     // Nouvelle longueur de wB = 900 mm. La porte de 800 mm avec ses gardes ne rentre plus !
-    expect(() =>
-      doc.execute(new MoveWallCommand('wA', { x: 0, y: 1100 })),
-    ).toThrowError(BimValidationError);
+    expect(() => doc.execute(new MoveWallCommand('wA', { x: 0, y: 1100 }))).toThrowError(
+      BimValidationError,
+    );
 
     try {
       doc.execute(new MoveWallCommand('wA', { x: 0, y: 1100 }));
@@ -162,8 +158,8 @@ describe('Phase 6.0c — MoveWall Rules & Differential validateDirty Tests', () 
     );
 
     // Déplacement de w_base qui écrase w_neighbor vers 50 mm -> rejet
-    expect(() =>
-      doc.execute(new MoveWallCommand('w_base', { x: 0, y: 150 })),
-    ).toThrowError(BimValidationError);
+    expect(() => doc.execute(new MoveWallCommand('w_base', { x: 0, y: 150 }))).toThrowError(
+      BimValidationError,
+    );
   });
 });

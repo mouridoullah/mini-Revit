@@ -227,7 +227,6 @@ export function findConnectedWalls(
   if (targetLen <= GEOM_CONFIG.EPSILON_DISTANCE) {
     return [];
   }
-  const targetDir = normalize(sub(targetWall.end, targetWall.start));
 
   const candidates: Array<{
     wall: WallLike;

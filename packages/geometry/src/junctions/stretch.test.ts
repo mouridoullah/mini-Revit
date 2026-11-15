@@ -157,7 +157,11 @@ describe('Phase 6.0c — Wall Stretching Geometry (packages/geometry)', () => {
     const movedWall: WallLike = { id: 'A', start: { x: 0, y: 0 }, end: { x: 4000, y: 0 } };
     const neighbor1: WallLike = { id: 'N1', start: { x: 0, y: 0 }, end: { x: 0, y: 2000 } };
     const neighbor2: WallLike = { id: 'N2', start: { x: 4000, y: 0 }, end: { x: 4000, y: 3000 } };
-    const neighborMid: WallLike = { id: 'N3', start: { x: 2000, y: 0 }, end: { x: 2000, y: -1500 } };
+    const neighborMid: WallLike = {
+      id: 'N3',
+      start: { x: 2000, y: 0 },
+      end: { x: 2000, y: -1500 },
+    };
 
     const connected = findConnectedWalls(movedWall, [movedWall, neighbor1, neighbor2, neighborMid]);
     expect(connected.length).toBe(3);

@@ -113,7 +113,7 @@ export class MoveWallTool implements Tool {
         return { kind: 'noop' };
       }
 
-      const { wallId, startWall, currentDelta } = this.state;
+      const { wallId, currentDelta } = this.state;
       this.state = { kind: 'idle' };
 
       // Si le déplacement est nul (clic stationnaire), pas de commande polluante dans l'historique
@@ -121,16 +121,11 @@ export class MoveWallTool implements Tool {
         return { kind: 'preview', preview: null };
       }
 
-      const command = new Commands.UpdateWallCommand(wallId, {
-        start: {
-          x: startWall.start.x + currentDelta.x,
-          y: startWall.start.y + currentDelta.y,
-        },
-        end: {
-          x: startWall.end.x + currentDelta.x,
-          y: startWall.end.y + currentDelta.y,
-        },
-      });
+      const command = new Commands.MoveWallCommand(
+        wallId,
+        { x: currentDelta.x, y: currentDelta.y },
+        { stretchNeighbors: true },
+      );
 
       return { kind: 'command', command };
     }

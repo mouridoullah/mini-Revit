@@ -1,11 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { BimDocument } from './document.js';
-import {
-  AddWallCommand,
-  MoveWallCommand,
-  AddDoorCommand,
-  AddRoomCommand,
-} from './commands.js';
+import { AddWallCommand, MoveWallCommand, AddDoorCommand, AddRoomCommand } from './commands.js';
 import { type Wall, type BimState } from './types.js';
 import { BimValidationError } from './rules.js';
 
@@ -216,9 +211,9 @@ describe('Phase 6.0c — MoveWallCommand Tests (packages/core)', () => {
     const canUndoBefore = doc.canUndo();
 
     // Translation qui rapproche B.start de B.end (+70 mm -> longueur = 80 mm < 100 mm)
-    expect(() =>
-      doc.execute(new MoveWallCommand('wall_A', { x: 0, y: 70 })),
-    ).toThrowError(BimValidationError);
+    expect(() => doc.execute(new MoveWallCommand('wall_A', { x: 0, y: 70 }))).toThrowError(
+      BimValidationError,
+    );
 
     expect(doc.getState()).toEqual(stateBefore);
     expect(doc.canUndo()).toBe(canUndoBefore);
@@ -251,9 +246,9 @@ describe('Phase 6.0c — MoveWallCommand Tests (packages/core)', () => {
     const stateBefore = doc.getState();
 
     // Déplacement de y=+200 mm qui inverse l'axe de B
-    expect(() =>
-      doc.execute(new MoveWallCommand('wall_A', { x: 0, y: 200 })),
-    ).toThrowError(BimValidationError);
+    expect(() => doc.execute(new MoveWallCommand('wall_A', { x: 0, y: 200 }))).toThrowError(
+      BimValidationError,
+    );
 
     expect(doc.getState()).toEqual(stateBefore);
   });

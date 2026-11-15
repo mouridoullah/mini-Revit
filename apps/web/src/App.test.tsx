@@ -5,7 +5,7 @@ import { View2D } from '@mini-bim/view-2d';
 import * as view2dModule from '@mini-bim/view-2d';
 import { Scene3D } from '@mini-bim/view-3d';
 import * as Scene3DModule from '@mini-bim/view-3d';
-import { BimDocument, AddWallCommand } from '@mini-bim/core';
+import { BimDocument, AddWallCommand, Commands } from '@mini-bim/core';
 import { App } from './App.js';
 import { createDemoDocument } from './demo/demoDocument.js';
 import { exportToJSON } from './persistence/jsonIO.js';
@@ -600,7 +600,16 @@ describe('App Integration & Squelette Double Viewport (apps/web)', () => {
     expect(door).toBeDefined();
     expect(door?.offsetAlong).toBe(2000);
 
-    // 8. ASSERTION 3 : createWallMeshWithOpenings a été ré-appelé avec le mur aux nouvelles coordonnées
+    // 8. ASSERTION 3 (Vigilance 2 de Claude) : Les voisins connectés (east, west) s'étirent élastiquement
+    const wallEast = doc.getState().walls['wall_east'];
+    expect(wallEast?.start).toEqual({ x: 6500, y: 0 }); // suit wall_south.end
+    expect(wallEast?.end).toEqual({ x: 6000, y: 4000 }); // ancré au nord
+
+    const wallWest = doc.getState().walls['wall_west'];
+    expect(wallWest?.start).toEqual({ x: 0, y: 4000 }); // ancré au nord
+    expect(wallWest?.end).toEqual({ x: 500, y: 0 }); // suit wall_south.start
+
+    // 9. ASSERTION 4 : createWallMeshWithOpenings a été ré-appelé avec les murs aux nouvelles coordonnées
     const lastCall = createMeshSpy.mock.calls.filter((c) => c[0].wall.id === 'wall_south').pop();
     expect(lastCall).toBeDefined();
     expect(lastCall?.[0].wall.start).toEqual({ x: 500, y: 0 });
@@ -707,5 +716,27 @@ describe('App Integration & Squelette Double Viewport (apps/web)', () => {
     expect(queryByTestId('error-banner')).toBeNull();
 
     cleanup();
+  });
+
+  it('T-APP-MOVE-02 : Undo après MoveWallCommand restaure tous les murs (A + voisins) bit-à-bit', async () => {
+    const doc = createDemoDocument();
+    const stateBefore = doc.getState();
+
+    // Déplacer wall_south
+    doc.execute(new Commands.MoveWallCommand('wall_south', { x: 500, y: 0 }));
+    expect(doc.getState()).not.toEqual(stateBefore);
+
+    // Annuler
+    doc.undo();
+    expect(doc.getState()).toEqual(stateBefore);
+  });
+
+  it('T-APP-MOVE-03 : MoveWallTool + validation différentielle accepte le déplacement sain', async () => {
+    const doc = createDemoDocument();
+    // Le projet de démo standard est parfaitement valide
+    const res = doc.execute(new Commands.MoveWallCommand('wall_south', { x: 200, y: 0 }));
+    expect(res.changed).toContain('wall_south');
+    expect(res.changed).toContain('wall_east');
+    expect(res.changed).toContain('wall_west');
   });
 });
