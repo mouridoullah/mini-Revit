@@ -273,19 +273,25 @@ Cette convention assure une zone d'attraction ergonomique constante sous le poin
   - **Maintien de Connectivité des Jonctions (Wall Stretching / Joint Tracking — Spécifié pour Phase 6.0c) :**  
     Afin de préserver l'étanchéité des enceintes de pièces et d'éviter leur passage intempestif au statut `unenclosed` (ADR-039) lors du déplacement d'un mur ou d'un sommet :
     1. **Connectivité Dynamique Dérivée (Distance Point-Segment) :** La connectivité entre murs n'est pas persistée en dur : elle est calculée à la volée par distance géométrique point-segment ($\text{dist}(\mathbf{P}_i, \text{segment}(W_j)) \le \epsilon = 1.0\text{ mm}$). Ce critère unifié capture à la fois les jonctions de coin (L, X, extrémités coïncidentes) et les jonctions en T dont la branche s'appuie sur le milieu du mur déplacé.
-    2. **Calcul d'Intersection d'Axes & Seuil de Quasi-Parallélisme :** Lorsqu'un mur $W_A$ est déplacé vers son nouvel axe translaté $\mathcal{D}_A'$ :
-       - Pour chaque mur voisin incident non parallèle $W_B$, son nouveau point commun $\mathbf{P}'$ est l'intersection géométrique exacte entre son axe directeur d'origine $\mathcal{D}_B$ et le nouvel axe $\mathcal{D}_A'$ :
-         $$\mathbf{P}' = \mathcal{D}_B \cap \mathcal{D}_A'$$
-       - **Seuil de Quasi-Parallélisme & Rejet Parallèle :** Tout comme la limite d'onglet (_miter limit_) en infographie, si deux murs sont presque parallèles ($|\sin \theta| < 0.05$, soit un angle $\theta < 3^\circ$), le point d'intersection projeté s'éloigne à l'infini. Dans ce cas, ou si $\mathcal{D}_B \parallel \mathcal{D}_A'$, la transaction est rejetée avec l'erreur typée `WALL_STRETCH_PARALLEL`, évitant toute rotation incontrôlée du voisin ou dérive de `offsetAlong`.
+    2. **Calcul de Résolution Topologique des Nouveaux Sommets (ADR-044) :**  
+       La méthode dépend rigoureusement de la nature de la connexion détectée à l'origine :
+       - **Connexions d'extrémités (`endpoint-start` ou `endpoint-end`) :** L'extrémité partagée du mur voisin $W_B$ suit directement la nouvelle coordonnée du sommet correspondant du mur déplacé $W_A$ :
+         $$\mathbf{P}_B' = \mathbf{P}_A + \vec{\Delta}$$
+         L'extrémité opposée de $W_B$ reste rigoureusement ancrée à sa position initiale. $W_B$ s'étire élastiquement et subit une éventuelle rotation $\theta = \angle(\vec{v}_B', \vec{v}_B)$. Les murs colinéaires ou parallèles bout-à-bout sont pleinement pris en charge (étirement axial).
+       - **Connexions en T au corps (`connection === 'mid'`) :** L'extrémité du mur incident $W_B$ qui butait sur $W_A$ est recalculée par intersection géométrique de sa droite directrice $\mathcal{D}_B$ avec la nouvelle droite directrice $\mathcal{D}_A'$ :
+         $$\mathbf{P}_B' = \mathcal{D}_B \cap \mathcal{D}_A'$$
+         Si $|\sin \angle(\vec{u}_B, \vec{u}_{A'})| < 0.05$ (murs quasi-parallèles), la projection est indéterminée et l'opération est rejetée avec l'erreur typée `WALL_STRETCH_PARALLEL`.
     3. **Conditions de Rejet Atomique (Garde-fous d'Intégrité) :**  
        L'opération d'étirement est rejetée (`BimValidationError`) avant toute mutation d'état si, pour un des voisins :
        - Sa nouvelle longueur passe sous le seuil ergonomique de 100 mm **et** a diminué ($L' < 100.0\text{ mm} \land L' < L_{\text{initial}}$) (`WALL_STRETCH_COLLAPSE`),
-       - OU son orientation s'inverse : $(\mathbf{P}_{\text{end}}' - \mathbf{P}_{\text{start}}') \cdot (\mathbf{P}_{\text{end}} - \mathbf{P}_{\text{start}}) \le 0$ (`WALL_STRETCH_REVERSED`).
-    4. **Compensation et Stationnarité Spatiale des Ouvertures Hébergées :**  
-       L'abscisse curviligne `offsetAlong` étant mesurée depuis `wall.start`, étirer un mur voisin par son extrémité `start` décalerait ses portes et fenêtres dans l'espace monde.  
-       Pour préserver la stationnarité physique des baies dans le référentiel monde, la transaction compense automatiquement l'abscisse :
-       $$\text{offsetAlong}_{\text{new}} = \text{offsetAlong}_{\text{old}} - \Delta L_{\text{start}}$$
-       La post-condition universelle différentielle `validateDirty` vérifie ensuite que les baies respectent les gardes minimales de 50 mm sur la nouvelle longueur étirée.
+       - Son orientation s'inverse : $(\mathbf{P}_{\text{end}}' - \mathbf{P}_{\text{start}}') \cdot (\mathbf{P}_{\text{end}} - \mathbf{P}_{\text{start}}) \le 0$ (`WALL_STRETCH_REVERSED`),
+       - OU une propagation en chaîne récursive sollicite un mur déjà visité (`WALL_STRETCH_CYCLE`).
+    4. **Compensation et Stationnarité Spatiale des Ouvertures Hébergées (Option β d'ADR-044) :**  
+       L'abscisse curviligne `offsetAlong` étant mesurée depuis `wall.start`, étirer un mur voisin par son extrémité `start` décalerait ses portes et fenêtres dans l'espace monde si aucune compensation n'était appliquée.  
+       Pour préserver au plus près la stationnarité physique des baies dans le référentiel monde, la transaction projette la position spatiale initiale de la baie $M = \mathbf{P}_{\text{start}} + \text{offsetAlong} \cdot \vec{u}$ sur le nouvel axe étiré et orienté $\vec{u}'$ :
+       $$\text{offsetAlong}_{\text{new}} = (M - \mathbf{P}_{\text{start}}') \cdot \vec{u}'$$
+       Dans le cas fréquent d'une translation sans rotation ($\vec{u}' = \vec{u}$), cette formule coïncide exactement avec $\text{offsetAlong}_{\text{old}} - \Delta L_{\text{start}}$.  
+       La post-condition universelle différentielle `validateDirty` vérifie ensuite que les baies respectent les gardes minimales et les linteaux sur la nouvelle géométrie.
 
 ### 7.3 `MoveOpeningTool` (Déplacement d'Ouvertures le Long de l'Axe)
 
