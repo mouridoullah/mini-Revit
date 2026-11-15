@@ -18,12 +18,7 @@ describe('Phase 6.1b — Rendu 2D des Dalles (packages/view-2d/src/slabs-2d.test
     category: 'slab',
     slabTypeId: 'st_concrete_200',
     levelId: 'lvl_0',
-    boundary: [
-      vec2(0, 0),
-      vec2(4000, 0),
-      vec2(4000, 3000),
-      vec2(0, 3000),
-    ],
+    boundary: [vec2(0, 0), vec2(4000, 0), vec2(4000, 3000), vec2(0, 3000)],
   };
 
   const slabType: SlabTypeFor2D = {
@@ -60,14 +55,7 @@ describe('Phase 6.1b — Rendu 2D des Dalles (packages/view-2d/src/slabs-2d.test
 
     const slabWithHole: SlabFor2D = {
       ...baseSlab,
-      holes: [
-        [
-          vec2(1000, 1000),
-          vec2(2000, 1000),
-          vec2(2000, 2000),
-          vec2(1000, 2000),
-        ],
-      ],
+      holes: [[vec2(1000, 1000), vec2(2000, 1000), vec2(2000, 2000), vec2(1000, 2000)]],
     };
 
     drawSlab(mock.ctx, transform, slabWithHole, slabType, false, DEFAULT_SLAB_RENDER_CONFIG);
@@ -96,16 +84,16 @@ describe('Phase 6.1b — Rendu 2D des Dalles (packages/view-2d/src/slabs-2d.test
     const { mock: mockWithHole } = createMockCanvas(800, 600);
     const slabWithHole: SlabFor2D = {
       ...baseSlab,
-      holes: [
-        [
-          vec2(1000, 1000),
-          vec2(2000, 1000),
-          vec2(2000, 2000),
-          vec2(1000, 2000),
-        ],
-      ],
+      holes: [[vec2(1000, 1000), vec2(2000, 1000), vec2(2000, 2000), vec2(1000, 2000)]],
     };
-    drawSlab(mockWithHole.ctx, transform, slabWithHole, slabType, false, DEFAULT_SLAB_RENDER_CONFIG);
+    drawSlab(
+      mockWithHole.ctx,
+      transform,
+      slabWithHole,
+      slabType,
+      false,
+      DEFAULT_SLAB_RENDER_CONFIG,
+    );
 
     const strokeCallsWithHole = mockWithHole.filterCalls('stroke');
 

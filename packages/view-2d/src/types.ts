@@ -107,8 +107,20 @@ export interface DocumentFor2D {
   getState(): {
     readonly walls: Record<string, WallFor2D>;
     readonly wallTypes: Record<string, WallTypeFor2D>;
-    readonly doorTypes?: Record<string, { readonly id: string; readonly width: number; readonly height: number }> | undefined;
-    readonly windowTypes?: Record<string, { readonly id: string; readonly width: number; readonly height: number; readonly defaultSillHeight?: number }> | undefined;
+    readonly doorTypes?:
+      | Record<string, { readonly id: string; readonly width: number; readonly height: number }>
+      | undefined;
+    readonly windowTypes?:
+      | Record<
+          string,
+          {
+            readonly id: string;
+            readonly width: number;
+            readonly height: number;
+            readonly defaultSillHeight?: number;
+          }
+        >
+      | undefined;
     readonly slabTypes?: Record<string, SlabTypeFor2D> | undefined;
     readonly slabs?: Record<string, SlabFor2D> | undefined;
     readonly doors?: Record<string, DoorFor2D> | undefined;

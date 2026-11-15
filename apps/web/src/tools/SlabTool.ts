@@ -72,10 +72,7 @@ export class SlabTool implements Tool {
     }
 
     // 2. Touche Enter ou Double-clic : Fermeture du polygone
-    if (
-      (event.type === 'keydown' && event.key === 'Enter') ||
-      event.type === 'dblclick'
-    ) {
+    if ((event.type === 'keydown' && event.key === 'Enter') || event.type === 'dblclick') {
       if (this.state.kind === 'drawing' && this.state.points.length >= 3) {
         return this.finishPolygon(this.state.points, ctx);
       }
@@ -107,10 +104,7 @@ export class SlabTool implements Tool {
       // En cours de tracé : vérifier si clic sur le premier point (fermeture)
       const firstPoint = this.state.points[0]!;
       const snapToleranceWorld = 12 / ctx.transform.scale;
-      const distToFirst = Math.hypot(
-        snappedWorld.x - firstPoint.x,
-        snappedWorld.y - firstPoint.y,
-      );
+      const distToFirst = Math.hypot(snappedWorld.x - firstPoint.x, snappedWorld.y - firstPoint.y);
 
       if (this.state.points.length >= 3 && distToFirst <= snapToleranceWorld) {
         return this.finishPolygon(this.state.points, ctx);
@@ -118,10 +112,7 @@ export class SlabTool implements Tool {
 
       // Sinon, ajouter le nouveau point s'il n'est pas confondu avec le précédent
       const lastPoint = this.state.points[this.state.points.length - 1]!;
-      const distToLast = Math.hypot(
-        snappedWorld.x - lastPoint.x,
-        snappedWorld.y - lastPoint.y,
-      );
+      const distToLast = Math.hypot(snappedWorld.x - lastPoint.x, snappedWorld.y - lastPoint.y);
       if (distToLast > 1) {
         const nextPoints = [...this.state.points, snappedWorld];
         this.state = {
@@ -168,16 +159,11 @@ export class SlabTool implements Tool {
   /**
    * Finalise le contour et émet la commande AddSlabCommand.
    */
-  private finishPolygon(
-    points: readonly Vec2[],
-    ctx: ToolContext,
-  ): ToolOutput {
+  private finishPolygon(points: readonly Vec2[], ctx: ToolContext): ToolOutput {
     const normalizedBoundary = ensureCCW(points);
     const docState = ctx.doc.getState();
     const slabTypeId =
-      ctx.activeSlabTypeId ??
-      Object.keys(docState.slabTypes ?? {})[0] ??
-      'slab-type-default';
+      ctx.activeSlabTypeId ?? Object.keys(docState.slabTypes ?? {})[0] ?? 'slab-type-default';
 
     const command = new Commands.AddSlabCommand({
       id: generateId(),
@@ -196,11 +182,7 @@ export class SlabTool implements Tool {
    * 1. Snapping géométrique aux sommets de murs (tolérance 12px écran).
    * 2. Snapping angulaire 45° si Shift est enfoncé par rapport au point précédent.
    */
-  private snapPoint(
-    rawWorld: Vec2,
-    shift: boolean,
-    ctx: ToolContext,
-  ): Vec2 {
+  private snapPoint(rawWorld: Vec2, shift: boolean, ctx: ToolContext): Vec2 {
     const snapToleranceWorld = 12 / ctx.transform.scale;
 
     // 1. Collecter tous les sommets de murs existants sur le niveau actif

@@ -55,9 +55,9 @@ export interface Wall {
   readonly levelId: ElementId;
   readonly start: Vec2; // Coordonnées 2D en mm
   readonly end: Vec2; // Coordonnées 2D en mm
-  readonly baseOffset?: number; // Décalage vertical par rapport au niveau en mm
-  readonly heightOverride?: number; // Surcharge optionnelle de la hauteur du type en mm
-  readonly topConstraint?: TopConstraint; // Contrainte altimétrique supérieure
+  readonly baseOffset?: number | undefined; // Décalage vertical par rapport au niveau en mm
+  readonly heightOverride?: number | undefined; // Surcharge optionnelle de la hauteur du type en mm
+  readonly topConstraint?: TopConstraint | undefined; // Contrainte altimétrique supérieure
 }
 
 /**
@@ -79,10 +79,10 @@ export interface Slab {
   readonly slabTypeId: ElementId;
   readonly levelId: ElementId;
   readonly boundary: readonly Vec2[]; // CCW
-  readonly holes?: readonly (readonly Vec2[])[]; // CW (réservations manuelles uniquement)
-  readonly openings?: readonly (readonly Vec2[])[]; // Trémies géométriques traversantes
-  readonly baseOffset?: number; // décalage vertical par rapport au niveau (<= 0 standard)
-  readonly name?: string;
+  readonly holes?: readonly (readonly Vec2[])[] | undefined; // CW (réservations manuelles uniquement)
+  readonly openings?: readonly (readonly Vec2[])[] | undefined; // Trémies géométriques traversantes
+  readonly baseOffset?: number | undefined; // décalage vertical par rapport au niveau (<= 0 standard)
+  readonly name?: string | undefined;
 }
 
 /**

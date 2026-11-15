@@ -11,13 +11,7 @@ describe('LevelSelector — Sélecteur d’étage de travail (Phase 6.1b)', () =
   ];
 
   it('T-LEVEL-SEL-01 : affiche tous les niveaux triés par élévation croissante', () => {
-    render(
-      <LevelSelector
-        levels={sampleLevels}
-        activeLevelId="lvl_rdc"
-        onSelectLevel={vi.fn()}
-      />,
-    );
+    render(<LevelSelector levels={sampleLevels} activeLevelId="lvl_rdc" onSelectLevel={vi.fn()} />);
 
     const select = screen.getByTestId('level-selector') as HTMLSelectElement;
     expect(select).toBeDefined();
@@ -36,11 +30,7 @@ describe('LevelSelector — Sélecteur d’étage de travail (Phase 6.1b)', () =
   it('T-LEVEL-SEL-02 : la sélection d’un autre niveau déclenche onSelectLevel avec son ID', () => {
     const handleSelect = vi.fn();
     render(
-      <LevelSelector
-        levels={sampleLevels}
-        activeLevelId="lvl_rdc"
-        onSelectLevel={handleSelect}
-      />,
+      <LevelSelector levels={sampleLevels} activeLevelId="lvl_rdc" onSelectLevel={handleSelect} />,
     );
 
     const select = screen.getByTestId('level-selector');
@@ -51,13 +41,7 @@ describe('LevelSelector — Sélecteur d’étage de travail (Phase 6.1b)', () =
   });
 
   it('T-LEVEL-SEL-03 : affiche fidèlement la valeur activeLevelId passée en prop', () => {
-    render(
-      <LevelSelector
-        levels={sampleLevels}
-        activeLevelId="lvl_r1"
-        onSelectLevel={vi.fn()}
-      />,
-    );
+    render(<LevelSelector levels={sampleLevels} activeLevelId="lvl_r1" onSelectLevel={vi.fn()} />);
 
     const select = screen.getByTestId('level-selector') as HTMLSelectElement;
     expect(select.value).toBe('lvl_r1');

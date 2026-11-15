@@ -274,3 +274,46 @@ export function createOpeningPlaceholder(
 3. **Matériaux Dédiés :**
    - Porte : `createDoorPlaceholderMaterial()` (bois `#8b5a2b`, boîte orientée de 50 mm).
    - Fenêtre : `createWindowPlaceholderMaterial()` (vitrage translucide `#90caf9`, opacité 0.5, boîte orientée de 30 mm).
+
+---
+
+## 8. Maillage 3D des Dalles et Trémies (`createSlabMesh` — Phase 6.1b)
+
+Livré en Phase 6.1b pour assurer le rendu volumique tridimensionnel des planchers avec découpe exacte des trémies :
+
+```typescript
+export interface SlabGeometryParams {
+  readonly id: string;
+  readonly boundary: readonly { readonly x: number; readonly y: number }[];
+  readonly holes?: readonly (readonly { readonly x: number; readonly y: number }[])[];
+  readonly openings?: readonly (readonly { readonly x: number; readonly y: number }[])[];
+  readonly baseOffset?: number;
+}
+
+export interface SlabTypeGeometryParams {
+  readonly thickness: number;
+}
+
+export function createSlabMesh(
+  slab: SlabGeometryParams,
+  slabType: SlabTypeGeometryParams,
+  elevation?: number,
+): RawMeshData | null;
+```
+
+### Invariants et Principes Géométriques :
+
+1. **Convention d'Extrusion Descendante (ADR-045 D2) :**
+   L'arase supérieure de la dalle correspond à l'élévation du niveau additionnée de son décalage de base :
+   $$Z_{\text{sup}} = \text{elevation} + \text{baseOffset}$$
+   L'arase inférieure est projetée vers le bas de la valeur de l'épaisseur :
+   $$Z_{\text{inf}} = Z_{\text{sup}} - \text{thickness}$$
+2. **Triangulation Concave avec Trous (`earcut`) :**
+   - La face supérieure ($Z = Z_{\text{sup}}$) et la face inférieure ($Z = Z_{\text{inf}}$) sont triangulées via l'algorithme `earcut` sur le polygone effectif nettoyé par `computeEffectiveSlabPolygon`.
+   - Les normales de la face supérieure pointent vers le haut $(0, 0, 1)$, celles de la face inférieure vers le bas $(0, 0, -1)$ avec inversion d'enroulement des triangles pour préserver le _front-face culling_.
+3. **Flancs Verticaux (Contour & Trous) :**
+   - Chaque segment d'arête du contour extérieur et de chaque trou intérieur engendre un quad vertical composé de 2 triangles.
+   - Les normales des flancs sont orientées strictement vers l'extérieur pour le contour extérieur, et vers l'intérieur du vide pour les parois de trémies.
+4. **Matériau Béton Standard & Raycasting :**
+   - Matériau PBR standard béton (`#d1d5db`, rugosité 0.85).
+   - Les métadonnées `userData: { category: 'slab' }` et `elementId: slab.id` permettent le picking 3D immédiat via `Scene3D.raycast`.

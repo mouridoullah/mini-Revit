@@ -93,7 +93,16 @@ export function useActiveTool(initialKind: ToolKind = 'select'): UseActiveToolRe
       default:
         return selectTool;
     }
-  }, [activeToolKind, selectTool, wallTool, doorTool, windowTool, moveWallTool, moveOpeningTool, slabTool]);
+  }, [
+    activeToolKind,
+    selectTool,
+    wallTool,
+    doorTool,
+    windowTool,
+    moveWallTool,
+    moveOpeningTool,
+    slabTool,
+  ]);
 
   return {
     activeToolKind,

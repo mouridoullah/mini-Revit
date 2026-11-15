@@ -739,4 +739,165 @@ describe('App Integration & Squelette Double Viewport (apps/web)', () => {
     expect(res.changed).toContain('wall_east');
     expect(res.changed).toContain('wall_west');
   });
+
+  it('T-APP-SLAB-01 : demoDocument affiche la dalle structurelle dans les viewports 2D et 3D', async () => {
+    const doc = createDemoDocument();
+    let capturedView2D: View2D | null = null;
+    const origSetDocument = View2D.prototype.setDocument;
+    const setSlabsSpy = vi.spyOn(View2D.prototype, 'setSlabs');
+    vi.spyOn(View2D.prototype, 'setDocument').mockImplementation(function (this: View2D, document) {
+      // eslint-disable-next-line @typescript-eslint/no-this-alias
+      capturedView2D = this;
+      return origSetDocument.call(this, document);
+    });
+
+    const { getByTestId } = render(<App initialDoc={doc} />);
+    expect(capturedView2D).not.toBeNull();
+    expect(getByTestId('viewport-2d-canvas')).toBeDefined();
+    expect(getByTestId('viewport-3d-canvas')).toBeDefined();
+
+    // Vérifier que la dalle demo est présente et synchronisée
+    expect(doc.getState().slabs?.['slab_demo_ground']).toBeDefined();
+    expect(setSlabsSpy).toHaveBeenCalled();
+    const lastSlabs = setSlabsSpy.mock.calls[setSlabsSpy.mock.calls.length - 1]?.[0];
+    expect(lastSlabs?.some((s) => s.id === 'slab_demo_ground')).toBe(true);
+
+    cleanup();
+  });
+
+  it('T-APP-SLAB-02 : la sélection d’une dalle affiche ses propriétés dans PropertyInspector', async () => {
+    const doc = createDemoDocument();
+    vi.spyOn(Scene3D.prototype, 'raycast').mockReturnValue('slab_demo_ground');
+
+    const { getByTestId, queryByTestId } = render(<App initialDoc={doc} />);
+
+    // Initialement : aucune sélection
+    expect(getByTestId('inspector-no-selection')).toBeDefined();
+
+    // Clic dans le viewport 3D pour sélectionner la dalle
+    const canvas3D = getByTestId('viewport-3d-canvas');
+    act(() => {
+      fireEvent.pointerDown(canvas3D, { clientX: 100, clientY: 100, button: 0 });
+      fireEvent.pointerUp(canvas3D, { clientX: 100, clientY: 100, button: 0 });
+    });
+
+    // PropertyInspector affiche les détails de la dalle sélectionnée
+    expect(queryByTestId('inspector-no-selection')).toBeNull();
+    expect(getByTestId('inspector-slab-panel')).toBeDefined();
+    expect(getByTestId('slab-thickness-display').textContent).toContain('200 mm');
+
+    cleanup();
+  });
+
+  it('T-APP-SLAB-03 : l’édition de l’épaisseur du type de dalle via PropertyInspector met à jour le document', async () => {
+    const doc = createDemoDocument();
+    vi.spyOn(Scene3D.prototype, 'raycast').mockReturnValue('slab_demo_ground');
+
+    const { getByTestId } = render(<App initialDoc={doc} />);
+
+    // Clic pour sélectionner la dalle
+    const canvas3D = getByTestId('viewport-3d-canvas');
+    act(() => {
+      fireEvent.pointerDown(canvas3D, { clientX: 100, clientY: 100, button: 0 });
+      fireEvent.pointerUp(canvas3D, { clientX: 100, clientY: 100, button: 0 });
+    });
+
+    const thicknessInput = getByTestId('slab-type-thickness-input') as HTMLInputElement;
+    expect(thicknessInput).toBeDefined();
+
+    act(() => {
+      fireEvent.change(thicknessInput, { target: { value: '250' } });
+      fireEvent.blur(thicknessInput);
+    });
+
+    const slab = doc.getState().slabs?.['slab_demo_ground'];
+    expect(slab).toBeDefined();
+    expect(doc.getState().slabTypes?.[slab!.slabTypeId]?.thickness).toBe(250);
+
+    cleanup();
+  });
+
+  it('T-APP-SLAB-04 : SlabTool permet de tracer une dalle et émet AddSlabCommand', async () => {
+    const doc = createDemoDocument();
+    let capturedView2D: View2D | null = null;
+    const origSetDocument = View2D.prototype.setDocument;
+    vi.spyOn(View2D.prototype, 'setDocument').mockImplementation(function (this: View2D, document) {
+      // eslint-disable-next-line @typescript-eslint/no-this-alias
+      capturedView2D = this;
+      return origSetDocument.call(this, document);
+    });
+
+    const { getByTestId } = render(<App initialDoc={doc} />);
+    expect(capturedView2D).not.toBeNull();
+    if (!capturedView2D) throw new Error('View2D non initialisé');
+    const transform = capturedView2D.getTransform();
+
+    // 1. Activer SlabTool (L)
+    const slabBtn = getByTestId('tool-slab-btn');
+    act(() => {
+      fireEvent.click(slabBtn);
+    });
+
+    const canvas2D = getByTestId('viewport-2d-canvas');
+
+    // 2. Clics des 4 points du contour
+    const pts = [
+      { x: 1000, y: 1000 },
+      { x: 3000, y: 1000 },
+      { x: 3000, y: 3000 },
+      { x: 1000, y: 3000 },
+    ];
+
+    for (const p of pts) {
+      const s = transform.worldToScreen(p);
+      act(() => {
+        fireEvent.pointerDown(canvas2D, {
+          clientX: s.x,
+          clientY: s.y,
+          button: 0,
+        });
+      });
+    }
+
+    // 3. Validation par touche Enter
+    act(() => {
+      fireEvent.keyDown(window, { key: 'Enter' });
+    });
+
+    // 4. Une nouvelle dalle a été créée
+    const slabs = Object.values(doc.getState().slabs ?? {});
+    expect(slabs.length).toBe(2);
+
+    cleanup();
+  });
+
+  it('T-APP-SLAB-05 : LevelSelector permet de basculer d’étage et filtre le plan 2D', async () => {
+    const doc = createDemoDocument();
+    // Ajouter un 2ème niveau R+1
+    doc.execute(
+      new Commands.AddLevelCommand({
+        id: 'lvl_r1',
+        name: 'R+1',
+        elevation: 3000,
+        category: 'level',
+      }),
+    );
+
+    const setActiveLevelIdSpy = vi.spyOn(View2D.prototype, 'setActiveLevelId');
+
+    const { getByTestId } = render(<App initialDoc={doc} />);
+
+    const levelSelect = getByTestId('level-selector') as HTMLSelectElement;
+    expect(levelSelect).toBeDefined();
+
+    // Basculer sur R+1
+    act(() => {
+      fireEvent.change(levelSelect, { target: { value: 'lvl_r1' } });
+    });
+
+    expect(levelSelect.value).toBe('lvl_r1');
+    expect(setActiveLevelIdSpy).toHaveBeenCalledWith('lvl_r1');
+
+    cleanup();
+  });
 });

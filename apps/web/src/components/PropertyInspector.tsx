@@ -6,12 +6,6 @@ import {
   getLevelStoryHeight,
   getSortedLevels,
   setStoryHeight,
-  type Wall,
-  type Slab,
-  type Door,
-  type Window,
-  type Level,
-  type SlabType,
 } from '@mini-bim/core';
 
 export interface PropertyInspectorProps {
@@ -320,15 +314,21 @@ export function PropertyInspector({
 
       return (
         <div data-testid="inspector-wall-panel">
-          <div style={{ fontSize: '13px', fontWeight: 600, color: '#60a5fa', marginBottom: '12px' }}>
+          <div
+            style={{ fontSize: '13px', fontWeight: 600, color: '#60a5fa', marginBottom: '12px' }}
+          >
             Mur
           </div>
           <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '8px' }}>
             ID : <span data-testid="wall-id">{wall.id}</span>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '10px' }}>
-            <label style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 500 }}>Type de mur</label>
+          <div
+            style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '10px' }}
+          >
+            <label style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 500 }}>
+              Type de mur
+            </label>
             <select
               data-testid="wall-type-select"
               value={wall.typeId}
@@ -354,7 +354,9 @@ export function PropertyInspector({
           </div>
 
           {/* Mode Hauteur : Auto vs Fixe */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '10px' }}>
+          <div
+            style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '10px' }}
+          >
             <label style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 500 }}>
               Mode de hauteur
             </label>
@@ -458,7 +460,9 @@ export function PropertyInspector({
 
       return (
         <div data-testid="inspector-slab-panel">
-          <div style={{ fontSize: '13px', fontWeight: 600, color: '#34d399', marginBottom: '12px' }}>
+          <div
+            style={{ fontSize: '13px', fontWeight: 600, color: '#34d399', marginBottom: '12px' }}
+          >
             Dalle Structurelle
           </div>
           <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '8px' }}>
@@ -474,8 +478,12 @@ export function PropertyInspector({
             }}
           />
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '10px' }}>
-            <label style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 500 }}>Type de dalle</label>
+          <div
+            style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '10px' }}
+          >
+            <label style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 500 }}>
+              Type de dalle
+            </label>
             <select
               data-testid="slab-type-select"
               value={slab.slabTypeId}
@@ -522,7 +530,9 @@ export function PropertyInspector({
 
           {currentSlabType && (
             <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #374151' }}>
-              <div style={{ fontSize: '11px', fontWeight: 600, color: '#9ca3af', marginBottom: '8px' }}>
+              <div
+                style={{ fontSize: '11px', fontWeight: 600, color: '#9ca3af', marginBottom: '8px' }}
+              >
                 Édition du Type ({currentSlabType.name})
               </div>
               <DebouncedNumberInput
@@ -532,7 +542,9 @@ export function PropertyInspector({
                 max={500}
                 value={currentSlabType.thickness}
                 onChange={(th) => {
-                  execute(new Commands.UpdateSlabTypeCommand(currentSlabType.id, { thickness: th }));
+                  execute(
+                    new Commands.UpdateSlabTypeCommand(currentSlabType.id, { thickness: th }),
+                  );
                 }}
               />
             </div>
@@ -546,15 +558,21 @@ export function PropertyInspector({
       const door = state.doors[id]!;
       return (
         <div data-testid="inspector-door-panel">
-          <div style={{ fontSize: '13px', fontWeight: 600, color: '#f59e0b', marginBottom: '12px' }}>
+          <div
+            style={{ fontSize: '13px', fontWeight: 600, color: '#f59e0b', marginBottom: '12px' }}
+          >
             Porte
           </div>
           <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '8px' }}>
             ID : <span data-testid="door-id">{door.id}</span>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '10px' }}>
-            <label style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 500 }}>Type de porte</label>
+          <div
+            style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '10px' }}
+          >
+            <label style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 500 }}>
+              Type de porte
+            </label>
             <select
               data-testid="door-type-select"
               value={door.doorTypeId}
@@ -651,20 +669,28 @@ export function PropertyInspector({
       const window = state.windows[id]!;
       return (
         <div data-testid="inspector-window-panel">
-          <div style={{ fontSize: '13px', fontWeight: 600, color: '#38bdf8', marginBottom: '12px' }}>
+          <div
+            style={{ fontSize: '13px', fontWeight: 600, color: '#38bdf8', marginBottom: '12px' }}
+          >
             Fenêtre
           </div>
           <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '8px' }}>
             ID : <span data-testid="window-id">{window.id}</span>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '10px' }}>
-            <label style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 500 }}>Type de fenêtre</label>
+          <div
+            style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '10px' }}
+          >
+            <label style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 500 }}>
+              Type de fenêtre
+            </label>
             <select
               data-testid="window-type-select"
               value={window.windowTypeId}
               onChange={(e) => {
-                execute(new Commands.UpdateWindowCommand(window.id, { windowTypeId: e.target.value }));
+                execute(
+                  new Commands.UpdateWindowCommand(window.id, { windowTypeId: e.target.value }),
+                );
               }}
               style={{
                 padding: '5px 8px',
@@ -714,7 +740,9 @@ export function PropertyInspector({
 
       return (
         <div data-testid="inspector-level-panel">
-          <div style={{ fontSize: '13px', fontWeight: 600, color: '#a78bfa', marginBottom: '12px' }}>
+          <div
+            style={{ fontSize: '13px', fontWeight: 600, color: '#a78bfa', marginBottom: '12px' }}
+          >
             Niveau
           </div>
           <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '8px' }}>
@@ -758,11 +786,7 @@ export function PropertyInspector({
       );
     }
 
-    return (
-      <div style={{ color: '#9ca3af', fontSize: '12px' }}>
-        Élément sélectionné : {id}
-      </div>
-    );
+    return <div style={{ color: '#9ca3af', fontSize: '12px' }}>Élément sélectionné : {id}</div>;
   };
 
   return (
@@ -789,9 +813,7 @@ export function PropertyInspector({
           backgroundColor: '#1f2937',
         }}
       >
-        <span style={{ fontSize: '12px', fontWeight: 600, color: '#f3f4f6' }}>
-          Propriétés
-        </span>
+        <span style={{ fontSize: '12px', fontWeight: 600, color: '#f3f4f6' }}>Propriétés</span>
         <button
           type="button"
           data-testid="toggle-inspector-btn"

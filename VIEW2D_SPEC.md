@@ -254,11 +254,56 @@ export function drawOpenings(
 
 ---
 
-## 8. Couverture de Tests Automatisés
+## 9. Rendu des Dalles Structurelles et Réservations (Phase 6.1b)
 
-Le package est validé à 100% en environnement headless Vitest / JSDOM (41 tests unitaires et d'intégration) :
+Le module `renderer.ts` implémente la représentation graphique normalisée des planchers et dalles horizontales (`SlabFor2D`) :
+
+```typescript
+export interface SlabFor2D {
+  readonly id: string;
+  readonly boundary: readonly Vec2[];
+  readonly holes?: readonly (readonly Vec2[])[];
+  readonly openings?: readonly (readonly Vec2[])[];
+  readonly levelId: string;
+}
+
+export function drawSlab(
+  ctx: CanvasRenderingContext2D,
+  transform: Transform2D,
+  slab: SlabFor2D,
+  isSelected?: boolean,
+  colorScheme?: SlabRenderColorScheme,
+): void;
+
+export function drawSlabs(
+  ctx: CanvasRenderingContext2D,
+  transform: Transform2D,
+  slabs: readonly SlabFor2D[],
+  selectedIds: ReadonlySet<string>,
+  levelFilter?: string | null,
+): void;
+```
+
+### Détails des Tracés Normalisés :
+1. **Poché Béton & Hachures à 45° :**
+   - Remplissage de fond en gris très clair (`#f3f4f6`).
+   - Règle de remplissage `evenodd` découpant proprement les trémies et trémies intérieures (`holes`, `openings`).
+   - Hachures techniques à 45° espacées de 20px écran (`#9ca3af`, épaisseur 1px), clippées rigoureusement selon l'empreinte effective de la dalle (`ctx.clip('evenodd')`).
+2. **Contour Extérieur & Trémies :**
+   - Contour extérieur en trait continu (`#4b5563`, épaisseur 1.5px).
+   - En cas de sélection active, surbrillance bleutée (`#2563eb`, épaisseur 2.5px).
+   - Trémies et réservations détourées en trait plein fin (`#6b7280`).
+3. **Croix de Réservation Normalisée :**
+   - Chaque trou intérieur ou réservation de trémie reçoit deux diagonales croisées reliant ses sommets opposés (`#9ca3af`, trait continu fin), conformément aux conventions graphiques du dessin d'architecture pour les réservations dans les planchers.
+
+---
+
+## 10. Couverture de Tests Automatisés
+
+Le package est validé à 100% en environnement headless Vitest / JSDOM (58 tests unitaires et d'intégration) :
 - `transform.test.ts` (12 tests) : inversion mathématique $\Delta < 10^{-9}$, Y-up $\to$ Y-down, bijection sur cas asymétriques (+Y, -Y, +X/+Y, -X/-Y), zoom centré invariant, zoomToFit, pan, limites d'échelle.
 - `hit-test.test.ts` (3 tests) : test de footprint polygonale, hitTestWall, findWallAtScreen avec filtre de niveau.
 - `renderer.test.ts` (12 tests) : clearCanvas, grille adaptative avec seuil anti-saturation, axes, poché, contour, axe pointillé, surbrillance de sélection, filtre de niveau, évidement et arc 90° pour portes, évidement et vitrage double pour fenêtres, extraction automatique des ouvertures du document, non-déclenchement sur mur plein.
+- `slabs-2d.test.ts` (5 tests) : poché béton, hachures 45°, découpe des trémies avec règle evenodd, croix de réservation normalisée, filtrage par niveau actif.
 - `View2D.test.ts` (14 tests) : initialisation, rendu à la demande, hit-testing, sélection interactive (mode autonome), désactivation de la sélection interne (`enableInternalSelection: false`), prévisualisation temporaire (`setPreview` / `getPreview`), règle d'or d'émission de commande sans mutation de document, immutabilité stricte du document au clic (`doc.toJSON()` invariant), molette, pan, zoomToFit, resize, dispose, déconnexion du ResizeObserver.
 $$

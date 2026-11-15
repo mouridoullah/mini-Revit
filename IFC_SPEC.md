@@ -22,24 +22,25 @@ Mini-BIM implémente un exportateur IFC natif pur TypeScript conforme à la norm
 
 ## 2. Dictionnaire des Classes et Relations IFC4
 
-| Entité IFC4                         | Rôle Architectural                                | Implémentation Mini-BIM                                               |
-| ----------------------------------- | ------------------------------------------------- | --------------------------------------------------------------------- |
-| `IfcProject`                        | Racine du projet                                  | Nom du projet, contexte géométrique 3D, système d'unités              |
-| `IfcSite`                           | Terrain / Emplacement                             | Site par défaut rattaché au projet via `IfcRelAggregates`             |
-| `IfcBuilding`                       | Bâtiment principal                                | Bâtiment rattaché au site                                             |
-| `IfcBuildingStorey`                 | Étage / Niveau architectural                      | Un étage par `Level` de `state.levels` (élévation en Z)               |
-| `IfcWall`                           | Mur architectural porteur ou séparatif            | Géométrie extrudée avec profil fermé (`IfcArbitraryClosedProfileDef`) |
-| `IfcOpeningElement`                 | Réservation / Trémie pour baie                    | Volume de vide géométrique englobant la largeur, hauteur et épaisseur |
-| `IfcRelVoidsElement`                | Relation Mur $\leftrightarrow$ Réservation        | Déclare formellement le perçage du mur hôte                           |
-| `IfcDoor`                           | Porte architecturale battante                     | Menuiserie hébergée, dimensions, type de ferrage (`SINGLE_SWING`)     |
-| `IfcWindow`                         | Fenêtre architecturale                            | Châssis vitré hébergé, dimensions, hauteur d'allège                   |
-| `IfcRelFillsElement`                | Relation Réservation $\leftrightarrow$ Menuiserie | Déclare que la porte/fenêtre remplit la réservation                   |
-| `IfcSpace`                          | Pièce / Espace intérieur                          | Espace 3D basé sur le polygone détecté, hauteur de niveau             |
-| `IfcQuantityArea`                   | Quantité de surface                               | `NetFloorArea` (surface utile nette en m²)                            |
-| `IfcQuantityVolume`                 | Quantité de volume                                | `NetVolume` (volume utile en m³)                                      |
-| `IfcElementQuantity`                | Jeu de quantités d'espace                         | `Qto_SpaceBaseQuantities`                                             |
-| `IfcRelDefinesByProperties`         | Relation Espace $\leftrightarrow$ Quantités       | Rapproche les métrés certifiés à l'entité `IfcSpace`                  |
-| `IfcRelContainedInSpatialStructure` | Rattachement d'étage                              | Associe murs et espaces à leur `IfcBuildingStorey` respectif          |
+| Entité IFC4                         | Rôle Architectural                                | Implémentation Mini-BIM                                                                        |
+| ----------------------------------- | ------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `IfcProject`                        | Racine du projet                                  | Nom du projet, contexte géométrique 3D, système d'unités                                       |
+| `IfcSite`                           | Terrain / Emplacement                             | Site par défaut rattaché au projet via `IfcRelAggregates`                                      |
+| `IfcBuilding`                       | Bâtiment principal                                | Bâtiment rattaché au site                                                                      |
+| `IfcBuildingStorey`                 | Étage / Niveau architectural                      | Un étage par `Level` de `state.levels` (élévation en Z)                                        |
+| `IfcWall`                           | Mur architectural porteur ou séparatif            | Géométrie extrudée avec profil fermé (`IfcArbitraryClosedProfileDef`)                          |
+| `IfcSlab`                           | Dalle structurelle / Plancher horizontal          | Solide extrudé ou profil avec trémies (`IfcArbitraryProfileDefWithVoids`), prédéfini `.FLOOR.` |
+| `IfcOpeningElement`                 | Réservation / Trémie pour baie                    | Volume de vide géométrique englobant la largeur, hauteur et épaisseur                          |
+| `IfcRelVoidsElement`                | Relation Mur $\leftrightarrow$ Réservation        | Déclare formellement le perçage du mur hôte                                                    |
+| `IfcDoor`                           | Porte architecturale battante                     | Menuiserie hébergée, dimensions, type de ferrage (`SINGLE_SWING`)                              |
+| `IfcWindow`                         | Fenêtre architecturale                            | Châssis vitré hébergé, dimensions, hauteur d'allège                                            |
+| `IfcRelFillsElement`                | Relation Réservation $\leftrightarrow$ Menuiserie | Déclare que la porte/fenêtre remplit la réservation                                            |
+| `IfcSpace`                          | Pièce / Espace intérieur                          | Espace 3D basé sur le polygone détecté, hauteur de niveau                                      |
+| `IfcQuantityArea`                   | Quantité de surface                               | `NetFloorArea` (surface utile nette en m²)                                                     |
+| `IfcQuantityVolume`                 | Quantité de volume                                | `NetVolume` (volume utile en m³)                                                               |
+| `IfcElementQuantity`                | Jeu de quantités d'espace                         | `Qto_SpaceBaseQuantities`                                                                      |
+| `IfcRelDefinesByProperties`         | Relation Espace $\leftrightarrow$ Quantités       | Rapproche les métrés certifiés à l'entité `IfcSpace`                                           |
+| `IfcRelContainedInSpatialStructure` | Rattachement d'étage                              | Associe murs et espaces à leur `IfcBuildingStorey` respectif                                   |
 
 ---
 
@@ -71,6 +72,7 @@ DATA;
 #102=IFCRELVOIDSELEMENT('1A1Ar$t95BwnAdNVERRW$1',#5,$,$,#100,#101);
 #103=IFCDOOR('4L4Hr$v95BwnAdNVERRW$y',#5,'door_demo',$,'Door',#60,#95,$,2100.00,900.00,.DOOR.,.SINGLE_SWING_RIGHT.,$);
 #104=IFCRELFILLSELEMENT('2B2Br$t95BwnAdNVERRW$2',#5,$,$,#101,#103);
+#105=IFCSLAB('5M5Ir$w95BwnAdNVERRW$z',#5,'slab_demo_ground',$,'Slab',#70,#110,$,.FLOOR.);
 ...
 ENDSEC;
 END-ISO-10303-21;

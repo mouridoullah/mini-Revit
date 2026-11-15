@@ -1880,6 +1880,7 @@ La fonction géométrique pure `computeEffectiveSlabPolygon` dans `@mini-bim/geo
 ### Contexte
 
 La Phase 6.1a a posé le modèle métier immuable des dalles (`Slab`, `SlabType`), les contraintes altimétriques de murs et la migration v1→v2. La Phase 6.1b dote Mini-BIM de son interface visuelle et interactive complète :
+
 1. Panneau latéral d'inspection des propriétés (`PropertyInspector`).
 2. Machine à états d'interaction pour le tracé de planchers (`SlabTool`, raccourci `L`).
 3. Moteur de rendu 2D plan avec poché architectural béton et croix de réservation des trémies (`@mini-bim/view-2d`).
@@ -1890,6 +1891,7 @@ La Phase 6.1a a posé le modèle métier immuable des dalles (`Slab`, `SlabType`
 ### Décisions d'Architecture
 
 #### 1. UX du PropertyInspector : Édition Directe & Debounce Numérique (Point A)
+
 - **Arbitrage :** Les modifications de dropdowns (types constructifs, niveaux, sens d'ouverture) émettent immédiatement une commande transactionnelle (`UpdateXxxCommand`).
 - **Debounce numérique (200 ms) :** Les champs de saisie numérique (hauteur, offset, épaisseur) appliquent un debounce de 200 ms ou déclenchent la commande sur `onBlur`, évitant la saturation de l'historique Undo/Redo par des micro-commandes à chaque frappe de touche.
 - **Bascule Hauteur Mur (Auto / Fixe) :**
@@ -1898,10 +1900,12 @@ La Phase 6.1a a posé le modèle métier immuable des dalles (`Slab`, `SlabType`
   - _Avertissement non-bloquant :_ Si une hauteur fixe entraîne une pénétration dans une dalle supérieure (détectée via `computeWallVerticalBounds`), un badge d'avertissement jaune est affiché sans bloquer la modélisation.
 
 #### 2. État du LevelSelector : Option β Éphémère (Point B)
+
 - **Arbitrage :** L'identifiant du niveau actif (`activeLevelId`) est conservé dans le contexte applicatif React (`AppContext` ou `ActiveLevelContext`), de manière strictement découplée du modèle documentaire `BimState` (parfaitement aligné sur le pattern de sélection UI acté dans l'ADR-025).
 - **Conséquence :** Le niveau actif pilote le filtrage en plan 2D (`Viewport2D`) et la hauteur par défaut des nouveaux éléments créés par les outils (`WallTool`, `SlabTool`), tandis que la vue 3D (`Viewport3D`) continue d'afficher l'intégralité du bâtiment multi-niveaux.
 
 #### 3. Rendu 2D des Dalles et Trémies (`@mini-bim/view-2d`)
+
 - Poché continu gris béton (`#f3f4f6`) sur le contour extérieur `boundary`.
 - Hachures diagonales à 45° en traits fins (`#e5e7eb`).
 - Contour périphérique fin noir (`#374151`, épaisseur 1 px écran).
@@ -1910,6 +1914,7 @@ La Phase 6.1a a posé le modèle métier immuable des dalles (`Slab`, `SlabType`
 - Ordre de profondeur : dalles dessinées en arrière-plan sous les murs, avant les cotations.
 
 #### 4. Rendu 3D des Dalles (`@mini-bim/view-3d`)
+
 - Découpe géométrique préalable par `computeEffectiveSlabPolygon` pour extraire l'enveloppe solide d'un seul tenant et les anneaux intérieurs CW.
 - Triangulation plane par `earcut` pour la face supérieure ($Z_{\text{sup}} = \text{elevation} + \text{baseOffset}$) et la face inférieure ($Z_{\text{inf}} = Z_{\text{sup}} - \text{thickness}$).
 - Flancs verticaux extrudés (2 triangles par segment de contour et par segment de trou).
@@ -1917,6 +1922,7 @@ La Phase 6.1a a posé le modèle métier immuable des dalles (`Slab`, `SlabType`
 - Attachement sémantique des métadonnées `userData: { elementId: slab.id, category: 'slab' }` pour le picking raycast.
 
 #### 5. Export IFC4 (`IfcSlab`)
+
 - Classe IFC4 : `IfcSlab` avec `PredefinedType = .FLOOR.` (9ᵉ attribut ISO 10303-21).
 - Définition de profil : `IfcArbitraryClosedProfileDef` pour dalle pleine, `IfcArbitraryProfileDefWithVoids` pour dalle avec trémies.
 - Rattachement spatial `IfcRelContainedInSpatialStructure` vers le `IfcBuildingStorey` correspondant au `levelId`.

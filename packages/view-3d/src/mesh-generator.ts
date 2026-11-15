@@ -217,7 +217,8 @@ export interface SlabGeometryParams {
   readonly id: string;
   readonly boundary: readonly { readonly x: number; readonly y: number }[];
   readonly holes?: readonly (readonly { readonly x: number; readonly y: number }[])[] | undefined;
-  readonly openings?: readonly (readonly { readonly x: number; readonly y: number }[])[] | undefined;
+  readonly openings?:
+    readonly (readonly { readonly x: number; readonly y: number }[])[] | undefined;
   readonly baseOffset?: number | undefined;
 }
 
@@ -401,8 +402,7 @@ export function createSlabMesh(
 
   const finalPositions =
     vOffset * 3 === positions.length ? positions : positions.subarray(0, vOffset * 3);
-  const finalNormals =
-    vOffset * 3 === normals.length ? normals : normals.subarray(0, vOffset * 3);
+  const finalNormals = vOffset * 3 === normals.length ? normals : normals.subarray(0, vOffset * 3);
   const finalUvs = vOffset * 2 === uvs.length ? uvs : uvs.subarray(0, vOffset * 2);
   const finalIndices = iOffset === indices.length ? indices : indices.subarray(0, iOffset);
 

@@ -5,7 +5,6 @@ import {
   type Window,
   type Room,
   type Level,
-  type Slab,
 } from '../types.js';
 import { detectRooms } from '../rooms/detect.js';
 import { isPointInPolygon, type Vec2 } from '@mini-bim/geometry';
@@ -333,7 +332,7 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
   // Dalles Horizontales (IfcSlab)
   // -------------------------------------------------------------------------
   if (state.slabs && Object.keys(state.slabs).length > 0) {
-    for (const [slabId, slab] of Object.entries(state.slabs)) {
+    for (const slab of Object.values(state.slabs)) {
       if (!slab.boundary || slab.boundary.length < 3) continue;
 
       const slabType = state.slabTypes?.[slab.slabTypeId];
