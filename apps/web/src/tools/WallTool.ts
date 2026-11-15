@@ -1,5 +1,5 @@
 import { Commands, generateId } from '@mini-bim/core';
-import { snapAngle45 } from './snap.js';
+import { snapAngle45, snapPoint, collectSnapCandidates } from './snap.js';
 import {
   type Tool,
   type ToolEvent,
@@ -46,7 +46,10 @@ export class WallTool implements Tool {
         return { kind: 'noop' };
       }
 
-      const startWorld = ctx.transform.screenToWorld(event.screen);
+      const rawStart = ctx.transform.screenToWorld(event.screen);
+      const candidates = collectSnapCandidates(ctx);
+      const snapTol = 12 / ctx.transform.scale;
+      const startWorld = snapPoint(rawStart, candidates, snapTol).point;
       this.state = {
         kind: 'drawing',
         startWorld,
@@ -63,7 +66,10 @@ export class WallTool implements Tool {
       }
 
       const rawWorld = ctx.transform.screenToWorld(event.screen);
-      const currentWorld = event.shift ? snapAngle45(this.state.startWorld, rawWorld) : rawWorld;
+      const candidates = collectSnapCandidates(ctx);
+      const snapTol = 12 / ctx.transform.scale;
+      const snappedWorld = snapPoint(rawWorld, candidates, snapTol).point;
+      const currentWorld = event.shift ? snapAngle45(this.state.startWorld, rawWorld) : snappedWorld;
 
       this.state = {
         kind: 'drawing',
@@ -93,7 +99,10 @@ export class WallTool implements Tool {
       let endWorld = this.state.currentWorld;
       if (event.type === 'pointerup') {
         const rawWorld = ctx.transform.screenToWorld(event.screen);
-        endWorld = event.shift ? snapAngle45(this.state.startWorld, rawWorld) : rawWorld;
+        const candidates = collectSnapCandidates(ctx);
+        const snapTol = 12 / ctx.transform.scale;
+        const snappedWorld = snapPoint(rawWorld, candidates, snapTol).point;
+        endWorld = event.shift ? snapAngle45(this.state.startWorld, rawWorld) : snappedWorld;
       }
 
       const startWorld = this.state.startWorld;

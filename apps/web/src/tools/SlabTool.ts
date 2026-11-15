@@ -1,6 +1,6 @@
 import { Commands, generateId } from '@mini-bim/core';
 import { type Vec2 } from '@mini-bim/view-2d';
-import { snapAngle45, snapToVertices } from './snap.js';
+import { snapAngle45, snapPoint as snapHelper, collectSnapCandidates } from './snap.js';
 import {
   type Tool,
   type ToolEvent,
@@ -185,17 +185,11 @@ export class SlabTool implements Tool {
   private snapPoint(rawWorld: Vec2, shift: boolean, ctx: ToolContext): Vec2 {
     const snapToleranceWorld = 12 / ctx.transform.scale;
 
-    // 1. Collecter tous les sommets de murs existants sur le niveau actif
-    const wallVertices: Vec2[] = [];
-    const docState = ctx.doc.getState();
-    for (const wall of Object.values(docState.walls)) {
-      if (wall.levelId === ctx.activeLevelId) {
-        wallVertices.push(wall.start, wall.end);
-      }
-    }
+    // 1. Collecter les sommets candidats (niveau actif et underlay N-1)
+    const candidates = collectSnapCandidates(ctx);
 
-    // 2. Aimantation aux sommets de murs
-    let pt = snapToVertices(rawWorld, wallVertices, snapToleranceWorld);
+    // 2. Aimantation aux sommets
+    let pt = snapHelper(rawWorld, candidates, snapToleranceWorld).point;
 
     // 3. Aimantation angulaire si Shift est activé et qu'on a déjà un point d'ancrage
     if (shift && this.state.kind === 'drawing' && this.state.points.length > 0) {

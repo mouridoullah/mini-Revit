@@ -13,6 +13,8 @@ export interface Viewport2DProps {
   readonly onDrawingLengthChange?: (length: number | null) => void;
   readonly onErrorChange?: (error: string | null) => void;
   readonly activeLevelId?: string;
+  readonly underlayLevelId?: string | null;
+  readonly snapToUnderlay?: boolean;
 }
 
 /**
@@ -27,6 +29,8 @@ export function Viewport2D({
   onDrawingLengthChange,
   onErrorChange,
   activeLevelId: activeLevelIdProp,
+  underlayLevelId: underlayLevelIdProp,
+  snapToUnderlay: snapToUnderlayProp = true,
 }: Viewport2DProps = {}) {
   const { doc, state } = useBimDocument();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -87,6 +91,13 @@ export function Viewport2D({
       viewRef.current.setActiveLevelId(activeLevelIdProp ?? null);
     }
   }, [activeLevelIdProp]);
+
+  // Synchronisation underlayLevelId
+  useEffect(() => {
+    if (viewRef.current) {
+      viewRef.current.setUnderlayLevelId(underlayLevelIdProp ?? null);
+    }
+  }, [underlayLevelIdProp]);
 
   // Mise à jour sur notification d'état documentaire et rafraîchissement des pièces et dalles
   useEffect(() => {
@@ -162,6 +173,8 @@ export function Viewport2D({
         activeLevelId: currentLevelId,
         activeWallTypeId,
         activeSlabTypeId,
+        underlayLevelId: underlayLevelIdProp ?? null,
+        snapToUnderlay: snapToUnderlayProp,
       };
 
       const output = tool.handle(toolEvent, ctx);
@@ -245,6 +258,8 @@ export function Viewport2D({
         activeLevelId: currentLevelId,
         activeWallTypeId,
         activeSlabTypeId,
+        underlayLevelId: underlayLevelIdProp ?? null,
+        snapToUnderlay: snapToUnderlayProp,
       };
 
       const toolEvent: ToolEvent = {

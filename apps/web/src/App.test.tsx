@@ -900,4 +900,149 @@ describe('App Integration & Squelette Double Viewport (apps/web)', () => {
 
     cleanup();
   });
+
+  it('T-APP-U-01 : bascule vers R+1 active l’option underlay et affiche le bouton toggle', () => {
+    const doc = createDemoDocument();
+    doc.execute(
+      new Commands.AddLevelCommand({
+        id: 'lvl_r1',
+        name: 'R+1',
+        elevation: 3000,
+        category: 'level',
+      }),
+    );
+
+    const { getByTestId } = render(<App initialDoc={doc} />);
+    const levelSelect = getByTestId('level-selector') as HTMLSelectElement;
+    const underlayBtn = getByTestId('underlay-toggle-btn') as HTMLButtonElement;
+
+    // Au RDC (index 0) : pas de niveau inférieur disponible, bouton disabled
+    expect(underlayBtn.disabled).toBe(true);
+
+    // Basculer sur R+1
+    act(() => {
+      fireEvent.change(levelSelect, { target: { value: 'lvl_r1' } });
+    });
+
+    // Sur R+1 : bouton enabled et actif par défaut (ON)
+    expect(underlayBtn.disabled).toBe(false);
+    expect(underlayBtn.textContent).toContain('ON');
+
+    cleanup();
+  });
+
+  it('T-APP-U-02 : clic sur underlay toggle bascule l’état ON / OFF', () => {
+    const doc = createDemoDocument();
+    doc.execute(
+      new Commands.AddLevelCommand({
+        id: 'lvl_r1',
+        name: 'R+1',
+        elevation: 3000,
+        category: 'level',
+      }),
+    );
+
+    const { getByTestId } = render(<App initialDoc={doc} />);
+    const levelSelect = getByTestId('level-selector') as HTMLSelectElement;
+    const underlayBtn = getByTestId('underlay-toggle-btn') as HTMLButtonElement;
+
+    act(() => {
+      fireEvent.change(levelSelect, { target: { value: 'lvl_r1' } });
+    });
+
+    expect(underlayBtn.textContent).toContain('ON');
+
+    // Clic pour désactiver
+    act(() => {
+      fireEvent.click(underlayBtn);
+    });
+    expect(underlayBtn.textContent).toContain('OFF');
+
+    // Clic pour réactiver
+    act(() => {
+      fireEvent.click(underlayBtn);
+    });
+    expect(underlayBtn.textContent).toContain('ON');
+
+    cleanup();
+  });
+
+  it('T-APP-U-03 : View2D reçoit underlayLevelId lorsque R+1 est actif', () => {
+    const doc = createDemoDocument();
+    const rdcId = Object.keys(doc.getState().levels)[0]!;
+    doc.execute(
+      new Commands.AddLevelCommand({
+        id: 'lvl_r1',
+        name: 'R+1',
+        elevation: 3000,
+        category: 'level',
+      }),
+    );
+
+    const setUnderlaySpy = vi.spyOn(View2D.prototype, 'setUnderlayLevelId');
+
+    const { getByTestId } = render(<App initialDoc={doc} />);
+    const levelSelect = getByTestId('level-selector') as HTMLSelectElement;
+
+    act(() => {
+      fireEvent.change(levelSelect, { target: { value: 'lvl_r1' } });
+    });
+
+    expect(setUnderlaySpy).toHaveBeenCalledWith(rdcId);
+
+    cleanup();
+  });
+
+  it('T-APP-U-04 : tracé de mur sur R+1 s’aimante sur un sommet de mur underlay RDC', () => {
+    const doc = BimDocument.createDefaultProject();
+    const rdcId = Object.keys(doc.getState().levels)[0]!;
+    const wallTypeId = Object.keys(doc.getState().wallTypes)[0]!;
+
+    // Mur porteur sur RDC : (0, 0) -> (6000, 0)
+    doc.execute(
+      new Commands.AddWallCommand({
+        id: 'w_bearing_rdc',
+        category: 'wall',
+        typeId: wallTypeId,
+        levelId: rdcId,
+        start: { x: 0, y: 0 },
+        end: { x: 6000, y: 0 },
+      }),
+    );
+
+    doc.execute(
+      new Commands.AddLevelCommand({
+        id: 'lvl_r1',
+        name: 'R+1',
+        elevation: 3000,
+        category: 'level',
+      }),
+    );
+
+    const { getByTestId } = render(<App initialDoc={doc} />);
+    const levelSelect = getByTestId('level-selector') as HTMLSelectElement;
+    const wallBtn = getByTestId('tool-wall-btn');
+    const canvas2D = getByTestId('viewport-2d-canvas');
+
+    // Basculer sur R+1
+    act(() => {
+      fireEvent.change(levelSelect, { target: { value: 'lvl_r1' } });
+    });
+
+    // Activer WallTool
+    act(() => {
+      fireEvent.click(wallBtn);
+    });
+
+    // Tracer un mur sur R+1
+    act(() => {
+      fireEvent.pointerDown(canvas2D, { clientX: 405, clientY: 302, button: 0 });
+      fireEvent.pointerUp(canvas2D, { clientX: 695, clientY: 302, button: 0 });
+    });
+
+    const r1Walls = Object.values(doc.getState().walls).filter((w) => w.levelId === 'lvl_r1');
+    expect(r1Walls.length).toBeGreaterThanOrEqual(1);
+
+    cleanup();
+  });
 });

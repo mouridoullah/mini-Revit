@@ -18,6 +18,7 @@ import {
   type SlabFor2D,
   type SlabTypeFor2D,
   type SlabRenderConfig,
+  type UnderlayRenderConfig,
 } from './types.js';
 
 /**
@@ -83,6 +84,12 @@ export const DEFAULT_SLAB_RENDER_CONFIG: SlabRenderConfig = Object.freeze({
   selectedStrokeWidth: 2,
 });
 
+export const DEFAULT_UNDERLAY_RENDER_CONFIG: UnderlayRenderConfig = Object.freeze({
+  strokeColor: '#9ca3af',
+  lineDash: [4, 4],
+  opacity: 0.5,
+});
+
 /**
  * Configuration globale par défaut du rendu 2D.
  */
@@ -92,6 +99,7 @@ export const DEFAULT_VIEW2D_RENDER_CONFIG: View2DRenderConfig = Object.freeze({
   grid: DEFAULT_GRID_CONFIG,
   wall: DEFAULT_WALL_RENDER_CONFIG,
   slab: DEFAULT_SLAB_RENDER_CONFIG,
+  underlay: DEFAULT_UNDERLAY_RENDER_CONFIG,
   room: DEFAULT_ROOM_RENDER_CONFIG,
   dimension: DEFAULT_DIMENSION_RENDER_CONFIG,
 });
@@ -1017,6 +1025,42 @@ export function drawSlabs(
 }
 
 /**
+ * Dessine la vue fantôme (Underlay) du niveau inférieur via son tracé vectoriel Path2D en coordonnées monde.
+ */
+export function drawUnderlay(
+  ctx: CanvasRenderingContext2D,
+  transform: Transform2D,
+  underlayPath: Path2D,
+  config: UnderlayRenderConfig = DEFAULT_UNDERLAY_RENDER_CONFIG,
+): void {
+  ctx.save();
+
+  const cx = transform.viewportWidth / 2;
+  const cy = transform.viewportHeight / 2;
+  const scale = transform.scale;
+
+  // Appliquer la transformation monde -> écran au contexte Canvas
+  ctx.setTransform(
+    scale,
+    0,
+    0,
+    -scale,
+    cx - transform.origin.x * scale,
+    cy + transform.origin.y * scale,
+  );
+
+  ctx.strokeStyle = config.strokeColor;
+  ctx.lineWidth = 1 / scale;
+  const scaledDash = config.lineDash.map((d) => d / scale);
+  ctx.setLineDash(scaledDash);
+  ctx.globalAlpha = config.opacity;
+
+  ctx.stroke(underlayPath);
+
+  ctx.restore();
+}
+
+/**
  * Fonction pure orchestrant le cycle de rendu complet d'une vue en plan 2D.
  */
 export function renderPlanView(
@@ -1031,6 +1075,7 @@ export function renderPlanView(
   rooms?: readonly DetectedRoomFor2D[],
   dimensions?: readonly DimensionFor2D[],
   slabs?: readonly SlabFor2D[],
+  underlayPath?: Path2D | null,
 ): void {
   const mergedConfig: View2DRenderConfig = {
     backgroundColor: config.backgroundColor ?? DEFAULT_VIEW2D_RENDER_CONFIG.backgroundColor,
@@ -1038,6 +1083,7 @@ export function renderPlanView(
     grid: { ...DEFAULT_GRID_CONFIG, ...config.grid },
     wall: { ...DEFAULT_WALL_RENDER_CONFIG, ...config.wall },
     slab: { ...DEFAULT_SLAB_RENDER_CONFIG, ...config.slab },
+    underlay: { ...DEFAULT_UNDERLAY_RENDER_CONFIG, ...config.underlay },
     room: { ...DEFAULT_ROOM_RENDER_CONFIG, ...config.room },
     dimension: { ...DEFAULT_DIMENSION_RENDER_CONFIG, ...config.dimension },
   };
@@ -1047,6 +1093,11 @@ export function renderPlanView(
 
   // 2. Grille de repérage et axes
   drawGrid(ctx, transform, mergedConfig.grid, mergedConfig.showAxes);
+
+  // 2b. Vue fantôme (Underlay) du niveau inférieur
+  if (underlayPath) {
+    drawUnderlay(ctx, transform, underlayPath, mergedConfig.underlay);
+  }
 
   // 3. Dalles horizontales (poché béton, hachures et trémies)
   const state = doc.getState();

@@ -2,6 +2,7 @@ import { type Vec2, vec2, distance } from '@mini-bim/geometry';
 import { Transform2D } from './transform.js';
 import { renderPlanView, DEFAULT_VIEW2D_RENDER_CONFIG } from './renderer.js';
 import { findWallAtScreen } from './hit-test.js';
+import { UnderlayCache, type UnderlayInput } from './underlay/UnderlayCache.js';
 import {
   type View2DOptions,
   type View2DRenderConfig,
@@ -40,6 +41,8 @@ export class View2D {
   private slabs: SlabFor2D[] = [];
   private selectedIds: Set<string> = new Set();
   private activeLevelId: string | null = null;
+  private underlayLevelId: string | null = null;
+  private readonly underlayCache: UnderlayCache = new UnderlayCache();
   private preview: PreviewShape | null = null;
   private readonly enableInternalSelection: boolean;
 
@@ -83,6 +86,7 @@ export class View2D {
     };
 
     this.activeLevelId = options?.activeLevelId ?? null;
+    this.underlayLevelId = options?.underlayLevelId ?? null;
     this.enableInternalSelection = options?.enableInternalSelection ?? true;
 
     this.attachEventListeners();
@@ -211,6 +215,23 @@ export class View2D {
     this.render();
   }
 
+  public getUnderlayLevelId(): string | null {
+    return this.underlayLevelId;
+  }
+
+  public setUnderlayLevelId(levelId: string | null): void {
+    this.underlayLevelId = levelId;
+    this.render();
+  }
+
+  public getUnderlayCache(): UnderlayCache {
+    return this.underlayCache;
+  }
+
+  public invalidateUnderlayCache(changedIds?: readonly string[]): void {
+    this.underlayCache.invalidate(changedIds);
+  }
+
   // ---------------------------------------------------------------------------
   // Rendu à la demande (Demand-Driven Rendering)
   // ---------------------------------------------------------------------------
@@ -232,6 +253,59 @@ export class View2D {
     const effectiveDimensions = this.dimensions.length > 0 ? this.dimensions : undefined;
     const effectiveSlabs = this.slabs.length > 0 ? this.slabs : undefined;
 
+    let underlayPath: Path2D | null = null;
+    if (this.underlayLevelId) {
+      const state = effectiveDoc.getState();
+      const underlayWalls = Object.values(state.walls ?? {})
+        .filter((w) => w.levelId === this.underlayLevelId)
+        .map((w) => ({
+          id: w.id,
+          start: w.start,
+          end: w.end,
+          thickness: (w.typeId ? state.wallTypes?.[w.typeId]?.thickness : undefined) ?? 200,
+        }));
+
+      const underlayDoors = Object.values(state.doors ?? {})
+        .filter((d) => {
+          const host = state.walls?.[d.hostWallId];
+          return host && host.levelId === this.underlayLevelId;
+        })
+        .map((d) => {
+          const dt = d.doorTypeId ? state.doorTypes?.[d.doorTypeId] : undefined;
+          return {
+            id: d.id,
+            hostWallId: d.hostWallId,
+            offsetAlong: d.offsetAlong,
+            width: dt?.width ?? 900,
+            swing: d.swing,
+          };
+        });
+
+      const underlayWindows = Object.values(state.windows ?? {})
+        .filter((w) => {
+          const host = state.walls?.[w.hostWallId];
+          return host && host.levelId === this.underlayLevelId;
+        })
+        .map((w) => {
+          const wt = w.windowTypeId ? state.windowTypes?.[w.windowTypeId] : undefined;
+          return {
+            id: w.id,
+            hostWallId: w.hostWallId,
+            offsetAlong: w.offsetAlong,
+            width: wt?.width ?? 1200,
+          };
+        });
+
+      const underlayInput: UnderlayInput = {
+        levelId: this.underlayLevelId,
+        walls: underlayWalls,
+        doors: underlayDoors,
+        windows: underlayWindows,
+      };
+
+      underlayPath = this.underlayCache.getOrCompile(underlayInput);
+    }
+
     renderPlanView(
       this.ctx,
       this.transform,
@@ -244,6 +318,7 @@ export class View2D {
       effectiveRooms,
       effectiveDimensions,
       effectiveSlabs,
+      underlayPath,
     );
   }
 

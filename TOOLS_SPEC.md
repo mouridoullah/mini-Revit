@@ -316,3 +316,13 @@ Cette convention assure une zone d'attraction ergonomique constante sous le poin
 > Les tests d'intégration d'`apps/web` nécessitant la `Transform2D` réelle (notamment le test de crédibilité du BIM et les tests d'aimantation fine de `DoorTool`) capturent l'instance de `View2D` via un spy sur sa méthode prototype : `vi.spyOn(View2D.prototype, 'setDocument')`.  
 > Ce pattern fonctionne parce que le composant React `<Viewport2D />` appelle systématiquement `view.setDocument(doc)` dans son hook `useEffect` lors du chargement initial.  
 > **Contrat de maintenance :** Si l'implémentation de `<Viewport2D />` venait à injecter le document directement à la construction (`new View2D(canvas, { doc })`) sans appel explicite à `setDocument`, ce spy ne capturerait plus l'instance (`capturedView2D` resterait `null`). Dans ce cas, les tests d'intégration devront adapter leur mécanisme de capture (par exemple en espionnant le constructeur ou en exposant un hook de diagnostic).
+
+### 7.6 Aimantation Inter-Niveaux (Snapping Underlay N-1 — Phase 6.2)
+
+- **Objectif :** Aligner facilement les murs, cloisons et dalles de l'étage actif (N) sur les porteurs du niveau inférieur (N-1).
+- **Tolérance écran constante :**
+  $$\text{tolerance}_{\text{world}} = \frac{12\text{ px}}{\text{scale}}$$
+  La tolérance physique en millimètres s'adapte rigoureusement et dynamiquement au niveau de zoom (ex: 240 mm à échelle 0.05, 120 mm à échelle 0.1), garantissant une sensibilité ergonomique invariable sous le pointeur.
+- **Débrayable :** Contrôlé par `snapToUnderlay: boolean` (activé par défaut lorsque l'underlay est actif).
+- **Règle d'arbitrage à équidistance :** En cas d'ambiguïté spatiale (curseur équidistant d'un sommet du niveau actif et d'un sommet de l'underlay), le sommet du niveau actif est systématiquement prioritaire.
+- **Outils compatibles :** `WallTool` (points start et end), `SlabTool` (sommets du contour périphérique).

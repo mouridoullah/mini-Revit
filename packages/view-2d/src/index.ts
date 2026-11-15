@@ -13,6 +13,7 @@ export {
   DEFAULT_ROOM_RENDER_CONFIG,
   DEFAULT_DIMENSION_RENDER_CONFIG,
   DEFAULT_SLAB_RENDER_CONFIG,
+  DEFAULT_UNDERLAY_RENDER_CONFIG,
   DEFAULT_VIEW2D_RENDER_CONFIG,
   clearCanvas,
   drawGrid,
@@ -20,6 +21,7 @@ export {
   drawWalls,
   drawSlab,
   drawSlabs,
+  drawUnderlay,
   drawRooms,
   drawDimensions,
   drawOpeningDoor,
@@ -27,6 +29,13 @@ export {
   drawOpenings,
   renderPlanView,
 } from './renderer.js';
+export {
+  UnderlayCache,
+  type UnderlayInput,
+  type WallForUnderlay,
+  type DoorForUnderlay,
+  type WindowForUnderlay,
+} from './underlay/UnderlayCache.js';
 export { View2D } from './View2D.js';
 export { generatePlanSvg, type PlanSvgOptions } from './svg-exporter.js';
 export {

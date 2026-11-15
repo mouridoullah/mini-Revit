@@ -1,4 +1,5 @@
 import { type Vec2 } from '@mini-bim/view-2d';
+import { type ToolContext } from './types.js';
 
 /**
  * Constante 1 / √2 (soit √2 / 2) en précision flottante 64 bits IEEE-754 (~1.11e-16).
@@ -107,4 +108,86 @@ export function snapToVertices(point: Vec2, vertices: readonly Vec2[], maxDistan
   }
 
   return closest ?? point;
+}
+
+/**
+ * Résultat d'un alignement géométrique sur un sommet cible.
+ */
+export interface SnapResult {
+  readonly point: Vec2;
+  readonly snapped: boolean;
+  readonly candidate?: Vec2 | undefined;
+  readonly isUnderlay?: boolean | undefined;
+}
+
+/**
+ * Aligne un point monde sur le candidat le plus proche si la distance est <= maxDistance.
+ * Priorité d'arbitrage : à distance égale, un sommet du niveau actif l'emporte sur l'underlay.
+ */
+export function snapPoint(
+  rawWorld: Vec2,
+  candidates: readonly { readonly point: Vec2; readonly isUnderlay?: boolean }[],
+  maxDistance: number,
+): SnapResult {
+  let closest: { readonly point: Vec2; readonly isUnderlay?: boolean } | null = null;
+  let minDistSq = maxDistance * maxDistance;
+
+  for (const c of candidates) {
+    const dx = c.point.x - rawWorld.x;
+    const dy = c.point.y - rawWorld.y;
+    const distSq = dx * dx + dy * dy;
+    if (distSq < minDistSq || (distSq === minDistSq && !c.isUnderlay && closest?.isUnderlay)) {
+      minDistSq = distSq;
+      closest = c;
+    }
+  }
+
+  if (closest) {
+    return {
+      point: { x: closest.point.x, y: closest.point.y },
+      snapped: true,
+      ...(closest.point ? { candidate: closest.point } : {}),
+      ...(closest.isUnderlay !== undefined ? { isUnderlay: closest.isUnderlay } : {}),
+    };
+  }
+
+  return { point: rawWorld, snapped: false };
+}
+
+/**
+ * Rassemble les sommets candidats au snapping à partir du contexte :
+ * - Sommets des murs du niveau actif
+ * - Optionnellement sommets des murs du niveau underlay (N-1) si actif et non débrayé
+ */
+export function collectSnapCandidates(
+  ctx: ToolContext,
+  includeActiveLevel: boolean = true,
+): readonly { readonly point: Vec2; readonly isUnderlay: boolean }[] {
+  const state = ctx.doc.getState();
+  const candidates: Array<{ point: Vec2; isUnderlay: boolean }> = [];
+
+  if (includeActiveLevel) {
+    const activeWalls = Object.values(state.walls ?? {}).filter(
+      (w) => !ctx.activeLevelId || w.levelId === ctx.activeLevelId,
+    );
+    for (const w of activeWalls) {
+      candidates.push({ point: w.start, isUnderlay: false });
+      candidates.push({ point: w.end, isUnderlay: false });
+    }
+  }
+
+  const shouldSnapUnderlay =
+    ctx.snapToUnderlay !== false && ctx.underlayLevelId && ctx.underlayLevelId !== ctx.activeLevelId;
+
+  if (shouldSnapUnderlay) {
+    const underlayWalls = Object.values(state.walls ?? {}).filter(
+      (w) => w.levelId === ctx.underlayLevelId,
+    );
+    for (const w of underlayWalls) {
+      candidates.push({ point: w.start, isUnderlay: true });
+      candidates.push({ point: w.end, isUnderlay: true });
+    }
+  }
+
+  return candidates;
 }

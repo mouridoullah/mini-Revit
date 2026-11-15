@@ -17,6 +17,10 @@ export interface ToolbarProps {
   readonly levels?: readonly Level[];
   readonly activeLevelId?: string;
   readonly onSelectLevel?: (levelId: string) => void;
+  readonly onAddLevel?: () => void;
+  readonly underlayEnabled?: boolean;
+  readonly onToggleUnderlay?: (enabled: boolean) => void;
+  readonly hasUnderlayLevel?: boolean;
 }
 
 /**
@@ -38,6 +42,10 @@ export function Toolbar({
   levels,
   activeLevelId,
   onSelectLevel,
+  onAddLevel,
+  underlayEnabled = true,
+  onToggleUnderlay,
+  hasUnderlayLevel = false,
 }: ToolbarProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [planScale, setPlanScale] = useState<50 | 100 | 200>(100);
@@ -246,7 +254,7 @@ export function Toolbar({
           </button>
         </div>
 
-        {/* Sélecteur d'étage actif (ADR-046 / Phase 6.1b) */}
+        {/* Sélecteur d'étage actif et vue fantôme Underlay (ADR-046 / Phase 6.2) */}
         {levels && activeLevelId && onSelectLevel && (
           <>
             <div style={{ width: '1px', height: '24px', backgroundColor: '#4b5563' }} />
@@ -255,6 +263,78 @@ export function Toolbar({
               activeLevelId={activeLevelId}
               onSelectLevel={onSelectLevel}
             />
+            {onAddLevel && (
+              <button
+                type="button"
+                data-testid="add-level-btn"
+                onClick={onAddLevel}
+                title="Ajouter un étage supérieur (R+1, R+2...)"
+                style={{
+                  padding: '4px 8px',
+                  fontSize: '12px',
+                  borderRadius: '4px',
+                  backgroundColor: '#374151',
+                  color: '#e5e7eb',
+                  border: '1px solid #4b5563',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease-in-out',
+                }}
+              >
+                + Étage
+              </button>
+            )}
+            {onToggleUnderlay && (
+              <button
+                type="button"
+                data-testid="underlay-toggle-btn"
+                onClick={() => onToggleUnderlay(!underlayEnabled)}
+                disabled={!hasUnderlayLevel}
+                title={
+                  hasUnderlayLevel
+                    ? 'Afficher la vue fantôme du niveau inférieur (N-1)'
+                    : 'Aucun niveau inférieur disponible pour l’étage actif'
+                }
+                style={{
+                  padding: '6px 10px',
+                  fontSize: '12px',
+                  fontWeight: underlayEnabled && hasUnderlayLevel ? 600 : 400,
+                  borderRadius: '4px',
+                  backgroundColor:
+                    underlayEnabled && hasUnderlayLevel ? '#374151' : '#1f2937',
+                  color: !hasUnderlayLevel
+                    ? '#6b7280'
+                    : underlayEnabled
+                      ? '#60a5fa'
+                      : '#9ca3af',
+                  border:
+                    underlayEnabled && hasUnderlayLevel
+                      ? '1px solid #3b82f6'
+                      : '1px solid #4b5563',
+                  cursor: hasUnderlayLevel ? 'pointer' : 'not-allowed',
+                  opacity: hasUnderlayLevel ? 1 : 0.5,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  transition: 'all 0.15s ease-in-out',
+                }}
+              >
+                <span>👻</span>
+                <span>Underlay (N-1)</span>
+                <span
+                  style={{
+                    fontSize: '10px',
+                    padding: '1px 4px',
+                    borderRadius: '2px',
+                    backgroundColor:
+                      underlayEnabled && hasUnderlayLevel ? '#1e3a8a' : '#374151',
+                    color:
+                      underlayEnabled && hasUnderlayLevel ? '#93c5fd' : '#9ca3af',
+                  }}
+                >
+                  {underlayEnabled && hasUnderlayLevel ? 'ON' : 'OFF'}
+                </span>
+              </button>
+            )}
           </>
         )}
 

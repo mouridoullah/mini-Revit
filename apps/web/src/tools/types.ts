@@ -166,6 +166,8 @@ export interface ToolContext {
   readonly activeLevelId: string;
   readonly activeWallTypeId?: string;
   readonly activeSlabTypeId?: string;
+  readonly underlayLevelId?: string | null;
+  readonly snapToUnderlay?: boolean;
   readonly doorDefaults?: DoorDefaults;
   readonly windowDefaults?: WindowDefaults;
 }

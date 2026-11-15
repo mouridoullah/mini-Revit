@@ -9,7 +9,7 @@ import { Viewport2D } from './components/Viewport2D.js';
 import { Viewport3D } from './components/Viewport3D.js';
 import { useActiveTool } from './tools/useActiveTool.js';
 import { exportToFile, importFromFile } from './persistence/jsonIO.js';
-import { type BimDocument, exportToIfc, detectRooms } from '@mini-bim/core';
+import { type BimDocument, exportToIfc, detectRooms, Commands, generateId } from '@mini-bim/core';
 import { generatePlanSvg } from '@mini-bim/view-2d';
 
 export interface AppProps {
@@ -29,7 +29,16 @@ function AppContent() {
   const [activeLevelId, setActiveLevelId] = useState<string>(
     () => Object.keys(doc.getState().levels)[0] ?? '',
   );
+  const [underlayEnabled, setUnderlayEnabled] = useState(true);
   const [isInspectorCollapsed, setIsInspectorCollapsed] = useState(false);
+
+  const sortedLevels = Object.values(doc.getState().levels).sort(
+    (a, b) => a.elevation - b.elevation,
+  );
+  const activeLevelIndex = sortedLevels.findIndex((l) => l.id === activeLevelId);
+  const hasUnderlayLevel = activeLevelIndex > 0;
+  const underlayLevelId =
+    underlayEnabled && hasUnderlayLevel ? sortedLevels[activeLevelIndex - 1]?.id ?? null : null;
 
   // Synchroniser activeLevelId si le document change (ex: import JSON)
   useEffect(() => {
@@ -151,6 +160,22 @@ function AppContent() {
     [doc],
   );
 
+  const handleAddLevel = useCallback(() => {
+    const sorted = Object.values(doc.getState().levels).sort((a, b) => a.elevation - b.elevation);
+    const topLevel = sorted[sorted.length - 1];
+    const newElevation = topLevel ? topLevel.elevation + (topLevel.height ?? 2800) : 3000;
+    const newLevelId = generateId();
+    doc.execute(
+      new Commands.AddLevelCommand({
+        id: newLevelId,
+        name: `Étage ${sorted.length} (R+${sorted.length})`,
+        elevation: newElevation,
+        height: 2800,
+      }),
+    );
+    setActiveLevelId(newLevelId);
+  }, [doc]);
+
   const handleLoadFile = useCallback(
     async (file: File) => {
       try {
@@ -196,6 +221,10 @@ function AppContent() {
         levels={Object.values(doc.getState().levels)}
         activeLevelId={activeLevelId}
         onSelectLevel={setActiveLevelId}
+        onAddLevel={handleAddLevel}
+        underlayEnabled={underlayEnabled}
+        onToggleUnderlay={setUnderlayEnabled}
+        hasUnderlayLevel={hasUnderlayLevel}
       />
 
       {/* Bannière de notification d'erreur (ex. import corrompu) */}
@@ -269,6 +298,8 @@ function AppContent() {
               onDrawingLengthChange={setDrawingLength}
               onErrorChange={setErrorMessage}
               activeLevelId={activeLevelId}
+              underlayLevelId={underlayLevelId}
+              snapToUnderlay={underlayEnabled}
             />
           </section>
 

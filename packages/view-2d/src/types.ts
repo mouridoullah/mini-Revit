@@ -288,6 +288,12 @@ export interface SlabRenderConfig {
   readonly selectedStrokeWidth: number;
 }
 
+export interface UnderlayRenderConfig {
+  readonly strokeColor: string;
+  readonly lineDash: readonly number[];
+  readonly opacity: number;
+}
+
 /**
  * Configuration globale du moteur de rendu 2D.
  */
@@ -302,6 +308,8 @@ export interface View2DRenderConfig {
   readonly wall: WallRenderConfig;
   /** Configuration de rendu des dalles */
   readonly slab?: SlabRenderConfig;
+  /** Configuration de rendu de la vue fantôme */
+  readonly underlay?: UnderlayRenderConfig;
   /** Configuration de rendu des pièces */
   readonly room?: RoomRenderConfig;
   /** Configuration de rendu des cotations */
@@ -318,6 +326,8 @@ export interface View2DOptions {
   readonly renderConfig?: Partial<View2DRenderConfig>;
   /** Filtre d'affichage restreint à un niveau spécifique (ID de Level) */
   readonly activeLevelId?: string | null;
+  /** Niveau affiché en vue fantôme underlay (ex: N-1) */
+  readonly underlayLevelId?: string | null;
   /**
    * Active la gestion native interne des clics de sélection sur le canvas.
    * Défaut : true. Passer false lorsque les interactions sont déléguées à un Tool externe.

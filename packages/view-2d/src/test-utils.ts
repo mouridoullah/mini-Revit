@@ -46,6 +46,7 @@ export function createMockCanvas(
     fillStyle: '#000000',
     strokeStyle: '#000000',
     lineWidth: 1,
+    globalAlpha: 1.0,
     lineJoin: 'miter' as CanvasLineJoin,
     font: '10px sans-serif',
     textAlign: 'start' as CanvasTextAlign,
@@ -90,8 +91,21 @@ export function createMockCanvas(
       record('lineTo', [x, y]);
     }),
 
-    stroke: vi.fn(() => {
-      record('stroke', []);
+    setTransform: vi.fn(
+      (
+        a?: number | DOMMatrix2DInit,
+        b?: number,
+        c?: number,
+        d?: number,
+        e?: number,
+        f?: number,
+      ) => {
+        record('setTransform', [a, b, c, d, e, f]);
+      },
+    ),
+
+    stroke: vi.fn((path?: Path2D) => {
+      record('stroke', path ? [path] : []);
     }),
 
     fill: vi.fn((fillRule?: CanvasFillRule) => {

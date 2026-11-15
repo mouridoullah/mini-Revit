@@ -315,10 +315,33 @@ export function drawSlabs(
 
 ## 10. Couverture de Tests Automatisés
 
-Le package est validé à 100% en environnement headless Vitest / JSDOM (58 tests unitaires et d'intégration) :
+Le package est validé à 100% en environnement headless Vitest / JSDOM (75 tests unitaires et d'intégration) :
 - `transform.test.ts` (12 tests) : inversion mathématique $\Delta < 10^{-9}$, Y-up $\to$ Y-down, bijection sur cas asymétriques (+Y, -Y, +X/+Y, -X/-Y), zoom centré invariant, zoomToFit, pan, limites d'échelle.
-- `hit-test.test.ts` (3 tests) : test de footprint polygonale, hitTestWall, findWallAtScreen avec filtre de niveau.
-- `renderer.test.ts` (12 tests) : clearCanvas, grille adaptative avec seuil anti-saturation, axes, poché, contour, axe pointillé, surbrillance de sélection, filtre de niveau, évidement et arc 90° pour portes, évidement et vitrage double pour fenêtres, extraction automatique des ouvertures du document, non-déclenchement sur mur plein.
+- `hit-test.test.ts` (4 tests) : test de footprint polygonale, hitTestWall, findWallAtScreen avec filtre de niveau, findOpeningAtScreen.
+- `renderer.test.ts` (17 tests) : clearCanvas, grille adaptative avec seuil anti-saturation, axes, poché, contour, axe pointillé, surbrillance de sélection, filtre de niveau, évidement et arc 90° pour portes, évidement et vitrage double pour fenêtres, extraction automatique des ouvertures du document, non-déclenchement sur mur plein.
 - `slabs-2d.test.ts` (5 tests) : poché béton, hachures 45°, découpe des trémies avec règle evenodd, croix de réservation normalisée, filtrage par niveau actif.
-- `View2D.test.ts` (14 tests) : initialisation, rendu à la demande, hit-testing, sélection interactive (mode autonome), désactivation de la sélection interne (`enableInternalSelection: false`), prévisualisation temporaire (`setPreview` / `getPreview`), règle d'or d'émission de commande sans mutation de document, immutabilité stricte du document au clic (`doc.toJSON()` invariant), molette, pan, zoomToFit, resize, dispose, déconnexion du ResizeObserver.
-$$
+- `underlay/UnderlayCache.test.ts` (12 tests) : compilation 1 mur, 2 murs, portes avec battant/arc, fenêtres avec ébrasements, niveau vide, hit-cache consécutif, invalidation ciblée par ID de mur ou baie, préservation sur ID externe, purge totale, tolérance segments dégénérés.
+- `underlay-view2d.test.ts` (5 tests) : intégration View2D + renderer, tracé normalisé (#9ca3af, tireté 4px, opacité 0.5, lineWidth 1/scale), accesseurs get/setUnderlayLevelId, hit-cache sur pan/zoom, recompilation automatique sur mutation de mur.
+- `View2D.test.ts` (16 tests) : initialisation, rendu à la demande, hit-testing, sélection interactive (mode autonome), désactivation de la sélection interne (`enableInternalSelection: false`), prévisualisation temporaire (`setPreview` / `getPreview`), règle d'or d'émission de commande sans mutation de document, immutabilité stricte du document au clic (`doc.toJSON()` invariant), molette, pan, zoomToFit, resize, dispose, déconnexion du ResizeObserver.
+- `svg-exporter.test.ts` (4 tests) : export SVG vectoriel multi-échelles.
+
+---
+
+## 11. Vue Fantôme (Underlay) Vectorielle & Cache Path2D (Phase 6.2 / ADR-047)
+
+### 11.1 Principes Architecturaux
+1. **Module pur dédié (`UnderlayCache`)** :
+   - Totalement découplé de View2D, React et du DOM.
+   - Compile l'empreinte vectorielle des murs et des baies hébergées du niveau N-1 en un `Path2D` composé unique en coordonnées monde architecturales (mm).
+   - Invalidation ciblée basée sur les identifiants modifiés (`changedIds`) : aucune recompilation inutile lors d'un pan ou zoom (seule la matrice Canvas change).
+2. **Contenu normalisé (ADR-047 Décision D2 = Option α)** :
+   - Murs porteurs et cloisons sous-jacents (empreinte polygonale rectangulaire).
+   - Portes avec trait de battant à 90° et arc de débattement.
+   - Fenêtres avec montants d'ébrasement et traits d'allège/vitrage.
+   - Exclut délibérément les dalles, pièces et cotations pour une lisibilité optimale.
+3. **Représentation graphique (ADR-047)** :
+   - Trait fantôme gris neutre : `strokeStyle = '#9ca3af'`.
+   - Épaisseur écran constante : `lineWidth = 1 / scale` (toujours 1 pixel à l'écran).
+   - Pointillé régulier : `setLineDash([4 / scale, 4 / scale])`.
+   - Opacité : `globalAlpha = 0.5`.
+
