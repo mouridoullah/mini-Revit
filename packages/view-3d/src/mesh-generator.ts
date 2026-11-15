@@ -38,6 +38,8 @@ export interface WallWithOpeningsParams {
   readonly openings: readonly OpeningGeometryParams[];
   readonly elevation?: number;
   readonly polygon?: readonly Vec2[] | undefined;
+  /** Hauteur effective du mur en mm (prend le pas sur wallType.height si spécifiée, ADR-049 / S1-1). */
+  readonly height?: number;
 }
 
 /**
@@ -70,13 +72,15 @@ export function createWallMeshWithOpenings(params: WallWithOpeningsParams): RawM
     kind: op.kind,
   }));
 
+  const wallHeight = params.height ?? params.wallType.height;
+
   const sliced = sliceWallWithOpenings(
     {
       id: params.wall.id,
       start: vec2(params.wall.start.x, params.wall.start.y),
       end: vec2(params.wall.end.x, params.wall.end.y),
       thickness: params.wallType.thickness,
-      height: params.wallType.height,
+      height: wallHeight,
       polygon: footprintVertices,
     },
     openingsInput,
@@ -182,12 +186,14 @@ export function createWallMesh(
   wall: WallGeometryParams,
   wallType: WallTypeGeometryParams,
   elevation: number = 0,
+  height?: number,
 ): RawMeshData | null {
   const meshes = createWallMeshWithOpenings({
     wall,
     wallType,
     openings: [],
     elevation,
+    ...(height !== undefined ? { height } : {}),
   });
   return meshes[0] ?? null;
 }

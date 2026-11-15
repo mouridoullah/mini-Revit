@@ -123,6 +123,11 @@ export {
   type ComputeWallEffectiveHeightOptions,
   type WallEffectiveHeightResult,
 } from './walls.js';
+export {
+  resolveWallGeometry,
+  type ResolvedWall,
+  type ResolvedOpening,
+} from './walls/resolve.js';
 export { DependencyGraph } from './dag/DependencyGraph.js';
 export { RELATIONS_REGISTRY } from './relations/registry.js';
 export { resolveCascadeDeletions, type CascadeResult } from './relations/cascade.js';

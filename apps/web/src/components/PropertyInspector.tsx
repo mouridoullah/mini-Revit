@@ -296,7 +296,6 @@ export function PropertyInspector({
     // 1. Mur
     if (state.walls[id]) {
       const wall = state.walls[id]!;
-      const wallType = state.wallTypes[wall.typeId];
       const isAuto = wall.heightOverride === undefined;
       const effectiveH = computeWallEffectiveHeight(wall, state);
 
@@ -396,7 +395,7 @@ export function PropertyInspector({
                 data-testid="wall-height-mode-fixe"
                 onClick={() => {
                   if (isAuto) {
-                    const fallbackH = wallType?.height ?? 2800;
+                    const fallbackH = effectiveH;
                     execute(new Commands.UpdateWallCommand(wall.id, { heightOverride: fallbackH }));
                   }
                 }}

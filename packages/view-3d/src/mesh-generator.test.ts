@@ -240,6 +240,13 @@ describe('mesh-generator — Générateur de maillage 3D neutre pour view-3d', (
     expect(meshes.map((m) => m.role)).toEqual(['full', 'lintel', 'full', 'sill', 'lintel', 'full']);
   });
 
+  it('T-VIEW3D-S1-1 : prend en compte params.height pour extruder un mur a sa hauteur effective', () => {
+    const meshOverride = createWallMesh(testWall, testWallType, 500, 3200);
+    expect(meshOverride).not.toBeNull();
+    expect(meshOverride!.boundingBox.min.z).toBe(500);
+    expect(meshOverride!.boundingBox.max.z).toBe(3700); // 500 + 3200
+  });
+
   it('createOpeningPlaceholder génère un maillage 3D avec boîte englobante et dimensions exactes', () => {
     const doorParams: OpeningGeometryParams = {
       id: 'door_placeholder_test',

@@ -325,6 +325,37 @@ describe('Règles Métier BIM (rules.ts)', () => {
     );
   });
 
+  it('T-RULES-S1-1 : rejette une porte dépassant la hauteur effective d un mur avec heightOverride', () => {
+    // Mur de hauteur override 2000 mm (type: 2800 mm)
+    const wallLow: Wall = {
+      id: 'w_low',
+      category: 'wall',
+      typeId: 'type_1',
+      levelId: 'lvl_1',
+      start: vec2(0, 0),
+      end: vec2(5000, 0),
+      heightOverride: 2000,
+    };
+
+    const stateLow: BimState = {
+      ...stateWithHostWall,
+      walls: { w_low: wallLow },
+    };
+
+    // Porte standard de hauteur 2100 mm (2100 > 2000 mm)
+    const door2100: Door = {
+      id: 'd_2100',
+      category: 'door',
+      doorTypeId: 'dt_std',
+      hostWallId: 'w_low',
+      offsetAlong: 500,
+      swing: { side: 'right', direction: 'in' },
+    };
+
+    expect(() => validateDoor(door2100, stateLow)).toThrowError(BimValidationError);
+    expect(() => validateDoor(door2100, stateLow)).toThrowError(/INVALID_OPENING_HEIGHT/);
+  });
+
   it('rejette une ouverture en chevauchement avec une autre sur le même mur (OPENING_OVERLAP)', () => {
     const existingDoor: Door = {
       id: 'd_existing',

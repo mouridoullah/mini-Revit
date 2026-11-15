@@ -234,7 +234,7 @@ describe('PropertyInspector — Panneau latéral d’inspection et d’édition 
     const invertBtn = screen.getByTestId('stair-invert-direction-btn');
     fireEvent.click(invertBtn);
 
-    const updatedStair = doc.getState().stairs[stairId];
+    const updatedStair = doc.getState().stairs?.[stairId];
     expect(updatedStair?.start).toEqual({ x: 4500, y: 200 });
     expect(updatedStair?.end).toEqual({ x: 100, y: 200 });
   });

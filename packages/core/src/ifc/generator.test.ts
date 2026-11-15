@@ -559,4 +559,37 @@ describe('Générateur IFC4 ISO 10303-21 (packages/core/ifc)', () => {
 
     ifcApi.CloseModel(modelId);
   });
+
+  it('T-IFC-S1-1 : Mur avec heightOverride=3000 et baseOffset=500 -> extrusion et placement exacts dans IFC', () => {
+    const doc = BimDocument.createDefaultProject();
+    const baseState = doc.getState();
+    const lvl0 = Object.keys(baseState.levels)[0]!;
+
+    const customWallState: BimState = {
+      ...baseState,
+      walls: {
+        w_custom: {
+          id: 'w_custom',
+          category: 'wall',
+          typeId: Object.keys(baseState.wallTypes)[0]!,
+          levelId: lvl0,
+          start: { x: 0, y: 0 },
+          end: { x: 4000, y: 0 },
+          heightOverride: 3000,
+          baseOffset: 500,
+        },
+      },
+      doors: {},
+      windows: {},
+      rooms: {},
+      slabs: {},
+    };
+
+    const ifcContent = exportToIfc(customWallState);
+    // Extrusion 3000.00
+    expect(ifcContent).toContain('IFCEXTRUDEDAREASOLID');
+    expect(ifcContent).toMatch(/IFCEXTRUDEDAREASOLID\(#\d+,#\d+,#\d+,3000\.00\)/);
+    // Point de placement avec baseOffset 500.00
+    expect(ifcContent).toContain('IFCCARTESIANPOINT((0.00,0.00,500.00))');
+  });
 });

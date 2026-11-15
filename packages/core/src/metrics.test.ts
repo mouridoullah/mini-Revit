@@ -10,6 +10,8 @@ import {
   type WindowType,
   type Room,
   type Level,
+  type Slab,
+  type SlabType,
   type BimState,
 } from './types.js';
 import { type DetectedRoom } from './rooms/detect.js';
@@ -298,6 +300,59 @@ describe('Calculs de Surfaces et Métrés (metrics.ts)', () => {
       expect(levelMetrics.totals.roomAreaM2).toBe(10.64);
       expect(levelMetrics.rooms).toHaveLength(1);
       expect(levelMetrics.rooms[0]!.name).toBe('Pièce Principale');
+    });
+
+    it('T-METRICS-S1-1 : prend en compte la hauteur effective résolue (topConstraint et dalle) dans les métrés', () => {
+      const levelEtage: Level = { id: 'lvl_etage', name: 'R+1', elevation: 3000 };
+      const slabType: SlabType = { id: 'st_200', name: 'Dalle 200', thickness: 200 };
+      const slab: Slab = {
+        id: 'sl_1',
+        category: 'slab',
+        levelId: levelEtage.id,
+        slabTypeId: slabType.id,
+        boundary: [vec2(-500, -500), vec2(5000, -500), vec2(5000, 5000), vec2(-500, 5000)],
+        holes: [],
+      };
+
+      // Mur contraint par le niveau supérieur sous la dalle :
+      // zTop = 3000 - 200 = 2800 mm.
+      // Modifions la dalle pour thickness 400 mm -> zTop = 2600 mm, height = 2600 mm !
+      const thickSlabType: SlabType = { id: 'st_400', name: 'Dalle 400', thickness: 400 };
+      const thickSlab: Slab = { ...slab, slabTypeId: thickSlabType.id };
+
+      const wallWithConstraint: Wall = {
+        id: 'w_constrained',
+        category: 'wall',
+        levelId: levelRdc.id,
+        typeId: wallType200.id,
+        start: vec2(0, 0),
+        end: vec2(4000, 0), // Longueur 4m
+        topConstraint: { levelId: levelEtage.id, topOffset: 0 },
+      };
+
+      const state: BimState = {
+        schemaVersion: 2,
+        units: 'mm',
+        levels: { [levelRdc.id]: levelRdc, [levelEtage.id]: levelEtage },
+        wallTypes: { [wallType200.id]: wallType200 },
+        slabTypes: { [thickSlabType.id]: thickSlabType },
+        doorTypes: {},
+        windowTypes: {},
+        slabs: { [thickSlab.id]: thickSlab },
+        walls: { [wallWithConstraint.id]: wallWithConstraint },
+        doors: {},
+        windows: {},
+        rooms: {},
+        dimensions: {},
+      };
+
+      const metrics = computeLevelMetrics(state, levelRdc.id);
+      // Longueur = 4m, Hauteur = 2.6m (et non wallType.height 2.8m !)
+      // Surface brute = 4 * 2.6 = 10.4 m²
+      expect(metrics.totals.wallLinearM).toBe(4);
+      expect(metrics.totals.wallNetAreaM2).toBe(10.4);
+      // Volume = 10.4 m² * 0.2m = 2.08 m³
+      expect(metrics.totals.wallVolumeM3).toBe(2.08);
     });
   });
 });

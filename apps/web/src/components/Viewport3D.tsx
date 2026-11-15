@@ -11,7 +11,7 @@ import {
   type WallInput,
   type OpeningGeometryParams,
 } from '@mini-bim/view-3d';
-import { computeStairShaft } from '@mini-bim/core';
+import { computeStairShaft, resolveWallGeometry } from '@mini-bim/core';
 import { useBimDocument } from '../hooks/useBimDocument.js';
 import { useResizeObserver } from '../hooks/useResizeObserver.js';
 
@@ -130,41 +130,16 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
       const wallType = state.wallTypes[wall.typeId];
       if (!wallType) continue;
 
-      const level = state.levels[wall.levelId];
-      const elevation = level?.elevation ?? 0;
+      const resolved = resolveWallGeometry(wall, state);
 
-      // Rassembler toutes les ouvertures hébergées par ce mur
-      const wallDoors = Object.values(doors).filter((d) => d.hostWallId === wall.id);
-      const wallWindows = Object.values(windows).filter((w) => w.hostWallId === wall.id);
-
-      const openingParams: OpeningGeometryParams[] = [
-        ...wallDoors.map((d) => {
-          const dt = state.doorTypes?.[d.doorTypeId];
-          const w = dt?.width ?? 900;
-          const h = dt?.height ?? 2100;
-          return {
-            id: d.id,
-            kind: 'door' as const,
-            offsetAlong: d.offsetAlong,
-            width: w,
-            height: h,
-            sillHeight: 0,
-          };
-        }),
-        ...wallWindows.map((w) => {
-          const wt = state.windowTypes?.[w.windowTypeId];
-          const width = wt?.width ?? 1200;
-          const height = wt?.height ?? 1400;
-          return {
-            id: w.id,
-            kind: 'window' as const,
-            offsetAlong: w.offsetAlong,
-            width,
-            height,
-            sillHeight: w.sillHeight,
-          };
-        }),
-      ];
+      const openingParams: OpeningGeometryParams[] = resolved.openings.map((op) => ({
+        id: op.id,
+        kind: op.kind,
+        offsetAlong: op.offsetAlong,
+        width: op.width,
+        height: op.height,
+        sillHeight: op.sillHeight,
+      }));
 
       // Générer les tronçons solides découpés (murs percés 2.5D avec jonctions résolues)
       const resolvedPoly = resolvedPolygonsByWallId.get(wall.id);
@@ -172,7 +147,8 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
         wall,
         wallType,
         openings: openingParams,
-        elevation,
+        elevation: resolved.zBase,
+        height: resolved.height,
         ...(resolvedPoly ? { polygon: resolvedPoly } : {}),
       });
 
@@ -185,24 +161,21 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
     for (const door of Object.values(doors)) {
       const hostWall = state.walls[door.hostWallId];
       if (!hostWall) continue;
-      const level = state.levels[hostWall.levelId];
-      const elevation = level?.elevation ?? 0;
-
-      const dt = state.doorTypes?.[door.doorTypeId];
-      const doorWidth = dt?.width ?? 900;
-      const doorHeight = dt?.height ?? 2100;
+      const resolvedHost = resolveWallGeometry(hostWall, state);
+      const resolvedDoor = resolvedHost.openings.find((o) => o.id === door.id);
+      if (!resolvedDoor) continue;
 
       const placeholder = createOpeningPlaceholder(
         {
           id: door.id,
           kind: 'door',
-          offsetAlong: door.offsetAlong,
-          width: doorWidth,
-          height: doorHeight,
-          sillHeight: 0,
+          offsetAlong: resolvedDoor.offsetAlong,
+          width: resolvedDoor.width,
+          height: resolvedDoor.height,
+          sillHeight: resolvedDoor.sillHeight,
         },
         hostWall,
-        elevation,
+        resolvedHost.zBase,
       );
       scene.updateMesh(placeholder, doorMat);
     }
@@ -212,24 +185,21 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
     for (const win of Object.values(windows)) {
       const hostWall = state.walls[win.hostWallId];
       if (!hostWall) continue;
-      const level = state.levels[hostWall.levelId];
-      const elevation = level?.elevation ?? 0;
-
-      const wt = state.windowTypes?.[win.windowTypeId];
-      const winWidth = wt?.width ?? 1200;
-      const winHeight = wt?.height ?? 1400;
+      const resolvedHost = resolveWallGeometry(hostWall, state);
+      const resolvedWin = resolvedHost.openings.find((o) => o.id === win.id);
+      if (!resolvedWin) continue;
 
       const placeholder = createOpeningPlaceholder(
         {
           id: win.id,
           kind: 'window',
-          offsetAlong: win.offsetAlong,
-          width: winWidth,
-          height: winHeight,
-          sillHeight: win.sillHeight,
+          offsetAlong: resolvedWin.offsetAlong,
+          width: resolvedWin.width,
+          height: resolvedWin.height,
+          sillHeight: resolvedWin.sillHeight,
         },
         hostWall,
-        elevation,
+        resolvedHost.zBase,
       );
       scene.updateMesh(placeholder, winMat);
     }

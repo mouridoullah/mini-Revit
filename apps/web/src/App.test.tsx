@@ -5,7 +5,7 @@ import { View2D } from '@mini-bim/view-2d';
 import * as view2dModule from '@mini-bim/view-2d';
 import { Scene3D } from '@mini-bim/view-3d';
 import * as Scene3DModule from '@mini-bim/view-3d';
-import { BimDocument, AddWallCommand, Commands } from '@mini-bim/core';
+import { BimDocument, AddWallCommand, Commands, resolveWallGeometry, computeLevelMetrics, exportToIfc } from '@mini-bim/core';
 import { App } from './App.js';
 import { createDemoDocument } from './demo/demoDocument.js';
 import { exportToJSON } from './persistence/jsonIO.js';
@@ -1085,5 +1085,173 @@ describe('App Integration & Squelette Double Viewport (apps/web)', () => {
     expect(r1Walls.length).toBeGreaterThanOrEqual(1);
 
     cleanup();
+  });
+
+  it('T-APP-CROSS-01 : Cohérence transverse (S1-1 + S1-4) — Mur avec heightOverride=3000 et baseOffset=+500', () => {
+    const doc = BimDocument.createDefaultProject();
+    const state = doc.getState();
+    const rdcId = Object.keys(state.levels)[0]!;
+    const wallTypeId = Object.keys(state.wallTypes)[0]!;
+    const doorTypeId = Object.keys(state.doorTypes)[0]!;
+    const winTypeId = Object.keys(state.windowTypes)[0]!;
+
+    // 1. Ajouter un mur avec baseOffset=500 et heightOverride=3000
+    doc.execute(
+      new Commands.AddWallCommand({
+        id: 'w_cross_1',
+        category: 'wall',
+        typeId: wallTypeId,
+        levelId: rdcId,
+        start: { x: 0, y: 0 },
+        end: { x: 5000, y: 0 },
+        baseOffset: 500,
+        heightOverride: 3000,
+      }),
+    );
+
+    // 2. Ajouter une porte (H 2100) et une fenêtre (H 1400, sill 900)
+    doc.execute(
+      new Commands.AddDoorCommand({
+        id: 'd_cross_1',
+        category: 'door',
+        doorTypeId,
+        hostWallId: 'w_cross_1',
+        offsetAlong: 800,
+        swing: { side: 'right', direction: 'in' },
+      }),
+    );
+
+    doc.execute(
+      new Commands.AddWindowCommand({
+        id: 'win_cross_1',
+        category: 'window',
+        windowTypeId: winTypeId,
+        hostWallId: 'w_cross_1',
+        offsetAlong: 3000,
+        sillHeight: 900,
+      }),
+    );
+
+    const updatedState = doc.getState();
+    const wall = updatedState.walls['w_cross_1']!;
+
+    // 3. Vérification resolveWallGeometry
+    const resolved = resolveWallGeometry(wall, updatedState);
+    expect(resolved.zBase).toBe(500);
+    expect(resolved.zTop).toBe(3500);
+    expect(resolved.height).toBe(3000);
+    expect(resolved.heightSource).toBe('override');
+    expect(resolved.openings).toHaveLength(2);
+
+    const doorOp = resolved.openings[0]!;
+    expect(doorOp.sillZAbsolute).toBe(500);
+    expect(doorOp.lintelZAbsolute).toBe(2600); // 500 + 2100
+
+    const winOp = resolved.openings[1]!;
+    expect(winOp.sillZAbsolute).toBe(1400); // 500 + 900
+    expect(winOp.lintelZAbsolute).toBe(2800); // 1400 + 1400
+
+    // 4. Vérification Métriques (longueur 5m, hauteur 3m -> brute 15m²)
+    const metrics = computeLevelMetrics(updatedState, rdcId);
+    const wallMetric = metrics.walls.find((m) => m.wallId === 'w_cross_1');
+    expect(wallMetric).toBeDefined();
+    expect(wallMetric!.grossAreaMm2).toBe(5000 * 3000); // 15 000 000 mm²
+
+    // 5. Vérification Export IFC
+    const ifc = exportToIfc(updatedState);
+    expect(ifc).toMatch(/IFCEXTRUDEDAREASOLID\(#\d+,#\d+,#\d+,3000\.00\)/);
+    expect(ifc).toContain('IFCCARTESIANPOINT((0.00,0.00,500.00))');
+
+    // 6. Rendu React App : l'inspecteur affiche bien la hauteur et le baseOffset
+    vi.spyOn(Scene3D.prototype, 'raycast').mockReturnValue('w_cross_1');
+    const { getByTestId } = render(<App initialDoc={doc} />);
+    const canvas3D = getByTestId('viewport-3d-canvas');
+    act(() => {
+      fireEvent.pointerDown(canvas3D, { clientX: 100, clientY: 100, button: 0 });
+      fireEvent.pointerUp(canvas3D, { clientX: 100, clientY: 100, button: 0 });
+    });
+    expect(getByTestId('inspector-wall-panel')).toBeDefined();
+    const baseOffsetInput = getByTestId('wall-base-offset-input') as HTMLInputElement;
+    expect(baseOffsetInput.value).toBe('500');
+
+    cleanup();
+  });
+
+  it('T-APP-CROSS-02 : Cohérence transverse (S1-1 + S1-4) — Mur contraint sous dalle avec mise à jour dynamique', () => {
+    const doc = BimDocument.createDefaultProject();
+    const state = doc.getState();
+    const rdcId = Object.keys(state.levels)[0]!;
+    const wallTypeId = Object.keys(state.wallTypes)[0]!;
+
+    // Ajouter niveau R+1 à 3000 mm
+    doc.execute(
+      new Commands.AddLevelCommand({
+        id: 'lvl_etage_cross',
+        name: 'Étage',
+        elevation: 3000,
+      }),
+    );
+
+    // Ajouter dalle supérieure de 200 mm
+    doc.execute(
+      new Commands.AddSlabTypeCommand({
+        id: 'st_cross_200',
+        name: 'Dalle 200',
+        thickness: 200,
+      }),
+    );
+
+    doc.execute(
+      new Commands.AddSlabCommand({
+        id: 'slab_cross_top',
+        category: 'slab',
+        levelId: 'lvl_etage_cross',
+        slabTypeId: 'st_cross_200',
+        boundary: [
+          { x: -500, y: -500 },
+          { x: 6000, y: -500 },
+          { x: 6000, y: 3000 },
+          { x: -500, y: 3000 },
+        ],
+      }),
+    );
+
+    // Ajouter mur contraint par R+1
+    doc.execute(
+      new Commands.AddWallCommand({
+        id: 'w_constrained_cross',
+        category: 'wall',
+        typeId: wallTypeId,
+        levelId: rdcId,
+        start: { x: 0, y: 0 },
+        end: { x: 4000, y: 0 },
+        topConstraint: { levelId: 'lvl_etage_cross', topOffset: 0 },
+      }),
+    );
+
+    let curState = doc.getState();
+    let res = resolveWallGeometry(curState.walls['w_constrained_cross']!, curState);
+    expect(res.height).toBe(2800); // 3000 - 200
+    expect(res.limitingSlabId).toBe('slab_cross_top');
+
+    // Mettre à jour l'épaisseur de la dalle à 350 mm
+    doc.execute(
+      new Commands.UpdateSlabTypeCommand('st_cross_200', {
+        thickness: 350,
+      }),
+    );
+
+    curState = doc.getState();
+    res = resolveWallGeometry(curState.walls['w_constrained_cross']!, curState);
+    expect(res.height).toBe(2650); // 3000 - 350 = 2650 mm
+
+    // IFC reflète la hauteur 2650.00
+    const ifc = exportToIfc(curState);
+    expect(ifc).toMatch(/IFCEXTRUDEDAREASOLID\(#\d+,#\d+,#\d+,2650\.00\)/);
+
+    // Métrés reflètent 4m * 2.65m = 10.6 m²
+    const metrics = computeLevelMetrics(curState, rdcId);
+    const wallM = metrics.walls.find((w) => w.wallId === 'w_constrained_cross');
+    expect(wallM?.grossAreaMm2).toBe(4000 * 2650);
   });
 });

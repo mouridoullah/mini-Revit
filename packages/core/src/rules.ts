@@ -24,6 +24,7 @@ import {
 } from '@mini-bim/geometry';
 import { detectRooms } from './rooms/detect.js';
 import { computeStairGeometry } from './stairs.js';
+import { resolveWallGeometry } from './walls/resolve.js';
 
 /**
  * Représente une violation de règle métier BIM identifiée sur une entité.
@@ -167,8 +168,8 @@ export function checkOpeningsWithCandidate(
     return [];
   }
 
-  const wallType = state.wallTypes[wall.typeId];
-  const wallHeight = wall.heightOverride ?? wallType?.height ?? 2800;
+  const resolved = resolveWallGeometry(wall, state);
+  const wallHeight = resolved.height;
   const wallLength = Math.hypot(wall.end.x - wall.start.x, wall.end.y - wall.start.y);
 
   const issues = validateOpenings(allOpeningsOnHost, wallLength, wallHeight, MIN_OPENING_CLEARANCE);
@@ -318,7 +319,8 @@ export function checkDoorViolations(door: Door, state: BimState): RuleViolation[
     return violations;
   }
 
-  const wallHeight = hostWall.heightOverride ?? wallType.height;
+  const resolved = resolveWallGeometry(hostWall, state);
+  const wallHeight = resolved.height;
   const wallLength = Math.hypot(
     hostWall.end.x - hostWall.start.x,
     hostWall.end.y - hostWall.start.y,
@@ -439,7 +441,8 @@ export function checkWindowViolations(window: Window, state: BimState): RuleViol
     return violations;
   }
 
-  const wallHeight = hostWall.heightOverride ?? wallType.height;
+  const resolved = resolveWallGeometry(hostWall, state);
+  const wallHeight = resolved.height;
   const wallLength = Math.hypot(
     hostWall.end.x - hostWall.start.x,
     hostWall.end.y - hostWall.start.y,

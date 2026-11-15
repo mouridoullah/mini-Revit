@@ -11,6 +11,7 @@ import {
 } from './types.js';
 import { type DetectedRoom, detectRooms } from './rooms/detect.js';
 import { isPointInPolygon } from '@mini-bim/geometry';
+import { resolveWallGeometry } from './walls/resolve.js';
 
 /**
  * Métriques géométriques et quantitatives détaillées pour un mur hôte.
@@ -49,7 +50,14 @@ export function computeWallMetrics(
   const dy = wall.end.y - wall.start.y;
   const lengthMm = Math.hypot(dx, dy);
 
-  const heightMm = wall.heightOverride ?? wallType.height;
+  const isFullState =
+    stateOrTypes &&
+    'levels' in stateOrTypes &&
+    'wallTypes' in stateOrTypes;
+
+  const heightMm = isFullState
+    ? resolveWallGeometry(wall, stateOrTypes as BimState).height
+    : (wall.heightOverride ?? wallType.height);
   const grossAreaMm2 = lengthMm * heightMm;
 
   // Filtrer les ouvertures hébergées par ce mur
@@ -186,10 +194,10 @@ export function computeLevelMetrics(state: BimState, levelId: ElementId): LevelM
   const detectedRooms = detectRooms(state, levelId);
   const roomsOnLevel = Object.values(state.rooms ?? {}).filter((r) => r.levelId === levelId);
 
-  // Hauteur de pièce : priorité 1 = level.height, priorité 2 = wallType.height / heightOverride, priorité 3 = 2800 mm
+  // Hauteur de pièce : priorité 1 = level.height, priorité 2 = hauteur effective du mur bordant, priorité 3 = 2800 mm
   const wallHeight =
     wallsOnLevel[0] && state.wallTypes[wallsOnLevel[0].typeId]
-      ? (wallsOnLevel[0].heightOverride ?? state.wallTypes[wallsOnLevel[0].typeId]?.height ?? 2800)
+      ? resolveWallGeometry(wallsOnLevel[0], state).height
       : 2800;
   const effectiveHeightMm = level?.height ?? wallHeight;
 

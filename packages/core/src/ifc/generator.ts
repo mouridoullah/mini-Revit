@@ -8,6 +8,7 @@ import {
 } from '../types.js';
 import { detectRooms } from '../rooms/detect.js';
 import { computeStairGeometry } from '../stairs.js';
+import { resolveWallGeometry } from '../walls/resolve.js';
 import { isPointInPolygon, type Vec2 } from '@mini-bim/geometry';
 import { createIfcGuid, escapeIfcString } from './guid.js';
 
@@ -175,7 +176,8 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
   for (const [wallId, wall] of Object.entries(state.walls)) {
     const wallType = state.wallTypes[wall.typeId];
     const thickness = wallType?.thickness ?? 200;
-    const height = wall.heightOverride ?? wallType?.height ?? 2800;
+    const resolved = resolveWallGeometry(wall, state);
+    const height = resolved.height;
 
     const dx = wall.end.x - wall.start.x;
     const dy = wall.end.y - wall.start.y;

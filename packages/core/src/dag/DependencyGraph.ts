@@ -3,37 +3,43 @@ import { BimValidationError } from '../rules.js';
 import type { RelationDef, EntityCategory } from '../relations/types.js';
 import { RELATIONS_REGISTRY } from '../relations/registry.js';
 
-function getEntitiesForCategory(state: BimState, category: EntityCategory): Record<string, unknown> {
-  switch (category) {
-    case 'wall':
-      return state.walls ?? {};
-    case 'door':
-      return state.doors ?? {};
-    case 'window':
-      return state.windows ?? {};
-    case 'dimension':
-      return state.dimensions ?? {};
-    case 'room':
-      return state.rooms ?? {};
-    case 'wallType':
-      return state.wallTypes ?? {};
-    case 'level':
-      return state.levels ?? {};
-    case 'slab':
-      return state.slabs ?? {};
-    case 'doorType':
-      return state.doorTypes ?? {};
-    case 'windowType':
-      return state.windowTypes ?? {};
-    case 'slabType':
-      return state.slabTypes ?? {};
-    case 'stair':
-      return state.stairs ?? {};
-    case 'stairType':
-      return state.stairTypes ?? {};
-    default:
-      return {};
-  }
+function getEntitiesForCategory(
+  state: BimState,
+  category: EntityCategory,
+): Record<string, Record<string, unknown>> {
+  const dict: unknown = (() => {
+    switch (category) {
+      case 'wall':
+        return state.walls ?? {};
+      case 'door':
+        return state.doors ?? {};
+      case 'window':
+        return state.windows ?? {};
+      case 'dimension':
+        return state.dimensions ?? {};
+      case 'room':
+        return state.rooms ?? {};
+      case 'wallType':
+        return state.wallTypes ?? {};
+      case 'level':
+        return state.levels ?? {};
+      case 'slab':
+        return state.slabs ?? {};
+      case 'doorType':
+        return state.doorTypes ?? {};
+      case 'windowType':
+        return state.windowTypes ?? {};
+      case 'slabType':
+        return state.slabTypes ?? {};
+      case 'stair':
+        return state.stairs ?? {};
+      case 'stairType':
+        return state.stairTypes ?? {};
+      default:
+        return {};
+    }
+  })();
+  return dict as Record<string, Record<string, unknown>>;
 }
 
 /**

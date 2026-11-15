@@ -16,6 +16,8 @@ export interface WallEffectiveHeightResult {
   readonly zTop: number;
   /** Hauteur effective du mur en mm (zTop - zBase, >= 0). */
   readonly heightEff: number;
+  /** Provenance de la hauteur calculée (ADR-049). */
+  readonly heightSource: 'override' | 'constraint' | 'nominal';
   /** ID de la dalle dont la sous-face a limité l'arase supérieure, le cas échéant. */
   readonly limitingSlabId?: ElementId;
 }
@@ -83,6 +85,7 @@ export function computeWallVerticalBounds(
       zBase,
       zTop: zBase + heightEff,
       heightEff,
+      heightSource: 'override',
     };
   }
 
@@ -98,6 +101,7 @@ export function computeWallVerticalBounds(
         zBase,
         zTop: zBase + defaultHeight,
         heightEff: defaultHeight,
+        heightSource: 'nominal',
       };
     }
 
@@ -143,6 +147,7 @@ export function computeWallVerticalBounds(
       zBase,
       zTop,
       heightEff,
+      heightSource: 'constraint',
       ...(limitingSlabId ? { limitingSlabId } : {}),
     };
   }
@@ -152,6 +157,7 @@ export function computeWallVerticalBounds(
     zBase,
     zTop: zBase + defaultHeight,
     heightEff: defaultHeight,
+    heightSource: 'nominal',
   };
 }
 
@@ -166,3 +172,9 @@ export function computeWallEffectiveHeight(
 ): number {
   return computeWallVerticalBounds(wall, state, options).heightEff;
 }
+
+export {
+  resolveWallGeometry,
+  type ResolvedWall,
+  type ResolvedOpening,
+} from './walls/resolve.js';
