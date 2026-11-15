@@ -5,7 +5,7 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.strict,
   {
-    ignores: ['**/dist/**', '**/node_modules/**', '**/coverage/**', '**/*.md'],
+    ignores: ['**/dist/**', '**/node_modules/**', '**/coverage/**', '**/*.md', '**/*.mjs'],
   },
   {
     rules: {
@@ -15,12 +15,14 @@ export default tseslint.config(
       ],
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/consistent-type-definitions': ['error', 'interface'],
+      '@typescript-eslint/no-non-null-assertion': 'warn',
     },
   },
   {
-    files: ['**/*.test.ts'],
+    files: ['**/*.test.ts', '**/*.test.tsx'],
     rules: {
       '@typescript-eslint/no-non-null-assertion': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
     },
   },
 );

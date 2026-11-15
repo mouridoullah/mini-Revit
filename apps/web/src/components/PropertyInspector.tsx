@@ -224,7 +224,7 @@ export function PropertyInspector({
     }
   };
 
-  const execute = (cmd: any) => {
+  const execute = (cmd: import('@mini-bim/core').Command) => {
     doc.execute(cmd);
     forceUpdate();
   };

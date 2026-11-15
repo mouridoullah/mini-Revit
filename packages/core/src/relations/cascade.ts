@@ -3,7 +3,7 @@ import { BimValidationError } from '../rules.js';
 import type { RelationDef, EntityCategory } from './types.js';
 import { RELATIONS_REGISTRY } from './registry.js';
 
-function getEntitiesForCategory(state: BimState, category: EntityCategory): Record<string, any> {
+function getEntitiesForCategory(state: BimState, category: EntityCategory): Record<string, unknown> {
   switch (category) {
     case 'wall':
       return state.walls ?? {};
@@ -20,17 +20,17 @@ function getEntitiesForCategory(state: BimState, category: EntityCategory): Reco
     case 'level':
       return state.levels ?? {};
     case 'slab':
-      return (state as any).slabs ?? {};
+      return state.slabs ?? {};
     case 'doorType':
-      return (state as any).doorTypes ?? {};
+      return state.doorTypes ?? {};
     case 'windowType':
-      return (state as any).windowTypes ?? {};
+      return state.windowTypes ?? {};
     case 'slabType':
-      return (state as any).slabTypes ?? {};
+      return state.slabTypes ?? {};
     case 'stair':
-      return (state as any).stairs ?? {};
+      return state.stairs ?? {};
     case 'stairType':
-      return (state as any).stairTypes ?? {};
+      return state.stairTypes ?? {};
     default:
       return {};
   }
