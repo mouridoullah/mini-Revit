@@ -86,11 +86,51 @@ export function computeStairGeometry(stair: Stair, state: BimState): StairGeomet
 }
 
 /**
+ * Calcule l'indice de marche k (0 <= k <= N) à partir duquel l'échappée libre devient insuffisante
+ * sous la dalle supérieure (hauteur libre < minHeadroom, nominalement 2000 mm).
+ *
+ * Sous la dalle d'étage d'arase inférieure Z_inf = Z_top - slabThickness,
+ * l'échappée libre au droit de la marche k (d'élévation Z_bottom + k * stepHeight) est :
+ *   H(k) = (Z_top - slabThickness) - (Z_bottom + k * stepHeight) = totalRise - slabThickness - k * stepHeight
+ *
+ * L'indice de rupture k* (cutoff) correspond au premier indice k tel que H(k) < minHeadroom :
+ *   k * stepHeight > totalRise - slabThickness - minHeadroom
+ *
+ * À partir de cette marche k*, la dalle supérieure DOIT être découpée pour garantir le gabarit de passage.
+ */
+export function computeHeadroomCutoffStep(
+  geom: StairGeometry,
+  minHeadroom: number = 2000,
+  slabThickness: number = 200,
+): number {
+  const maxClearance = geom.totalRise - slabThickness - minHeadroom;
+  if (maxClearance <= 0) {
+    // Même au pied de l'escalier (k = 0), l'échappée est insuffisante -> trémie dès le départ
+    return 0;
+  }
+
+  const exactK = maxClearance / geom.stepHeight;
+  // Premier k entier où H(k) < minHeadroom (strictement inférieur)
+  const cutoffK = Math.floor(exactK + 1e-9) + 1;
+  return Math.min(geom.numberOfSteps, Math.max(0, cutoffK));
+}
+
+export interface StairShaftOptions {
+  readonly minHeadroom?: number;
+  readonly slabThickness?: number;
+  readonly useHeadroomCutoff?: boolean;
+}
+
+/**
  * Dérive l'emprise polygonale (rectangle en coordonnées monde mm) de la trémie d'escalier
  * projetée sur le niveau supérieur (topLevel).
  * Règle d'or ADR-048 (D5) : La trémie n'est jamais stockée dans slab.holes.
  */
-export function computeStairShaft(stair: Stair, state: BimState): readonly Vec2[] {
+export function computeStairShaft(
+  stair: Stair,
+  state: BimState,
+  options?: StairShaftOptions,
+): readonly Vec2[] {
   const stairType: StairType | undefined = state.stairTypes?.[stair.stairTypeId];
   const nominalWidth = stair.widthOverride ?? stairType?.width ?? 900;
 
@@ -107,7 +147,20 @@ export function computeStairShaft(stair: Stair, state: BimState): readonly Vec2[
   const u = len > 1e-4 ? vec2(dx / len, dy / len) : vec2(1, 0);
   const n = vec2(-u.y, u.x); // Normal unitaire
 
-  const pStart = vec2(stair.start.x - u.x * endExtension, stair.start.y - u.y * endExtension);
+  let pStart: Vec2;
+  if (options?.useHeadroomCutoff) {
+    const geom = computeStairGeometry(stair, state);
+    const cutoffStep = computeHeadroomCutoffStep(
+      geom,
+      options.minHeadroom ?? 2000,
+      options.slabThickness ?? 200,
+    );
+    const shaftStartDistance = Math.max(0, cutoffStep * geom.stepDepth - endExtension);
+    pStart = vec2(stair.start.x + u.x * shaftStartDistance, stair.start.y + u.y * shaftStartDistance);
+  } else {
+    pStart = vec2(stair.start.x - u.x * endExtension, stair.start.y - u.y * endExtension);
+  }
+
   const pEnd = vec2(stair.end.x + u.x * endExtension, stair.end.y + u.y * endExtension);
 
   // 4 coins du rectangle orienté en ordre trigonométrique (CCW)

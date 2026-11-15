@@ -13,6 +13,7 @@ import {
   computeStairGeometry,
   computeStairShaft,
   computeHeadroom,
+  computeHeadroomCutoffStep,
   toJSON,
   fromJSON,
 } from './index.js';
@@ -306,6 +307,120 @@ describe('Phase 6.4a — Modèle Escalier Droit, Validation & Blondel (packages/
     expect(Math.max(...xs)).toBe(5100);
     expect(Math.min(...ys)).toBe(500);
     expect(Math.max(...ys)).toBe(1500);
+  });
+
+  it('T-STAIR-CUTOFF-01 : computeHeadroomCutoffStep — échappée exacte à la marche k (hauteur libre = 2000 mm pile)', () => {
+    // Cas configuré pour tomber exactement sur 2000 mm :
+    // ΔZ = 2800 mm, N = 14 marches, h = 200 mm, slabThickness = 200 mm, minHeadroom = 2000 mm.
+    // Sous-face dalle Z_inf = 2800 - 200 = 2600 mm.
+    // Échappée à la marche k : H(k) = 2600 - k * 200.
+    // k = 0 : 2600 mm
+    // k = 1 : 2400 mm
+    // k = 2 : 2200 mm
+    // k = 3 : 2000 mm (EXACTEMENT minHeadroom -> encore suffisant !)
+    // k = 4 : 1800 mm (< 2000 mm -> insuffisant -> rupture !)
+    const dummyGeom = {
+      numberOfSteps: 14,
+      stepHeight: 200,
+      stepDepth: 280,
+      totalRise: 2800,
+      totalRun: 14 * 280,
+      direction: vec2(1, 0),
+      isCompliant: false,
+      warnings: [],
+    };
+
+    const cutoff = computeHeadroomCutoffStep(dummyGeom, 2000, 200);
+    expect(cutoff).toBe(4); // La trémie doit s'ouvrir à la marche 4
+  });
+
+  it('T-STAIR-CUTOFF-02 : computeHeadroomCutoffStep — échappée insuffisante à l arrivée haute (N-1 < 2000 mm)', () => {
+    // Sur tout escalier montant, la dernière marche N-1 sous plafond avant le palier
+    // a une échappée H(N-1) = totalRise - slabThickness - (N-1)*h = h - slabThickness.
+    // Si h = 175 mm et slabThickness = 200 mm, H(N-1) = -25 mm, donc < 2000 mm !
+    const geomStandard = {
+      numberOfSteps: 16,
+      stepHeight: 175,
+      stepDepth: 270,
+      totalRise: 2800,
+      totalRun: 16 * 270,
+      direction: vec2(1, 0),
+      isCompliant: true,
+      warnings: [],
+    };
+
+    const cutoff = computeHeadroomCutoffStep(geomStandard, 2000, 200);
+    // H(k) = 2800 - 200 - k*175 = 2600 - k*175
+    // k = 3 : 2600 - 525 = 2075 mm (>= 2000)
+    // k = 4 : 2600 - 700 = 1900 mm (< 2000)
+    expect(cutoff).toBe(4);
+    expect(cutoff).toBeLessThan(geomStandard.numberOfSteps);
+  });
+
+  it('T-STAIR-CUTOFF-03 : computeHeadroomCutoffStep — dalle épaisse (400 mm) déclenche un cutoff plus tôt', () => {
+    const geom = {
+      numberOfSteps: 16,
+      stepHeight: 175,
+      stepDepth: 270,
+      totalRise: 2800,
+      totalRun: 16 * 270,
+      direction: vec2(1, 0),
+      isCompliant: true,
+      warnings: [],
+    };
+
+    const cutoffStandard = computeHeadroomCutoffStep(geom, 2000, 200); // k = 4
+    const cutoffThick = computeHeadroomCutoffStep(geom, 2000, 400); // Sous-face à 2400 mm -> k = 3
+
+    // Dalle plus épaisse -> sous-face plus basse -> échappée rompue plus bas dans l'escalier
+    expect(cutoffThick).toBeLessThan(cutoffStandard);
+    expect(cutoffThick).toBe(3); // 2400 - 2000 = 400 mm -> 400/175 = 2.28 -> k = 3
+  });
+
+  it('T-STAIR-CUTOFF-04 : computeHeadroomCutoffStep — ΔZ très grand (5000 mm) déclenche un cutoff plus tard', () => {
+    const geomHigh = {
+      numberOfSteps: 28,
+      stepHeight: 5000 / 28, // ~178.57 mm
+      stepDepth: 280,
+      totalRise: 5000,
+      totalRun: 28 * 280,
+      direction: vec2(1, 0),
+      isCompliant: true,
+      warnings: [],
+    };
+
+    const cutoffHigh = computeHeadroomCutoffStep(geomHigh, 2000, 200);
+    // Z_inf = 4800 mm. MaxClearance = 4800 - 2000 = 2800 mm.
+    // 2800 / 178.57 = 15.68 -> k = 16
+    expect(cutoffHigh).toBe(16);
+    expect(cutoffHigh).toBeGreaterThan(4);
+  });
+
+  it('T-STAIR-CUTOFF-05 : computeStairShaft avec useHeadroomCutoff: true découpe à partir de la marche de rupture', () => {
+    const { doc, rdcId, r1Id, stairTypeId } = createTestDocWithLevels();
+
+    const stair: Stair = {
+      id: 'stair_shaft_cutoff',
+      category: 'stair',
+      stairTypeId,
+      bottomLevelId: rdcId,
+      topLevelId: r1Id,
+      start: vec2(1000, 1000),
+      end: vec2(5000, 1000), // L = 4000 mm, direction (1, 0)
+    };
+
+    const shaftCutoff = computeStairShaft(stair, doc.getState(), {
+      useHeadroomCutoff: true,
+      minHeadroom: 2000,
+      slabThickness: 200,
+    });
+    expect(shaftCutoff).toHaveLength(4);
+
+    const xs = shaftCutoff.map((p) => p.x);
+    // Le cutoff se situe à la marche 4 : 4 * (4000 / 16) = 1000 mm depuis start (x = 2000)
+    // Avec 100 mm d'anticipation : pStart.x = 2000 - 100 = 1900 mm.
+    expect(Math.min(...xs)).toBe(1900);
+    expect(Math.max(...xs)).toBe(5100);
   });
 
   it('T-MIG-STAIR-01 : fromJSON() initialise stairs: {} et stairTypes: {} sur un état v2 sans escalier', () => {

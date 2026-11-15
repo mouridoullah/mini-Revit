@@ -149,6 +149,52 @@ describe('Phase 6.4 — Rendu 3D des Escaliers (packages/view-3d/src/stairs-3d.t
     expect(foundRiserNormals).toBeGreaterThan(0);
   });
 
+  it('T-STAIR-3D-02b : Calcul exact du volume du solide crénelé par théorème de divergence', () => {
+    const rawMesh = createStairMesh(baseStairParams, { width: 900 });
+    expect(rawMesh).not.toBeNull();
+    if (!rawMesh) return;
+
+    // Calcul du volume par flux de divergence / somme des tétraèdres signés (1/6) * (a x b) . c
+    let computedVolume = 0;
+    const pos = rawMesh.positions;
+    const idx = rawMesh.indices;
+
+    for (let i = 0; i < idx.length; i += 3) {
+      const i0 = idx[i]! * 3;
+      const i1 = idx[i + 1]! * 3;
+      const i2 = idx[i + 2]! * 3;
+
+      const v0x = pos[i0]!,
+        v0y = pos[i0 + 1]!,
+        v0z = pos[i0 + 2]!;
+      const v1x = pos[i1]!,
+        v1y = pos[i1 + 1]!,
+        v1z = pos[i1 + 2]!;
+      const v2x = pos[i2]!,
+        v2y = pos[i2 + 1]!,
+        v2z = pos[i2 + 2]!;
+
+      const crossX = v1y * v2z - v1z * v2y;
+      const crossY = v1z * v2x - v1x * v2z;
+      const crossZ = v1x * v2y - v1y * v2x;
+
+      computedVolume += (v0x * crossX + v0y * crossY + v0z * crossZ) / 6;
+    }
+
+    // Formule analytique exacte du solide crénelé fermé à z0 et au fond :
+    // V = width * L * deltaZ * ((N + 1) / (2 * N))
+    // Pour width=900, L=4200, deltaZ=2800, N=16:
+    // V = 900 * 4200 * 2800 * (17 / 32) = 5 622 750 000 mm³
+    const W = 900;
+    const L = 4200;
+    const deltaZ = 2800;
+    const N = 16;
+    const expectedSolidVolume = W * L * deltaZ * ((N + 1) / (2 * N));
+
+    expect(Math.abs(computedVolume)).toBeCloseTo(expectedSolidVolume, -2);
+    expect(expectedSolidVolume).toBe(5622750000);
+  });
+
   it('T-STAIR-3D-03 : Métadonnées de picking — elementId et userData.category === "stair"', () => {
     const rawMesh = createStairMesh(baseStairParams, { width: 900 });
     expect(rawMesh).not.toBeNull();

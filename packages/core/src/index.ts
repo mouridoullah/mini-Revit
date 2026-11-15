@@ -105,7 +105,9 @@ export {
   computeStairGeometry,
   computeStairShaft,
   computeHeadroom,
+  computeHeadroomCutoffStep,
   type StairGeometry,
+  type StairShaftOptions,
 } from './stairs.js';
 export { getSortedLevels, getLevelStoryHeight, setStoryHeight } from './levels.js';
 export { generateId } from './ids.js';

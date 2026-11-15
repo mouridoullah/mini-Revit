@@ -633,10 +633,10 @@ export function createStairMesh(
     const v1 = flankVerts[i1]!;
     const v2 = flankVerts[i2]!;
 
-    // En 2D (s, z) : si le triangle tourne CW (v1-v0)x(v2-v0) < 0, dans le repère 3D avec Z-up et +n vers l'extérieur,
-    // orienter les indices pour que la normale pointe vers +n
+    // Dans le repère 3D (u, n, z) avec Z-up et normale extérieure +n :
+    // (u x z) = -n. Donc pour pointer vers +n, l'ordre des sommets dans le plan (s, z) doit être CW (crossSZ < 0).
     const crossSZ = (v1.x - v0.x) * (v2.y - v0.y) - (v1.y - v0.y) * (v2.x - v0.x);
-    if (crossSZ > 0) {
+    if (crossSZ < 0) {
       indices[iOffset++] = rightStartV + i0;
       indices[iOffset++] = rightStartV + i1;
       indices[iOffset++] = rightStartV + i2;
@@ -680,8 +680,8 @@ export function createStairMesh(
     const v2 = flankVerts[i2]!;
 
     const crossSZ = (v1.x - v0.x) * (v2.y - v0.y) - (v1.y - v0.y) * (v2.x - v0.x);
-    // Normale opposée (-n) : inversion de l'enroulement
-    if (crossSZ < 0) {
+    // Normale opposée (-n) : orienter vers l'extérieur gauche (crossSZ > 0)
+    if (crossSZ > 0) {
       indices[iOffset++] = leftStartV + i0;
       indices[iOffset++] = leftStartV + i1;
       indices[iOffset++] = leftStartV + i2;
