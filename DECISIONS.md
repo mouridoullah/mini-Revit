@@ -53,6 +53,7 @@
 | **ADR-042** | Généralisation du Modèle Type / Instance (`SlabType`, `DoorType`, `WindowType`)                | **Accepté**  | 15/11/2026 |
 | **ADR-043** | Migration de Schéma Documentaire v2 et Préservation Intégrale des Familles                     | **Accepté**  | 15/11/2026 |
 | **ADR-044** | Étirement Élastique des Murs, Résolution de Connectivité, Compensation des Baies et Garde-fous | **Accepté**  | 15/11/2026 |
+| **ADR-045** | Modèle Dalles, SlabType, Migration de Schéma v1→v2 et Résolution des Trémies                   | **Accepté**  | 15/11/2026 |
 
 ---
 
@@ -1771,3 +1772,89 @@ export function computeWallStretch(input: WallStretchInput): WallStretchResult;
 - Zéro régression sur le test de crédibilité du BIM de Phase 3.3.
 - Garantie mathématique de non-effondrement et de non-inversion grâce aux 3 garde-fous stricts.
 - Zéro dépendance interdite (respect total des règles de pureté architecturale).
+
+---
+
+## ADR-045 : Modèle Dalles, SlabType, Migration de Schéma v1→v2 et Résolution des Trémies
+
+### Statut
+
+**Accepté** (Phase 6.1a — Préalable d'implémentation)
+
+### Date
+
+15 novembre 2026
+
+### Contexte
+
+La Phase 6.1a amorce le chantier majeur des dalles horizontales (`Slab`) et de la généralisation du modèle Type / Instance pour l'ensemble des éléments constructifs (`SlabType`, `DoorType`, `WindowType`). Ce passage introduit `schemaVersion: 2`.
+Trois décisions d'ingénierie majeures doivent être tranchées formellement avant l'écriture du code de production :
+1. La persistance ou dérivation pure des champs `status` et `area` de `Room` (suite aux ajouts de la Phase 6.0c).
+2. L'emplacement architectural et l'algorithme exact du calcul de la hauteur d'arase supérieure (`topConstraint`) des murs sous dalles.
+3. Les garanties de rétrocompatibilité et la politique de rejet lors de la migration automatique des fichiers V1 vers V2.
+
+---
+
+### Décisions Arbitrées
+
+#### DÉCISION 1 — Persistance de `Room.status` et `Room.area` : Option α (Persistance dans le Draft)
+
+- **Arbitrage :** **Option α** (les champs optionnels `status?: 'enclosed' | 'unenclosed'` et `area?: number` sont persistés dans l'état documentaire `BimState.rooms`).
+- **Justification :**
+  1. *Performance d'affichage $\mathcal{O}(1)$ :* Le calcul topologique des pièces (`detectRooms`) implique un partitionnement planaire et un lancer de rayons géométrique. Le faire à chaque rafraîchissement d'affichage 2D Canvas ou 3D Three.js dégraderait les performances au-delà des 60 FPS requis.
+  2. *Cohérence avec ADR-039 :* Le statut dérivé `unenclosed` est un état métier persistant permettant à l'utilisateur de constater une rupture d'enceinte sans voir sa pièce supprimée du modèle.
+  3. *Harmonisation documentaire :* `CORE_SPEC.md` et `ROOMS_SPEC.md` sont formellement alignés sur `types.ts` pour consigner que `Room` porte ces attributs calculés lors des mutations topologiques (création, déplacement de mur, suppression).
+
+#### DÉCISION 2 — Calcul de `topConstraint` : Option α (Helper Métier Pur `computeWallEffectiveHeight`)
+
+- **Arbitrage :** **Option α** (Fonction pure `computeWallEffectiveHeight(wall, state)` hébergée dans `packages/core/src/walls.ts`).
+- **Signature :**
+  ```typescript
+  export interface WallEffectiveHeightResult {
+    readonly zBase: number;
+    readonly zTop: number;
+    readonly heightEff: number;
+    readonly limitingSlabId?: ElementId;
+  }
+  export function computeWallEffectiveHeight(wall: Wall, state: BimState): WallEffectiveHeightResult;
+  ```
+- **Règles de Calcul Déterministe :**
+  1. **Priorité absolue à `heightOverride` :** Si `wall.heightOverride !== undefined`, $H_{\text{eff}} = \text{wall.heightOverride}$, $Z_{\text{base}} = \text{level.elevation}$, $Z_{\text{top}} = Z_{\text{base}} + H_{\text{eff}}$.
+  2. **Contrainte de niveau supérieur :** Si un niveau supérieur existe (soit via `wall.topConstraint.levelId`, soit le niveau $N+1$ contigu) :
+     - On recherche toutes les dalles $s \in \text{state.slabs}$ associées à ce niveau supérieur qui recouvrent spatialement l'axe du mur (intersection 2D segment-polygone de dalle $\text{dist} \le \text{tolerance}$).
+     - Pour chaque dalle couvrante, l'arase de sous-face est $Z_{\text{inf}}(s) = \text{level}_{N+1}.\text{elevation} + (s.\text{baseOffset} \mathbin{?} 0) - \text{slabType}_s.\text{thickness}$.
+     - L'arase supérieure effective du mur est calée sous la dalle la plus basse : $Z_{\text{top}} = \min_{s} Z_{\text{inf}}(s)$.
+     - Si aucune dalle ne couvre le mur, $Z_{\text{top}} = \text{level}_{N+1}.\text{elevation} + (\text{wall.topConstraint?.offset} \mathbin{?} 0)$.
+     - $H_{\text{eff}} = Z_{\text{top}} - Z_{\text{base}}$.
+  3. **Absence de contrainte supérieure (Dernier étage) :** $H_{\text{eff}} = \text{wallType.height}$, $Z_{\text{top}} = Z_{\text{base}} + H_{\text{eff}}$.
+- **Intégration DAG :** Arêtes orientées `slab(N+1) -> wall(N)` et `slab(N) -> wall(N)` (si `baseOffset > 0`) pour propager automatiquement l'invalidation géométrique 3D lors de toute mutation d'épaisseur ou d'offset de dalle.
+
+#### DÉCISION 3 — Rétrocompatibilité & Migration v1 $\to$ v2 : Rejet Strict des Données Invalides
+
+- **Arbitrage :**
+  1. `BimDocument.fromJSON` détecte `schemaVersion`. Si absent ou `1`, la fonction pure `migrateSchemaV1toV2` est invoquée automatiquement.
+  2. **Rejet strict (Fail-Fast) :** Aucune invention de données par défaut. Si une porte ou fenêtre V1 possède une largeur ou hauteur invalide (`width <= 0`, `NaN`, non numérique ou manquante), la migration lève immédiatement `BimValidationError('MALFORMED_DOOR' | 'MALFORMED_WINDOW')`.
+  3. **Migration sans perte de volume :** Regroupement déterministe des types synthétisés :
+     - Pour chaque couple distinct $(width, height)$ de porte $\to$ un `DoorType` unique partagé.
+     - Pour chaque triplet distinct $(width, height, sillHeight)$ de fenêtre $\to$ un `WindowType` unique partagé.
+     - Somme des volumes de parois, réservations et dalles strictement invariante au micron cube près.
+  4. **Mode hauteur des murs migrés (ADR-043 §2) :** `wall.heightOverride` n'est posé que si un niveau supérieur existe et présente un écart altimétrique différent de `wallType.height`. Sinon, le mur reste en mode automatique (`heightOverride: undefined`).
+
+---
+
+### Découpe Géométrique des Trémies (`computeEffectiveSlabPolygon`)
+
+La fonction géométrique pure `computeEffectiveSlabPolygon` dans `@mini-bim/geometry/src/slabs/effective.ts` opère via la librairie éprouvée `polygon-clipping` :
+1. **Union des trémies :** $\mathcal{H}_{\text{merged}} = \text{union}(\text{manualHoles}, \text{stairShafts})$.
+2. **Découpe en rive :** $\mathcal{B}_{\text{trimmed}} = \text{difference}(\text{boundary}, \mathcal{H}_{\text{merged}})$.
+   - Si $\mathcal{B}_{\text{trimmed}} = \emptyset \implies$ throw `SlabGeometryError('SLAB_EMPTY')`.
+   - Si $\mathcal{B}_{\text{trimmed}}$ est un `MultiPolygon` disjoint $\implies$ throw `SlabGeometryError('SLAB_SEVERED')`.
+3. **Trous intérieurs effectifs :** Les trous entièrement intérieurs à $\mathcal{B}_{\text{trimmed}}$ constituent `effectiveHoles` ; les trémies tangentes ou sécantes avec la rive sont naturellement absorbées dans l'encoche de contour extérieur de `trimmedBoundary`.
+
+---
+
+### Conséquences
+
+- Le schéma documentaire évolue de manière étanche vers la v2 avec typage complet des ouvertures et dalles.
+- Rétrocompatibilité totale avec les maquettes V1.0 de Saison 1.
+- Respect rigoureux des 620 tests existants via adaptation transparente des lectures de propriétés sur types.
