@@ -49,8 +49,9 @@ flowchart TD
     subgraph CoreDomain ["Noyau BIM Core (TypeScript Pur)"]
         Document["BimDocument (Murs, Baies, Pièces, Cotes, Dalles, Niveaux)"]
         CommandBus["Commandes Transactionnelles & Undo/Redo (Immer)"]
+        RelationsEngine["Moteur de Relations Déclaratives & Cascades (ADR-038)"]
         RulesEngine["Validateur Métier d'Invariants (BimValidationError)"]
-        IFCExporter["Générateur IFC4 ISO 10303-21 Pur TS (web-ifc certifié)"]
+        IFCExporter["Générateur IFC4 ISO 10303-21 Pur TS"]
     end
 
     subgraph GeometryKernel ["Noyau Géométrique (TypeScript Pur)"]
@@ -71,13 +72,12 @@ flowchart TD
     Tools --> Snapping
     Tools --> CommandBus
     CommandBus --> Document
-    Document --> DepGraph
-    DepGraph --> RegenEngine
-    RegenEngine --> GeometryKernel
-    RegenEngine --> SpatialIndex
+    Document --> RelationsEngine
+    Document --> RulesEngine
+    Document --> GeometryKernel
     Document --> Persistence
-    RegenEngine -.-> View2D
-    RegenEngine -.-> View3D
+    Document -.-> View2D
+    Document -.-> View3D
     View2D -.-> Tools
     View3D -.-> Tools
 ```
@@ -124,8 +124,8 @@ flowchart TD
 ### 3.4 `@mini-bim/view-2d` & `@mini-bim/view-3d` (Moteurs de Vues)
 
 - **Rôle :** Affichage optimisé et capture des interactions de bas niveau.
-- **Dépendances :** `@mini-bim/core`, Three.js (uniquement pour 3D), Canvas 2D natif (pour 2D).
-- **Règle fondamentale :** Ces modules sont instanciés de façon **impérative** et montés sur des éléments `<canvas>`. Ils s'abonnent aux événements du moteur BIM (`on('patch', ...)`), évitant tout re-rendu superflu du cycle de vie React.
+- **Dépendances :** Types géométriques neutres (`@mini-bim/geometry`), Three.js (uniquement pour 3D), Canvas 2D natif (pour 2D). **Zéro dépendance vers `@mini-bim/core`** (conformément à l'ADR-023 et l'ADR-029).
+- **Règle fondamentale :** Ces modules sont instanciés de façon **impérative** et montés sur des éléments `<canvas>`. Ils reçoivent leurs données sous forme de structures géométriques découplées (`WallFor2D`, `RawMeshData`), garantissant une étanchéité totale par rapport au modèle documentaire.
 - **Responsabilités 3D :**
   - Scène Three.js avec repère Z-up orienté via groupe racine inversé.
   - Matériaux architecturaux sobres, arêtes nettes (`LineSegments` + `EdgesGeometry`).

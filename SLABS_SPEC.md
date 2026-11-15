@@ -83,13 +83,22 @@ Toute opération sur une dalle doit restaurer l'état documentaire bit-à-bit (`
 
 ## 4. Règles Métier et Codes d'Erreur (`validateSlab`)
 
-La fonction pure `validateSlab(slab: Slab, state: BimState): void` vérifie les invariants suivants et lève des exceptions `BimValidationError` typées :
+### 4.1 Normalisation Automatique des Contours
+
+Pour maximiser la tolérance UX :
+
+- Le contour extérieur `boundary` est automatiquement normalisé en sens trigonométrique (**CCW**) lors de l'exécution de la commande (inversion automatique si l'utilisateur saisit les points en sens horaire).
+- Les trémies `holes` sont automatiquement normalisées en sens horaire (**CW**).
+
+### 4.2 Invariants et Exceptions Typées (`BimValidationError`)
+
+La fonction pure `validateSlab(slab: Slab, state: BimState): void` vérifie les invariants suivants :
 
 1. `UNKNOWN_LEVEL` : Le `slab.levelId` doit correspondre à un niveau existant dans `state.levels`.
 2. `INVALID_SLAB_THICKNESS` : L'épaisseur `thickness` doit être un nombre fini strictement positif ($\ge 50\text{ mm}$).
 3. `INVALID_SLAB_BOUNDARY` : Le contour extérieur `boundary` doit comporter au moins 3 sommets non colinéaires et une aire signée non nulle ($\ge 0,1\text{ m}^2$).
 4. `SELF_INTERSECTING_SLAB` : Le contour extérieur ne doit présenter aucune auto-intersection d'arêtes.
-5. `HOLE_OUTSIDE_SLAB` : Chaque trémie dans `holes` doit être géométriquement et strictement incluse à l'intérieur du polygone `boundary`.
+5. `HOLE_OUTSIDE_SLAB` : Chaque trémie dans `holes` doit être géométriquement contenue dans le polygone `boundary`. Les contacts et tangences avec les bords de dalle (trémie adossée à un mur porteur) sont acceptés ; seul le débordement strict à l'extérieur est rejeté.
 6. `INTERSECTING_HOLES` : Deux trémies ne peuvent pas se chevaucher ou s'auto-intersecter.
 
 ---
@@ -119,14 +128,14 @@ La fonction pure `validateSlab(slab: Slab, state: BimState): void` vérifie les 
 
 ## 7. Export IFC4 (`IfcSlab`)
 
-La dalle est traduite dans le fichier STEP ISO 10303-21 :
+La dalle est traduite dans le fichier STEP ISO 10303-21 en respectant strictement l'ordonnancement des 9 attributs du schéma IFC4 (`PredefinedType` en 9ᵉ position) :
 
 ```step
 #200=IFCARBITRARYPROFILEDEFWITHVOIDS(.AREA.,'SlabProfile',#201,(#202));
 #203=IFCEXTRUDEDAREASOLID(#200,#204,#12,200.00);
 #205=IFCSHAPEREPRESENTATION(#16,'Body','SweptSolid',(#203));
 #206=IFCPRODUCTDEFINITIONSHAPE($,$,(#205));
-#207=IFCSLAB('1A2B3C4D5E6F7G8H9I0J1K',#5,'Dalle RDC',$,.FLOOR.,#208,#206,$,$);
+#207=IFCSLAB('1A2B3C4D5E6F7G8H9I0J1K',#5,'Dalle RDC',$,$,#208,#206,$,.FLOOR.);
 #209=IFCRELCONTAINEDINSPATIALSTRUCTURE('2B3C4D5E6F7G8H9I0J1K2L',#5,'SlabStorey',$,(#207),#27);
 ```
 

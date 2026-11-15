@@ -96,7 +96,7 @@ flowchart TD
 
 ---
 
-## 4. Cycle de Vie, Règles de Validation et Cascade (ADR-032 Option B)
+## 4. Cycle de Vie et Statut Dérivé Non-Destructif (ADR-039)
 
 ### 4.1 Validation Métier (`rules.ts`)
 
@@ -105,15 +105,15 @@ flowchart TD
 - `ROOM_SEED_NOT_IN_CLOSED_AREA` : lors de la création d'une pièce (`AddRoomCommand`), le `seed` spécifié doit obligatoirement être situé à l'intérieur d'un contour clos détecté sur ce niveau.
 - `LEVEL_HAS_ATTACHED_ROOMS` : rejet formel de la suppression d'un niveau si des pièces y sont encore rattachées (`canDeleteLevel`).
 
-### 4.2 Cascade de Suppression des Murs (Option B)
+### 4.2 Cycle de Vie Non-Destructif des Pièces (Amendant ADR-032 / Aligné sur Revit)
 
 Lorsqu'un mur est supprimé via `DeleteWallCommand` :
 
 1. Le mur est retiré du document et ses ouvertures hébergées sont supprimées en cascade (Phase 3.1).
 2. L'espace intérieur peut se retrouver ouvert (perte de la fermeture physique).
-3. `detectRooms` est réévalué sur le niveau hôte. Toute entité `Room` dont le `seed` ne se trouve plus dans un espace fermé valide est supprimée automatiquement du dictionnaire `state.rooms`.
-4. `DeleteWallCommand.getChangedIds()` retourne l'identifiant du mur supprimé, les identifiants de toutes ses ouvertures supprimées en cascade, ainsi que les identifiants de toutes les pièces supprimées en cascade.
-5. **Réversibilité totale (Undo/Redo) :** Grâce aux patches inverses Immer, annuler la suppression du mur restaure fidèlement le mur, ses ouvertures et ses pièces associées avec leurs surfaces exactes.
+3. **Non-destruction de l'entité (`ADR-039`) :** L'entité `Room` n'est **pas** supprimée de `state.rooms`. Elle passe dynamiquement au statut dérivé `unenclosed` (_Non délimitée_) avec surface = 0.
+4. Si l'utilisateur redessine un mur fermant l'espace, la pièce retrouve automatiquement son statut `enclosed` et sa surface calculée, sans perte de son nom ni de son identifiant.
+5. Seule une commande explicite `DeleteRoomCommand(roomId)` détruit la pièce du modèle.
 
 ---
 

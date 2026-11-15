@@ -173,11 +173,10 @@ _Dépendances : Phase 1.1 à 1.3 (`@mini-bim/geometry`), Phase 1.4 (`@mini-bim/v
 
 ---
 
-### Phase 2.5 — Panneau d'Inspection des Propriétés et Édition d'Attributs [PROCHAINE ÉTAPE]
+### Phase 2.5 — Panneau d'Inspection des Propriétés et Édition d'Attributs (Planifié en Phase 6.3)
 
-- Panneau latéral rétractable d'inspection des propriétés de l'élément sélectionné (dimensions, coordonnées, type de mur, niveau).
-- Modification en direct des paramètres d'un mur sélectionné via `UpdateWallCommand` avec répercussion instantanée dans les vues 2D et 3D.
-- Sélecteur de niveau actif pour le tracé de nouveaux murs.
+- **Statut :** Planifié pour livraison conjointe avec le sélecteur de niveau et `SlabTool` en Phase 6.3.
+- Panneau latéral d'inspection des propriétés de l'élément sélectionné : édition en direct des épaisseurs de dalles (`thickness`), cotes de niveaux (`elevation`, `height`), types de murs et cotes de portes/fenêtres via les commandes Immer correspondantes.
 
 ---
 
@@ -317,4 +316,4 @@ flowchart LR
 - **Fonctionnalités :**
   - **Réseaux MEP Topologiques :** Tuyauteries sanitaires (eau froide, eau chaude, évacuation), gaines de ventilation et chemins de câbles avec connecteurs (ports) dérivés.
   - **Détection Automatique de Collisions (Clash Detection) :** Algorithme géométrique d'Ericson (intersection segment-segment 3D et boîtes englobantes orientées OBB) détectant les collisions tuyaux/murs et tuyaux/dalles, avec mise en évidence rouge dans l'UI.
-  - **Import IFC4 (Round-Trip OpenBIM) :** Moteur de lecture basé sur `web-ifc` reconstituant un `BimDocument` modifiable à partir d'un fichier IFC produit par Revit, ArchiCAD ou BlenderBIM.
+  - **Import IFC4 (Modèle de Référence Fédéré / Underlay 3D) :** Chargement en lecture seule d'une maquette IFC externe via `web-ifc` pour superposition 3D (Coordination Reference View) et détection de collisions, sans tentative de conversion destructrice en solides paramétriques natifs.

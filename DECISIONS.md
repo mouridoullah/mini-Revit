@@ -1234,3 +1234,118 @@ Comment modéliser les circulations verticales entre étages de manière rigoure
 
 - Conception intuitive et normée des escaliers.
 - Cohérence tridimensionnelle parfaite entre l'escalier et le trou de plancher qui le surplombe.
+
+---
+
+## ADR-038 : Relations Déclaratives Inter-Entités et Moteur de Cascade Générique
+
+- **Date :** 2026-11-15
+- **Statut :** Accepté
+- **Auteur :** Antigravity (Lead Software Architect & Computational Geometry Engineer)
+- **Contexte :** Architecture du modèle BIM pour la Saison 2 (Phases 6 à 9)
+
+### Problème
+
+Actuellement, les cascades de suppression sont codées en dur de manière impérative dans les commandes : `DeleteWallCommand` référence explicitement `doors`, `windows`, `rooms` et `dimensions`. Avec l'arrivée des dalles (`slabs`), des escaliers (`stairs`), des toits (`roofs`), des équipements (`components`) et des réseaux techniques (`mep`), chaque nouvelle entité obligerait à rouvrir et modifier toutes les commandes de suppression existantes, violant l'Open-Closed Principle (OCP) et créant une dette technique exponentielle.
+
+### Décisions Prises
+
+1. **Registre de Métadonnées des Relations (`RELATIONS_REGISTRY`) :**  
+   Définition déclarative centralisée des dépendances et politiques d'intégrité référentielle :
+   ```typescript
+   export interface RelationDef {
+     readonly sourceCategory: Category;
+     readonly field: string;
+     readonly targetCategory: Category;
+     readonly isArray?: boolean;
+     readonly onDelete: 'cascade' | 'restrict' | 'detach';
+   }
+   ```
+   Exemples déclaratifs :
+   - `door.hostWallId` $\to$ `wall` (`onDelete: 'cascade'`)
+   - `window.hostWallId` $\to$ `wall` (`onDelete: 'cascade'`)
+   - `dimension.references` $\to$ `wall` (`onDelete: 'cascade'`)
+   - `wall.levelId` $\to$ `level` (`onDelete: 'restrict'`)
+   - `slab.levelId` $\to$ `level` (`onDelete: 'restrict'`)
+2. **Moteur Générique de Cascade (`resolveCascadeDeletions`) :**  
+   La suppression d'un élément interroge le registre pour collecter automatiquement et de façon déterministe tous les éléments dépendants à supprimer en cascade, ou pour rejeter la transaction (`DELETE_REJECTED`) si une contrainte `restrict` est violée.
+3. **Pérennité de `getChangedIds()` :**  
+   `getChangedIds()` est calculé directement et automatiquement à partir du résultat du moteur générique de cascade, sans logique spécifique par élément.
+
+### Conséquences
+
+- L'ajout d'une nouvelle entité (ex: `Slab` en Phase 6) s'effectue par simple déclaration dans le registre sans jamais retoucher aux commandes de murs ou d'autres entités existantes.
+- Code du noyau (`@mini-bim/core`) hautement maintenable, modulaire et extensible.
+
+---
+
+## ADR-039 : Cycle de Vie Non-Destructif des Pièces (Statut Dérivé `Enclosed` / `Unenclosed`)
+
+- **Date :** 2026-11-15
+- **Statut :** Accepté (Amende et remplace la cascade destructive d'ADR-032)
+- **Auteur :** Antigravity (Lead Software Architect & Computational Geometry Engineer)
+- **Contexte :** Révision architecturale suite à l'audit critique de cohérence métier
+
+### Problème
+
+L'ADR-032 supprimait en cascade l'entité `Room` de `BimState.rooms` dès qu'un mur frontière était détruit. Ce comportement contredisait le principe fondateur ADR-001 (la géométrie est un cache dérivé) et le standard de référence Revit :
+Si un architecte supprime un mur pour le redessiner 50 cm plus loin, la pièce (avec son identifiant, son nom "Chambre Parents", son numéro et ses finitions) était définitivement perdue.
+
+### Décisions Prises
+
+1. **Préservation Sémantique de la Pièce :**  
+   Une pièce (`Room`) n'est **jamais supprimée automatiquement** lors de la modification ou suppression d'un mur. Seule une action explicite de l'utilisateur (`DeleteRoomCommand`) peut détruire l'entité.
+2. **Statut Spatial Dérivé à la Demande :**  
+   Le moteur spatial `detectRooms` attribue dynamiquement un statut à chaque pièce déclarée dans le modèle :
+   - `enclosed` : La graine (`seed`) est géométriquement contenue dans un contour fermé de murs. La surface, le périmètre et le volume sont calculés.
+   - `unenclosed` : Le contour de murs est ouvert (« fuite » d'enceinte). L'étiquette de pièce reste affichée en grisé sur le plan avec la mention _« Non délimitée »_ et une surface de $0\text{ m}^2$.
+   - `redundant` : Deux graines distinctes se retrouvent dans la même enceinte fermée.
+3. **Restauration Automatique :**  
+   Dès que l'utilisateur referme l'enceinte de murs, la pièce redevient instantanément `enclosed` avec recalcul de sa surface, sans perte d'historique ni de métadonnées.
+
+### Conséquences
+
+- Alignement rigoureux avec le fonctionnement éprouvé de Revit.
+- Élimination des suppressions en cascade complexes et fragiles pour les pièces.
+- Expérience utilisateur infiniment plus tolérante aux phases intermédiaires de dessin de cloisons.
+
+---
+
+## ADR-040 : Contrainte Altimétrique Supérieure des Murs (`topConstraint`) et Éradication des Conflits Mur-Dalle
+
+- **Date :** 2026-11-15
+- **Statut :** Accepté
+- **Auteur :** Antigravity (Lead Software Architect & Computational Geometry Engineer)
+- **Contexte :** Phase 6 (Multi-niveaux et planchers d'étages)
+
+### Problème
+
+Dans un bâtiment à étages, si un mur du rez-de-chaussée (RDC) s'élève jusqu'à l'altitude brute du premier étage ($elev_{R+1}$), il entre en collision avec la dalle de plancher du R+1 qui occupe l'intervalle $[elev_{R+1} - \text{thickness}, elev_{R+1}]$. Cette interpénétration engendre :
+
+1. Un double comptage faux des volumes de béton dans les métrés.
+2. Des conflits volumiques (clashs) dans les visionneuses IFC OpenBIM.
+
+### Décisions Prises
+
+1. **Introduction de `topConstraint` sur `Wall` :**  
+   Un mur peut spécifier son raccord supérieur :
+   ```typescript
+   export interface TopConstraint {
+     readonly levelId: ElementId;
+     readonly offset?: number; // Décalage relatif en mm (défaut: 0)
+   }
+   ```
+2. **Calcul Paramétrique de la Hauteur Effective :**  
+   Lorsque le sommet d'un mur du niveau $N$ est contraint au niveau $N+1$, sa hauteur géométrique réelle tient automatiquement compte de la dalle de plancher haut :
+   $$Z_{\text{top}} = \text{level}_{N+1}.\text{elevation} - \text{slabThickness} + (\text{topConstraint.offset} \mathbin{??} 0)$$
+   $$height = Z_{\text{top}} - Z_{\text{base}}$$
+3. **Garantie d'Absence de Collision (Disjonction Parfaite) :**  
+   Le sommet du mur s'arrête rigoureusement sous la sous-face de la dalle supérieure. L'intersection des volumes 3D est strictement nulle : $\text{Volume}(wall \cap slab) = 0$.
+
+### Conséquences
+
+- Les murs suivent automatiquement les changements de hauteur d'étage sans intervention manuelle.
+- Zéro collision géométrique dans les modèles exportés en IFC4.
+- Préparation de l'infrastructure pour l'attachement aux versants de toiture en Phase 7.
+
+- Cohérence tridimensionnelle parfaite entre l'escalier et le trou de plancher qui le surplombe.

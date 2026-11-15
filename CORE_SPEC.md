@@ -33,6 +33,7 @@ export interface Level {
   readonly id: ElementId;
   readonly name: string;
   readonly elevation: number; // en mm (repère Z-up)
+  readonly height?: number; // hauteur d'étage en mm (défaut: 2800)
 }
 
 export interface Layer {
@@ -48,6 +49,11 @@ export interface WallType {
   readonly layers?: readonly Layer[];
 }
 
+export interface TopConstraint {
+  readonly levelId: ElementId;
+  readonly offset?: number; // décalage en mm (défaut: 0)
+}
+
 export interface Wall {
   readonly id: ElementId;
   readonly category: 'wall';
@@ -57,6 +63,7 @@ export interface Wall {
   readonly end: Vec2; // coordonnées 2D en mm
   readonly baseOffset?: number; // décalage vertical optionnel en mm
   readonly heightOverride?: number; // surcharge optionnelle en mm
+  readonly topConstraint?: TopConstraint; // contrainte supérieure optionnelle (ADR-040)
 }
 
 // ---------------------------------------------------------------------------
@@ -93,6 +100,48 @@ export interface Window extends OpeningBase {
 
 export type Opening = Door | Window;
 
+// ---------------------------------------------------------------------------
+// Modèle des Pièces et Espaces (Phase 4 / ADR-039)
+// ---------------------------------------------------------------------------
+
+export interface Room {
+  readonly id: ElementId;
+  readonly category: 'room';
+  readonly levelId: ElementId;
+  readonly seed: Vec2;
+  readonly name: string;
+}
+
+// ---------------------------------------------------------------------------
+// Modèle des Cotations Associatives (Phase 5 / ADR-034)
+// ---------------------------------------------------------------------------
+
+export interface Dimension {
+  readonly id: ElementId;
+  readonly category: 'dimension';
+  readonly levelId: ElementId;
+  readonly references: readonly ElementId[];
+  readonly offset: number;
+  readonly value: number;
+  readonly type: 'linear' | 'aligned';
+  readonly customLabel?: string;
+}
+
+// ---------------------------------------------------------------------------
+// Modèle des Dalles Horizontales (Phase 6 / ADR-035)
+// ---------------------------------------------------------------------------
+
+export interface Slab {
+  readonly id: ElementId;
+  readonly category: 'slab';
+  readonly levelId: ElementId;
+  readonly boundary: readonly Vec2[]; // CCW
+  readonly holes: readonly (readonly Vec2[])[]; // CW
+  readonly thickness: number; // mm (> 0)
+  readonly baseOffset?: number;
+  readonly name?: string;
+}
+
 export interface BimState {
   readonly schemaVersion: 1;
   readonly units: 'mm';
@@ -101,6 +150,9 @@ export interface BimState {
   readonly walls: Record<ElementId, Wall>;
   readonly doors: Record<ElementId, Door>;
   readonly windows: Record<ElementId, Window>;
+  readonly rooms?: Record<ElementId, Room>;
+  readonly dimensions?: Record<ElementId, Dimension>;
+  readonly slabs?: Record<ElementId, Slab>;
 }
 ```
 

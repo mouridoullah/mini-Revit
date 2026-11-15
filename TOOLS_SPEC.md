@@ -209,6 +209,12 @@ Pour garantir une précision parfaite sur les 8 directions ($0^\circ, 45^\circ, 
 - Pour $k = 0, 2, 4, 6$ (axes cardinaux), l'une des composantes est **strictement zéro bit-à-bit** en IEEE-754 ($y \equiv 0$ ou $x \equiv 0$).
 - Pour $k = 1, 3, 5, 7$ (diagonales), $\Delta x$ et $\Delta y$ sont calculés par le même produit `r * Math.SQRT1_2`, assurant une égalité binaire stricte $|\Delta x| \equiv |\Delta y|$ et une pente exacte $\frac{\Delta y}{\Delta x} \equiv 1.0$ (erreur résiduelle $< 10^{-15}$).
 
+### 5.3 Rayon d'Accrochage en Pixels Écran (Indépendance au Zoom)
+
+Le rayon de magnétisme pour l'accrochage aux sommets et arêtes est étalonné en pixels écran (ex: 12 px) :
+$$\text{toleranceMonde} = \frac{\text{tolerancePixels}}{\text{transform.scale}}$$
+Cette convention assure une zone d'attraction ergonomique constante sous le pointeur de la souris, que l'utilisateur travaille en vue d'ensemble dézoomée ou en vue de détail agrandie.
+
 ---
 
 ## 6. Pont DOM et Intégration React
