@@ -1346,10 +1346,8 @@ export class AddStairTypeCommand implements Command {
       );
     }
     validateStairType(this.stairType);
-    if (!draft.stairTypes) {
-      (draft as { stairTypes: Record<ElementId, StairType> }).stairTypes = {};
-    }
-    draft.stairTypes[this.stairType.id] = this.stairType;
+    const stairTypes = ((draft as { stairTypes: Record<ElementId, StairType> }).stairTypes ??= {});
+    stairTypes[this.stairType.id] = this.stairType;
   }
 
   public getChangedIds(): readonly ElementId[] {
@@ -1435,10 +1433,8 @@ export class AddStairCommand implements Command {
       );
     }
     validateStair(this.stair, draft as BimState);
-    if (!draft.stairs) {
-      (draft as { stairs: Record<ElementId, Stair> }).stairs = {};
-    }
-    draft.stairs[this.stair.id] = this.stair;
+    const stairs = ((draft as { stairs: Record<ElementId, Stair> }).stairs ??= {});
+    stairs[this.stair.id] = this.stair;
   }
 
   public getChangedIds(): readonly ElementId[] {

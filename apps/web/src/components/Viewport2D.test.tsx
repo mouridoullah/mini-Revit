@@ -13,6 +13,7 @@ import { Commands } from '@mini-bim/core';
 describe('Viewport2D React Wrapper & Tools Integration (apps/web)', () => {
   const disposeSpy = vi.spyOn(View2DModule.View2D.prototype, 'dispose');
   const renderSpy = vi.spyOn(View2DModule.View2D.prototype, 'render');
+  const setSlabsSpy = vi.spyOn(View2DModule.View2D.prototype, 'setSlabs');
   const setSelectionSpy = vi.spyOn(View2DModule.View2D.prototype, 'setSelection');
   const setPreviewSpy = vi.spyOn(View2DModule.View2D.prototype, 'setPreview');
 
@@ -36,6 +37,7 @@ describe('Viewport2D React Wrapper & Tools Integration (apps/web)', () => {
           fillText: vi.fn(),
           setLineDash: vi.fn(),
           getLineDash: vi.fn(() => []),
+          clip: vi.fn(),
           arc: vi.fn(),
           strokeRect: vi.fn(),
         } as unknown as CanvasRenderingContext2D;
@@ -69,6 +71,50 @@ describe('Viewport2D React Wrapper & Tools Integration (apps/web)', () => {
     const canvas = getByTestId('viewport-2d-canvas');
     expect(canvas).toBeDefined();
     expect(renderSpy).toHaveBeenCalled();
+  });
+
+  it('laisse View2D dériver la trémie d’escalier dans la dalle du niveau supérieur', () => {
+    const doc = BimDocument.createDefaultProject();
+    const state = doc.getState();
+    const bottomLevelId = Object.keys(state.levels)[0]!;
+    const topLevelId = 'lvl_r1';
+    const slabTypeId = Object.keys(state.slabTypes ?? {})[0]!;
+    const stairTypeId = Object.keys(state.stairTypes ?? {})[0]!;
+
+    doc.execute(new Commands.AddLevelCommand({ id: topLevelId, name: 'R+1', elevation: 2800 }));
+    doc.execute(
+      new Commands.AddSlabCommand({
+        id: 'slab_r1',
+        category: 'slab',
+        slabTypeId,
+        levelId: topLevelId,
+        boundary: [
+          { x: 0, y: 0 },
+          { x: 12000, y: 0 },
+          { x: 12000, y: 9000 },
+          { x: 0, y: 9000 },
+        ],
+      }),
+    );
+    doc.execute(
+      new Commands.AddStairCommand({
+        id: 'stair_rdc_r1',
+        category: 'stair',
+        stairTypeId,
+        bottomLevelId,
+        topLevelId,
+        start: { x: 1500, y: 1000 },
+        end: { x: 1500, y: 5640 },
+      }),
+    );
+
+    render(
+      <BimDocumentProvider initialDoc={doc}>
+        <Viewport2D activeLevelId={topLevelId} />
+      </BimDocumentProvider>,
+    );
+
+    expect(setSlabsSpy).toHaveBeenCalled();
   });
 
   it('RÈGLE D’OR 3 : un re-render React ne recrée PAS l’instance de View2D', () => {

@@ -253,11 +253,13 @@ export class View2D {
     const effectiveDimensions = this.dimensions.length > 0 ? this.dimensions : undefined;
     const state = effectiveDoc.getState();
 
-    let effectiveSlabs: readonly SlabFor2D[] | undefined =
-      this.slabs.length > 0 ? this.slabs : undefined;
+    const rawSlabs =
+      this.slabs.length > 0 ? this.slabs : state.slabs ? Object.values(state.slabs) : undefined;
 
-    if (!effectiveSlabs && state.slabs) {
-      effectiveSlabs = Object.values(state.slabs).map((s) => {
+    let effectiveSlabs: readonly SlabFor2D[] | undefined = undefined;
+
+    if (rawSlabs && rawSlabs.length > 0) {
+      effectiveSlabs = rawSlabs.map((s) => {
         const stairShafts: Vec2[][] = [];
         if (state.stairs) {
           for (const st of Object.values(state.stairs)) {
