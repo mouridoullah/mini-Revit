@@ -7,51 +7,52 @@
 
 ## Sommaire des ADRs
 
-| Réf.        | Titre de la Décision                                                                         |    Statut    |    Date    |
-| :---------- | :------------------------------------------------------------------------------------------- | :----------: | :--------: |
-| **ADR-001** | Modèle BIM comme Source de Vérité Unique (Géométrie = Cache Dérivé)                          | **Accepté**  | 13/11/2026 |
-| **ADR-002** | Découplage Impératif des Moteurs de Vues (Canvas 2D / Three.js vs React)                     | **Accepté**  | 13/11/2026 |
-| **ADR-003** | Standardisation des Unités et Repères Spatiaux (Millimètres Float64 & Z-Up)                  | **Accepté**  | 13/11/2026 |
-| **ADR-004** | Découpe d'Ouvertures par Tranches 2.5D (Sutherland-Hodgman)                                  | **Accepté**  | 13/11/2026 |
-| **ADR-005** | Résolution Topologique des Jonctions de Murs et Limites d'Onglet                             | **Accepté**  | 13/11/2026 |
-| **ADR-006** | Gestion des Mutations et Undo/Redo par Command Pattern Typé                                  | **Accepté**  | 13/11/2026 |
-| **ADR-007** | Stratégie de Persistance Hybride (JSON Versionné puis SQLite WASM/OPFS)                      | **Accepté**  | 13/11/2026 |
-| **ADR-008** | Détection Hybride et Stabilité Sémantique des Pièces (Rooms)                                 | **Accepté**  | 13/11/2026 |
-| **ADR-009** | Architecture d'Extensibilité pour les Réseaux MEP (Category Registry)                        | **Accepté**  | 13/11/2026 |
-| **ADR-010** | Révision des Tolérances Numériques, Typage des Intersections et Rejet de l'Arrondi Prématuré | **Accepté**  | 13/11/2026 |
-| **ADR-011** | Moteur de Jonctions de Murs Déterministe (L, T, X, Colinéaire et Multi-branches)             | **Accepté**  | 13/11/2026 |
-| **ADR-012** | Directives de Robustesse Topologique et Clôture des Jonctions (Audit Approfondi Phase 1)     | **Accepté**  | 13/11/2026 |
-| **ADR-013** | Formalisation et Validation des Percements d'Ouvertures 2.5D (Phase 1.2)                     | **Accepté**  | 13/11/2026 |
-| **ADR-014** | Gouvernance et Traçabilité des Métriques de Rapports (CI Verbatim)                           | **Accepté**  | 13/11/2026 |
-| **ADR-015** | RawMeshData et Buffers Neutres pour Rendu 3D (sans dépendance Three.js)                      | **Accepté**  | 13/11/2026 |
-| **ADR-016** | Stratégie Hybride de Triangulation 2D (Triangle Fan O(n) + Ear Clipping earcut)              | **Accepté**  | 13/11/2026 |
-| **ADR-017** | Traitement des Interfaces de Contact Internes entre Pièces Adjacentes (Modular Solid Block)  | **Accepté**  | 13/11/2026 |
-| **ADR-018** | Architecture Impérative de view-3d sans React, Rendu à la Demande et Backface Culling        | **Accepté**  | 13/11/2026 |
-| **ADR-019** | Architecture du Noyau BIM — BimDocument, CommandBus et Undo/Redo via Immer                   | **Accepté**  | 13/11/2026 |
-| **ADR-020** | Stratégie d'Identifiants Uniques — Adoption d'ULID pour le Noyau BIM                         | **Accepté**  | 13/11/2026 |
-| **ADR-021** | Architecture Impérative de view-2d sans React, Émission de Command, Conversion Y-up/Y-down   | **Accepté**  | 13/11/2026 |
-| **ADR-022** | Intégration React dans apps/web — Viewports Impératifs Isolés, Contexte Documentaire         | **Accepté**  | 13/11/2026 |
-| **ADR-023** | Génération de Maillages 3D dans @mini-bim/view-3d via Interfaces Géométriques Neutres        | **Accepté**  | 14/11/2026 |
-| **ADR-024** | Architecture des Outils Interactifs 2D (State Machines Pures, Snapping 45° et Pont DOM)      | **Accepté**  | 14/11/2026 |
-| **ADR-025** | Sélection UI Partagée Bidirectionnelle (État Éphémère React vs Pureté Documentaire)          | **Accepté**  | 14/11/2026 |
-| **ADR-026** | Picking 3D Déterministe via Raycasting, userData et Permutation de Matériau Partagé          | **Accepté**  | 14/11/2026 |
-| **ADR-027** | Remplacement de BimDocument sans Recréation de Contexte Graphique (setDocument vs Re-Key)    | **Accepté**  | 14/11/2026 |
-| **ADR-028** | Modèle Paramétrique 1D des Ouvertures Hébergées, Validation et Cascade Transactionnelle      | **Accepté**  | 14/11/2026 |
-| **ADR-029** | Rendu 2D/3D Multi-Pièces des Murs Percés, Débattements Angulaires et Placeholders            | **Accepté**  | 14/11/2026 |
-| **ADR-030** | Outils Interactifs pour Ouvertures et Déplacement de Murs (Machines à États Pures)           | **Accepté**  | 14/11/2026 |
-| **ADR-031** | Détection des Pièces par Union Booléenne des Murs, Point d'Ancrage Seed et Polylabel         | **Accepté**  | 14/11/2026 |
-| **ADR-032** | Cascade et Cycle de Vie des Rooms (Option B : Suppression en Cascade)                        | **Obsolète** | 14/11/2026 |
-| **ADR-033** | Stratégie d'Exportation IFC — Générateur Natif TypeScript STEP ISO 10303-21                  | **Accepté**  | 14/11/2026 |
-| **ADR-034** | Cotations 2D Associatives et Propagation Paramétrique Bidirectionnelle                       | **Accepté**  | 14/11/2026 |
-| **ADR-035** | Architecture des Dalles Horizontales (`Slab`), Représentation Polygonale 2D et Extrusion 3D  | **Accepté**  | 15/11/2026 |
-| **ADR-036** | Gestion du Multi-Niveaux, Altimétrie Paramétrique et Rendu Fantôme (`Underlay`)              | **Accepté**  | 15/11/2026 |
-| **ADR-037** | Modèle Paramétrique d'Escalier (`Stair`) et Découpe Automatique de Trémie                    | **Accepté**  | 15/11/2026 |
-| **ADR-038** | Relations Déclaratives Inter-Entités et Moteur de Cascade Générique (`RELATIONS_REGISTRY`)   | **Accepté**  | 15/11/2026 |
-| **ADR-039** | Cycle de Vie Non-Destructif des Pièces (Statut Dérivé `Enclosed` / `Unenclosed`)             | **Accepté**  | 15/11/2026 |
-| **ADR-040** | Contrainte Altimétrique Supérieure des Murs (`topConstraint`) et Sous-Face de Dalle          | **Accepté**  | 15/11/2026 |
-| **ADR-041** | Architecture du Graphe de Dépendances Minimal (DAG) et Moteur de Propagation Générique       | **Accepté**  | 15/11/2026 |
-| **ADR-042** | Généralisation du Modèle Type / Instance (`SlabType`, `DoorType`, `WindowType`)              | **Accepté**  | 15/11/2026 |
-| **ADR-043** | Migration de Schéma Documentaire v2 et Préservation Intégrale des Familles                   | **Accepté**  | 15/11/2026 |
+| Réf.        | Titre de la Décision                                                                           |    Statut    |    Date    |
+| :---------- | :--------------------------------------------------------------------------------------------- | :----------: | :--------: |
+| **ADR-001** | Modèle BIM comme Source de Vérité Unique (Géométrie = Cache Dérivé)                            | **Accepté**  | 13/11/2026 |
+| **ADR-002** | Découplage Impératif des Moteurs de Vues (Canvas 2D / Three.js vs React)                       | **Accepté**  | 13/11/2026 |
+| **ADR-003** | Standardisation des Unités et Repères Spatiaux (Millimètres Float64 & Z-Up)                    | **Accepté**  | 13/11/2026 |
+| **ADR-004** | Découpe d'Ouvertures par Tranches 2.5D (Sutherland-Hodgman)                                    | **Accepté**  | 13/11/2026 |
+| **ADR-005** | Résolution Topologique des Jonctions de Murs et Limites d'Onglet                               | **Accepté**  | 13/11/2026 |
+| **ADR-006** | Gestion des Mutations et Undo/Redo par Command Pattern Typé                                    | **Accepté**  | 13/11/2026 |
+| **ADR-007** | Stratégie de Persistance Hybride (JSON Versionné puis SQLite WASM/OPFS)                        | **Accepté**  | 13/11/2026 |
+| **ADR-008** | Détection Hybride et Stabilité Sémantique des Pièces (Rooms)                                   | **Accepté**  | 13/11/2026 |
+| **ADR-009** | Architecture d'Extensibilité pour les Réseaux MEP (Category Registry)                          | **Accepté**  | 13/11/2026 |
+| **ADR-010** | Révision des Tolérances Numériques, Typage des Intersections et Rejet de l'Arrondi Prématuré   | **Accepté**  | 13/11/2026 |
+| **ADR-011** | Moteur de Jonctions de Murs Déterministe (L, T, X, Colinéaire et Multi-branches)               | **Accepté**  | 13/11/2026 |
+| **ADR-012** | Directives de Robustesse Topologique et Clôture des Jonctions (Audit Approfondi Phase 1)       | **Accepté**  | 13/11/2026 |
+| **ADR-013** | Formalisation et Validation des Percements d'Ouvertures 2.5D (Phase 1.2)                       | **Accepté**  | 13/11/2026 |
+| **ADR-014** | Gouvernance et Traçabilité des Métriques de Rapports (CI Verbatim)                             | **Accepté**  | 13/11/2026 |
+| **ADR-015** | RawMeshData et Buffers Neutres pour Rendu 3D (sans dépendance Three.js)                        | **Accepté**  | 13/11/2026 |
+| **ADR-016** | Stratégie Hybride de Triangulation 2D (Triangle Fan O(n) + Ear Clipping earcut)                | **Accepté**  | 13/11/2026 |
+| **ADR-017** | Traitement des Interfaces de Contact Internes entre Pièces Adjacentes (Modular Solid Block)    | **Accepté**  | 13/11/2026 |
+| **ADR-018** | Architecture Impérative de view-3d sans React, Rendu à la Demande et Backface Culling          | **Accepté**  | 13/11/2026 |
+| **ADR-019** | Architecture du Noyau BIM — BimDocument, CommandBus et Undo/Redo via Immer                     | **Accepté**  | 13/11/2026 |
+| **ADR-020** | Stratégie d'Identifiants Uniques — Adoption d'ULID pour le Noyau BIM                           | **Accepté**  | 13/11/2026 |
+| **ADR-021** | Architecture Impérative de view-2d sans React, Émission de Command, Conversion Y-up/Y-down     | **Accepté**  | 13/11/2026 |
+| **ADR-022** | Intégration React dans apps/web — Viewports Impératifs Isolés, Contexte Documentaire           | **Accepté**  | 13/11/2026 |
+| **ADR-023** | Génération de Maillages 3D dans @mini-bim/view-3d via Interfaces Géométriques Neutres          | **Accepté**  | 14/11/2026 |
+| **ADR-024** | Architecture des Outils Interactifs 2D (State Machines Pures, Snapping 45° et Pont DOM)        | **Accepté**  | 14/11/2026 |
+| **ADR-025** | Sélection UI Partagée Bidirectionnelle (État Éphémère React vs Pureté Documentaire)            | **Accepté**  | 14/11/2026 |
+| **ADR-026** | Picking 3D Déterministe via Raycasting, userData et Permutation de Matériau Partagé            | **Accepté**  | 14/11/2026 |
+| **ADR-027** | Remplacement de BimDocument sans Recréation de Contexte Graphique (setDocument vs Re-Key)      | **Accepté**  | 14/11/2026 |
+| **ADR-028** | Modèle Paramétrique 1D des Ouvertures Hébergées, Validation et Cascade Transactionnelle        | **Accepté**  | 14/11/2026 |
+| **ADR-029** | Rendu 2D/3D Multi-Pièces des Murs Percés, Débattements Angulaires et Placeholders              | **Accepté**  | 14/11/2026 |
+| **ADR-030** | Outils Interactifs pour Ouvertures et Déplacement de Murs (Machines à États Pures)             | **Accepté**  | 14/11/2026 |
+| **ADR-031** | Détection des Pièces par Union Booléenne des Murs, Point d'Ancrage Seed et Polylabel           | **Accepté**  | 14/11/2026 |
+| **ADR-032** | Cascade et Cycle de Vie des Rooms (Option B : Suppression en Cascade)                          | **Obsolète** | 14/11/2026 |
+| **ADR-033** | Stratégie d'Exportation IFC — Générateur Natif TypeScript STEP ISO 10303-21                    | **Accepté**  | 14/11/2026 |
+| **ADR-034** | Cotations 2D Associatives et Propagation Paramétrique Bidirectionnelle                         | **Accepté**  | 14/11/2026 |
+| **ADR-035** | Architecture des Dalles Horizontales (`Slab`), Représentation Polygonale 2D et Extrusion 3D    | **Accepté**  | 15/11/2026 |
+| **ADR-036** | Gestion du Multi-Niveaux, Altimétrie Paramétrique et Rendu Fantôme (`Underlay`)                | **Accepté**  | 15/11/2026 |
+| **ADR-037** | Modèle Paramétrique d'Escalier (`Stair`) et Découpe Automatique de Trémie                      | **Accepté**  | 15/11/2026 |
+| **ADR-038** | Relations Déclaratives Inter-Entités et Moteur de Cascade Générique (`RELATIONS_REGISTRY`)     | **Accepté**  | 15/11/2026 |
+| **ADR-039** | Cycle de Vie Non-Destructif des Pièces (Statut Dérivé `Enclosed` / `Unenclosed`)               | **Accepté**  | 15/11/2026 |
+| **ADR-040** | Contrainte Altimétrique Supérieure des Murs (`topConstraint`) et Sous-Face de Dalle            | **Accepté**  | 15/11/2026 |
+| **ADR-041** | Architecture du Graphe de Dépendances Minimal (DAG) et Moteur de Propagation Générique         | **Accepté**  | 15/11/2026 |
+| **ADR-042** | Généralisation du Modèle Type / Instance (`SlabType`, `DoorType`, `WindowType`)                | **Accepté**  | 15/11/2026 |
+| **ADR-043** | Migration de Schéma Documentaire v2 et Préservation Intégrale des Familles                     | **Accepté**  | 15/11/2026 |
+| **ADR-044** | Étirement Élastique des Murs, Résolution de Connectivité, Compensation des Baies et Garde-fous | **Proposé**  | 15/11/2026 |
 
 ---
 
@@ -1588,3 +1589,155 @@ Une migration simpliste assignant des types standards fixes (ex: tous les ouvran
 - Rétrocompatibilité garantie à 100% avec les sauvegardes de la Saison 1.
 - Zéro perte de données dimensionnelles lors de la montée de version.
 - Migration propre, isolée et réversible dans `@mini-bim/core`.
+
+---
+
+## ADR-044 : Étirement Élastique des Murs, Résolution de Connectivité, Compensation des Baies et Garde-fous Géométriques
+
+- **Date :** 2026-11-15
+- **Statut :** Proposé (Soumis à l'audit contradictoire Phase 6.0c)
+- **Auteur :** Antigravity (Lead Software Architect & Computational Geometry Engineer)
+- **Contexte :** Finalisation de la refonte architecturale préalable de la Saison 2 (Phase 6.0c). Implémentation du comportement BIM fondamental : lorsqu'un mur est translaté (`MoveWallCommand`), ses murs voisins connectés s'étirent élastiquement pour maintenir la fermeture topologique des jonctions sans corrompre les ouvertures hébergées ni les pièces.
+
+### Problème
+
+En Phase 3.3, `MoveWallTool` se contentait d'émettre un `UpdateWallCommand` sur le mur sélectionné, translatant ses deux extrémités sans toucher aux voisins. Les jonctions d'angles s'ouvraient, brisant l'étanchéité des pièces (`rooms`).
+L'algorithme préliminaire proposé dans `TOOLS_SPEC.md §7.2` (« intersection de l'axe du voisin avec le nouvel axe du mur déplacé ») s'avère incomplet et instable dans plusieurs cas géométriques critiques :
+
+1. **Translations longitudinales en L-junction :** Si un mur horizontal $A$ est translaté le long de son propre axe, l'intersection de son axe infini avec l'axe du mur perpendiculaire $B$ reste fixe, ce qui déconnecterait physiquement les extrémités des deux murs.
+2. **Compensation de position des baies sur un mur pivoté :** Une rotation du mur voisin fausse l'abscisse curviligne 1D des portes et fenêtres si l'on ne compense pas par une projection rigoureuse.
+3. **Murs colinéaires bout-à-bout :** Un rejet brutal sur critère $|\sin \theta| < 0.05$ empêcherait l'étirement axial de cloisons alignées.
+4. **Faux cycles cinématiques :** Une propagation récursive aveugle déclencherait une erreur de cycle sur toute pièce fermée rectangulaire ($A-B-C-D-A$).
+
+### Décisions Prises
+
+#### 1. Arbitrage Formel des 3 Questions Fondamentales (Q1, Q2, Q3)
+
+##### QUESTION 1 — Algorithme de Résolution de Connectivité : Option α Retenue (Revit-like Elastic Stretch)
+
+- **Connexions d'extrémités (`endpoint-start`, `endpoint-end`) :**  
+  L'extrémité partagée du mur voisin $B$ suit directement la nouvelle position de l'extrémité correspondante du mur déplacé $A$ :
+  $$P_B' = P_A + \vec{\Delta}$$
+  L'autre extrémité de $B$ ($Q_B$) reste rigoureusement ancrée à sa position initiale ($Q_B' = Q_B$).  
+  Le mur voisin $B$ subit ainsi une élongation/raccourcissement et une rotation éventuelle d'angle $\theta = \angle(\vec{v}_B', \vec{v}_B)$. Ce comportement correspond exactement au standard des logiciels BIM majeurs (Autodesk Revit, Graphisoft Archicad) : déplacer une cloison en angle déforme le polygone de la pièce en maintenant la coïncidence stricte des sommets.
+- **Connexions en T au milieu (`connection === 'mid'`) :**  
+  Lorsque l'extrémité d'un mur incident $B$ bute sur le corps du mur traversant déplacé $A$, la nouvelle extrémité de $B$ est calculée par projection le long de sa propre droite directrice sur la nouvelle droite directrice de $A'$ :
+  $$P_B' = \mathcal{D}_B \cap \mathcal{D}_{A'}$$
+  Si $|\sin \angle(\vec{u}_B, \vec{u}_{A'})| < 0.05$, la projection est rejetée avec l'erreur `WALL_STRETCH_PARALLEL`.
+
+##### QUESTION 2 — Compensation d'Abscisse Curviligne des Baies : Option β Retenue (Projection Monde Réelle)
+
+Lorsqu'un mur voisin $B$ s'étire par son origine ($B.start$), son repère curviligne local est décalé. Si aucune compensation n'est appliquée, les ouvertures glissent dans l'espace monde avec l'origine du mur, ce qui déplacerait des portes non visées par l'utilisateur.
+
+- **Formule de projection exacte (Option β) :**  
+  Soit $M = P_{B0} + \text{offsetAlong} \cdot \vec{u}_B$ la position spatiale monde initiale du centre de la baie sur $B$.  
+  Après étirement et rotation de $B$ vers $[P_{B0}', P_{B1}']$, la nouvelle abscisse curviligne compensée est calculée par projection orthogonale du point monde $M$ sur le nouvel axe orienté de $B'$ :
+  $$\text{offsetAlong}' = (M - P_{B0}') \cdot \vec{u}_B' \quad \text{avec} \quad \vec{u}_B' = \frac{P_{B1}' - P_{B0}'}{\|P_{B1}' - P_{B0}'\|}$$
+- **Propriété de convergence :**  
+  Dans le cas très fréquent où la rotation est nulle ($\vec{u}_B' = \vec{u}_B$, translation purement orthogonale de $A$), la formule se réduit rigoureusement à l'Option α :
+  $$\text{offsetAlong}' = \text{offsetAlong} - \Delta L_{\text{start}}$$
+  En présence d'une rotation, l'Option β garantit la distance euclidienne minimale $\|M' - M\|$ entre l'ancienne position dans la pièce et la nouvelle baie sur la cloison inclinée. L'intégrité constructive est ensuite contrôlée par la post-condition universelle `validateOpenings(B', openings)`.
+
+##### QUESTION 3 — Murs Parallèles Bout-à-Bout : Option α / γ Unifiée (Support Extrémité, Rejet Mid)
+
+- Deux murs colinéaires ou parallèles bout-à-bout ($A$ de $(0,0)$ à $(6000,0)$ et $B$ de $(6000,0)$ à $(12000,0)$) forment une connexion d'extrémité (`connection: 'endpoint-start'`).
+- Lors d'une translation axiale de $A$ par $\vec{\Delta} = (500, 0)$, $B.start$ passe à $(6500, 0)$ tandis que $B.end$ reste à $(12000, 0)$. La nouvelle longueur $L' = 5500\text{ mm} \ge 100\text{ mm}$ et le vecteur directeur est conservé ($\vec{v}' \cdot \vec{v} > 0$). C'est un étirement axial pur légitime et courant en architecture.
+- **Règle d'application stricte :**  
+  Le garde-fou `WALL_STRETCH_PARALLEL` ($|\sin \theta| < 0.05$) est **strictement réservé aux connexions incidentes en T (`connection === 'mid'`)**, où l'intersection de droites $\mathcal{D}_B \cap \mathcal{D}_{A'}$ est dégénérée ou indéterminée.  
+  Pour toutes les connexions d'extrémités (`endpoint-start`, `endpoint-end`), la connectivité est assurée par coïncidence des sommets. Les murs colinéaires ou parallèles bout-à-bout sont donc **pleinement autorisés**, et régis par les garde-fous universels `WALL_STRETCH_COLLAPSE` et `WALL_STRETCH_REVERSED`.
+
+#### 2. Cascade Récursive et Détection de Cycle (`WALL_STRETCH_CYCLE`) vs Pièces Fermées
+
+- **Résolution de l'incompatibilité apparente :**  
+  Dans une pièce fermée à 4 murs en boucle ($A \to B \to C \to D \to A$, telle que la pièce de référence de Phase 3.3 et `demoDocument.ts`), déplacer le mur $A$ étire les voisins directs $B$ et $D$ en déplaçant leurs extrémités partagées avec $A$. Leurs extrémités opposées (connectées à $C$) **ne bougent pas** ($Q_B' = Q_B$, $Q_D' = Q_D$).  
+  Par conséquent, la connexion avec le mur opposé $C$ reste parfaitement statique, $C$ ne subit aucune déformation, et la propagation s'arrête naturellement à distance topologique 1. La pièce se transforme en quadrilatère/parallélogramme déformé, restant 100% étanche sans cycle.
+- **Déclenchement légitime de `WALL_STRETCH_CYCLE` :**  
+  La propagation récursive et la détection de cycle interviennent lorsqu'une commande sollicite le déplacement des deux extrémités d'un mur en chaîne (propagation en chaîne rigide ou cascade multi-niveaux où un mur intermédiaire collapse et transmet son déplacement à son extrémité opposée).  
+  L'algorithme maintient un ensemble `visited = new Set<ElementId>()`. Si un mur déjà présent dans `visited` est à nouveau sollicité pour une mutation de sommet par la chaîne de propagation, l'opération est immédiatement interrompue avec l'erreur typée `WALL_STRETCH_CYCLE` et la liste des `offendingIds` formant la boucle fermée cinématique.
+
+#### 3. Spécification Formelle de `computeWallStretch`
+
+Module : `packages/geometry/src/junctions/stretch.ts`
+
+```typescript
+export interface WallStretchInput {
+  readonly movedWall: { readonly start: Vec2; readonly end: Vec2 };
+  readonly delta: Vec2;
+  readonly neighbor: { readonly start: Vec2; readonly end: Vec2 };
+  readonly connection: 'endpoint-start' | 'endpoint-end' | 'mid';
+}
+
+export interface WallStretchResult {
+  readonly newNeighborEndpoints: { readonly start: Vec2; readonly end: Vec2 };
+  readonly deltaStart: Vec2;
+  readonly deltaEnd: Vec2;
+}
+
+export function computeWallStretch(input: WallStretchInput): WallStretchResult;
+```
+
+**Algorithme :**
+
+1. **Calcul des nouveaux sommets cibles :**
+   - Si `connection === 'endpoint-start'` :
+     $P_{\text{newStart}} = \text{neighbor.start} + \vec{\Delta}$ ; $P_{\text{newEnd}} = \text{neighbor.end}$.
+   - Si `connection === 'endpoint-end'` :
+     $P_{\text{newStart}} = \text{neighbor.start}$ ; $P_{\text{newEnd}} = \text{neighbor.end} + \vec{\Delta}$.
+   - Si `connection === 'mid'` :
+     Calcul de l'angle $\theta$ entre la direction de `neighbor` et la direction de `movedWall`.
+     Si $|\sin \theta| < 0.05$, throw `WallStretchError('WALL_STRETCH_PARALLEL')`.
+     Intersection de la droite $\mathcal{D}(\text{neighbor.start}, \text{neighbor.end})$ avec la droite translatée $\mathcal{D}(\text{movedWall.start} + \vec{\Delta}, \text{movedWall.end} + \vec{\Delta})$.
+     Le point d'intersection devient la nouvelle extrémité du voisin qui était connectée au corps du mur.
+2. **Vérification des Garde-fous Topologiques :**
+   - Soit $\vec{v}_{\text{old}} = \text{neighbor.end} - \text{neighbor.start}$ et $L_{\text{old}} = \|\vec{v}_{\text{old}}\|$.
+   - Soit $\vec{v}_{\text{new}} = P_{\text{newEnd}} - P_{\text{newStart}}$ et $L_{\text{new}} = \|\vec{v}_{\text{new}}\|$.
+   - **Non-Inversion (`WALL_STRETCH_REVERSED`) :**  
+     Si $\vec{v}_{\text{new}} \cdot \vec{v}_{\text{old}} \le 0$, throw `WallStretchError('WALL_STRETCH_REVERSED')`.
+   - **Non-Effondrement (`WALL_STRETCH_COLLAPSE`) :**  
+     Si $L_{\text{new}} < 100.0\text{ mm}$ ET $L_{\text{new}} < L_{\text{old}}$, throw `WallStretchError('WALL_STRETCH_COLLAPSE')`.  
+     _(Remarque : si le mur mesurait déjà 90 mm initialement et n'est pas raccourci, il n'est pas rejeté)._
+3. **Retour du résultat avec deltas d'extrémités pour compensation :**
+   - $\vec{\delta}_{\text{start}} = P_{\text{newStart}} - \text{neighbor.start}$
+   - $\vec{\delta}_{\text{end}} = P_{\text{newEnd}} - \text{neighbor.end}$
+
+#### 4. Intégration dans `MoveWallCommand` et `validateDirty`
+
+- **Signature de la commande :**
+  ```typescript
+  export class MoveWallCommand implements BimCommand {
+    public readonly type = 'MoveWall';
+    constructor(
+      public readonly wallId: ElementId,
+      public readonly delta: Vec2,
+      public readonly options: {
+        readonly stretchNeighbors?: boolean;
+        readonly propagateChain?: boolean;
+      } = {},
+    ) {}
+    // ...
+  }
+  ```
+- **Détection des connexions (seuil $1.0\text{ mm}$) :**
+  Pour chaque autre mur de même niveau dans le document :
+  - Distance entre sommets $\le 1.0\text{ mm}$ $\to$ `endpoint-start` ou `endpoint-end`.
+  - Distance d'une extrémité au segment intérieur $\le 1.0\text{ mm}$ $\to$ `mid`.
+- **Compensation transactionnelle des baies :**
+  Pour chaque mur voisin $B$ dont l'origine subit $\vec{\delta}_{\text{start}} \ne \vec{0}$, chaque porte et fenêtre hébergée sur $B$ voit son `offsetAlong` mis à jour selon la formule de projection monde (Option β).
+- **Contrôle universel `validateDirty` :**
+  Tous les éléments mutés ($A$, les voisins $B$, les baies compensées) sont soumis à `validateDirty`. Si le raccourcissement d'un voisin fait déborder une porte au-delà des gardes de rive ou linteau ($H_{\text{linteau}} \le H_{\text{eff}}$), la commande est rejetée atomiquement avec `offendingIds`.
+- **Statut des pièces (`Room`) :**
+  Après déplacement, l'algorithme de détection des pièces réévalue les contours. Si une pièce voit son enceinte brisée, elle passe en `status: 'unenclosed'` avec `area: 0` conformément à l'ADR-039 sans être supprimée.
+
+#### 5. Impact sur les Tests Existants
+
+- **`MoveWallTool.test.ts` :**  
+  Les assertions vérifiant l'émission de `UpdateWallCommand` sont mises à jour pour vérifier l'émission de `MoveWallCommand(wallId, delta, { stretchNeighbors: true })`.
+- **`App.test.tsx` (Test de Crédibilité Phase 3.3) :**  
+  Déplacer `wall_south` de $(500,0)$ étire élastiquement `wall_east` et `wall_west`. `door_demo` conserve son `offsetAlong = 2000`. `createWallMeshWithOpenings` est désormais appelé pour les 3 murs impactés. La pièce de 24 m² se transforme en parallélogramme fermé sans perte d'étanchéité.
+
+### Conséquences
+
+- Les jonctions de murs restent scellées lors des manipulations interactives, apportant le comportement BIM attendu de niveau professionnel.
+- Zéro régression sur le test de crédibilité du BIM de Phase 3.3.
+- Garantie mathématique de non-effondrement et de non-inversion grâce aux 3 garde-fous stricts.
+- Zéro dépendance interdite (respect total des règles de pureté architecturale).
