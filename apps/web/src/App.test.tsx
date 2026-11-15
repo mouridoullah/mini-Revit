@@ -1254,4 +1254,38 @@ describe('App Integration & Squelette Double Viewport (apps/web)', () => {
     const wallM = metrics.walls.find((w) => w.wallId === 'w_constrained_cross');
     expect(wallM?.grossAreaMm2).toBe(4000 * 2650);
   });
+
+  it('T-APP-AUTOSAVE-01 : App au montage restaure automatiquement un projet depuis IndexedDB et affiche le bandeau d’information', async () => {
+    const { saveToIndexedDB, clearIndexedDB } = await import('./persistence/autoSave.js');
+    await clearIndexedDB();
+
+    const savedDoc = BimDocument.createDefaultProject();
+    const typeId = Object.keys(savedDoc.getState().wallTypes)[0]!;
+    const levelId = Object.keys(savedDoc.getState().levels)[0]!;
+    savedDoc.execute(
+      new Commands.AddWallCommand({
+        id: 'w_restored_1',
+        category: 'wall',
+        typeId,
+        levelId,
+        start: { x: 0, y: 0 },
+        end: { x: 7500, y: 0 },
+      }),
+    );
+
+    await saveToIndexedDB(savedDoc);
+
+    const { findByTestId } = render(<App />);
+
+    const infoBanner = await findByTestId('info-banner');
+    expect(infoBanner).toBeDefined();
+    expect(infoBanner.textContent).toContain('Projet restauré depuis la sauvegarde automatique');
+
+    await waitFor(() => {
+      const statusBar = document.querySelector('footer');
+      expect(statusBar?.textContent).toContain('Murs : 1');
+    });
+
+    await clearIndexedDB();
+  });
 });

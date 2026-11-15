@@ -166,3 +166,9 @@ if (typeof window !== 'undefined' && window.URL) {
     window.URL.revokeObjectURL = vi.fn();
   }
 }
+
+// Mock IndexedDB pour environnement headless
+import { createMockIndexedDB } from './persistence/indexedDBMock.js';
+if (typeof globalThis.indexedDB === 'undefined') {
+  (globalThis as unknown as { indexedDB: unknown }).indexedDB = createMockIndexedDB();
+}

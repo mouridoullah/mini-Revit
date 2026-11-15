@@ -96,6 +96,7 @@ export function Viewport2D({
   useEffect(() => {
     if (viewRef.current) {
       viewRef.current.setActiveLevelId(activeLevelIdProp ?? null);
+      viewRef.current.invalidateUnderlayCache();
     }
   }, [activeLevelIdProp]);
 
@@ -103,8 +104,19 @@ export function Viewport2D({
   useEffect(() => {
     if (viewRef.current) {
       viewRef.current.setUnderlayLevelId(underlayLevelIdProp ?? null);
+      viewRef.current.invalidateUnderlayCache();
     }
   }, [underlayLevelIdProp]);
+
+  // Invalidation réactive de l'underlay cache sur doc.subscribe (S1-2)
+  useEffect(() => {
+    const unsubscribe = doc.subscribe((changedIds: readonly string[]) => {
+      if (viewRef.current) {
+        viewRef.current.invalidateUnderlayCache(changedIds);
+      }
+    });
+    return unsubscribe;
+  }, [doc]);
 
   // Mise à jour sur notification d'état documentaire et rafraîchissement des pièces et dalles
   useEffect(() => {

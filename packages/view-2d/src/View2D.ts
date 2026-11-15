@@ -1,4 +1,5 @@
 import { type Vec2, vec2, distance } from '@mini-bim/geometry';
+import { computeStairShaft, type Stair, type BimState } from '@mini-bim/core';
 import { Transform2D } from './transform.js';
 import { renderPlanView, DEFAULT_VIEW2D_RENDER_CONFIG } from './renderer.js';
 import { findWallAtScreen } from './hit-test.js';
@@ -228,8 +229,22 @@ export class View2D {
     return this.underlayCache;
   }
 
-  public invalidateUnderlayCache(changedIds?: readonly string[]): void {
+  public invalidateUnderlayCache(changedIds?: readonly string[]): boolean {
+    if (!changedIds || changedIds.length === 0) {
+      this.underlayCache.clear();
+      return true;
+    }
+
+    if (this.underlayLevelId) {
+      if (this.underlayCache.shouldInvalidate(this.underlayLevelId, changedIds)) {
+        this.underlayCache.invalidate(changedIds);
+        return true;
+      }
+      return false;
+    }
+
     this.underlayCache.invalidate(changedIds);
+    return false;
   }
 
   // ---------------------------------------------------------------------------
@@ -262,31 +277,17 @@ export class View2D {
       effectiveSlabs = rawSlabs.map((s) => {
         const stairShafts: Vec2[][] = [];
         if (state.stairs) {
+          const slabType = s.slabTypeId ? state.slabTypes?.[s.slabTypeId] : undefined;
+          const slabThickness = slabType?.thickness ?? 200;
           for (const st of Object.values(state.stairs)) {
             if (st.topLevelId === s.levelId) {
-              const stType = st.stairTypeId ? state.stairTypes?.[st.stairTypeId] : undefined;
-              const nominalWidth = st.widthOverride ?? stType?.width ?? 900;
-              const shaftWidth = nominalWidth + 100;
-              const halfWidth = shaftWidth / 2;
-              const endExtension = 100;
-              const dx = st.end.x - st.start.x;
-              const dy = st.end.y - st.start.y;
-              const len = Math.hypot(dx, dy);
-              if (len > 1e-4) {
-                const ux = dx / len;
-                const uy = dy / len;
-                const nx = -uy;
-                const ny = ux;
-                const pStartX = st.start.x - ux * endExtension;
-                const pStartY = st.start.y - uy * endExtension;
-                const pEndX = st.end.x + ux * endExtension;
-                const pEndY = st.end.y + uy * endExtension;
-                stairShafts.push([
-                  { x: pStartX - nx * halfWidth, y: pStartY - ny * halfWidth },
-                  { x: pEndX - nx * halfWidth, y: pEndY - ny * halfWidth },
-                  { x: pEndX + nx * halfWidth, y: pEndY + ny * halfWidth },
-                  { x: pStartX + nx * halfWidth, y: pStartY + ny * halfWidth },
-                ]);
+              const shaft = computeStairShaft(
+                st as unknown as Stair,
+                state as unknown as BimState,
+                { useHeadroomCutoff: true, slabThickness },
+              );
+              if (shaft && shaft.length >= 3) {
+                stairShafts.push([...shaft]);
               }
             }
           }

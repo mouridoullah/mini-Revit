@@ -177,7 +177,9 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
         hostWall,
         resolvedHost.zBase,
       );
-      scene.updateMesh(placeholder, doorMat);
+      const m = scene.updateMesh(placeholder, doorMat, { ownsMaterial: false, isSharedMaterial: true });
+      m.userData.ownsMaterial = false;
+      m.userData.isSharedMaterial = true;
     }
 
     // 4. Placeholders 3D des fenêtres (boîte vitrée translucide)
@@ -201,7 +203,9 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
         hostWall,
         resolvedHost.zBase,
       );
-      scene.updateMesh(placeholder, winMat);
+      const m = scene.updateMesh(placeholder, winMat, { ownsMaterial: false, isSharedMaterial: true });
+      m.userData.ownsMaterial = false;
+      m.userData.isSharedMaterial = true;
     }
 
     // 5. Placeholders et maillages 3D des dalles structurelles (avec trémies)
@@ -212,11 +216,15 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
       const level = state.levels[slab.levelId];
       const elevation = level?.elevation ?? 0;
 
-      // Dériver dynamiquement les trémies d'escaliers arrivant sur ce niveau (ADR-048 D5)
+      // Dériver dynamiquement les trémies d'escaliers arrivant sur ce niveau (ADR-048 D5 & S2-5)
       const stairShafts: { x: number; y: number }[][] = [];
       for (const st of Object.values(stairs)) {
         if (st.topLevelId === slab.levelId) {
-          stairShafts.push(computeStairShaft(st, state) as unknown as { x: number; y: number }[]);
+          const shaft = computeStairShaft(st, state, {
+            useHeadroomCutoff: true,
+            slabThickness: slabType.thickness,
+          });
+          stairShafts.push([...shaft]);
         }
       }
 

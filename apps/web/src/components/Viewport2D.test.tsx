@@ -40,6 +40,8 @@ describe('Viewport2D React Wrapper & Tools Integration (apps/web)', () => {
           clip: vi.fn(),
           arc: vi.fn(),
           strokeRect: vi.fn(),
+          setTransform: vi.fn(),
+          resetTransform: vi.fn(),
         } as unknown as CanvasRenderingContext2D;
       }
       return null;
@@ -402,5 +404,53 @@ describe('Viewport2D React Wrapper & Tools Integration (apps/web)', () => {
     const door = doc.getState().doors?.['door_hosted'];
     expect(door).toBeDefined();
     expect(door?.offsetAlong).toBe(2000);
+  });
+
+  it('T-UNDERLAY-INVALIDATE-04 — doc.subscribe et changement de niveau invalident réactivement le cache underlay', () => {
+    const invalidateSpy = vi.spyOn(View2DModule.View2D.prototype, 'invalidateUnderlayCache');
+    const doc = BimDocument.createDefaultProject();
+    const typeId = Object.keys(doc.getState().wallTypes)[0]!;
+    const levelId = Object.keys(doc.getState().levels)[0]!;
+
+    doc.execute(
+      new Commands.AddWallCommand({
+        id: 'w_underlay_test',
+        category: 'wall',
+        typeId,
+        levelId,
+        start: { x: 0, y: 0 },
+        end: { x: 5000, y: 0 },
+      }),
+    );
+
+    const { rerender } = render(
+      <BimDocumentProvider initialDoc={doc}>
+        <Viewport2D activeLevelId="lvl_r1" underlayLevelId="lvl_rdc" />
+      </BimDocumentProvider>,
+    );
+
+    // Réinitialisation après montage initial
+    invalidateSpy.mockClear();
+
+    // 1. Exécution d'une commande documentaire
+    act(() => {
+      doc.execute(
+        new Commands.UpdateWallCommand('w_underlay_test', {
+          start: { x: 50, y: 50 },
+        }),
+      );
+    });
+
+    // doc.subscribe a bien déclenché invalidateUnderlayCache avec les IDs modifiés
+    expect(invalidateSpy).toHaveBeenCalledWith(['w_underlay_test']);
+
+    // 2. Changement de niveau actif / fantôme -> invalidation totale sans argument
+    invalidateSpy.mockClear();
+    rerender(
+      <BimDocumentProvider initialDoc={doc}>
+        <Viewport2D activeLevelId="lvl_r2" underlayLevelId="lvl_r1" />
+      </BimDocumentProvider>,
+    );
+    expect(invalidateSpy).toHaveBeenCalled();
   });
 });

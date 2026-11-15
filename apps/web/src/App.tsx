@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { BimDocumentProvider } from './context/BimDocumentContext.js';
 import { useBimDocument } from './hooks/useBimDocument.js';
 import { Toolbar } from './components/Toolbar.js';
@@ -9,7 +9,11 @@ import { Viewport2D } from './components/Viewport2D.js';
 import { Viewport3D } from './components/Viewport3D.js';
 import { useActiveTool } from './tools/useActiveTool.js';
 import { exportToFile, importFromFile } from './persistence/jsonIO.js';
-import { type BimDocument, exportToIfc, detectRooms, Commands, generateId } from '@mini-bim/core';
+import {
+  AutoSaveManager,
+  loadFromIndexedDB,
+} from './persistence/autoSave.js';
+import { BimDocument, exportToIfc, detectRooms, Commands, generateId } from '@mini-bim/core';
 import { generatePlanSvg } from '@mini-bim/view-2d';
 
 export interface AppProps {
@@ -20,17 +24,79 @@ export interface AppProps {
  * Layout interne de l'application coordonnant la barre d'outils, les viewports synchronisés,
  * la sélection bidirectionnelle partagée, l'historique transactionnel et la persistance.
  */
-function AppContent() {
+function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
   const { doc, undo, redo, canUndo, canRedo, setDocument } = useBimDocument();
   const { activeToolKind, setActiveToolKind, activeTool } = useActiveTool('select');
   const [selectedIds, setSelectedIds] = useState<readonly string[]>([]);
   const [drawingLength, setDrawingLength] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const [activeLevelId, setActiveLevelId] = useState<string>(
     () => Object.keys(doc.getState().levels)[0] ?? '',
   );
   const [underlayEnabled, setUnderlayEnabled] = useState(true);
   const [isInspectorCollapsed, setIsInspectorCollapsed] = useState(false);
+
+  const autoSaveManagerRef = useRef<AutoSaveManager | null>(null);
+  if (!autoSaveManagerRef.current) {
+    autoSaveManagerRef.current = new AutoSaveManager(500);
+  }
+
+  // Restauration automatique au montage depuis IndexedDB (S2-8)
+  useEffect(() => {
+    let isCancelled = false;
+    async function restoreProject() {
+      try {
+        const result = await loadFromIndexedDB();
+        if (result && !isCancelled) {
+          const restoredDoc = BimDocument.fromJSON(result.json);
+          setDocument(restoredDoc);
+          setInfoMessage('Projet restauré depuis la sauvegarde automatique');
+        }
+      } catch (err) {
+        console.warn('[AutoSave] Impossible de charger la sauvegarde automatique :', err);
+      }
+    }
+
+    if (!hasInitialDoc) {
+      void restoreProject();
+    }
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [hasInitialDoc, setDocument]);
+
+  // Sauvegarde automatique réactive à chaque mutation documentaire (S2-8)
+  useEffect(() => {
+    const unsubscribe = doc.subscribe(() => {
+      autoSaveManagerRef.current?.scheduleSave(doc);
+    });
+    return () => {
+      unsubscribe();
+      autoSaveManagerRef.current?.cancelScheduledSave();
+    };
+  }, [doc]);
+
+  // Flush avant déchargement de page (S2-8)
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (autoSaveManagerRef.current?.isDirty()) {
+        void autoSaveManagerRef.current.flushSave(doc);
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [doc]);
+
+  // Disparition temporisée du bandeau d'information
+  useEffect(() => {
+    if (infoMessage) {
+      const timer = setTimeout(() => setInfoMessage(null), 4000);
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [infoMessage]);
 
   const sortedLevels = Object.values(doc.getState().levels).sort(
     (a, b) => a.elevation - b.elevation,
@@ -230,6 +296,43 @@ function AppContent() {
         hasUnderlayLevel={hasUnderlayLevel}
       />
 
+      {/* Bannière de notification d'information (ex. restauration automatique) */}
+      {infoMessage && (
+        <aside
+          data-testid="info-banner"
+          style={{
+            backgroundColor: '#2563eb',
+            color: '#ffffff',
+            padding: '8px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            fontSize: '13px',
+            fontWeight: 500,
+            zIndex: 50,
+            boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+          }}
+        >
+          <span>ℹ️ {infoMessage}</span>
+          <button
+            type="button"
+            data-testid="close-info-banner-btn"
+            onClick={() => setInfoMessage(null)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#ffffff',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: 'bold',
+              padding: '2px 8px',
+            }}
+          >
+            ✕
+          </button>
+        </aside>
+      )}
+
       {/* Bannière de notification d'erreur (ex. import corrompu) */}
       {errorMessage && (
         <aside
@@ -345,7 +448,7 @@ function AppContent() {
 export function App({ initialDoc }: AppProps) {
   return (
     <BimDocumentProvider initialDoc={initialDoc}>
-      <AppContent />
+      <AppContent hasInitialDoc={initialDoc !== undefined} />
     </BimDocumentProvider>
   );
 }

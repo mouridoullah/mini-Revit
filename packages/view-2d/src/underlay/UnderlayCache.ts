@@ -359,6 +359,9 @@ export class UnderlayCache {
     for (const win of input.windows ?? []) {
       elementIds.add(win.id);
     }
+    for (const st of input.stairs ?? []) {
+      elementIds.add(st.id);
+    }
 
     this.cache.set(input.levelId, { path, elementIds });
     return path;

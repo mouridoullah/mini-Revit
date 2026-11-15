@@ -173,4 +173,120 @@ describe('Underlay View2D Integration (packages/view-2d/src/underlay-view2d.test
     view2d.render();
     expect(cache.get('lvl_rdc')).toBeDefined();
   });
+
+  it('T-UNDERLAY-INVALIDATE-01 — invalidateUnderlayCache avec élément du niveau fantôme retourne true et purge le cache', () => {
+    const { canvas } = createMockCanvas(800, 600);
+    const view2d = new View2D(canvas, {
+      activeLevelId: 'lvl_r1',
+      underlayLevelId: 'lvl_rdc',
+    });
+
+    const doc: DocumentFor2D = {
+      getState: () => ({
+        walls: {
+          w_rdc_1: {
+            id: 'w_rdc_1',
+            typeId: 'wt_standard',
+            levelId: 'lvl_rdc',
+            start: vec2(0, 0),
+            end: vec2(6000, 0),
+          },
+        },
+        wallTypes: {
+          wt_standard: { id: 'wt_standard', name: 'Mur 200', thickness: 200 },
+        },
+      }),
+    };
+
+    view2d.render(doc);
+    const cache = view2d.getUnderlayCache();
+    expect(cache.get('lvl_rdc')).toBeDefined();
+
+    const invalidated = view2d.invalidateUnderlayCache(['w_rdc_1']);
+    expect(invalidated).toBe(true);
+    expect(cache.get('lvl_rdc')).toBeUndefined();
+
+    view2d.render();
+    expect(cache.get('lvl_rdc')).toBeDefined();
+  });
+
+  it('T-UNDERLAY-INVALIDATE-02 — invalidateUnderlayCache avec élément hors niveau fantôme retourne false et préserve le cache', () => {
+    const { canvas } = createMockCanvas(800, 600);
+    const view2d = new View2D(canvas, {
+      activeLevelId: 'lvl_r1',
+      underlayLevelId: 'lvl_rdc',
+    });
+
+    const doc: DocumentFor2D = {
+      getState: () => ({
+        walls: {
+          w_rdc_1: {
+            id: 'w_rdc_1',
+            typeId: 'wt_standard',
+            levelId: 'lvl_rdc',
+            start: vec2(0, 0),
+            end: vec2(6000, 0),
+          },
+          w_r1_1: {
+            id: 'w_r1_1',
+            typeId: 'wt_standard',
+            levelId: 'lvl_r1',
+            start: vec2(0, 2000),
+            end: vec2(6000, 2000),
+          },
+        },
+        wallTypes: {
+          wt_standard: { id: 'wt_standard', name: 'Mur 200', thickness: 200 },
+        },
+      }),
+    };
+
+    view2d.render(doc);
+    const cache = view2d.getUnderlayCache();
+    expect(cache.get('lvl_rdc')).toBeDefined();
+    const hitsBefore = cache.getHitCount();
+
+    // Modification d'un mur sur R+1 (pas sur le niveau fantôme RDC)
+    const invalidated = view2d.invalidateUnderlayCache(['w_r1_1']);
+    expect(invalidated).toBe(false);
+    expect(cache.get('lvl_rdc')).toBeDefined();
+
+    view2d.render();
+    // Le cache a été réutilisé (hitCount incrémenté)
+    expect(cache.getHitCount()).toBeGreaterThan(hitsBefore);
+  });
+
+  it('T-UNDERLAY-INVALIDATE-03 — invalidateUnderlayCache avec escalier sur niveau fantôme retourne true et purge le cache', () => {
+    const { canvas } = createMockCanvas(800, 600);
+    const view2d = new View2D(canvas, {
+      activeLevelId: 'lvl_r1',
+      underlayLevelId: 'lvl_rdc',
+    });
+
+    const doc: DocumentFor2D = {
+      getState: () => ({
+        walls: {},
+        wallTypes: {},
+        stairs: {
+          stair_rdc_1: {
+            id: 'stair_rdc_1',
+            stairTypeId: 'st_standard',
+            bottomLevelId: 'lvl_rdc',
+            topLevelId: 'lvl_r1',
+            start: vec2(1000, 1000),
+            end: vec2(4000, 1000),
+            widthOverride: 1000,
+          },
+        },
+      }),
+    };
+
+    view2d.render(doc);
+    const cache = view2d.getUnderlayCache();
+    expect(cache.get('lvl_rdc')).toBeDefined();
+
+    const invalidated = view2d.invalidateUnderlayCache(['stair_rdc_1']);
+    expect(invalidated).toBe(true);
+    expect(cache.get('lvl_rdc')).toBeUndefined();
+  });
 });

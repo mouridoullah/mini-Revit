@@ -58,6 +58,8 @@
 | **ADR-047** | Purge des Champs Transitoires V1, Underlay Vectoriel Path2D et Snapping Inter-Niveaux          | **Accepté**  | 15/11/2026 |
 | **ADR-048** | Escalier Paramétrique Droit, Formule de Blondel, Dérivation de Trémie et Rendering Crénelé    | **Accepté**  | 15/11/2026 |
 | **ADR-049** | Résolveur Unique de Géométrie de Mur (`resolveWallGeometry` — S1-1 + S1-4)                     | **Accepté**  | 15/11/2026 |
+| **ADR-050** | Unification des Données Dérivées, Invalidation de Cache & Matériaux Partagés (S1-2, S2-3, S2-5) | **Accepté**  | 15/11/2026 |
+| **ADR-051** | Persistance Locale Automatique via IndexedDB & Sécurisation de Session (S2-8)                  | **Accepté**  | 15/11/2026 |
 
 ---
 
@@ -2122,6 +2124,53 @@ Zéro occurrence de `wallType.height` en dehors de `resolve.ts` (et de son dél�
 #### 5. D5 — Découplage de `@mini-bim/view-3d`
 
 Le package `@mini-bim/view-3d` reste strictement découplé de `@mini-bim/core`. Il ne dépend pas du résolveur mais accepte un paramètre géométrique neutre `height?: number` sur `WallWithOpeningsParams` et `createWallMesh`. C'est le consommateur applicatif (`Viewport3D.tsx`) qui fait le pont en appelant `resolveWallGeometry` et en passant `resolved.zBase` et `resolved.height`.
+
+---
+
+## ADR-050 : Unification des Données Dérivées, Invalidation de Cache & Matériaux Partagés (S1-2 + S2-3 + S2-5)
+
+### Statut
+
+**Accepté** (Chantier 3 — 15 novembre 2026)
+
+### Décisions Clés
+
+1. **D1 — Invalidation Réactive et Ciblée de l'Underlay Cache (S1-2) :**
+   - `UnderlayCache.getOrCompile` enregistre tous les identifiants d'éléments (murs, portes, fenêtres, escaliers, niveau) du niveau fantôme.
+   - `View2D.invalidateUnderlayCache(changedIds)` filtre par `underlayLevelId` et ne purge le cache que si un élément du niveau fantôme est modifié.
+   - `Viewport2D.tsx` s'abonne à `doc.subscribe` pour invalider sélectivement le cache dès qu'une commande est exécutée.
+
+2. **D2 — Protection des Matériaux Partagés Three.js (S2-3) :**
+   - `Scene3D.removeMesh` et `Scene3D.dispose` ne détruisent pas les matériaux marqués `userData.ownsMaterial === false` ou `userData.isSharedMaterial === true`.
+   - Les matériaux internes `defaultMaterial`, `highlightMaterial`, `slabMaterial` et `stairMaterial` sont immunisés contre toute destruction unitaire.
+   - Les placeholders 3D des portes et fenêtres (`doorMaterialRef`, `windowMaterialRef`) empruntent leur matériau sans le détruire.
+
+3. **D3 — Source Unique pour les Trémies d'Escaliers 2D et 3D (S2-5) :**
+   - `@mini-bim/core` est promu en dépendance de production de `@mini-bim/view-2d`.
+   - `View2D.ts` et `Viewport3D.tsx` utilisent tous deux la même fonction pure `computeStairShaft` avec `{ useHeadroomCutoff: true, slabThickness }`, éliminant toute duplication algorithmique et garantissant une géométrie de trémie rigoureusement identique en 2D et 3D.
+
+---
+
+## ADR-051 : Persistance Locale Automatique via IndexedDB & Sécurisation de Session (S2-8)
+
+### Statut
+
+**Accepté** (Chantier 3 — 15 novembre 2026)
+
+### Décisions Clés
+
+1. **D1 — IndexedDB comme Moteur de Persistance Asynchrone :**
+   - Base `mini_bim_autosave`, store `projects`, clé `'current_project'`.
+   - Sauvegarde asynchrone évitant tout blocage du fil d'exécution graphique.
+
+2. **D2 — Debounce 500 ms et Flush sur Déchargement :**
+   - `AutoSaveManager` temporise les écritures disque à 500 ms pour regrouper les mutations successives.
+   - Écouteur `beforeunload` pour sauvegarder immédiatement tout état modifié en attente.
+
+3. **D3 — Restauration Transparente et Notification Utilisateur :**
+   - Au chargement initial de l'application, l'état précédent est restauré automatiquement via `BimDocument.fromJSON` si présent.
+   - Bannière informative `info-banner` ("Projet restauré depuis la sauvegarde automatique") affichée avec disparition automatique après 4 secondes.
+
 
 
 

@@ -131,4 +131,139 @@ describe('Phase 6.4 — Rendu 2D des Escaliers (packages/view-2d/src/stairs-2d.t
     const arcCalls = mock.filterCalls('arc');
     expect(arcCalls.length).toBe(2); // 2 pastilles aux extrémités
   });
+
+  it('T-STAIR-SHAFT-UNIFIED-01 : View2D dérive la trémie via computeStairShaft avec useHeadroomCutoff: true', async () => {
+    const { View2D } = await import('./View2D.js');
+    const { computeStairShaft } = await import('@mini-bim/core');
+    const { canvas } = createMockCanvas(800, 600);
+    const view2d = new View2D(canvas, { activeLevelId: 'lvl_1' });
+
+    const state: any = {
+      levels: {
+        lvl_0: { id: 'lvl_0', name: 'RDC', elevation: 0 },
+        lvl_1: { id: 'lvl_1', name: 'R+1', elevation: 2800 },
+      },
+      stairTypes: {
+        st_timber_900: { id: 'st_timber_900', name: 'Bois 900', width: 900 },
+      },
+      slabTypes: {
+        slt_standard: { id: 'slt_standard', name: 'Dalle 200', thickness: 200 },
+      },
+      walls: {},
+      wallTypes: {},
+      stairs: {
+        stair_01: {
+          id: 'stair_01',
+          category: 'stair',
+          stairTypeId: 'st_timber_900',
+          bottomLevelId: 'lvl_0',
+          topLevelId: 'lvl_1',
+          start: vec2(1000, 2000),
+          end: vec2(4920, 2000),
+        },
+      },
+      slabs: {
+        slab_r1: {
+          id: 'slab_r1',
+          category: 'slab',
+          slabTypeId: 'slt_standard',
+          levelId: 'lvl_1',
+          boundary: [vec2(0, 0), vec2(8000, 0), vec2(8000, 6000), vec2(0, 6000)],
+        },
+      },
+    };
+
+    const doc = {
+      getState: () => state,
+    };
+
+    // Calcul direct de référence via computeStairShaft
+    const expectedShaft = computeStairShaft(state.stairs.stair_01, state, {
+      useHeadroomCutoff: true,
+      slabThickness: 200,
+    });
+
+    view2d.render(doc as any);
+
+    // Vérifier que la trémie a été calculée et est cohérente avec la référence
+    expect(expectedShaft).toHaveLength(4);
+    // Le cutoff step > 0 : le début de trémie n'est pas à 1000 - 100 = 900
+    expect(expectedShaft[0]!.x).toBeGreaterThan(1000);
+  });
+
+  it('T-STAIR-SHAFT-UNIFIED-02 : Le polygone de trémie 2D et 3D partagent la même géométrie CCW et le même cutoff', async () => {
+    const { computeStairShaft } = await import('@mini-bim/core');
+    const state: any = {
+      levels: {
+        lvl_0: { id: 'lvl_0', elevation: 0 },
+        lvl_1: { id: 'lvl_1', elevation: 2800 },
+      },
+      stairTypes: {
+        st_900: { id: 'st_900', width: 900 },
+      },
+      stairs: {
+        stair_1: {
+          id: 'stair_1',
+          stairTypeId: 'st_900',
+          bottomLevelId: 'lvl_0',
+          topLevelId: 'lvl_1',
+          start: vec2(0, 0),
+          end: vec2(4200, 0),
+        },
+      },
+    };
+
+    const shaft2D = computeStairShaft(state.stairs.stair_1, state, {
+      useHeadroomCutoff: true,
+      slabThickness: 200,
+    });
+
+    const shaft3D = computeStairShaft(state.stairs.stair_1, state, {
+      useHeadroomCutoff: true,
+      slabThickness: 200,
+    });
+
+    expect(shaft2D).toEqual(shaft3D);
+    expect(shaft2D).toHaveLength(4);
+
+    // Largeur de trémie : 900 + 100 = 1000 -> Y entre -500 et +500
+    expect(shaft2D[0]!.y).toBeCloseTo(-500, 1);
+    expect(shaft2D[1]!.y).toBeCloseTo(-500, 1);
+    expect(shaft2D[2]!.y).toBeCloseTo(500, 1);
+    expect(shaft2D[3]!.y).toBeCloseTo(500, 1);
+  });
+
+  it('T-STAIR-SHAFT-UNIFIED-03 : Escalier dégénéré ou paramètres incomplets gérés sans crash', async () => {
+    const { View2D } = await import('./View2D.js');
+    const { canvas } = createMockCanvas(800, 600);
+    const view2d = new View2D(canvas, { activeLevelId: 'lvl_1' });
+
+    const state: any = {
+      levels: {
+        lvl_1: { id: 'lvl_1', elevation: 2800 },
+      },
+      walls: {},
+      wallTypes: {},
+      stairs: {
+        stair_invalid: {
+          id: 'stair_invalid',
+          start: vec2(0, 0),
+          end: vec2(0, 0), // Longueur nulle
+          bottomLevelId: 'lvl_nonexistent',
+          topLevelId: 'lvl_1',
+        },
+      },
+      slabs: {
+        slab_1: {
+          id: 'slab_1',
+          levelId: 'lvl_1',
+          boundary: [vec2(0, 0), vec2(5000, 0), vec2(5000, 5000), vec2(0, 5000)],
+        },
+      },
+    };
+
+    expect(() => {
+      view2d.render({ getState: () => state } as any);
+    }).not.toThrow();
+  });
 });

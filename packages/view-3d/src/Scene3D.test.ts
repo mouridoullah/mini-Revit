@@ -433,4 +433,76 @@ describe('Scene3D — Gestionnaire de scène 3D Three.js impératif', () => {
 
     scene3d.dispose();
   });
+
+  it('T-SHARED-MAT-01 — 10 cycles consécutifs d’ajout/mise à jour/suppression avec matériau partagé ne disposent jamais le matériau', () => {
+    const scene3d = new Scene3D(canvas, { width: 800, height: 600 });
+    const sharedMat = new THREE.MeshStandardMaterial({ color: 0x8b5cf6 });
+    const disposeSpy = vi.spyOn(sharedMat, 'dispose');
+
+    for (let i = 0; i < 10; i++) {
+      scene3d.updateMesh(
+        createSampleRawMesh('door_shared_1', 'full'),
+        sharedMat,
+        { ownsMaterial: false, isSharedMaterial: true },
+      );
+      expect(scene3d.getMeshes('door_shared_1')).toHaveLength(1);
+      scene3d.removeMesh('door_shared_1');
+      expect(scene3d.getMeshes('door_shared_1')).toHaveLength(0);
+    }
+
+    expect(disposeSpy).not.toHaveBeenCalled();
+    sharedMat.dispose();
+    scene3d.dispose();
+  });
+
+  it('T-SHARED-MAT-02 — removeMesh respecte ownsMaterial: false et ne dispose que les matériaux possédés', () => {
+    const scene3d = new Scene3D(canvas, { width: 800, height: 600 });
+
+    const sharedMat = new THREE.MeshStandardMaterial({ color: 0x10b981 });
+    const ownedMat = new THREE.MeshStandardMaterial({ color: 0xef4444 });
+
+    const sharedSpy = vi.spyOn(sharedMat, 'dispose');
+    const ownedSpy = vi.spyOn(ownedMat, 'dispose');
+
+    // Maillage 1 : matériau partagé (non possédé)
+    const mesh1 = scene3d.addMesh(createSampleRawMesh('item_shared', 'full'), sharedMat);
+    mesh1.userData.ownsMaterial = false;
+
+    // Maillage 2 : matériau possédé
+    scene3d.addMesh(createSampleRawMesh('item_owned', 'full'), ownedMat);
+
+    scene3d.removeMesh('item_shared');
+    scene3d.removeMesh('item_owned');
+
+    expect(sharedSpy).not.toHaveBeenCalled();
+    expect(ownedSpy).toHaveBeenCalledTimes(1);
+
+    sharedMat.dispose();
+    scene3d.dispose();
+  });
+
+  it('T-SHARED-MAT-03 — les matériaux internes (default, slab, stair) ne sont jamais détruits lors de removeMesh', () => {
+    const scene3d = new Scene3D(canvas, { width: 800, height: 600 });
+
+    const slabMesh = scene3d.addSlabMesh('slab_test', createSampleRawMesh('slab_test', 'full'));
+    const stairMesh = scene3d.addStairMesh('stair_test', createSampleRawMesh('stair_test', 'full'));
+
+    const slabMat = slabMesh.material as THREE.Material;
+    const stairMat = stairMesh.material as THREE.Material;
+
+    const slabMatSpy = vi.spyOn(slabMat, 'dispose');
+    const stairMatSpy = vi.spyOn(stairMat, 'dispose');
+
+    scene3d.removeMesh('slab_test');
+    scene3d.removeMesh('stair_test');
+
+    expect(slabMatSpy).not.toHaveBeenCalled();
+    expect(stairMatSpy).not.toHaveBeenCalled();
+
+    // Vérifie qu'on peut immédiatement réutiliser ces matériaux internes pour de nouveaux éléments
+    const newSlab = scene3d.addSlabMesh('slab_new', createSampleRawMesh('slab_new', 'full'));
+    expect(newSlab.material).toBe(slabMat);
+
+    scene3d.dispose();
+  });
 });

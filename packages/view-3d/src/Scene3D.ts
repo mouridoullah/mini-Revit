@@ -137,9 +137,26 @@ export class Scene3D {
   }
 
   /**
+   * Vérifie si un matériau fait partie des matériaux internes gérés par Scene3D
+   * (ne devant pas être détruits lors de la suppression d'un maillage unitaire).
+   */
+  private isInternalMaterial(mat: THREE.Material): boolean {
+    return (
+      mat === this.defaultMaterial ||
+      mat === this.highlightMaterial ||
+      mat === this.slabMaterial ||
+      mat === this.stairMaterial
+    );
+  }
+
+  /**
    * Ajoute un maillage à la scène à partir d'un conteneur RawMeshData.
    */
-  public addMesh(rawData: RawMeshData, material?: THREE.Material): THREE.Mesh {
+  public addMesh(
+    rawData: RawMeshData,
+    material?: THREE.Material,
+    materialOptions?: { ownsMaterial?: boolean; isSharedMaterial?: boolean },
+  ): THREE.Mesh {
     if (this.isDisposed) {
       throw new Error('[Scene3D] Cannot add mesh to a disposed Scene3D instance.');
     }
@@ -153,6 +170,7 @@ export class Scene3D {
       role: rawData.role,
       baseMaterial: mat,
       ...(rawData.userData ?? {}),
+      ...(materialOptions ?? {}),
     };
 
     this.scene.add(mesh);
@@ -169,7 +187,11 @@ export class Scene3D {
    * Met à jour le maillage associé à un elementId (remplace la géométrie existante).
    * L'ancienne géométrie est immédiatement libérée via dispose().
    */
-  public updateMesh(rawData: RawMeshData, material?: THREE.Material): THREE.Mesh {
+  public updateMesh(
+    rawData: RawMeshData,
+    material?: THREE.Material,
+    materialOptions?: { ownsMaterial?: boolean; isSharedMaterial?: boolean },
+  ): THREE.Mesh {
     if (this.isDisposed) {
       throw new Error('[Scene3D] Cannot update mesh on a disposed Scene3D instance.');
     }
@@ -178,7 +200,7 @@ export class Scene3D {
     this.removeMesh(rawData.elementId);
 
     // Ajouter le nouveau maillage
-    return this.addMesh(rawData, material);
+    return this.addMesh(rawData, material, materialOptions);
   }
 
   /**
@@ -231,22 +253,28 @@ export class Scene3D {
     for (const mesh of meshList) {
       this.scene.remove(mesh);
       mesh.geometry.dispose();
+
+      // Protection des matériaux partagés ou non possédés (S2-3)
+      if (mesh.userData?.ownsMaterial === false || mesh.userData?.isSharedMaterial === true) {
+        continue;
+      }
+
       const baseMat = mesh.userData?.baseMaterial as THREE.Material | undefined;
       const matsToDispose = new Set<THREE.Material>();
-      if (mesh.material !== this.defaultMaterial && mesh.material !== this.highlightMaterial) {
-        if (Array.isArray(mesh.material)) {
-          mesh.material.forEach((m) => matsToDispose.add(m));
-        } else {
-          matsToDispose.add(mesh.material);
+
+      const checkAndAdd = (mat: THREE.Material | THREE.Material[] | undefined) => {
+        if (!mat) return;
+        const list = Array.isArray(mat) ? mat : [mat];
+        for (const m of list) {
+          if (!this.isInternalMaterial(m)) {
+            matsToDispose.add(m);
+          }
         }
-      }
-      if (baseMat && baseMat !== this.defaultMaterial && baseMat !== this.highlightMaterial) {
-        if (Array.isArray(baseMat)) {
-          (baseMat as THREE.Material[]).forEach((m) => matsToDispose.add(m));
-        } else {
-          matsToDispose.add(baseMat);
-        }
-      }
+      };
+
+      checkAndAdd(mesh.material);
+      checkAndAdd(baseMat);
+
       for (const m of matsToDispose) {
         m.dispose();
       }
@@ -458,11 +486,15 @@ export class Scene3D {
       for (const mesh of meshList) {
         this.scene.remove(mesh);
         mesh.geometry.dispose();
-        if (mesh.material !== this.defaultMaterial) {
-          if (Array.isArray(mesh.material)) {
-            mesh.material.forEach((m) => m.dispose());
-          } else {
-            mesh.material.dispose();
+        if (mesh.userData?.ownsMaterial === false || mesh.userData?.isSharedMaterial === true) {
+          continue;
+        }
+        if (mesh.material) {
+          const list = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+          for (const m of list) {
+            if (!this.isInternalMaterial(m)) {
+              m.dispose();
+            }
           }
         }
       }
