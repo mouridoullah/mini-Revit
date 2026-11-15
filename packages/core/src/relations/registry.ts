@@ -52,11 +52,17 @@ export const RELATIONS_REGISTRY: readonly RelationDef[] = [
     targetCategory: 'windowType',
     onDelete: 'restrict',
   },
-  // 5. Dalles rattachées à leur niveau altimétrique (Restrict)
+  // 5. Dalles rattachées à leur niveau altimétrique et type (Restrict)
   {
     sourceCategory: 'slab',
     field: 'levelId',
     targetCategory: 'level',
+    onDelete: 'restrict',
+  },
+  {
+    sourceCategory: 'slab',
+    field: 'slabTypeId',
+    targetCategory: 'slabType',
     onDelete: 'restrict',
   },
 ] as const;

@@ -14,3 +14,4 @@ export * from './polygon.js';
 export * from './junctions/index.js';
 export * from './openings/index.js';
 export * from './mesh/index.js';
+export * from './slabs/effective.js';

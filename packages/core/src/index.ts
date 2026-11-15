@@ -61,6 +61,12 @@ export {
   AddDimensionCommand,
   UpdateDimensionCommand,
   DeleteDimensionCommand,
+  AddSlabTypeCommand,
+  UpdateSlabTypeCommand,
+  DeleteSlabTypeCommand,
+  AddSlabCommand,
+  UpdateSlabCommand,
+  DeleteSlabCommand,
 } from './commands.js';
 export {
   BimValidationError,
@@ -70,6 +76,10 @@ export {
   validateLevel,
   validateDoor,
   validateWindow,
+  validateSlab,
+  validateSlabType,
+  checkSlabViolations,
+  checkSlabTypeViolations,
   validateRoom,
   validateDimension,
   canDeleteWall,

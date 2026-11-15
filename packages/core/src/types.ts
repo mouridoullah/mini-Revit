@@ -78,7 +78,8 @@ export interface Slab {
   readonly slabTypeId: ElementId;
   readonly levelId: ElementId;
   readonly boundary: readonly Vec2[]; // CCW
-  readonly holes: readonly (readonly Vec2[])[]; // CW (réservations manuelles uniquement)
+  readonly holes?: readonly (readonly Vec2[])[]; // CW (réservations manuelles uniquement)
+  readonly openings?: readonly (readonly Vec2[])[]; // Trémies géométriques traversantes
   readonly baseOffset?: number; // décalage vertical par rapport au niveau (<= 0 standard)
   readonly name?: string;
 }
