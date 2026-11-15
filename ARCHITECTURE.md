@@ -165,7 +165,7 @@ sequenceDiagram
     participant Bus as Command Bus
     participant Doc as BimDocument (State)
     participant DAG as Graphe Dépendances
-    participant Regen as Moteur Régénération
+    participant Val as validateDirty (Post-Condition)
     participant Views as Viewports (2D & 3D)
     participant UI as Interface React
 
@@ -174,26 +174,33 @@ sequenceDiagram
     Snap-->>Tool: Point accroché (X, Y)
     Tool->>User: Rendu immédiat du fantôme temporaire
     User->>Tool: Clic de validation
-    Tool->>Bus: Dispatch Command (ex: AddWallCommand)
-    Bus->>Doc: Validation des invariants & Exécution transactionnelle
-    Doc->>Bus: Enregistrement du Delta réversible (Historique)
-    Bus->>DAG: Signalement des entités créées/modifiées
-    DAG-->>Regen: Ensemble d'invalidation (Dirty Set)
-    Regen->>Doc: Recalcul géométrique (Jonctions, Tranches, Pièces)
-    Regen->>Views: Émission des patchs de géométrie
-    Views->>User: Rafraîchissement des scènes 2D et 3D
-    Doc->>UI: Notification de changement d'état (Métrés, Propriétés)
+    Tool->>Bus: Dispatch Command (ex: MoveWallCommand)
+    Bus->>Doc: Exécution sur brouillon Immer (draftState)
+    Doc->>DAG: Expansion transitive des dépendances (Dirty Set)
+    DAG-->>Doc: Liste exhaustive des dirtyIds
+    Doc->>Val: Contrôle différentiel validateDirty(draftState, dirtyIds, previousState)
+    alt Violation détectée (nouvelle ou aggravée)
+        Val-->>Doc: BimValidationError (avec offendingIds)
+        Doc-->>Bus: Rejet atomique (brouillon abandonné, historique intact)
+        Bus-->>UI: Feedback d'erreur & surlignage des éléments fautifs
+    else Modèle sain
+        Val-->>Doc: Validation réussie
+        Doc->>Doc: Commit de l'état & empilement des patchs dans la pile Undo
+        Doc->>Views: Notification réactive des changedIds
+        Views->>User: Rafraîchissement à la demande des scènes 2D et 3D
+        Doc->>UI: Synchronisation (Métrés, Propriétés, Sélections)
+    end
 ```
 
 ### Détail des étapes :
 
-1. **Interaction & Accrochage :** Le curseur est projeté sur le plan de travail. Le moteur d'accrochage interroge l'index spatial R-Tree pour capturer les nœuds existants dans un rayon de tolérance.
+1. **Interaction & Accrochage :** Le curseur est projeté sur le plan de travail. Le moteur d'accrochage interroge l'index spatial ou les géométries actives dans un rayon de tolérance ergonomique en pixels écran ($12\text{ px} / \text{scale}$).
 2. **Émission de la Commande :** L'outil assemble les paramètres requis et soumet une commande typée au `CommandBus`.
-3. **Transaction & Invariants :** La commande vérifie les règles métier (longueur minimale, non-dégénérescence). Si valide, l'état normalisé du document est muté et un enregistrement d'annulation est poussé dans la pile Undo.
-4. **Expansion des Dépendances :** Le DAG identifie les éléments directement et indirectement impactés (ex: déplacer un mur impacte ses portes hôtes, les murs formant jonction avec lui, et les pièces adjacentes).
-5. **Régénération Dérivée :** Seules les géométries sales sont recalculées (emprises 2D, découpes par tranches, maillages, surfaces).
-6. **Patch des Vues :** Les viewports mettent à jour uniquement les maillages Three.js et les tracés 2D concernés.
-7. **Synchronisation UI :** L'inspecteur de propriétés et le tableau des métrés se synchronisent via des abonnements sélectifs.
+3. **Exécution sur Brouillon Immer :** La commande applique ses modifications sur un brouillon immuable (`draftState`) généré par Immer et identifie les entités directement modifiées.
+4. **Expansion par le DAG (Dirty Set) :** Le graphe de dépendances dirigé acyclique propage automatiquement l'impact à tous les dépendants descendants (ouvertures hébergées, cotes associatives, murs contraints sous dalles, niveaux).
+5. **Post-Condition Universelle Différentielle (`validateDirty`) :** L'intégrité de toutes les entités du dirty set est vérifiée de manière différentielle par rapport à l'état initial. Si une nouvelle violation de règle apparaît ou s'aggrave, la transaction est annulée atomiquement avant toute modification de l'historique et l'erreur fournit les `offendingIds` pour ciblage visuel immédiat.
+6. **Commit Transactionnel & Empilement Undo :** Si et seulement si la post-condition est satisfaite, le draft devient le nouvel état officiel, les patchs différentiels RFC 6902 inverses sont empilés dans `undoStack`, et la pile `redoStack` est purgée.
+7. **Régénération Dérivée & Notification :** Les viewports 2D/3D et l'UI sont notifiés avec la liste consolidée des `changedIds`, déclenchant à la demande le re-maillage GPU et la mise à jour des panneaux d'inspection.
 
 ---
 

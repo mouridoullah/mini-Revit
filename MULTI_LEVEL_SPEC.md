@@ -40,14 +40,19 @@ export interface Level {
 - **Hauteur d'étage dérivée :** La hauteur d'un étage $i$ vers $i+1$ est une vue calculée à la demande :
   $$\text{getLevelStoryHeight}(\text{state}, \text{level}_i) = \text{elevation}_{i+1} - \text{elevation}_i$$
 
-### 2.2 Propagation Altimétrique Paramétrique
+### 2.2 Propagation Altimétrique Paramétrique & Intégrité Altimétrique
 
 1. **Mutation de Niveau (`UpdateLevelCommand`) :**  
    Lorsqu'une commande `UpdateLevelCommand(levelId, { elevation: newElevation })` est exécutée (ou lors du changement de hauteur libre d'étage $\Delta H$) :
    $$\Delta = newElevation - oldElevation$$
    L'élévation de tous les niveaux supérieurs $j > i$ est automatiquement décalée :
    $$\forall j > i, \quad \text{elevation}_j \gets \text{elevation}_j + \Delta$$
-2. **Invalidation par le DAG (ADR-041) :**  
+2. **Unicité Stricte et Règle d'Élévations Distinctes (`validateDirty`) :**  
+   Le modèle impose formellement que chaque niveau possède une élévation unique ($\forall i \ne j, \text{elevation}_i \ne \text{elevation}_j$). Toute commande produisant deux niveaux coplanaires est rejetée avec `DUPLICATE_LEVEL_ELEVATION`.
+3. **Helper Métier `setStoryHeight` :**  
+   Pour piloter la hauteur sous plafond d'un étage sans calcul manuel d'altitude absolue :  
+   `setStoryHeight(state, levelIndex, height)` émet `UpdateLevelCommand(levels[levelIndex + 1].id, { elevation: levels[levelIndex].elevation + height })`.
+4. **Invalidation par le DAG (ADR-041) :**  
    Le DAG propage la translation à l'ensemble des éléments rattachés aux niveaux supérieurs :
    - Dalles structurelles ($Z_{\text{sup}} = \text{level.elevation} + baseOffset$),
    - Sommets de murs contraints en tête via `topConstraint` (ADR-040),
@@ -82,7 +87,9 @@ Sur un plan d'étage (R+1), l'architecte a besoin de repérer visuellement où s
 
 - Les murs et baies du niveau inférieur ($N-1$) sont dessinés sur le Canvas 2D avec un style atténué :
   - `strokeStyle: '#9ca3af'` (gris moyen).
-  - `lineDash: [4, 4]` (pointillés fins).
+  - Compensation d'échelle pour tracé invariant à l'écran :
+    `ctx.lineWidth = 1 / scale`
+    `ctx.setLineDash([4 / scale, 4 / scale])` (évite les traits baveux au zoom fort ou microscopiques au dézoom).
   - `globalAlpha: 0.5`.
 - Les éléments de l'Underlay ne sont pas sélectionnables au clic (pour ne pas interférer avec le travail en cours sur le niveau actif).
 
@@ -101,9 +108,11 @@ Afin d'éviter les artefacts de pixellisation au zoom et les bordures vides en p
    L'ensemble des segments de murs et baies du niveau $N-1$ est pré-compilé dans un objet natif Canvas `Path2D` en coordonnées mondes réelles (millimètres).
 2. **Invalidation par les `changedIds` du DAG :**  
    Ce `Path2D` est conservé en mémoire et réutilisé intégralement sans recalcul géométrique. Il n'est régénéré que lorsque `changedIds` contient au moins une entité appartenant au niveau $N-1$.
-3. **Tracé GPU Direct à Chaque Frame :**  
-   À chaque rafraîchissement d'écran du Viewport 2D, après application de la matrice de transformation cartésienne `Transform2D`, le visualiseur exécute un unique appel :
+3. **Tracé GPU Direct à Chaque Frame avec Compensation d'Échelle :**  
+   À chaque rafraîchissement d'écran du Viewport 2D, après application de la transformation cartésienne `Transform2D`, le visualiseur applique les styles normalisés et exécute un unique appel :
    ```typescript
+   ctx.lineWidth = 1 / scale;
+   ctx.setLineDash([4 / scale, 4 / scale]);
    ctx.stroke(cachedUnderlayPath2D);
    ```
    - **Avantages :** Netteté vectorielle absolue sans flou quel que soit le zoom, aucun bord noir lors des pans rapides, et complexité CPU $\mathcal{O}(1)$ appel d'API sans allocation bitmap hors-écran.
@@ -112,7 +121,7 @@ Afin d'éviter les artefacts de pixellisation au zoom et les bordures vides en p
 
 ## 5. Matrice de Validation
 
-1. **Test unitaire Core :** Modification de hauteur de niveau $\implies$ translation automatique de l'élévation des niveaux supérieurs et propagation DAG aux murs/dalles.
-2. **Test 2D Canvas :** L'activation de l'Underlay génère le tracé en pointillés gris (`#9ca3af`) avec les baies du niveau inférieur.
+1. **Test unitaire Core :** Modification de hauteur de niveau $\implies$ translation automatique de l'élévation des niveaux supérieurs et propagation DAG aux murs/dalles. Unicité stricte des élévations et helper `setStoryHeight`.
+2. **Test 2D Canvas :** L'activation de l'Underlay génère le tracé en pointillés gris (`#9ca3af`) avec les baies du niveau inférieur, avec `lineWidth = 1/scale` et `lineDash = [4/scale, 4/scale]` validés quel que soit le zoom.
 3. **Test d'accrochage Snap en pixels :** À zoom $1\times$, l'aimantation opère à 12 mm monde ; à zoom $0.1\times$, elle opère à 120 mm monde ($12\text{ px} / \text{scale}$).
 4. **Test de Cache Vectoriel `Path2D` :** 10 opérations consécutives de pan/zoom réutilisent l'instance `Path2D` en cache sans ré-exécuter le moteur d'extraction géométrique.

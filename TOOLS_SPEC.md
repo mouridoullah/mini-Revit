@@ -270,22 +270,22 @@ Cette convention assure une zone d'attraction ergonomique constante sous le poin
   Si $\vec{\Delta} = (0, 0)$ (clic stationnaire), l'outil retourne `{ kind: 'preview', preview: null }` sans émettre de commande, évitant toute pollution de la pile undo/redo.
 - **Validation des contraintes géométriques et topologiques :**
   - **Longueur invariante :** La translation applique rigoureusement le même vecteur $\vec{\Delta}$ aux deux extrémités $\mathbf{P}_{\text{start}}$ et $\mathbf{P}_{\text{end}}$ ($\|\vec{end}_{\text{new}} - \vec{start}_{\text{new}}\| \equiv \|\vec{end} - \vec{start}\| > 0$). La longueur du mur est donc strictement conservée et ne peut devenir nulle.
-  - **Maintien de Connectivité des Jonctions (Wall Stretching / Joint Tracking — Spécifié pour Phase 6.0) :**  
+  - **Maintien de Connectivité des Jonctions (Wall Stretching / Joint Tracking — Spécifié pour Phase 6.0c) :**  
     Afin de préserver l'étanchéité des enceintes de pièces et d'éviter leur passage intempestif au statut `unenclosed` (ADR-039) lors du déplacement d'un mur ou d'un sommet :
-    1. **Connectivité Dynamique Dérivée (Non Persistée) :** La connectivité entre murs n'est pas stockée en dur dans le document : elle est calculée à la volée par proximité géométrique des extrémités ($\|P_i - P_j\| \le \epsilon = 1.0\text{ mm}$).
-    2. **Calcul Rigoureux par Intersection d'Axes :** Lorsqu'un mur $W_A$ est déplacé vers son nouvel axe translaté $\mathcal{D}_A'$ :
-       - Pour chaque mur voisin non parallèle incident $W_B$, son nouveau point d'extrémité commun $\mathbf{P}'$ est l'intersection géométrique exacte entre son axe directeur d'origine $\mathcal{D}_B$ et le nouvel axe $\mathcal{D}_A'$ :
+    1. **Connectivité Dynamique Dérivée (Distance Point-Segment) :** La connectivité entre murs n'est pas persistée en dur : elle est calculée à la volée par distance géométrique point-segment ($\text{dist}(\mathbf{P}_i, \text{segment}(W_j)) \le \epsilon = 1.0\text{ mm}$). Ce critère unifié capture à la fois les jonctions de coin (L, X, extrémités coïncidentes) et les jonctions en T dont la branche s'appuie sur le milieu du mur déplacé.
+    2. **Calcul d'Intersection d'Axes & Seuil de Quasi-Parallélisme :** Lorsqu'un mur $W_A$ est déplacé vers son nouvel axe translaté $\mathcal{D}_A'$ :
+       - Pour chaque mur voisin incident non parallèle $W_B$, son nouveau point commun $\mathbf{P}'$ est l'intersection géométrique exacte entre son axe directeur d'origine $\mathcal{D}_B$ et le nouvel axe $\mathcal{D}_A'$ :
          $$\mathbf{P}' = \mathcal{D}_B \cap \mathcal{D}_A'$$
-       - **Cas colinéaire ou parallèle :** Si $\mathcal{D}_B \parallel \mathcal{D}_A'$ (pas d'intersection unique), le sommet commun est translaté par projection directe : $\mathbf{P}' = \mathbf{P} + \vec{\Delta}$.
-    3. **Conditions de Rejet Atomique (Protection contre l'Effondrement et le Retournement) :**  
+       - **Seuil de Quasi-Parallélisme & Rejet Parallèle :** Tout comme la limite d'onglet (_miter limit_) en infographie, si deux murs sont presque parallèles ($|\sin \theta| < 0.05$, soit un angle $\theta < 3^\circ$), le point d'intersection projeté s'éloigne à l'infini. Dans ce cas, ou si $\mathcal{D}_B \parallel \mathcal{D}_A'$, la transaction est rejetée avec l'erreur typée `WALL_STRETCH_PARALLEL`, évitant toute rotation incontrôlée du voisin ou dérive de `offsetAlong`.
+    3. **Conditions de Rejet Atomique (Garde-fous d'Intégrité) :**  
        L'opération d'étirement est rejetée (`BimValidationError`) avant toute mutation d'état si, pour un des voisins :
-       - Sa nouvelle longueur devient inférieure à la garde minimale : $\|\mathbf{P}_{\text{end}}' - \mathbf{P}_{\text{start}}'\| < \text{MIN\_WALL\_LENGTH} = 100.0\text{ mm}$ (`WALL_STRETCH_COLLAPSE`),
+       - Sa nouvelle longueur passe sous le seuil ergonomique de 100 mm **et** a diminué ($L' < 100.0\text{ mm} \land L' < L_{\text{initial}}$) (`WALL_STRETCH_COLLAPSE`),
        - OU son orientation s'inverse : $(\mathbf{P}_{\text{end}}' - \mathbf{P}_{\text{start}}') \cdot (\mathbf{P}_{\text{end}} - \mathbf{P}_{\text{start}}) \le 0$ (`WALL_STRETCH_REVERSED`).
     4. **Compensation et Stationnarité Spatiale des Ouvertures Hébergées :**  
        L'abscisse curviligne `offsetAlong` étant mesurée depuis `wall.start`, étirer un mur voisin par son extrémité `start` décalerait ses portes et fenêtres dans l'espace monde.  
        Pour préserver la stationnarité physique des baies dans le référentiel monde, la transaction compense automatiquement l'abscisse :
        $$\text{offsetAlong}_{\text{new}} = \text{offsetAlong}_{\text{old}} - \Delta L_{\text{start}}$$
-       La post-condition universelle `validateDirty` vérifie ensuite que les baies respectent les gardes minimales de 50 mm sur la nouvelle longueur étirée.
+       La post-condition universelle différentielle `validateDirty` vérifie ensuite que les baies respectent les gardes minimales de 50 mm sur la nouvelle longueur étirée.
 
 ### 7.3 `MoveOpeningTool` (Déplacement d'Ouvertures le Long de l'Axe)
 

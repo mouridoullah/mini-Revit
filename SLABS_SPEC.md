@@ -86,9 +86,10 @@ Pour éviter tout risque de désynchronisation entre un escalier et la réservat
    Avant toute opération de maillage 3D (`earcut`), de tracé en plan 2D ou d'export IFC, les trémies d'escalier sont collectées et combinées via `polygon-clipping` :
    - **Union des trémies :** L'ensemble des trous manuels `slab.holes` et des contours de trémies d'escaliers débouchants est fusionné par union booléenne :
      $$\text{shafts}_{\text{merged}} = \text{union}(\text{slab.holes} \cup \bigcup_{s \in \text{stairs}} \text{computeStairShaft}(s))$$
-   - **Découpe des trémies en rive (Entailles de rive) :** Si une trémie d'escalier ou manuelle intersecte le bord extérieur de la dalle (cas fréquent de l'escalier adossé à un mur de façade), elle n'est pas rejetée : elle découpe automatiquement le contour extérieur par différence booléenne :
+   - **Découpe des trémies en rive & Contrainte de Polygone Unique :** Si une trémie d'escalier ou manuelle intersecte le bord extérieur de la dalle (cas fréquent de l'escalier adossé à un mur de façade), elle découpe le contour extérieur par différence booléenne :
      $$\text{boundary}_{\text{trimmed}} = \text{difference}(\text{slab.boundary}, \text{shafts}_{\text{merged}})$$
-   - **Extraction des trous intérieurs :** Les îlots de vide résultants situés strictement à l'intérieur de $\text{boundary}_{\text{trimmed}}$ forment les trous intérieurs effectifs $\text{holes}_{\text{effective}}$.
+     **Invariant de Nappe d'un Seul Tenant :** Dans Mini-BIM, chaque entité `Slab` doit former un solide continu unique (un polygone extérieur avec d'éventuels trous intérieurs). Si la soustraction d'une trémie traversante scinde la dalle en plusieurs polygones disjoints (`MultiPolygon`), la transaction est rejetée avec l'erreur typée `SLAB_SEVERED`. Si la trémie absorbe la totalité de la dalle, l'opération est rejetée avec `SLAB_EMPTY`.
+   - **Extraction des trous intérieurs :** Les îlots de vide résultants situés strictement à l'intérieur de $\text{boundary}_{\text{trimmed}}$ forment les trous intérieurs effectifs $\text{holes}_{\text{effective}}$ passés au mailleur `earcut`.
 3. **Conséquence :**  
    Si un escalier est déplacé, redimensionné ou supprimé, la trémie correspondante dans la dalle supérieure s'ajuste ou disparaît immédiatement, sans aucun risque de trou orphelin persistant et avec une étanchéité topologique absolue.
 
@@ -126,8 +127,9 @@ Pour éviter tout risque de désynchronisation entre un escalier et la réservat
 ```
 
 - **Suppression d'un Mur (`DeleteWallCommand`) :** Une dalle est une entité horizontale indépendante ; supprimer un mur porteur ne supprime pas la dalle.
-- **Suppression d'un Niveau (`DeleteLevelCommand`) :** Rejetée avec l'erreur typée `DELETE_LEVEL_REJECTED` si le niveau porte des dalles ou des murs.
-- **Suppression d'un Type (`DeleteSlabTypeCommand`) :** Rejetée avec l'erreur typée `DELETE_TYPE_REJECTED` si le type est encore référencé par au moins une dalle.
+- **Suppression d'un Niveau (`DeleteLevelCommand`) :** Rejetée avec l'erreur typée `DELETE_RESTRICTED` (`blockingIds: [...]`) si le niveau porte des dalles ou des murs.
+- **Suppression d'un Type (`DeleteSlabTypeCommand`) :** Rejetée avec l'erreur typée `DELETE_RESTRICTED` (`blockingIds: [...]`) si le type est encore référencé par au moins une dalle.
+- **Arêtes DAG Dalle $\to$ Murs :** Le DAG enregistre l'arête `slab(N+1) -> wall(N)` pour les dalles de plancher haut couvrantes, et l'arête `slab(N) -> wall(N)` si `slab.baseOffset > 0` (car la face supérieure de la dalle surélève le pied des murs du même niveau).
 - **Invariant Undo / Redo :** Toute opération restaure bit-à-bit l'état documentaire exact (`expect(doc.state).toEqual(stateBefore)`).
 
 ---
@@ -147,8 +149,10 @@ La fonction pure `validateSlab(slab: Slab, state: BimState): void` vérifie :
 2. `UNKNOWN_SLAB_TYPE` : Le `slab.slabTypeId` doit exister dans `state.slabTypes`.
 3. `INVALID_SLAB_BOUNDARY` : Le contour extérieur `boundary` doit comporter au moins 3 sommets non colinéaires et une surface $\ge 0,1\text{ m}^2$.
 4. `SELF_INTERSECTING_SLAB` : Le contour extérieur ne doit présenter aucune auto-intersection d'arêtes.
-5. `HOLE_OUTSIDE_SLAB` : Chaque trémie dans `holes` doit être géométriquement contenue dans le polygone `boundary`. Les contacts et tangences avec les bords de dalle (trémie adossée à un mur de façade) sont acceptés ; seul le débordement strict à l'extérieur est rejeté.
+5. `HOLE_OUTSIDE_SLAB` : Chaque trémie dans `holes` doit intersecter ou être contenue dans le polygone `boundary`. Une trémie strictement extérieure (aucun point commun avec l'emprise de la dalle) est formellement rejetée. Les trémies adossées en rive ou tangentes sont acceptées et découpées.
 6. `INTERSECTING_HOLES` : Deux trémies ne peuvent pas se chevaucher ou s'auto-intersecter.
+7. `SLAB_SEVERED` : Si une découpe booléenne de trémie sépare la dalle en plusieurs polygones disjoints (`MultiPolygon`), la commande est rejetée (la dalle doit rester d'un seul tenant).
+8. `SLAB_EMPTY` : Si la surface restante après soustraction des trémies est nulle ou négative, la commande est rejetée.
 
 La fonction pure `validateSlabType(slabType: SlabType): void` vérifie :
 

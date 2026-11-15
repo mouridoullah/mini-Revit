@@ -225,8 +225,10 @@ export interface Command {
 
 Toute violation de règle métier lève immédiatement une exception explicite `BimValidationError` :
 
-1. **Longueur minimale de mur :** Tout mur doit avoir une longueur euclidienne strictement positive :
-   $$\sqrt{(x_2 - x_1)^2 + (y_2 - y_1)^2} \ge \text{MIN\_WALL\_LENGTH} = 100.0\text{ mm}$$
+1. **Non-dégénérescence de mur dans le noyau :** Tout mur doit avoir une longueur euclidienne strictement positive au sens numérique :
+   $$\sqrt{(x_2 - x_1)^2 + (y_2 - y_1)^2} > 10^{-4}\text{ mm}$$
+   (`WALL_DEGENERATE`).  
+   _(Note d'architecture : Le seuil minimal ergonomique de 100.0 mm est un garde-fou UX géré par les outils interactifs dans `TOOLS_SPEC`, évitant de rejeter des murs courts créés par des algorithmes de jonction ou des fichiers migrés)._
 2. **Intégrité référentielle des murs et dalles :**
    - Un mur doit obligatoirement pointer vers un `WallType` et un `Level` existants.
    - Une dalle doit obligatoirement pointer vers un `SlabType` et un `Level` existants (`validateSlab`).
@@ -249,12 +251,20 @@ Toute violation de règle métier lève immédiatement une exception explicite `
      $$[\text{offset}_i, \text{offset}_i + w_i] \cap [\text{offset}_j, \text{offset}_j + w_j] = \emptyset$$
      (`OPENING_OVERLAP`).
    - Les trumeaux minimaux et dégagements respectent la fonction `validateOpenings` de `@mini-bim/geometry` et $\text{MIN\_OPENING\_CLEARANCE} = 50\text{ mm}$ (`INVALID_OPENING_CLEARANCE`).
-7. **Post-Condition Universelle `validateDirty` :**  
-   Avant d'enregistrer une transaction dans l'historique Undo/Redo, `BimDocument.execute()` invoque systématiquement `validateDirty(draft, changedIds)`. Si un changement de type, de dalle, de niveau ou un étirement de mur viole une règle sur n'importe quel élément du dirty set, la transaction est atomiquement annulée.
-8. **Protection de suppression :**
-   - Un `Level` ne peut être supprimé tant que des murs y sont rattachés (`canDeleteLevel`).
-   - Un `WallType` ne peut être supprimé tant qu'il est instancié par au moins un mur (`canDeleteWallType`).
-   - Un `Wall` hébergeant des ouvertures **peut** être supprimé (`canDeleteWall` retourne `allowed: true`), en cascade transactionnelle avec ses ouvertures.
+7. **Post-Condition Universelle Différentielle `validateDirty` :**  
+   Avant d'enregistrer une transaction dans l'historique Undo/Redo, `BimDocument.execute()` invoque systématiquement `validateDirty(draftState, changedIds, previousState)`.
+   - **Validation Différentielle :** La commande n'est rejetée que si elle introduit au moins une _nouvelle_ violation de règle sur le dirty set ou aggrave une violation existante, protégeant les opérations légitimes sur des modèles contenant des avertissements préalables.
+   - **Diagnostic Précis :** L'exception `BimValidationError` inclut obligatoirement le tableau `offendingIds: ElementId[]`, permettant à l'UI de surligner en rouge les éléments coupables.
+8. **Protection de suppression unifiée (`DELETE_RESTRICTED`) :**  
+   Conformément au registre déclaratif `RELATIONS_REGISTRY` (ADR-038) et au DAG (ADR-041), toute tentative de suppression d'un élément ayant une relation `onDelete: 'restrict'` avec des dépendants actifs est rejetée avec le code d'erreur unifié `DELETE_RESTRICTED` et la liste `blockingIds: ElementId[]` des éléments bloquants :
+   - Un `Level` référencé par des murs ou des dalles.
+   - Un `WallType` instancié par des murs.
+   - Un `SlabType` instancié par des dalles.
+   - Un `DoorType` ou `WindowType` instancié par des ouvertures.  
+     _(À l'inverse, `Wall` hébergeant des ouvertures est supprimé en cascade transactionnelle via `onDelete: 'cascade'`)._
+9. **Intégrité Altimétrique des Niveaux :**  
+   Deux niveaux ne peuvent partager strictement la même élévation ($\forall i \ne j, \text{elevation}_i \ne \text{elevation}_j$), évitant toute ambiguïté de tri ou hauteur d'étage nulle. En cas de doublon, rejet immédiat avec `DUPLICATE_LEVEL_ELEVATION` (`offendingIds: [levelA.id, levelB.id]`).
+   - Helper métier : `setStoryHeight(state, levelIndex, height)` calculant l'élévation absolue requise pour le niveau supérieur et émettant `UpdateLevelCommand(level_{index+1}, { elevation: level_index.elevation + height })`.
 
 ---
 
