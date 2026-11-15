@@ -197,6 +197,8 @@ export interface Command {
 - **Murs :**
   - `AddWallCommand(wall)`
   - `UpdateWallCommand(wallId, patch)`
+  - `MoveWallCommand(wallId, delta, options)` (Phase 6.0c / ADR-044) : translation d'un mur avec étirement élastique des murs voisins connectés, compensation projective des baies hébergées et mise à jour non-destructive des pièces.
+    > _Note d'architecture sur `getChangedIds()` :_ Les IDs des voisins, ouvertures et pièces impactés sont mis en cache lors de l'exécution de `apply()` pour être retournés par `getChangedIds()` dans le même cycle `BimDocument.execute()`. Si `apply()` échoue (ex. `WALL_STRETCH_COLLAPSE`), la transaction est annulée par Immer et la commande n'est pas réutilisée.
   - `DeleteWallCommand(wallId)` : suppression en cascade via `resolveCascadeDeletions` (ADR-038/ADR-041) supprimant automatiquement toutes les portes, fenêtres et cotations associées.
 - **Ouvertures hébergées (Schéma v2 / ADR-042) :**
   - `AddDoorCommand(door)` : ajoute une porte après validation d'intégrité et de non-chevauchement.
