@@ -76,6 +76,10 @@ Sur un plan d'étage (R+1), l'architecte a besoin de repérer visuellement où s
 
 Le moteur de snap (`snap.ts`) inclut les sommets et arêtes des murs de l'Underlay avec un rayon d'attraction configurable (ex: 50 mm), permettant un alignement immédiat sans avoir à relever les coordonnées à la main.
 
+### 4.4 Note de Performance et Scalabilité
+
+L'affichage de l'Underlay redessine les murs du niveau inférieur. Sur les projets de très grande taille, le tracé de l'Underlay est plafonné aux 100 premiers éléments structurants du niveau inférieur pour préserver un framerate de 60 FPS constant sur Canvas 2D. Une optimisation par culling spatial (R-Tree) sera introduite si nécessaire.
+
 ---
 
 ## 5. Matrice de Validation

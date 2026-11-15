@@ -49,16 +49,31 @@ Dans le standard BIM (Revit, IFC) :
   \end{aligned}$$
   $$
 - **Conséquence directe :** Les murs posés sur ce niveau ($Z = \text{level.elevation}$) reposent exactement sur la face supérieure de la dalle, sans aucun chevauchement ou conflit volumique.
+- **Invariant de Non-Interpénétration Volumique (Test Discriminant) :**
+  Pour un mur et une dalle sur le même niveau sans décalages ($baseOffset = 0$) :
+  $$wall.minZ = level.elevation = slab.topZ$$
+  $$slab.maxZ \le wall.minZ \implies \text{Volume}(wall \cap slab) = 0$$
+  La boîte englobante 3D du mur et la boîte englobante 3D de la dalle ne se chevauchent jamais en $Z$ (au plus un contact surfacique coplanaire à $Z = level.elevation$).
 
 ---
 
-## 3. Commandes Transactionnelles (`immer`)
+## 3. Commandes Transactionnelles (`immer`) & Règles de Cascade
 
 | Commande            | Paramètres                                | Effet sur `draft.slabs`                    | `getChangedIds()` |
 | ------------------- | ----------------------------------------- | ------------------------------------------ | ----------------- |
 | `AddSlabCommand`    | `slab: Slab`                              | Insère la dalle après validation complète. | `[slab.id]`       |
 | `UpdateSlabCommand` | `slabId: ElementId, patch: Partial<Slab>` | Applique le patch et re-valide l'entité.   | `[slab.id]`       |
 | `DeleteSlabCommand` | `slabId: ElementId`                       | Supprime la dalle du modèle.               | `[slabId]`        |
+
+### Règles de Suppression et de Cascade :
+
+1. **Suppression de Mur (`DeleteWallCommand`) :**
+   - Une dalle est une entité horizontale indépendante (non hébergée par un mur).
+   - La suppression d'un mur porteur ou mitoyen **ne supprime pas** la dalle.
+2. **Suppression de Niveau (`DeleteLevelCommand`) :**
+   - Règle de protection d'intégrité référentielle stricte : si un niveau héberge encore des murs, des portes, des fenêtres, des pièces ou des dalles, la commande `DeleteLevelCommand` est **rejetée** avec l'erreur `DELETE_LEVEL_REJECTED`.
+   - L'utilisateur doit préalablement vider ou réassigner les éléments du niveau.
+     | `DeleteSlabCommand` | `slabId: ElementId` | Supprime la dalle du modèle. | `[slabId]` |
 
 ### Invariant Undo / Redo
 
