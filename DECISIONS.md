@@ -1133,6 +1133,7 @@ Dans un outil BIM, une cotation n'est pas un simple texte graphique passif : c'e
 
 Comment modéliser et positionner les dalles structurelles horizontales (`Slab`) au sein du modèle déclaratif de Mini-BIM et dans les moteurs de rendu 2D et 3D ?
 Trois questions critiques se posent :
+
 1. Quelle est la convention d'ancrage altimétrique de la dalle par rapport au niveau ?
 2. Comment gérer les trémies d'escalier ou les gaines techniques (trous dans la dalle) ?
 3. Comment assurer l'étanchéité géométrique 3D sans interférer avec les pieds de murs ?
@@ -1151,7 +1152,7 @@ Trois questions critiques se posent :
    Dans les règles de l'art du bâtiment et dans Revit/IFC, l'élévation d'un niveau d'étage représente la cote de **plancher fini**. La dalle structurelle est donc positionnée sous cette cote :
    - Face supérieure de la dalle : $Z_{\text{sup}} = \text{level.elevation} + \text{baseOffset}$.
    - Face inférieure de la dalle : $Z_{\text{inf}} = Z_{\text{sup}} - \text{thickness}$.  
-   Cette convention garantit que les murs posés au niveau ($Z = \text{level.elevation}$) reposent exactement sur la face supérieure de la dalle sans interpénétration volumique avec celle-ci.
+     Cette convention garantit que les murs posés au niveau ($Z = \text{level.elevation}$) reposent exactement sur la face supérieure de la dalle sans interpénétration volumique avec celle-ci.
 3. **Triangulation 3D Robuste via `earcut` :**  
    La géométrie 3D de la dalle est générée via un maillage extrudé indexé. Les faces supérieure et inférieure sont triangulées par `earcut` en gérant nativement les trous (`holes`). Les parois latérales verticales relient les arêtes extérieures et intérieures entre $Z_{\text{sup}}$ et $Z_{\text{inf}}$.
 4. **Rendu 2D en Plan :**  
@@ -1182,7 +1183,7 @@ Dans un bâtiment à plusieurs étages, comment permettre à l'utilisateur de co
 
 1. **Notion de Niveau Actif (`activeLevelId`) dans le Store UI :**  
    L'interface web possède un sélecteur de niveau actif. Le viewport 2D affiche en priorité les éléments (murs, ouvertures, pièces, cotations, dalles) rattachés à ce niveau.
-2. **Vue Fantôme en Transparence (*Underlay*) :**  
+2. **Vue Fantôme en Transparence (_Underlay_) :**  
    Lorsque l'utilisateur travaille sur le niveau $N$ (ex: R+1), le moteur 2D propose d'activer la vue Underlay du niveau $N-1$ (RDC) :
    - Les murs du niveau inférieur sont dessinés en traits fins pointillés gris clair (`#9ca3af`).
    - Les ouvertures du niveau inférieur sont indiquées en pointillés légers pour repérer les aplombs de fenêtres.
@@ -1212,7 +1213,7 @@ Comment modéliser les circulations verticales entre étages de manière rigoure
 
 ### Décisions Prises
 
-1. **Modèle Déclaratif `Stair` :**  
+1. **Modèle Déclaratif `Stair` :**
    - `id: ElementId`.
    - `bottomLevelId: ElementId` et `topLevelId: ElementId`.
    - `startPoint: Vec2` (départ au sol du niveau bas) et `endPoint: Vec2` (arrivée au niveau haut).
@@ -1225,7 +1226,7 @@ Comment modéliser les circulations verticales entre étages de manière rigoure
    - Si les dimensions choisies violent la formule, un avertissement constructif est affiché dans l'inspecteur.
 3. **Réservation Automatique de Trémie :**  
    Une fonction d'assistance permet de générer automatiquement un contour de trémie (`hole`) dans la dalle du niveau supérieur, avec recul suffisant pour garantir une échappée de tête d'au moins $2,00\text{ m}$ sur toute la montée.
-4. **Rendu Architectural Conforme :**  
+4. **Rendu Architectural Conforme :**
    - En 2D : tracé des nez de marches, ligne de foulée avec flèche orientée vers le haut, et trait de coupe oblique à mi-hauteur.
    - En 3D : maillage solide Three.js crénelé avec contremarches et marches distinctes.
 
@@ -1233,4 +1234,3 @@ Comment modéliser les circulations verticales entre étages de manière rigoure
 
 - Conception intuitive et normée des escaliers.
 - Cohérence tridimensionnelle parfaite entre l'escalier et le trou de plancher qui le surplombe.
-

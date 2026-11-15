@@ -204,9 +204,7 @@ describe('Composant <MetricsPanel /> (Tableau de Métrés & Surfaces)', () => {
     const exportBtn = screen.getByTestId('export-csv-btn');
     expect(exportBtn).toBeDefined();
 
-    const clickSpy = vi
-      .spyOn(HTMLAnchorElement.prototype, 'click')
-      .mockImplementation(() => {});
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
     const appendChildSpy = vi.spyOn(document.body, 'appendChild');
     const removeChildSpy = vi.spyOn(document.body, 'removeChild');
 

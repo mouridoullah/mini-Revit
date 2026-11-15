@@ -293,7 +293,7 @@ flowchart LR
 
 - **Objectif :** Clore l'enveloppe extérieure du bâtiment par le haut et fournir les outils d'inspection en coupe indispensables aux permis de construire.
 - **Fonctionnalités :**
-  - **Toitures Paramétriques (`Roof`) :** Toiture terrasse étanchée ou toiture à 1 ou 2 pans inclinés (`gable`) avec angle de pente ($0^\circ$ à $60^\circ$) et débord de toit (*eaves*).
+  - **Toitures Paramétriques (`Roof`) :** Toiture terrasse étanchée ou toiture à 1 ou 2 pans inclinés (`gable`) avec angle de pente ($0^\circ$ à $60^\circ$) et débord de toit (_eaves_).
   - **Attachement Automatique des Murs (`Wall Attachment`) :** Les murs sous toiture s'étirent et leurs sommets sont biseautés automatiquement pour épouser la sous-face des versants de toiture.
   - **Ligne de Coupe Dynamique (`SectionView`) :** Tracé d'une ligne de coupe A-A sur le plan 2D $\to$ génération instantanée d'une vue vectorielle en coupe verticale avec pochés des parois traversées (murs, dalles, toiture).
   - **Plan de Coupe 3D Interactif :** Clipping plane matériel WebGL Three.js pour écorcher la maquette 3D à n'importe quelle altitude.

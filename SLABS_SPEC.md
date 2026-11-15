@@ -40,25 +40,28 @@ export interface BimState {
 ### 2.2 Convention Altimétrique (Règle d'Or d'Ancrage)
 
 Dans le standard BIM (Revit, IFC) :
-* L'élévation d'un niveau (`level.elevation`) correspond à la **cote de plancher fini**.
-* La dalle structurelle est donc positionnée **sous** le niveau de référence :
-  $$\begin{aligned}
+
+- L'élévation d'un niveau (`level.elevation`) correspond à la **cote de plancher fini**.
+- La dalle structurelle est donc positionnée **sous** le niveau de référence :
+  $$ \begin{aligned}
   Z_{\text{sup}} &= \text{level.elevation} + (\text{slab.baseOffset} \mathbin{??} 0) \\
   Z_{\text{inf}} &= Z_{\text{sup}} - \text{slab.thickness}
   \end{aligned}$$
-* **Conséquence directe :** Les murs posés sur ce niveau ($Z = \text{level.elevation}$) reposent exactement sur la face supérieure de la dalle, sans aucun chevauchement ou conflit volumique.
+  $$
+- **Conséquence directe :** Les murs posés sur ce niveau ($Z = \text{level.elevation}$) reposent exactement sur la face supérieure de la dalle, sans aucun chevauchement ou conflit volumique.
 
 ---
 
 ## 3. Commandes Transactionnelles (`immer`)
 
-| Commande | Paramètres | Effet sur `draft.slabs` | `getChangedIds()` |
-|---|---|---|---|
-| `AddSlabCommand` | `slab: Slab` | Insère la dalle après validation complète. | `[slab.id]` |
-| `UpdateSlabCommand` | `slabId: ElementId, patch: Partial<Slab>` | Applique le patch et re-valide l'entité. | `[slab.id]` |
-| `DeleteSlabCommand` | `slabId: ElementId` | Supprime la dalle du modèle. | `[slabId]` |
+| Commande            | Paramètres                                | Effet sur `draft.slabs`                    | `getChangedIds()` |
+| ------------------- | ----------------------------------------- | ------------------------------------------ | ----------------- |
+| `AddSlabCommand`    | `slab: Slab`                              | Insère la dalle après validation complète. | `[slab.id]`       |
+| `UpdateSlabCommand` | `slabId: ElementId, patch: Partial<Slab>` | Applique le patch et re-valide l'entité.   | `[slab.id]`       |
+| `DeleteSlabCommand` | `slabId: ElementId`                       | Supprime la dalle du modèle.               | `[slabId]`        |
 
 ### Invariant Undo / Redo
+
 Toute opération sur une dalle doit restaurer l'état documentaire bit-à-bit (`expect(doc.state).toEqual(stateBefore)`).
 
 ---
@@ -102,6 +105,7 @@ La fonction pure `validateSlab(slab: Slab, state: BimState): void` vérifie les 
 ## 7. Export IFC4 (`IfcSlab`)
 
 La dalle est traduite dans le fichier STEP ISO 10303-21 :
+
 ```step
 #200=IFCARBITRARYPROFILEDEFWITHVOIDS(.AREA.,'SlabProfile',#201,(#202));
 #203=IFCEXTRUDEDAREASOLID(#200,#204,#12,200.00);
