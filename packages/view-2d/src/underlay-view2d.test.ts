@@ -3,7 +3,7 @@ import { vec2 } from '@mini-bim/geometry';
 import { Transform2D } from './transform.js';
 import { renderPlanView, drawUnderlay, DEFAULT_UNDERLAY_RENDER_CONFIG } from './renderer.js';
 import { View2D } from './View2D.js';
-import { createUnderlayPath, type UnderlayInput } from './underlay/UnderlayCache.js';
+import { createUnderlayPath } from './underlay/UnderlayCache.js';
 import { createMockCanvas } from './test-utils.js';
 import { type DocumentFor2D } from './types.js';
 

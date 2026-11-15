@@ -1,14 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { BimDocument } from './document.js';
 import { AddWallCommand, MoveWallCommand, AddDoorCommand, AddRoomCommand } from './commands.js';
-import { type Wall, type BimState } from './types.js';
 import { BimValidationError } from './rules.js';
 
 function createBaseDoc(): { doc: BimDocument; levelId: string; typeId: string } {
   const doc = BimDocument.createDefaultProject();
   const state = doc.getState();
-  const levelId = Object.keys(state.levels)[0];
-  const typeId = Object.keys(state.wallTypes)[0];
+  const levelId = Object.keys(state.levels)[0]!;
+  const typeId = Object.keys(state.wallTypes)[0]!;
   return { doc, levelId, typeId };
 }
 
@@ -33,8 +32,6 @@ describe('Phase 6.0c — MoveWallCommand Tests (packages/core)', () => {
         doorTypeId: 'door_type_std',
         hostWallId: 'wall_iso',
         offsetAlong: 1200,
-        width: 900,
-        height: 2100,
         swing: { side: 'left', direction: 'in' },
       }),
     );
@@ -43,11 +40,11 @@ describe('Phase 6.0c — MoveWallCommand Tests (packages/core)', () => {
     // Le DAG inclut la porte dépendante dans res.changed (ADR-041)
     expect(res.changed).toEqual(['wall_iso', 'door_iso']);
 
-    const moved = doc.getState().walls['wall_iso'];
+    const moved = doc.getState().walls['wall_iso']!;
     expect(moved.start).toEqual({ x: 1200, y: 1300 });
     expect(moved.end).toEqual({ x: 5200, y: 1300 });
 
-    const door = doc.getState().doors['door_iso'];
+    const door = doc.getState().doors['door_iso']!;
     expect(door.offsetAlong).toBe(1200); // Règle d'or Phase 3.3
   });
 
@@ -78,7 +75,7 @@ describe('Phase 6.0c — MoveWallCommand Tests (packages/core)', () => {
     const res = doc.execute(new MoveWallCommand('wall_A', { x: 500, y: 0 }));
     expect(res.changed).toEqual(['wall_A', 'wall_B']);
 
-    const wallB = doc.getState().walls['wall_B'];
+    const wallB = doc.getState().walls['wall_B']!;
     expect(wallB.start).toEqual({ x: 4500, y: 0 }); // suit A.end
     expect(wallB.end).toEqual({ x: 4000, y: 3000 }); // reste ancré
   });
@@ -133,9 +130,9 @@ describe('Phase 6.0c — MoveWallCommand Tests (packages/core)', () => {
     expect(res.changed).toEqual(['wall_A', 'wall_B', 'wall_D']);
 
     const state = doc.getState();
-    expect(state.walls['wall_B'].start).toEqual({ x: 300, y: 0 });
-    expect(state.walls['wall_D'].start).toEqual({ x: 300, y: 0 });
-    expect(state.walls['wall_C'].start).toEqual({ x: 0, y: 0 }); // C n'a pas bougé
+    expect(state.walls['wall_B']!.start).toEqual({ x: 300, y: 0 });
+    expect(state.walls['wall_D']!.start).toEqual({ x: 300, y: 0 });
+    expect(state.walls['wall_C']!.start).toEqual({ x: 0, y: 0 }); // C n'a pas bougé
   });
 
   // T-MOVE-04 : MoveWallCommand avec ouverture sur neighbor -> offsetAlong compensé (Option β)
@@ -168,8 +165,6 @@ describe('Phase 6.0c — MoveWallCommand Tests (packages/core)', () => {
         doorTypeId: 'door_type_std',
         hostWallId: 'wall_B',
         offsetAlong: 1500,
-        width: 900,
-        height: 2100,
         swing: { side: 'left', direction: 'in' },
       }),
     );
@@ -177,7 +172,7 @@ describe('Phase 6.0c — MoveWallCommand Tests (packages/core)', () => {
     const res = doc.execute(new MoveWallCommand('wall_A', { x: 500, y: 0 }));
     expect(res.changed).toContain('door_B');
 
-    const updatedDoor = doc.getState().doors['door_B'];
+    const updatedDoor = doc.getState().doors['door_B']!;
     // Projection monde calculée avec précision en T-STRETCH-13
     expect(updatedDoor.offsetAlong).toBeCloseTo(1550.43, 1);
   });
@@ -342,8 +337,8 @@ describe('Phase 6.0c — MoveWallCommand Tests (packages/core)', () => {
     expect(res.changed).toContain('wall_C');
 
     const state = doc.getState();
-    expect(state.walls['wall_A'].start).toEqual({ x: 0, y: 200 });
-    expect(state.walls['wall_B'].start).toEqual({ x: 2000, y: 200 });
+    expect(state.walls['wall_A']!.start).toEqual({ x: 0, y: 200 });
+    expect(state.walls['wall_B']!.start).toEqual({ x: 2000, y: 200 });
   });
 
   // T-MOVE-09 : MoveWallCommand undo -> état revient à stateBefore
@@ -501,14 +496,14 @@ describe('Phase 6.0c — MoveWallCommand Tests (packages/core)', () => {
       }),
     );
 
-    const initialRoom = doc.getState().rooms['room_1'];
+    const initialRoom = doc.getState().rooms['room_1']!;
     const initialArea = initialRoom.area;
 
     // Déplacer le mur sud de (500, 0)
     const res = doc.execute(new MoveWallCommand('w_s', { x: 500, y: 0 }));
     expect(res.changed).toContain('room_1');
 
-    const updatedRoom = doc.getState().rooms['room_1'];
+    const updatedRoom = doc.getState().rooms['room_1']!;
     expect(updatedRoom.status).toBe('enclosed');
     expect(updatedRoom.area).toBeDefined();
     // Vérification de la précision 2 : la surface a changé (écart mesurable)
@@ -572,7 +567,7 @@ describe('Phase 6.0c — MoveWallCommand Tests (packages/core)', () => {
     // Déplacer w_s SANS étirement des voisins ({ stretchNeighbors: false }) -> crée une brèche de 2000 mm
     doc.execute(new MoveWallCommand('w_s', { x: 0, y: -2000 }, { stretchNeighbors: false }));
 
-    const leakRoom = doc.getState().rooms['room_leak'];
+    const leakRoom = doc.getState().rooms['room_leak']!;
     expect(leakRoom).toBeDefined(); // ADR-039 : NON supprimée !
     expect(leakRoom.status).toBe('unenclosed');
     expect(leakRoom.area).toBe(0);

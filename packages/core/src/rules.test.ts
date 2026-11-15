@@ -18,6 +18,8 @@ import {
   type Level,
   type Door,
   type Window,
+  type DoorType,
+  type WindowType,
 } from './types.js';
 
 describe('Règles Métier BIM (rules.ts)', () => {
@@ -25,13 +27,19 @@ describe('Règles Métier BIM (rules.ts)', () => {
   const sampleType: WallType = { id: 'type_1', name: 'Mur 200', thickness: 200, height: 2800 };
 
   const validState: BimState = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     units: 'mm',
     levels: { lvl_1: sampleLevel },
     wallTypes: { type_1: sampleType },
+    slabTypes: {},
+    doorTypes: {},
+    windowTypes: {},
     walls: {},
+    slabs: {},
     doors: {},
     windows: {},
+    rooms: {},
+    dimensions: {},
   };
 
   it('valide un mur géométriquement et référentiellement correct', () => {
@@ -171,8 +179,71 @@ describe('Règles Métier BIM (rules.ts)', () => {
    * TESTS DES RÈGLES MÉTIER PORTES ET FENÊTRES (PHASE 3.1)
    * ========================================================================= */
 
+  const dtStandard: DoorType = {
+    id: 'dt_std',
+    name: 'Porte standard 900x2150',
+    width: 900,
+    height: 2150,
+  };
+  const dt1000: DoorType = {
+    id: 'dt_1000',
+    name: 'Porte 1000x2150',
+    width: 1000,
+    height: 2150,
+  };
+  const dtTall: DoorType = {
+    id: 'dt_tall',
+    name: 'Porte haute 900x3000',
+    width: 900,
+    height: 3000,
+  };
+  const dt2100: DoorType = {
+    id: 'dt_2100',
+    name: 'Porte 900x2100',
+    width: 900,
+    height: 2100,
+  };
+  const dtZeroW: DoorType = {
+    id: 'dt_zero_w',
+    name: 'Porte 0w',
+    width: 0,
+    height: 2100,
+  };
+  const dtNegH: DoorType = {
+    id: 'dt_neg_h',
+    name: 'Porte neg h',
+    width: 900,
+    height: -50,
+  };
+  const wtStandard: WindowType = {
+    id: 'wt_std',
+    name: 'Fenêtre standard 1200x1400',
+    width: 1200,
+    height: 1400,
+    defaultSillHeight: 900,
+  };
+  const wtTooHigh: WindowType = {
+    id: 'wt_too_high',
+    name: 'Fenêtre trop haute 1200x2000',
+    width: 1200,
+    height: 2000,
+    defaultSillHeight: 1000,
+  };
+
   const stateWithHostWall: BimState = {
     ...validState,
+    doorTypes: {
+      dt_std: dtStandard,
+      dt_1000: dt1000,
+      dt_tall: dtTall,
+      dt_2100: dt2100,
+      dt_zero_w: dtZeroW,
+      dt_neg_h: dtNegH,
+    },
+    windowTypes: {
+      wt_std: wtStandard,
+      wt_too_high: wtTooHigh,
+    },
     walls: {
       w_host: {
         id: 'w_host',
@@ -189,22 +260,18 @@ describe('Règles Métier BIM (rules.ts)', () => {
     const validDoor: Door = {
       id: 'd_ok',
       category: 'door',
-      kind: 'door',
+      doorTypeId: 'dt_std',
       hostWallId: 'w_host',
       offsetAlong: 500,
-      width: 900,
-      height: 2150,
       swing: { side: 'right', direction: 'in' },
     };
 
     const validWindow: Window = {
       id: 'win_ok',
       category: 'window',
-      kind: 'window',
+      windowTypeId: 'wt_std',
       hostWallId: 'w_host',
       offsetAlong: 2000,
-      width: 1200,
-      height: 1400,
       sillHeight: 900,
     };
 
@@ -216,11 +283,9 @@ describe('Règles Métier BIM (rules.ts)', () => {
     const ghostDoor: Door = {
       id: 'd_ghost',
       category: 'door',
-      kind: 'door',
+      doorTypeId: 'dt_std',
       hostWallId: 'wall_unknown',
       offsetAlong: 500,
-      width: 900,
-      height: 2150,
       swing: { side: 'left', direction: 'in' },
     };
 
@@ -232,11 +297,9 @@ describe('Règles Métier BIM (rules.ts)', () => {
     const outOfBoundsDoor: Door = {
       id: 'd_out',
       category: 'door',
-      kind: 'door',
+      doorTypeId: 'dt_std',
       hostWallId: 'w_host',
       offsetAlong: 4500, // 4500 + 900 = 5400 > 5000 mm
-      width: 900,
-      height: 2150,
       swing: { side: 'left', direction: 'in' },
     };
 
@@ -250,11 +313,9 @@ describe('Règles Métier BIM (rules.ts)', () => {
     const tooTallDoor: Door = {
       id: 'd_tall',
       category: 'door',
-      kind: 'door',
+      doorTypeId: 'dt_tall',
       hostWallId: 'w_host',
       offsetAlong: 500,
-      width: 900,
-      height: 3000, // 3000 mm > 2800 mm
       swing: { side: 'left', direction: 'in' },
     };
 
@@ -268,11 +329,9 @@ describe('Règles Métier BIM (rules.ts)', () => {
     const existingDoor: Door = {
       id: 'd_existing',
       category: 'door',
-      kind: 'door',
+      doorTypeId: 'dt_1000',
       hostWallId: 'w_host',
       offsetAlong: 500,
-      width: 1000, // Occupe [500, 1500] mm
-      height: 2150,
       swing: { side: 'right', direction: 'in' },
     };
 
@@ -285,11 +344,9 @@ describe('Règles Métier BIM (rules.ts)', () => {
     const overlappingDoor: Door = {
       id: 'd_overlap',
       category: 'door',
-      kind: 'door',
+      doorTypeId: 'dt_std',
       hostWallId: 'w_host',
       offsetAlong: 1200,
-      width: 900,
-      height: 2150,
       swing: { side: 'left', direction: 'in' },
     };
 
@@ -301,11 +358,9 @@ describe('Règles Métier BIM (rules.ts)', () => {
     const tooHighWindow: Window = {
       id: 'win_too_high',
       category: 'window',
-      kind: 'window',
+      windowTypeId: 'wt_too_high',
       hostWallId: 'w_host',
       offsetAlong: 1000,
-      width: 1200,
-      height: 2000,
       sillHeight: 1000, // 1000 + 2000 = 3000 mm > 2800 mm
     };
 
@@ -319,11 +374,9 @@ describe('Règles Métier BIM (rules.ts)', () => {
     const zeroWidthDoor: Door = {
       id: 'd_zero_w',
       category: 'door',
-      kind: 'door',
+      doorTypeId: 'dt_zero_w',
       hostWallId: 'w_host',
       offsetAlong: 500,
-      width: 0,
-      height: 2100,
       swing: { side: 'left', direction: 'in' },
     };
     expect(() => validateDoor(zeroWidthDoor, stateWithHostWall)).toThrowError(
@@ -333,11 +386,9 @@ describe('Règles Métier BIM (rules.ts)', () => {
     const negHeightDoor: Door = {
       id: 'd_neg_h',
       category: 'door',
-      kind: 'door',
+      doorTypeId: 'dt_neg_h',
       hostWallId: 'w_host',
       offsetAlong: 500,
-      width: 900,
-      height: -50,
       swing: { side: 'right', direction: 'out' },
     };
     expect(() => validateDoor(negHeightDoor, stateWithHostWall)).toThrowError(
@@ -350,11 +401,9 @@ describe('Règles Métier BIM (rules.ts)', () => {
     const badSideDoor: Door = {
       id: 'd_bad_side',
       category: 'door',
-      kind: 'door',
+      doorTypeId: 'dt_2100',
       hostWallId: 'w_host',
       offsetAlong: 500,
-      width: 900,
-      height: 2100,
       swing: { side: 'center' as unknown as 'left', direction: 'in' },
     };
     expect(() => validateDoor(badSideDoor, stateWithHostWall)).toThrowError(/INVALID_DOOR_SWING/);
@@ -363,11 +412,9 @@ describe('Règles Métier BIM (rules.ts)', () => {
     const badDirectionDoor: Door = {
       id: 'd_bad_dir',
       category: 'door',
-      kind: 'door',
+      doorTypeId: 'dt_2100',
       hostWallId: 'w_host',
       offsetAlong: 500,
-      width: 900,
-      height: 2100,
       swing: { side: 'left', direction: 'upwards' as unknown as 'in' },
     };
     expect(() => validateDoor(badDirectionDoor, stateWithHostWall)).toThrowError(
@@ -379,11 +426,9 @@ describe('Règles Métier BIM (rules.ts)', () => {
     const door1: Door = {
       id: 'd_clear_1',
       category: 'door',
-      kind: 'door',
+      doorTypeId: 'dt_2100',
       hostWallId: 'w_host',
       offsetAlong: 500,
-      width: 900, // [500..1400]
-      height: 2100,
       swing: { side: 'left', direction: 'in' },
     };
 
@@ -396,11 +441,9 @@ describe('Règles Métier BIM (rules.ts)', () => {
     const doorTooClose: Door = {
       id: 'd_clear_2',
       category: 'door',
-      kind: 'door',
+      doorTypeId: 'dt_2100',
       hostWallId: 'w_host',
       offsetAlong: 1420,
-      width: 900,
-      height: 2100,
       swing: { side: 'right', direction: 'in' },
     };
 

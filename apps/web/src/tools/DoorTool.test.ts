@@ -172,15 +172,14 @@ describe('DoorTool (apps/web)', () => {
 
   it('gestion des erreurs : AddDoorCommand exécutée sur un emplacement en chevauchement lève OPENING_OVERLAP', () => {
     // 1. Ajouter une première porte à offsetAlong = 2000
+    const doorTypeId = Object.keys(doc.getState().doorTypes)[0]!;
     doc.execute(
       new Commands.AddDoorCommand({
         id: 'door_existing',
         category: 'door',
-        kind: 'door',
         hostWallId: 'w_test',
         offsetAlong: 2000,
-        width: 900,
-        height: 2100,
+        doorTypeId,
         swing: { side: 'left', direction: 'in' },
       }),
     );
@@ -240,7 +239,9 @@ describe('DoorTool (apps/web)', () => {
       ctx,
     );
     expect(outMove.kind).toBe('preview');
-    expect(outMove.preview).toBeNull();
+    if (outMove.kind === 'preview') {
+      expect(outMove.preview).toBeNull();
+    }
     expect(tool.getState().kind).toBe('idle');
 
     const outDown = tool.handle(

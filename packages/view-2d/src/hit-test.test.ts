@@ -126,11 +126,9 @@ describe('Hit-Test Découplé (hit-test.ts)', () => {
       new Commands.AddDoorCommand({
         id: 'door_test_1',
         category: 'door',
-        kind: 'door',
         hostWallId: 'w_host',
         offsetAlong: 1000,
-        width: 900,
-        height: 2100,
+        doorTypeId: 'dt-standard',
         swing: { side: 'left', direction: 'in' },
       }),
     );
@@ -139,11 +137,9 @@ describe('Hit-Test Découplé (hit-test.ts)', () => {
       new Commands.AddWindowCommand({
         id: 'win_test_1',
         category: 'window',
-        kind: 'window',
         hostWallId: 'w_host',
         offsetAlong: 3500,
-        width: 1200,
-        height: 1400,
+        windowTypeId: 'wt-standard',
         sillHeight: 900,
       }),
     );

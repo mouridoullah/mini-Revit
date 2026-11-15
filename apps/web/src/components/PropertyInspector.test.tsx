@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { BimDocument, Commands, type Wall, type Slab, type Level } from '@mini-bim/core';
 import { PropertyInspector } from './PropertyInspector.js';
 
@@ -22,7 +22,6 @@ describe('PropertyInspector — Panneau latéral d’inspection et d’édition 
       id: 'lvl-r1',
       name: 'R+1',
       elevation: 3000,
-      category: 'level',
     };
     doc.execute(new Commands.AddLevelCommand(level1));
     level1Id = level1.id;

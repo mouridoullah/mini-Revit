@@ -4,10 +4,7 @@ import {
   Commands,
   type Wall,
   type Door,
-  type WallType,
-  type Level,
   BimValidationError,
-  validateDirty,
   collectViolationsForDirty,
 } from './index.js';
 
@@ -20,6 +17,7 @@ describe('Validation Différentielle Post-Condition (validateDirty / Phase 6.0b)
 
     const wall: Wall = {
       id: 'w_valid_1',
+      category: 'wall',
       typeId,
       levelId,
       start: { x: 0, y: 0 },
@@ -39,6 +37,7 @@ describe('Validation Différentielle Post-Condition (validateDirty / Phase 6.0b)
 
     const zeroWall: Wall = {
       id: 'w_zero',
+      category: 'wall',
       typeId,
       levelId,
       start: { x: 1000, y: 1000 },
@@ -64,6 +63,7 @@ describe('Validation Différentielle Post-Condition (validateDirty / Phase 6.0b)
 
     const wall: Wall = {
       id: 'w_host',
+      category: 'wall',
       typeId,
       levelId,
       start: { x: 0, y: 0 },
@@ -71,14 +71,13 @@ describe('Validation Différentielle Post-Condition (validateDirty / Phase 6.0b)
     };
     doc.execute(new Commands.AddWallCommand(wall));
 
+    const defaultDoorTypeId = Object.keys(doc.getState().doorTypes)[0]!;
     const outDoor: Door = {
       id: 'd_out',
       hostWallId: 'w_host',
       offsetAlong: 1500,
-      width: 900, // 1500 + 900 = 2400 > 2000 mm
-      height: 2100,
+      doorTypeId: defaultDoorTypeId,
       category: 'door',
-      kind: 'door',
       swing: { side: 'left', direction: 'in' },
     };
 
@@ -102,6 +101,7 @@ describe('Validation Différentielle Post-Condition (validateDirty / Phase 6.0b)
 
     const wall: Wall = {
       id: 'w_host_overlap',
+      category: 'wall',
       typeId,
       levelId,
       start: { x: 0, y: 0 },
@@ -109,14 +109,13 @@ describe('Validation Différentielle Post-Condition (validateDirty / Phase 6.0b)
     };
     doc.execute(new Commands.AddWallCommand(wall));
 
+    const defaultDoorTypeId = Object.keys(doc.getState().doorTypes)[0]!;
     const door1: Door = {
       id: 'd_1',
       hostWallId: 'w_host_overlap',
       offsetAlong: 500,
-      width: 900,
-      height: 2100,
+      doorTypeId: defaultDoorTypeId,
       category: 'door',
-      kind: 'door',
       swing: { side: 'left', direction: 'in' },
     };
     doc.execute(new Commands.AddDoorCommand(door1));
@@ -125,10 +124,8 @@ describe('Validation Différentielle Post-Condition (validateDirty / Phase 6.0b)
       id: 'd_2',
       hostWallId: 'w_host_overlap',
       offsetAlong: 800, // Chevauchement avec d_1 [500, 1400]
-      width: 900,
-      height: 2100,
+      doorTypeId: defaultDoorTypeId,
       category: 'door',
-      kind: 'door',
       swing: { side: 'right', direction: 'out' },
     };
 
@@ -153,6 +150,7 @@ describe('Validation Différentielle Post-Condition (validateDirty / Phase 6.0b)
 
     const wall: Wall = {
       id: 'w_shrink',
+      category: 'wall',
       typeId,
       levelId,
       start: { x: 0, y: 0 },
@@ -160,14 +158,13 @@ describe('Validation Différentielle Post-Condition (validateDirty / Phase 6.0b)
     };
     doc.execute(new Commands.AddWallCommand(wall));
 
+    const defaultDoorTypeId = Object.keys(doc.getState().doorTypes)[0]!;
     const door: Door = {
       id: 'd_fixed',
       hostWallId: 'w_shrink',
       offsetAlong: 2500,
-      width: 900, // [2500, 3400]
-      height: 2100,
+      doorTypeId: defaultDoorTypeId,
       category: 'door',
-      kind: 'door',
       swing: { side: 'left', direction: 'in' },
     };
     doc.execute(new Commands.AddDoorCommand(door));
@@ -196,6 +193,7 @@ describe('Validation Différentielle Post-Condition (validateDirty / Phase 6.0b)
 
     const wall: Wall = {
       id: 'w_height',
+      category: 'wall',
       typeId,
       levelId,
       start: { x: 0, y: 0 },
@@ -203,14 +201,13 @@ describe('Validation Différentielle Post-Condition (validateDirty / Phase 6.0b)
     };
     doc.execute(new Commands.AddWallCommand(wall));
 
+    const defaultDoorTypeId = Object.keys(doc.getState().doorTypes)[0]!;
     const door: Door = {
       id: 'd_tall',
       hostWallId: 'w_height',
       offsetAlong: 500,
-      width: 900,
-      height: 2100,
+      doorTypeId: defaultDoorTypeId,
       category: 'door',
-      kind: 'door',
       swing: { side: 'left', direction: 'in' },
     };
     doc.execute(new Commands.AddDoorCommand(door));
@@ -237,9 +234,11 @@ describe('Validation Différentielle Post-Condition (validateDirty / Phase 6.0b)
     const levelId = Object.keys(state.levels)[0]!;
     const typeId = Object.keys(state.wallTypes)[0]!;
 
+    const defaultDoorTypeId = Object.keys(state.doorTypes)[0]!;
     // On forge un état documentaire contenant directement une ouverture hors bornes (ex: import legacy)
     const corruptedWall: Wall = {
       id: 'w_legacy',
+      category: 'wall',
       typeId,
       levelId,
       start: { x: 0, y: 0 },
@@ -249,10 +248,8 @@ describe('Validation Différentielle Post-Condition (validateDirty / Phase 6.0b)
       id: 'd_corrupted',
       hostWallId: 'w_legacy',
       offsetAlong: 1500,
-      width: 900, // Déborde de 400 mm
-      height: 2100,
+      doorTypeId: defaultDoorTypeId,
       category: 'door',
-      kind: 'door',
       swing: { side: 'left', direction: 'in' },
     };
 
@@ -273,6 +270,7 @@ describe('Validation Différentielle Post-Condition (validateDirty / Phase 6.0b)
     // Une commande innocente sur un autre mur ne doit PAS être bloquée par l'erreur préexistante sur d_corrupted !
     const innocentWall: Wall = {
       id: 'w_innocent',
+      category: 'wall',
       typeId,
       levelId,
       start: { x: 0, y: 3000 },
@@ -292,8 +290,10 @@ describe('Validation Différentielle Post-Condition (validateDirty / Phase 6.0b)
     const levelId = Object.keys(state.levels)[0]!;
     const typeId = Object.keys(state.wallTypes)[0]!;
 
+    const defaultDoorTypeId = Object.keys(state.doorTypes)[0]!;
     const corruptedWall: Wall = {
       id: 'w_legacy_2',
+      category: 'wall',
       typeId,
       levelId,
       start: { x: 0, y: 0 },
@@ -303,10 +303,8 @@ describe('Validation Différentielle Post-Condition (validateDirty / Phase 6.0b)
       id: 'd_corrupted_2',
       hostWallId: 'w_legacy_2',
       offsetAlong: 1500,
-      width: 900,
-      height: 2100,
+      doorTypeId: defaultDoorTypeId,
       category: 'door',
-      kind: 'door',
       swing: { side: 'left', direction: 'in' },
     };
 
@@ -319,6 +317,7 @@ describe('Validation Différentielle Post-Condition (validateDirty / Phase 6.0b)
     // Ajout d'un mur invalide (longueur 0) -> rejet immédiat
     const badWall: Wall = {
       id: 'w_new_bad',
+      category: 'wall',
       typeId,
       levelId,
       start: { x: 100, y: 100 },
@@ -336,8 +335,10 @@ describe('Validation Différentielle Post-Condition (validateDirty / Phase 6.0b)
     const levelId = Object.keys(state.levels)[0]!;
     const typeId = Object.keys(state.wallTypes)[0]!;
 
+    const defaultDoorTypeId = Object.keys(state.doorTypes)[0]!;
     const corruptedWall: Wall = {
       id: 'w_legacy_agg',
+      category: 'wall',
       typeId,
       levelId,
       start: { x: 0, y: 0 },
@@ -347,10 +348,8 @@ describe('Validation Différentielle Post-Condition (validateDirty / Phase 6.0b)
       id: 'd_corrupted_agg',
       hostWallId: 'w_legacy_agg',
       offsetAlong: 1500,
-      width: 900,
-      height: 2100,
+      doorTypeId: defaultDoorTypeId,
       category: 'door',
-      kind: 'door',
       swing: { side: 'left', direction: 'in' },
     };
 
@@ -378,6 +377,7 @@ describe('Validation Différentielle Post-Condition (validateDirty / Phase 6.0b)
 
     const badWall: Wall = {
       id: 'w_bad_atomic',
+      category: 'wall',
       typeId: 'wt_missing',
       levelId: 'lvl_missing',
       start: { x: 0, y: 0 },
@@ -397,6 +397,7 @@ describe('Validation Différentielle Post-Condition (validateDirty / Phase 6.0b)
 
     const badWall: Wall = {
       id: 'w_test_violations',
+      category: 'wall',
       typeId: 'wt_non_existent',
       levelId: 'lvl_non_existent',
       start: { x: 0, y: 0 },

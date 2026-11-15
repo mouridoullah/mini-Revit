@@ -43,7 +43,6 @@ describe('Calculs de Surfaces et Métrés (metrics.ts)', () => {
       const doorType: DoorType = {
         id: 'door-type-900x2100',
         name: 'Porte 900x2100',
-        category: 'door_type',
         width: 900,
         height: 2100,
       };
@@ -51,9 +50,9 @@ describe('Calculs de Surfaces et Métrés (metrics.ts)', () => {
       const winType: WindowType = {
         id: 'window-type-1200x1400',
         name: 'Fenêtre 1200x1400',
-        category: 'window_type',
         width: 1200,
         height: 1400,
+        defaultSillHeight: 900,
       };
 
       // Porte 0.9m × 2.1m = 1.89 m² (1 890 000 mm²)
@@ -224,7 +223,6 @@ describe('Calculs de Surfaces et Métrés (metrics.ts)', () => {
       const doorType: DoorType = {
         id: 'door-type-900x2100',
         name: 'Porte 900x2100',
-        category: 'door_type',
         width: 900,
         height: 2100,
       };
@@ -232,9 +230,9 @@ describe('Calculs de Surfaces et Métrés (metrics.ts)', () => {
       const winType: WindowType = {
         id: 'window-type-1000x1400',
         name: 'Fenêtre 1000x1400',
-        category: 'window_type',
         width: 1000,
         height: 1400,
+        defaultSillHeight: 900,
       };
 
       // Porte 900 × 2100 = 1.89 m² sur wSouth
@@ -270,12 +268,15 @@ describe('Calculs de Surfaces et Métrés (metrics.ts)', () => {
         units: 'mm',
         levels: { [levelRdc.id]: levelRdc },
         wallTypes: { [wallType200.id]: wallType200 },
+        slabTypes: {},
         doorTypes: { [doorType.id]: doorType },
         windowTypes: { [winType.id]: winType },
         walls: { w_s: wSouth, w_e: wEast, w_n: wNorth, w_w: wWest },
+        slabs: {},
         doors: { door_s: door },
         windows: { win_n: win },
         rooms: { room_main: room },
+        dimensions: {},
       };
 
       const levelMetrics = computeLevelMetrics(state, levelRdc.id);

@@ -9,13 +9,19 @@ import * as Commands from './commands.js';
 describe('Gestionnaire d’Historique Transactionnel (history.ts)', () => {
   function createBaseState(): BimState {
     return {
-      schemaVersion: 1,
+      schemaVersion: 2,
       units: 'mm',
       levels: {},
       wallTypes: {},
+      slabTypes: {},
+      doorTypes: {},
+      windowTypes: {},
       walls: {},
+      slabs: {},
       doors: {},
       windows: {},
+      rooms: {},
+      dimensions: {},
     };
   }
 
@@ -198,12 +204,9 @@ describe('Gestionnaire d’Historique Transactionnel (history.ts)', () => {
     const door: Door = {
       id: 'door_test_history',
       category: 'door',
-      kind: 'door',
       doorTypeId: 'door-type-900x2100',
       hostWallId: 'wall_host',
       offsetAlong: 500,
-      width: 900,
-      height: 2100,
       swing: { side: 'right', direction: 'in' },
     };
 
@@ -243,12 +246,9 @@ describe('Gestionnaire d’Historique Transactionnel (history.ts)', () => {
     const door: Door = {
       id: 'door_cascade_hist',
       category: 'door',
-      kind: 'door',
       doorTypeId: 'door-type-900x2100',
       hostWallId: 'wall_cascade_hist',
       offsetAlong: 500,
-      width: 900,
-      height: 2100,
       swing: { side: 'left', direction: 'out' },
     };
     doc.execute(new Commands.AddDoorCommand(door));
@@ -256,12 +256,9 @@ describe('Gestionnaire d’Historique Transactionnel (history.ts)', () => {
     const windowElem: Window = {
       id: 'win_cascade_hist',
       category: 'window',
-      kind: 'window',
       windowTypeId: 'window-type-1200x1400-s900',
       hostWallId: 'wall_cascade_hist',
       offsetAlong: 2500,
-      width: 1200,
-      height: 1400,
       sillHeight: 900,
     };
     doc.execute(new Commands.AddWindowCommand(windowElem));

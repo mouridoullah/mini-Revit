@@ -8,8 +8,7 @@ import {
   AddDimensionCommand,
   AddRoomCommand,
 } from './commands.js';
-import type { Wall, Door, Window, Dimension, Room } from './types.js';
-import { BimValidationError } from './rules.js';
+import type { Door, Window, Dimension, Room } from './types.js';
 import { vec2 } from '@mini-bim/geometry';
 
 describe('DeleteWallCommand Refactoré — Équivalence Comportementale (T-CMD-01 à 08)', () => {
@@ -30,34 +29,31 @@ describe('DeleteWallCommand Refactoré — Équivalence Comportementale (T-CMD-0
       }),
     );
 
+    const defaultDoorTypeId = Object.keys(doc.getState().doorTypes)[0]!;
+    const defaultWindowTypeId = Object.keys(doc.getState().windowTypes)[0]!;
+
     const d1: Door = {
       id: 'd_1',
       category: 'door',
-      kind: 'door',
+      doorTypeId: defaultDoorTypeId,
       hostWallId: wallId,
       offsetAlong: 500,
-      width: 900,
-      height: 2100,
       swing: { side: 'left', direction: 'in' },
     };
     const d2: Door = {
       id: 'd_2',
       category: 'door',
-      kind: 'door',
+      doorTypeId: defaultDoorTypeId,
       hostWallId: wallId,
       offsetAlong: 2000,
-      width: 800,
-      height: 2100,
       swing: { side: 'right', direction: 'out' },
     };
     const win1: Window = {
       id: 'win_1',
       category: 'window',
-      kind: 'window',
+      windowTypeId: defaultWindowTypeId,
       hostWallId: wallId,
       offsetAlong: 4000,
-      width: 1200,
-      height: 1400,
       sillHeight: 900,
     };
 
@@ -217,11 +213,9 @@ describe('DeleteWallCommand Refactoré — Équivalence Comportementale (T-CMD-0
       new AddDoorCommand({
         id: 'd_1',
         category: 'door',
-        kind: 'door',
         hostWallId: 'w_s',
         offsetAlong: 500,
-        width: 900,
-        height: 2100,
+        doorTypeId: 'default-door-type',
         swing: { side: 'left', direction: 'in' },
       }),
     );
@@ -229,11 +223,9 @@ describe('DeleteWallCommand Refactoré — Équivalence Comportementale (T-CMD-0
       new AddDoorCommand({
         id: 'd_2',
         category: 'door',
-        kind: 'door',
         hostWallId: 'w_s',
         offsetAlong: 2500,
-        width: 900,
-        height: 2100,
+        doorTypeId: 'default-door-type',
         swing: { side: 'right', direction: 'out' },
       }),
     );
@@ -353,11 +345,9 @@ describe('DeleteWallCommand Refactoré — Équivalence Comportementale (T-CMD-0
       new AddDoorCommand({
         id: 'd_undo_1',
         category: 'door',
-        kind: 'door',
         hostWallId: 'w_undo_1',
         offsetAlong: 500,
-        width: 900,
-        height: 2100,
+        doorTypeId: 'default-door-type',
         swing: { side: 'left', direction: 'in' },
       }),
     );

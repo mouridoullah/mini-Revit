@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import * as THREE from 'three';
 import { Scene3D } from './Scene3D.js';
 import { createStairMesh, type StairGeometryParams } from './mesh-generator.js';
 

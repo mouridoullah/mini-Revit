@@ -16,7 +16,7 @@ describe('Cotations 2D Associatives (packages/core)', () => {
 
   beforeEach(() => {
     doc = new BimDocument({
-      schemaVersion: 1,
+      schemaVersion: 2,
       units: 'mm',
       levels: {
         lvl_00: { id: 'lvl_00', name: 'RDC', elevation: 0 },
@@ -24,6 +24,10 @@ describe('Cotations 2D Associatives (packages/core)', () => {
       wallTypes: {
         wt_200: { id: 'wt_200', name: '200mm', thickness: 200, height: 2800 },
       },
+      slabTypes: {},
+      doorTypes: {},
+      windowTypes: {},
+      slabs: {},
       walls: {
         wall_south: {
           id: 'wall_south',
@@ -68,20 +72,20 @@ describe('Cotations 2D Associatives (packages/core)', () => {
   describe('computeDimensionValue', () => {
     it('calcule la longueur axiale exacte d’un mur unique', () => {
       const dim: Pick<Dimension, 'references'> = { references: ['wall_south'] };
-      const val = computeDimensionValue(dim, doc.state);
+      const val = computeDimensionValue(dim, doc.getState());
       expect(val).toBe(6000);
     });
 
     it('calcule la distance orthogonale entre deux murs parallèles', () => {
       // wall_south (y=0) et wall_north (y=4000) sont horizontaux et parallèles, distance = 4000
       const dim: Pick<Dimension, 'references'> = { references: ['wall_south', 'wall_north'] };
-      const val = computeDimensionValue(dim, doc.state);
+      const val = computeDimensionValue(dim, doc.getState());
       expect(val).toBe(4000);
     });
 
     it('retourne 0 si aucune référence ou référence inconnue', () => {
-      expect(computeDimensionValue({ references: [] }, doc.state)).toBe(0);
-      expect(computeDimensionValue({ references: ['ghost_wall'] }, doc.state)).toBe(0);
+      expect(computeDimensionValue({ references: [] }, doc.getState())).toBe(0);
+      expect(computeDimensionValue({ references: ['ghost_wall'] }, doc.getState())).toBe(0);
     });
   });
 
@@ -96,8 +100,8 @@ describe('Cotations 2D Associatives (packages/core)', () => {
         offset: 500,
         value: 6000,
       };
-      expect(() => validateDimension(dim, doc.state)).toThrowError(BimValidationError);
-      expect(() => validateDimension(dim, doc.state)).toThrowError(/UNKNOWN_LEVEL/);
+      expect(() => validateDimension(dim, doc.getState())).toThrowError(BimValidationError);
+      expect(() => validateDimension(dim, doc.getState())).toThrowError(/UNKNOWN_LEVEL/);
     });
 
     it('rejette des références vides', () => {
@@ -110,7 +114,7 @@ describe('Cotations 2D Associatives (packages/core)', () => {
         offset: 500,
         value: 0,
       };
-      expect(() => validateDimension(dim, doc.state)).toThrowError(/INVALID_DIMENSION_REFERENCES/);
+      expect(() => validateDimension(dim, doc.getState())).toThrowError(/INVALID_DIMENSION_REFERENCES/);
     });
 
     it('rejette une référence vers un mur inexistant', () => {
@@ -123,7 +127,7 @@ describe('Cotations 2D Associatives (packages/core)', () => {
         offset: 500,
         value: 0,
       };
-      expect(() => validateDimension(dim, doc.state)).toThrowError(/UNKNOWN_DIMENSION_REFERENCE/);
+      expect(() => validateDimension(dim, doc.getState())).toThrowError(/UNKNOWN_DIMENSION_REFERENCE/);
     });
 
     it('rejette un décalage (offset) non fini', () => {
@@ -136,7 +140,7 @@ describe('Cotations 2D Associatives (packages/core)', () => {
         offset: NaN,
         value: 6000,
       };
-      expect(() => validateDimension(dim, doc.state)).toThrowError(/INVALID_DIMENSION_OFFSET/);
+      expect(() => validateDimension(dim, doc.getState())).toThrowError(/INVALID_DIMENSION_OFFSET/);
     });
   });
 
@@ -153,8 +157,8 @@ describe('Cotations 2D Associatives (packages/core)', () => {
       };
       const res = doc.execute(new AddDimensionCommand(dim));
       expect(res.changed).toEqual(['dim_south']);
-      expect(doc.state.dimensions['dim_south']).toBeDefined();
-      expect(doc.state.dimensions['dim_south'].value).toBe(6000);
+      expect(doc.getState().dimensions['dim_south']).toBeDefined();
+      expect(doc.getState().dimensions['dim_south']!.value).toBe(6000);
     });
 
     it('UpdateDimensionCommand modifie le décalage et le label personnalisé', () => {
@@ -177,8 +181,8 @@ describe('Cotations 2D Associatives (packages/core)', () => {
         }),
       );
       expect(res.changed).toEqual(['dim_south']);
-      expect(doc.state.dimensions['dim_south'].offset).toBe(-800);
-      expect(doc.state.dimensions['dim_south'].customLabel).toBe('Longueur Façade Sud');
+      expect(doc.getState().dimensions['dim_south']!.offset).toBe(-800);
+      expect(doc.getState().dimensions['dim_south']!.customLabel).toBe('Longueur Façade Sud');
     });
 
     it('DeleteDimensionCommand supprime la cotation du modèle', () => {
@@ -196,7 +200,7 @@ describe('Cotations 2D Associatives (packages/core)', () => {
 
       const res = doc.execute(new DeleteDimensionCommand('dim_south'));
       expect(res.changed).toEqual(['dim_south']);
-      expect(doc.state.dimensions['dim_south']).toBeUndefined();
+      expect(doc.getState().dimensions['dim_south']).toBeUndefined();
     });
   });
 
@@ -225,15 +229,15 @@ describe('Cotations 2D Associatives (packages/core)', () => {
       expect(res.changed).toEqual(['wall_south', 'dim_south']);
 
       // Invariant : la valeur de la cotation a été automatiquement mise à jour
-      expect(doc.state.dimensions['dim_south'].value).toBe(7500);
+      expect(doc.getState().dimensions['dim_south']!.value).toBe(7500);
 
       // Undo restaure la valeur d'origine
       doc.undo();
-      expect(doc.state.dimensions['dim_south'].value).toBe(6000);
+      expect(doc.getState().dimensions['dim_south']!.value).toBe(6000);
 
       // Redo réapplique la valeur allongée
       doc.redo();
-      expect(doc.state.dimensions['dim_south'].value).toBe(7500);
+      expect(doc.getState().dimensions['dim_south']!.value).toBe(7500);
     });
 
     it('lorsqu’un mur est supprimé via DeleteWallCommand, les cotations associées sont supprimées en cascade', () => {
@@ -249,24 +253,24 @@ describe('Cotations 2D Associatives (packages/core)', () => {
         }),
       );
 
-      const stateBefore = doc.state;
+      const stateBefore = doc.getState();
 
       // Suppression de wall_south
       const res = doc.execute(new DeleteWallCommand('wall_south'));
 
       // Invariant : la cotation est supprimée et signalée dans getChangedIds dans l'ordre déterministe
       expect(res.changed).toEqual(['wall_south', 'dim_south']);
-      expect(doc.state.dimensions['dim_south']).toBeUndefined();
+      expect(doc.getState().dimensions['dim_south']).toBeUndefined();
 
       // Invariant Undo : restauration bit-à-bit stricte
       doc.undo();
-      expect(doc.state.dimensions['dim_south']).toBeDefined();
-      expect(doc.state.dimensions['dim_south'].value).toBe(6000);
-      expect(doc.state).toEqual(stateBefore);
+      expect(doc.getState().dimensions['dim_south']).toBeDefined();
+      expect(doc.getState().dimensions['dim_south']!.value).toBe(6000);
+      expect(doc.getState()).toEqual(stateBefore);
 
       // Redo
       doc.redo();
-      expect(doc.state.dimensions['dim_south']).toBeUndefined();
+      expect(doc.getState().dimensions['dim_south']).toBeUndefined();
     });
   });
 });

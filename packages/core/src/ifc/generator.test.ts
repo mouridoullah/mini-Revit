@@ -7,13 +7,20 @@ import * as WebIFC from 'web-ifc';
 
 describe('Générateur IFC4 ISO 10303-21 (packages/core/ifc)', () => {
   const sampleState: BimState = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     units: 'mm',
     levels: {
-      lvl_00: { id: 'lvl_00', name: 'Rez-de-chaussée', elevation: 0, height: 2800 },
+      lvl_00: { id: 'lvl_00', name: 'Rez-de-chaussée', elevation: 0 },
     },
     wallTypes: {
       wt_200: { id: 'wt_200', name: 'Béton 200mm', thickness: 200, height: 2800 },
+    },
+    slabTypes: {},
+    doorTypes: {
+      dt_1: { id: 'dt_1', name: 'Porte 900x2150', width: 900, height: 2150 },
+    },
+    windowTypes: {
+      wt_1: { id: 'wt_1', name: 'Fenêtre 1200x1400', width: 1200, height: 1400, defaultSillHeight: 900 },
     },
     walls: {
       wall_south: {
@@ -49,15 +56,14 @@ describe('Générateur IFC4 ISO 10303-21 (packages/core/ifc)', () => {
         end: { x: 6000, y: 4000 },
       },
     },
+    slabs: {},
     doors: {
       door_south: {
         id: 'door_south',
         category: 'door',
-        kind: 'door',
+        doorTypeId: 'dt_1',
         hostWallId: 'wall_south',
         offsetAlong: 2000,
-        width: 900,
-        height: 2150,
         swing: { side: 'right', direction: 'in' },
       },
     },
@@ -65,11 +71,9 @@ describe('Générateur IFC4 ISO 10303-21 (packages/core/ifc)', () => {
       win_north: {
         id: 'win_north',
         category: 'window',
-        kind: 'window',
+        windowTypeId: 'wt_1',
         hostWallId: 'wall_north',
         offsetAlong: 1500,
-        width: 1200,
-        height: 1400,
         sillHeight: 900,
       },
     },
@@ -283,17 +287,23 @@ describe('Générateur IFC4 ISO 10303-21 (packages/core/ifc)', () => {
 
   it('génère un modèle de 50 murs en moins de 50 ms (performance d’exportation)', () => {
     const largeState: BimState = {
-      schemaVersion: 1,
+      schemaVersion: 2,
       units: 'mm',
       levels: {
-        lvl_00: { id: 'lvl_00', name: 'Niveau 0', elevation: 0, height: 3000 },
+        lvl_00: { id: 'lvl_00', name: 'Niveau 0', elevation: 0 },
       },
       wallTypes: {
         wt_std: { id: 'wt_std', name: 'Standard 200mm', thickness: 200, height: 3000 },
       },
+      slabTypes: {},
+      doorTypes: {},
+      windowTypes: {},
       walls: {},
+      slabs: {},
       doors: {},
       windows: {},
+      rooms: {},
+      dimensions: {},
     };
 
     for (let i = 0; i < 50; i++) {

@@ -1,19 +1,25 @@
 import { describe, it, expect } from 'vitest';
 import { DependencyGraph } from './DependencyGraph.js';
-import type { BimState, Wall, Door, Window, Dimension, Level, WallType } from '../types.js';
+import type { BimState, Wall, Door, Dimension } from '../types.js';
 import { BimValidationError } from '../rules.js';
 
 function createMockState(partial: Partial<BimState> = {}): BimState {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     units: 'mm',
     levels: {},
     wallTypes: {},
+    slabTypes: {},
+    doorTypes: {},
+    windowTypes: {},
+    stairTypes: {},
     walls: {},
+    slabs: {},
     doors: {},
     windows: {},
     rooms: {},
     dimensions: {},
+    stairs: {},
     ...partial,
   };
 }
@@ -45,11 +51,9 @@ describe('DependencyGraph — Graphe de Dépendances Minimal (T-DAG-01 à 17)', 
         [doorId]: {
           id: doorId,
           category: 'door',
-          kind: 'door',
+          doorTypeId: 'dt_01',
           hostWallId: wallId,
           offsetAlong: 500,
-          width: 900,
-          height: 2100,
           swing: { side: 'left', direction: 'in' },
         },
       },
@@ -97,6 +101,7 @@ describe('DependencyGraph — Graphe de Dépendances Minimal (T-DAG-01 à 17)', 
         [dimId]: {
           id: dimId,
           category: 'dimension',
+          levelId: 'lvl_01',
           type: 'linear',
           references: [wallA, wallB],
           offset: 200,
@@ -280,6 +285,7 @@ describe('DependencyGraph — Graphe de Dépendances Minimal (T-DAG-01 à 17)', 
         dim_empty: {
           id: 'dim_empty',
           category: 'dimension',
+          levelId: 'lvl_01',
           type: 'linear',
           references: [],
           offset: 0,
@@ -315,21 +321,17 @@ describe('DependencyGraph — Graphe de Dépendances Minimal (T-DAG-01 à 17)', 
       doors[dId1] = {
         id: dId1,
         category: 'door',
-        kind: 'door',
+        doorTypeId: 'dt_01',
         hostWallId: wId,
         offsetAlong: 20,
-        width: 900,
-        height: 2100,
         swing: { side: 'left', direction: 'in' },
       };
       doors[dId2] = {
         id: dId2,
         category: 'door',
-        kind: 'door',
+        doorTypeId: 'dt_01',
         hostWallId: wId,
         offsetAlong: 50,
-        width: 800,
-        height: 2100,
         swing: { side: 'right', direction: 'out' },
       };
 
@@ -337,6 +339,7 @@ describe('DependencyGraph — Graphe de Dépendances Minimal (T-DAG-01 à 17)', 
       dimensions[dimId] = {
         id: dimId,
         category: 'dimension',
+        levelId: 'lvl_01',
         type: 'linear',
         references: [wId],
         offset: 100,

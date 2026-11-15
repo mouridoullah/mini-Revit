@@ -183,7 +183,7 @@ describe('View2D (View2D.ts)', () => {
 
     view.setDocument(doc);
 
-    const receivedCommands: Commands.Command[] = [];
+    const receivedCommands: unknown[] = [];
     const unsubscribe = view.onCommandRequested((cmd) => {
       receivedCommands.push(cmd);
     });
@@ -413,7 +413,6 @@ describe('View2D (View2D.ts)', () => {
     }
 
     const originalRO = globalThis.ResizeObserver;
-    // @ts-expect-error Mock ResizeObserver pour test d'environnement
     globalThis.ResizeObserver = MockResizeObserver;
 
     try {

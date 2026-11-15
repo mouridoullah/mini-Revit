@@ -265,7 +265,6 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
         door_01: {
           id: 'door_01',
           category: 'door',
-          kind: 'door',
           doorTypeId: 'dt_01',
           hostWallId: 'w_01',
           offsetAlong: 500,
@@ -276,7 +275,6 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
         win_01: {
           id: 'win_01',
           category: 'window',
-          kind: 'window',
           windowTypeId: 'wt_01',
           hostWallId: 'w_01',
           offsetAlong: 2000,

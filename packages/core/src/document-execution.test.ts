@@ -10,7 +10,7 @@ import {
   Command,
 } from './commands.js';
 import { DependencyGraph } from './dag/DependencyGraph.js';
-import type { Door, Dimension, BimState, ElementId } from './types.js';
+import type { Door, BimState, ElementId } from './types.js';
 import { vec2 } from '@mini-bim/geometry';
 import { BimValidationError } from './rules.js';
 
@@ -32,14 +32,13 @@ describe('Intégration BimDocument.execute() + DAG Minimal (T-EXEC-01 à 07)', (
       }),
     );
 
+    const defaultDoorTypeId = Object.keys(doc.getState().doorTypes)[0]!;
     const door: Door = {
       id: 'd_test',
       category: 'door',
-      kind: 'door',
+      doorTypeId: defaultDoorTypeId,
       hostWallId: wallId,
       offsetAlong: 500,
-      width: 900,
-      height: 2100,
       swing: { side: 'left', direction: 'in' },
     };
 
@@ -132,11 +131,9 @@ describe('Intégration BimDocument.execute() + DAG Minimal (T-EXEC-01 à 07)', (
       new AddDoorCommand({
         id: 'd_w',
         category: 'door',
-        kind: 'door',
         hostWallId: 'w_w',
         offsetAlong: 500,
-        width: 900,
-        height: 2100,
+        doorTypeId: 'default-door-type',
         swing: { side: 'left', direction: 'in' },
       }),
     );
@@ -282,11 +279,9 @@ describe('Intégration BimDocument.execute() + DAG Minimal (T-EXEC-01 à 07)', (
       new AddDoorCommand({
         id: 'd_v2',
         category: 'door',
-        kind: 'door',
         hostWallId: 'w_v2',
         offsetAlong: 500,
-        width: 900,
-        height: 2100,
+        doorTypeId: 'default-door-type',
         swing: { side: 'left', direction: 'in' },
       }),
     );

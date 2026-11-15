@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import * as THREE from 'three';
 import { Scene3D } from './Scene3D.js';
 import { createSlabMesh } from './mesh-generator.js';
 
@@ -75,8 +74,6 @@ describe('view-3d — Rendu 3D des Dalles et Trémies (Milestone 6.1b-1)', () =>
         ],
       },
       {
-        id: 'slab-type-1',
-        name: 'Dalle BA 200mm',
         thickness: 200,
       },
       0,
@@ -128,8 +125,6 @@ describe('view-3d — Rendu 3D des Dalles et Trémies (Milestone 6.1b-1)', () =>
         ],
       },
       {
-        id: 'slab-type-1',
-        name: 'Dalle BA 200mm',
         thickness: 200,
       },
       0,
@@ -193,8 +188,6 @@ describe('view-3d — Rendu 3D des Dalles et Trémies (Milestone 6.1b-1)', () =>
         baseOffset: -50,
       },
       {
-        id: 'slab-type-thick',
-        name: 'Dalle épaisse 250mm',
         thickness: 250,
       },
       3000, // elevation R+1
@@ -233,8 +226,6 @@ describe('view-3d — Rendu 3D des Dalles et Trémies (Milestone 6.1b-1)', () =>
         ],
       },
       {
-        id: 'slab-type-1',
-        name: 'Dalle BA 200mm',
         thickness: 200,
       },
       0,
@@ -295,8 +286,6 @@ describe('view-3d — Rendu 3D des Dalles et Trémies (Milestone 6.1b-1)', () =>
         ],
       },
       {
-        id: 'slab-type-1',
-        name: 'Dalle BA 200mm',
         thickness: 200,
       },
       0,

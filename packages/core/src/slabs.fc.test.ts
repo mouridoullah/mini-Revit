@@ -5,10 +5,7 @@ import { BimDocument } from './document.js';
 import {
   AddSlabTypeCommand,
   AddSlabCommand,
-  UpdateSlabCommand,
-  DeleteSlabCommand,
   AddWallCommand,
-  MoveWallCommand,
   AddLevelCommand,
   UpdateLevelCommand,
 } from './commands.js';

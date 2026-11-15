@@ -343,15 +343,14 @@ describe('Viewport2D React Wrapper & Tools Integration (apps/web)', () => {
       }),
     );
 
+    const doorTypeId = Object.keys(doc.getState().doorTypes)[0]!;
     doc.execute(
       new Commands.AddDoorCommand({
         id: 'door_hosted',
         category: 'door',
-        kind: 'door',
         hostWallId: 'w_move_host',
         offsetAlong: 2000,
-        width: 900,
-        height: 2100,
+        doorTypeId,
         swing: { side: 'left', direction: 'in' },
       }),
     );

@@ -500,14 +500,15 @@ describe('Renderer 2D (renderer.ts)', () => {
         end: vec2(6000, 0),
       }),
     );
+    const doorTypeId = Object.keys(doc.getState().doorTypes)[0]!;
+    const windowTypeId = Object.keys(doc.getState().windowTypes)[0]!;
     doc.execute(
       new Commands.AddDoorCommand({
         id: 'd_open_1',
         category: 'door',
         hostWallId: 'w_open_1',
         offsetAlong: 2000,
-        width: 900,
-        height: 2100,
+        doorTypeId,
         swing: { side: 'left', direction: 'in' },
       }),
     );
@@ -517,8 +518,7 @@ describe('Renderer 2D (renderer.ts)', () => {
         category: 'window',
         hostWallId: 'w_open_1',
         offsetAlong: 4000,
-        width: 1200,
-        height: 1400,
+        windowTypeId,
         sillHeight: 900,
       }),
     );

@@ -746,7 +746,10 @@ export class UpdateDoorCommand implements Command {
 
   public constructor(
     public readonly doorId: ElementId,
-    public readonly patch: Partial<Omit<Door, 'id' | 'category' | 'kind' | 'hostWallId'>>,
+    public readonly patch: Partial<Omit<Door, 'id' | 'category' | 'kind' | 'hostWallId'>> & {
+      width?: number;
+      height?: number;
+    },
   ) {}
 
   public apply(draft: BimState): void {
@@ -824,7 +827,10 @@ export class UpdateWindowCommand implements Command {
 
   public constructor(
     public readonly windowId: ElementId,
-    public readonly patch: Partial<Omit<Window, 'id' | 'category' | 'kind' | 'hostWallId'>>,
+    public readonly patch: Partial<Omit<Window, 'id' | 'category' | 'kind' | 'hostWallId'>> & {
+      width?: number;
+      height?: number;
+    },
   ) {}
 
   public apply(draft: BimState): void {

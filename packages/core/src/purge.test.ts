@@ -5,7 +5,6 @@ import {
   type Door,
   type Window,
   type Wall,
-  type Level,
 } from './index.js';
 
 describe('Phase 6.2a — Purge Définitive des Champs Transitoires V1', () => {

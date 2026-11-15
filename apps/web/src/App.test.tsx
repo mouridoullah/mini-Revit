@@ -543,7 +543,7 @@ describe('App Integration & Squelette Double Viewport (apps/web)', () => {
     const { getByTestId } = render(<App initialDoc={doc} />);
     expect(capturedView2D).not.toBeNull();
     if (!capturedView2D) throw new Error('View2D non initialisé');
-    const transform = capturedView2D.getTransform();
+    const transform = (capturedView2D as View2D).getTransform();
 
     // 1. État initial : wall_south va de (0, 0) à (6000, 0), door_demo est à offsetAlong = 2000
     expect(doc.getState().walls['wall_south']?.start).toEqual({ x: 0, y: 0 });
@@ -632,7 +632,7 @@ describe('App Integration & Squelette Double Viewport (apps/web)', () => {
     const { getByTestId } = render(<App initialDoc={doc} />);
     expect(capturedView2D).not.toBeNull();
     if (!capturedView2D) throw new Error('View2D non initialisé');
-    const transform = capturedView2D.getTransform();
+    const transform = (capturedView2D as View2D).getTransform();
 
     // 1. Activer DoorTool
     const doorBtn = getByTestId('tool-door-btn');
@@ -679,7 +679,7 @@ describe('App Integration & Squelette Double Viewport (apps/web)', () => {
     const { getByTestId, queryByTestId } = render(<App initialDoc={doc} />);
     expect(capturedView2D).not.toBeNull();
     if (!capturedView2D) throw new Error('View2D non initialisé');
-    const transform = capturedView2D.getTransform();
+    const transform = (capturedView2D as View2D).getTransform();
 
     // 1. Initialement, aucune bannière d'erreur
     expect(queryByTestId('error-banner')).toBeNull();
@@ -830,7 +830,7 @@ describe('App Integration & Squelette Double Viewport (apps/web)', () => {
     const { getByTestId } = render(<App initialDoc={doc} />);
     expect(capturedView2D).not.toBeNull();
     if (!capturedView2D) throw new Error('View2D non initialisé');
-    const transform = capturedView2D.getTransform();
+    const transform = (capturedView2D as View2D).getTransform();
 
     // 1. Activer SlabTool (L)
     const slabBtn = getByTestId('tool-slab-btn');
@@ -879,7 +879,6 @@ describe('App Integration & Squelette Double Viewport (apps/web)', () => {
         id: 'lvl_r1',
         name: 'R+1',
         elevation: 3000,
-        category: 'level',
       }),
     );
 
@@ -908,7 +907,6 @@ describe('App Integration & Squelette Double Viewport (apps/web)', () => {
         id: 'lvl_r1',
         name: 'R+1',
         elevation: 3000,
-        category: 'level',
       }),
     );
 
@@ -938,7 +936,6 @@ describe('App Integration & Squelette Double Viewport (apps/web)', () => {
         id: 'lvl_r1',
         name: 'R+1',
         elevation: 3000,
-        category: 'level',
       }),
     );
 
@@ -975,7 +972,6 @@ describe('App Integration & Squelette Double Viewport (apps/web)', () => {
         id: 'lvl_r1',
         name: 'R+1',
         elevation: 3000,
-        category: 'level',
       }),
     );
 
@@ -1015,7 +1011,6 @@ describe('App Integration & Squelette Double Viewport (apps/web)', () => {
         id: 'lvl_r1',
         name: 'R+1',
         elevation: 3000,
-        category: 'level',
       }),
     );
 

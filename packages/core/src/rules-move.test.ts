@@ -6,8 +6,8 @@ import { BimValidationError } from './rules.js';
 function createBaseDoc(): { doc: BimDocument; levelId: string; typeId: string } {
   const doc = BimDocument.createDefaultProject();
   const state = doc.getState();
-  const levelId = Object.keys(state.levels)[0];
-  const typeId = Object.keys(state.wallTypes)[0];
+  const levelId = Object.keys(state.levels)[0]!;
+  const typeId = Object.keys(state.wallTypes)[0]!;
   return { doc, levelId, typeId };
 }
 
@@ -94,8 +94,6 @@ describe('Phase 6.0c — MoveWall Rules & Differential validateDirty Tests', () 
         doorTypeId: 'door_type_std',
         hostWallId: 'wB',
         offsetAlong: 1000,
-        width: 800,
-        height: 2100,
         swing: { side: 'left', direction: 'in' },
       }),
     );

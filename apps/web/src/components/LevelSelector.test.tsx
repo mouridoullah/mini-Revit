@@ -5,9 +5,9 @@ import { type Level } from '@mini-bim/core';
 
 describe('LevelSelector — Sélecteur d’étage de travail (Phase 6.1b)', () => {
   const sampleLevels: readonly Level[] = [
-    { id: 'lvl_rdc', name: 'RDC', elevation: 0, category: 'level' },
-    { id: 'lvl_r1', name: 'R+1', elevation: 3000, category: 'level' },
-    { id: 'lvl_sous_sol', name: 'Sous-sol', elevation: -2800, category: 'level' },
+    { id: 'lvl_rdc', name: 'RDC', elevation: 0 },
+    { id: 'lvl_r1', name: 'R+1', elevation: 3000 },
+    { id: 'lvl_sous_sol', name: 'Sous-sol', elevation: -2800 },
   ];
 
   it('T-LEVEL-SEL-01 : affiche tous les niveaux triés par élévation croissante', () => {

@@ -1,19 +1,25 @@
 import { describe, it, expect } from 'vitest';
 import { resolveCascadeDeletions } from './cascade.js';
-import type { BimState, Wall, Door, Window, Dimension, Level, WallType } from '../types.js';
+import type { BimState, Door, Window, Dimension } from '../types.js';
 import { BimValidationError } from '../rules.js';
 
 function createMockState(partial: Partial<BimState> = {}): BimState {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     units: 'mm',
     levels: {},
     wallTypes: {},
+    slabTypes: {},
+    doorTypes: {},
+    windowTypes: {},
+    stairTypes: {},
     walls: {},
+    slabs: {},
     doors: {},
     windows: {},
     rooms: {},
     dimensions: {},
+    stairs: {},
     ...partial,
   };
 }
@@ -24,31 +30,25 @@ describe('resolveCascadeDeletions — Cascade & Restrict Génériques (T-CAS-01 
     const doorA: Door = {
       id: 'd_01',
       category: 'door',
-      kind: 'door',
+      doorTypeId: 'dt_01',
       hostWallId: wallId,
       offsetAlong: 500,
-      width: 900,
-      height: 2100,
       swing: { side: 'left', direction: 'in' },
     };
     const doorB: Door = {
       id: 'd_02',
       category: 'door',
-      kind: 'door',
+      doorTypeId: 'dt_01',
       hostWallId: wallId,
       offsetAlong: 1800,
-      width: 800,
-      height: 2100,
       swing: { side: 'right', direction: 'out' },
     };
     const windowA: Window = {
       id: 'win_01',
       category: 'window',
-      kind: 'window',
+      windowTypeId: 'wt_01',
       hostWallId: wallId,
       offsetAlong: 3000,
-      width: 1200,
-      height: 1400,
       sillHeight: 900,
     };
 
@@ -77,6 +77,7 @@ describe('resolveCascadeDeletions — Cascade & Restrict Génériques (T-CAS-01 
     const dim: Dimension = {
       id: 'dim_01',
       category: 'dimension',
+      levelId: 'lvl_01',
       type: 'linear',
       references: [wallId],
       offset: 500,
@@ -107,6 +108,7 @@ describe('resolveCascadeDeletions — Cascade & Restrict Génériques (T-CAS-01 
     const dim1: Dimension = {
       id: 'dim_01',
       category: 'dimension',
+      levelId: 'lvl_01',
       type: 'linear',
       references: [wallId],
       offset: 500,
@@ -115,6 +117,7 @@ describe('resolveCascadeDeletions — Cascade & Restrict Génériques (T-CAS-01 
     const dim2: Dimension = {
       id: 'dim_02',
       category: 'dimension',
+      levelId: 'lvl_01',
       type: 'linear',
       references: [wallId, 'other_wall'],
       offset: -500,
@@ -195,11 +198,9 @@ describe('resolveCascadeDeletions — Cascade & Restrict Génériques (T-CAS-01 
         d_1: {
           id: 'd_1',
           category: 'door',
-          kind: 'door',
+          doorTypeId: 'dt_01',
           hostWallId: wallId,
           offsetAlong: 500,
-          width: 900,
-          height: 2100,
           swing: { side: 'left', direction: 'in' },
         },
       },
@@ -207,11 +208,9 @@ describe('resolveCascadeDeletions — Cascade & Restrict Génériques (T-CAS-01 
         win_1: {
           id: 'win_1',
           category: 'window',
-          kind: 'window',
+          windowTypeId: 'wt_01',
           hostWallId: wallId,
           offsetAlong: 2500,
-          width: 1000,
-          height: 1200,
           sillHeight: 900,
         },
       },
@@ -219,6 +218,7 @@ describe('resolveCascadeDeletions — Cascade & Restrict Génériques (T-CAS-01 
         dim_1: {
           id: 'dim_1',
           category: 'dimension',
+          levelId: 'lvl_1',
           type: 'linear',
           references: [wallId],
           offset: 400,

@@ -62,8 +62,11 @@ describe('toolGlue (Conversion des événements DOM en ToolEvents normalisés)',
 
     const toolEvent = convertPointerEvent(event, canvas);
 
-    expect(toolEvent.screen.x).toBe(400);
-    expect(toolEvent.screen.y).toBe(400);
+    expect(toolEvent.type).toBe('pointerdown');
+    if (toolEvent.type === 'pointerdown') {
+      expect(toolEvent.screen.x).toBe(400);
+      expect(toolEvent.screen.y).toBe(400);
+    }
   });
 
   it('gère correctement les types pointermove et pointerup', () => {

@@ -416,12 +416,9 @@ describe('BimDocument & CommandBus (document.ts)', () => {
       const door: Door = {
         id: doorId,
         category: 'door',
-        kind: 'door',
         doorTypeId: 'door-type-900x2100',
         hostWallId: wallId,
         offsetAlong: 500,
-        width: 900,
-        height: 2100,
         swing: { side: 'right', direction: 'in' },
       };
 
@@ -435,11 +432,9 @@ describe('BimDocument & CommandBus (document.ts)', () => {
       const door: Door = {
         id: 'door_bad_wall',
         category: 'door',
-        kind: 'door',
+        doorTypeId: 'door-type-900x2100',
         hostWallId: 'non_existent_wall',
         offsetAlong: 500,
-        width: 900,
-        height: 2100,
         swing: { side: 'left', direction: 'in' },
       };
 
@@ -453,11 +448,9 @@ describe('BimDocument & CommandBus (document.ts)', () => {
       const door: Door = {
         id: 'door_overflow',
         category: 'door',
-        kind: 'door',
+        doorTypeId: 'door-type-900x2100',
         hostWallId: wallId,
         offsetAlong: 4500, // mur = 5000, 4500 + 900 = 5400 > 5000
-        width: 900,
-        height: 2100,
         swing: { side: 'right', direction: 'out' },
       };
 
@@ -472,11 +465,9 @@ describe('BimDocument & CommandBus (document.ts)', () => {
         new Commands.AddDoorCommand({
           id: 'door_1',
           category: 'door',
-          kind: 'door',
+          doorTypeId: 'door-type-900x2100',
           hostWallId: wallId,
           offsetAlong: 1000,
-          width: 900,
-          height: 2100,
           swing: { side: 'right', direction: 'in' },
         }),
       );
@@ -487,11 +478,9 @@ describe('BimDocument & CommandBus (document.ts)', () => {
           new Commands.AddDoorCommand({
             id: 'door_2',
             category: 'door',
-            kind: 'door',
+            doorTypeId: 'door-type-900x2100',
             hostWallId: wallId,
             offsetAlong: 1500,
-            width: 900,
-            height: 2100,
             swing: { side: 'left', direction: 'out' },
           }),
         ),
@@ -500,18 +489,16 @@ describe('BimDocument & CommandBus (document.ts)', () => {
 
     it('execute(AddWindowCommand) rejette un dépassement en hauteur (sillHeight + height > wallHeight)', () => {
       const { doc, wallId } = setupDocWithWall();
-      // Mur par défaut a une hauteur de 2800 mm
+      // Mur par défaut a une hauteur de 2800 mm. Type par défaut : height = 1400 mm.
       expect(() =>
         doc.execute(
           new Commands.AddWindowCommand({
             id: 'win_too_high',
             category: 'window',
-            kind: 'window',
+            windowTypeId: 'default-window-type',
             hostWallId: wallId,
             offsetAlong: 1000,
-            width: 1200,
-            height: 2000,
-            sillHeight: 1000, // 1000 + 2000 = 3000 > 2800
+            sillHeight: 2000, // 2000 + 1400 = 3400 > 2800
           }),
         ),
       ).toThrowError(/INVALID_OPENING_HEIGHT/);
@@ -523,22 +510,18 @@ describe('BimDocument & CommandBus (document.ts)', () => {
         new Commands.AddDoorCommand({
           id: 'door_cascade_1',
           category: 'door',
-          kind: 'door',
+          doorTypeId: 'door-type-900x2100',
           hostWallId: wallId,
           offsetAlong: 500,
-          width: 900,
-          height: 2100,
           swing: { side: 'left', direction: 'in' },
         }),
       );
       const win: Window = {
         id: 'win_cascade_1',
         category: 'window',
-        kind: 'window',
+        windowTypeId: 'default-window-type',
         hostWallId: wallId,
         offsetAlong: 2500,
-        width: 1200,
-        height: 1400,
         sillHeight: 900,
       };
       doc.execute(new Commands.AddWindowCommand(win));
@@ -561,11 +544,9 @@ describe('BimDocument & CommandBus (document.ts)', () => {
         new Commands.AddDoorCommand({
           id: 'door_to_delete',
           category: 'door',
-          kind: 'door',
+          doorTypeId: 'door-type-900x2100',
           hostWallId: wallId,
           offsetAlong: 800,
-          width: 900,
-          height: 2100,
           swing: { side: 'left', direction: 'in' },
         }),
       );
@@ -584,11 +565,9 @@ describe('BimDocument & CommandBus (document.ts)', () => {
         new Commands.AddDoorCommand({
           id: 'door_to_move',
           category: 'door',
-          kind: 'door',
+          doorTypeId: 'door-type-900x2100',
           hostWallId: wallId,
           offsetAlong: 500,
-          width: 900,
-          height: 2100,
           swing: { side: 'left', direction: 'in' },
         }),
       );
@@ -608,11 +587,9 @@ describe('BimDocument & CommandBus (document.ts)', () => {
         new Commands.AddDoorCommand({
           id: 'door_fixed',
           category: 'door',
-          kind: 'door',
+          doorTypeId: 'door-type-900x2100',
           hostWallId: wallId,
           offsetAlong: 2500,
-          width: 900,
-          height: 2100,
           swing: { side: 'left', direction: 'in' },
         }),
       );
@@ -620,11 +597,9 @@ describe('BimDocument & CommandBus (document.ts)', () => {
         new Commands.AddDoorCommand({
           id: 'door_moving',
           category: 'door',
-          kind: 'door',
+          doorTypeId: 'door-type-900x2100',
           hostWallId: wallId,
           offsetAlong: 500,
-          width: 900,
-          height: 2100,
           swing: { side: 'left', direction: 'in' },
         }),
       );
@@ -641,11 +616,9 @@ describe('BimDocument & CommandBus (document.ts)', () => {
         new Commands.AddDoorCommand({
           id: 'door_fixed',
           category: 'door',
-          kind: 'door',
+          doorTypeId: 'door-type-900x2100',
           hostWallId: wallId,
           offsetAlong: 2500,
-          width: 900,
-          height: 2100,
           swing: { side: 'left', direction: 'in' },
         }),
       );
@@ -653,11 +626,9 @@ describe('BimDocument & CommandBus (document.ts)', () => {
         new Commands.AddDoorCommand({
           id: 'door_moving',
           category: 'door',
-          kind: 'door',
+          doorTypeId: 'door-type-900x2100',
           hostWallId: wallId,
           offsetAlong: 500,
-          width: 900,
-          height: 2100,
           swing: { side: 'left', direction: 'in' },
         }),
       );
@@ -674,11 +645,9 @@ describe('BimDocument & CommandBus (document.ts)', () => {
         new Commands.AddDoorCommand({
           id: 'door_update',
           category: 'door',
-          kind: 'door',
+          doorTypeId: 'default-door-type',
           hostWallId: wallId,
           offsetAlong: 500,
-          width: 900,
-          height: 2100,
           swing: { side: 'left', direction: 'in' },
         }),
       );
@@ -686,11 +655,9 @@ describe('BimDocument & CommandBus (document.ts)', () => {
         new Commands.AddWindowCommand({
           id: 'win_update',
           category: 'window',
-          kind: 'window',
+          windowTypeId: 'default-window-type',
           hostWallId: wallId,
           offsetAlong: 2000,
-          width: 1000,
-          height: 1200,
           sillHeight: 900,
         }),
       );
@@ -723,11 +690,9 @@ describe('BimDocument & CommandBus (document.ts)', () => {
         new Commands.AddDoorCommand({
           id: 'door_expand',
           category: 'door',
-          kind: 'door',
+          doorTypeId: 'default-door-type',
           hostWallId: wallId,
           offsetAlong: 500,
-          width: 900,
-          height: 2100,
           swing: { side: 'left', direction: 'in' },
         }),
       );
@@ -744,16 +709,14 @@ describe('BimDocument & CommandBus (document.ts)', () => {
         new Commands.AddWindowCommand({
           id: 'win_raise',
           category: 'window',
-          kind: 'window',
+          windowTypeId: 'default-window-type',
           hostWallId: wallId,
           offsetAlong: 1000,
-          width: 1000,
-          height: 1500,
           sillHeight: 900,
         }),
       );
 
-      // Hauteur mur = 2800 mm, sillHeight 1500 + height 1500 = 3000 > 2800
+      // Hauteur mur = 2800 mm, sillHeight 1500 + height 1400 = 2900 > 2800
       expect(() =>
         doc.execute(new Commands.UpdateWindowCommand('win_raise', { sillHeight: 1500 })),
       ).toThrowError(/INVALID_OPENING_HEIGHT/);
