@@ -1119,3 +1119,118 @@ Dans un outil BIM, une cotation n'est pas un simple texte graphique passif : c'e
 
 - L'utilisateur n'a jamais à mettre à jour manuellement ses cotes après avoir modifié un plan.
 - Respect rigoureux des Règles d'Or : modularité stricte, séparation des responsabilités et réversibilité transactionnelle intégrale.
+
+---
+
+## ADR-035 : Architecture des Dalles Horizontales (`Slab`), Représentation Polygonale 2D et Extrusion 3D Négative
+
+- **Date :** 2026-11-15
+- **Statut :** Accepté
+- **Auteur :** Antigravity (Lead Software Architect & Computational Geometry Engineer)
+- **Contexte :** Phase 6 (Dalles horizontales, planchers et toitures terrasses)
+
+### Problème
+
+Comment modéliser et positionner les dalles structurelles horizontales (`Slab`) au sein du modèle déclaratif de Mini-BIM et dans les moteurs de rendu 2D et 3D ?
+Trois questions critiques se posent :
+1. Quelle est la convention d'ancrage altimétrique de la dalle par rapport au niveau ?
+2. Comment gérer les trémies d'escalier ou les gaines techniques (trous dans la dalle) ?
+3. Comment assurer l'étanchéité géométrique 3D sans interférer avec les pieds de murs ?
+
+### Décisions Prises
+
+1. **Modèle de Données Déclaratif Minimal (`BimState.slabs`) :**  
+   Introduction de l'entité `Slab` dans le state :
+   - `id: ElementId` (ULID unique).
+   - `levelId: ElementId` (Niveau de rattachement).
+   - `boundary: Vec2[]` (Contour extérieur polygonal simple, orienté CCW).
+   - `holes: Vec2[][]` (Liste de contours intérieurs pour les trémies, orientés CW).
+   - `thickness: number` (Épaisseur constructive strictement positive, ex: 200 mm).
+   - `baseOffset: number` (Décalage altimétrique optionnel par rapport au niveau).
+2. **Convention Altimétrique d'Extrusion Négative (Sous le Niveau) :**  
+   Dans les règles de l'art du bâtiment et dans Revit/IFC, l'élévation d'un niveau d'étage représente la cote de **plancher fini**. La dalle structurelle est donc positionnée sous cette cote :
+   - Face supérieure de la dalle : $Z_{\text{sup}} = \text{level.elevation} + \text{baseOffset}$.
+   - Face inférieure de la dalle : $Z_{\text{inf}} = Z_{\text{sup}} - \text{thickness}$.  
+   Cette convention garantit que les murs posés au niveau ($Z = \text{level.elevation}$) reposent exactement sur la face supérieure de la dalle sans interpénétration volumique avec celle-ci.
+3. **Triangulation 3D Robuste via `earcut` :**  
+   La géométrie 3D de la dalle est générée via un maillage extrudé indexé. Les faces supérieure et inférieure sont triangulées par `earcut` en gérant nativement les trous (`holes`). Les parois latérales verticales relient les arêtes extérieures et intérieures entre $Z_{\text{sup}}$ et $Z_{\text{inf}}$.
+4. **Rendu 2D en Plan :**  
+   Le contour de la dalle est tracé en trait continu discret avec motif de poché ou bordure différenciée. Les trémies intérieures sont représentées avec les diagonales de réservation normalisées (croix de trémie).
+5. **Export IFC4 Normalisé (`IfcSlab`) :**  
+   La dalle est exportée sous forme d'`IFCSLAB` avec `PredefinedType = .FLOOR.` (ou `.BASESLAB.` pour le rez-de-chaussée). La géométrie utilise `IfcExtrudedAreaSolid` avec un profil `IfcArbitraryProfileDefWithVoids` pour les dalles percées de trémies.
+
+### Conséquences
+
+- Modèle géométrique clair, prédictible et exempt de conflits d'altimétrie avec les murs.
+- Les trémies d'escalier sont prises en compte aussi bien en 3D (trou solide net) qu'en 2D.
+- Maintien du principe d'immutabilité et de réversibilité transactionnelle intégrale (`AddSlabCommand`, `UpdateSlabCommand`, `DeleteSlabCommand`).
+
+---
+
+## ADR-036 : Gestion du Multi-Niveaux, Altimétrie Paramétrique et Rendu Fantôme (`Underlay`)
+
+- **Date :** 2026-11-15
+- **Statut :** Accepté
+- **Auteur :** Antigravity (Lead Software Architect & Computational Geometry Engineer)
+- **Contexte :** Phase 6 (Édifices multi-étages RDC + R+1)
+
+### Problème
+
+Dans un bâtiment à plusieurs étages, comment permettre à l'utilisateur de concevoir les cloisons et murs d'un étage supérieur en référence directe aux murs porteurs du rez-de-chaussée, sans surcharger la vue 2D ni dupliquer les éléments ?
+
+### Décisions Prises
+
+1. **Notion de Niveau Actif (`activeLevelId`) dans le Store UI :**  
+   L'interface web possède un sélecteur de niveau actif. Le viewport 2D affiche en priorité les éléments (murs, ouvertures, pièces, cotations, dalles) rattachés à ce niveau.
+2. **Vue Fantôme en Transparence (*Underlay*) :**  
+   Lorsque l'utilisateur travaille sur le niveau $N$ (ex: R+1), le moteur 2D propose d'activer la vue Underlay du niveau $N-1$ (RDC) :
+   - Les murs du niveau inférieur sont dessinés en traits fins pointillés gris clair (`#9ca3af`).
+   - Les ouvertures du niveau inférieur sont indiquées en pointillés légers pour repérer les aplombs de fenêtres.
+3. **Magnétisme Inter-Niveaux (Snap sur l'Underlay) :**  
+   L'algorithme de snap prend en compte les sommets et les lignes d'axe des murs du niveau inférieur affichés dans l'Underlay. L'utilisateur peut ainsi aligner une façade d'étage sur la façade du rez-de-chaussée d'un seul clic.
+4. **Empilement 3D Coordonné :**  
+   Dans le viewport 3D, tous les niveaux sont affichés simultanément. Chaque élément calcule sa position globale en $Z$ à partir de l'élévation de son niveau (`level.elevation`).
+
+### Conséquences
+
+- Ergonomie calquée sur les meilleurs standards professionnels (Revit, ArchiCAD).
+- Alignement architectural immédiat des façades et des refends porteurs entre étages.
+- Aucune pollution du modèle documentaire : l'Underlay est une pure option de visualisation 2D.
+
+---
+
+## ADR-037 : Modèle Paramétrique d'Escalier (`Stair`) et Découpe Automatique de Trémie
+
+- **Date :** 2026-11-15
+- **Statut :** Accepté
+- **Auteur :** Antigravity (Lead Software Architect & Computational Geometry Engineer)
+- **Contexte :** Phase 6 (Circulations verticales et liaisons inter-niveaux)
+
+### Problème
+
+Comment modéliser les circulations verticales entre étages de manière rigoureuse, en respectant les normes de sécurité de l'architecture (formule de Blondel) tout en assurant l'ouverture de la trémie dans le plancher haut ?
+
+### Décisions Prises
+
+1. **Modèle Déclaratif `Stair` :**  
+   - `id: ElementId`.
+   - `bottomLevelId: ElementId` et `topLevelId: ElementId`.
+   - `startPoint: Vec2` (départ au sol du niveau bas) et `endPoint: Vec2` (arrivée au niveau haut).
+   - `width: number` (largeur de la volée, ex: 900 mm).
+2. **Application Automatique de la Formule de Blondel :**  
+   Soit $\Delta Z = \text{topLevel.elevation} - \text{bottomLevel.elevation}$ la hauteur à franchir.
+   - Le moteur calcule automatiquement le nombre optimal de marches $N$ pour que la hauteur de contremarche $h = \Delta Z / N$ soit comprise entre $160\text{ mm}$ et $185\text{ mm}$.
+   - Le giron $g = \|\text{endPoint} - \text{startPoint}\| / (N - 1)$ est validé selon la relation de confort :
+     $$2h + g \in [600, 640]\text{ mm}$$
+   - Si les dimensions choisies violent la formule, un avertissement constructif est affiché dans l'inspecteur.
+3. **Réservation Automatique de Trémie :**  
+   Une fonction d'assistance permet de générer automatiquement un contour de trémie (`hole`) dans la dalle du niveau supérieur, avec recul suffisant pour garantir une échappée de tête d'au moins $2,00\text{ m}$ sur toute la montée.
+4. **Rendu Architectural Conforme :**  
+   - En 2D : tracé des nez de marches, ligne de foulée avec flèche orientée vers le haut, et trait de coupe oblique à mi-hauteur.
+   - En 3D : maillage solide Three.js crénelé avec contremarches et marches distinctes.
+
+### Conséquences
+
+- Conception intuitive et normée des escaliers.
+- Cohérence tridimensionnelle parfaite entre l'escalier et le trou de plancher qui le surplombe.
+

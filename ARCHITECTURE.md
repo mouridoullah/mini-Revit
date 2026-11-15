@@ -41,22 +41,24 @@ flowchart TD
     end
 
     subgraph Viewports ["Moteurs de Rendu des Vues (Impératifs)"]
-        View2D["Viewport 2D Plan (HTML5 Canvas / Vectoriel)"]
-        View3D["Viewport 3D (Three.js Scène & BVH Raycasting)"]
+        View2D["Viewport 2D Plan (Canvas, Cotations, Dalles, Underlay)"]
+        View3D["Viewport 3D (Three.js WebGL, Murs percés, Dalles, Ombres)"]
+        Section2D["Générateur de Coupes Vectorielles 2D (Saison 2)"]
     end
 
     subgraph CoreDomain ["Noyau BIM Core (TypeScript Pur)"]
-        Document["BimDocument (Dictionnaires d'entités normalisés)"]
-        DepGraph["Graphe de Dépendances (DAG)"]
-        RegenEngine["Moteur de Régénération Incrémentale"]
-        SpatialIndex["Index Spatiaux (R-Tree 2D rbush / 3D BVH)"]
+        Document["BimDocument (Murs, Baies, Pièces, Cotes, Dalles, Niveaux)"]
+        CommandBus["Commandes Transactionnelles & Undo/Redo (Immer)"]
+        RulesEngine["Validateur Métier d'Invariants (BimValidationError)"]
+        IFCExporter["Générateur IFC4 ISO 10303-21 Pur TS (web-ifc certifié)"]
     end
 
     subgraph GeometryKernel ["Noyau Géométrique (TypeScript Pur)"]
         MathUtils["Vecteurs, Matrices, Intersections 2D/3D"]
-        WallJunctions["Topologie des Jonctions de Murs"]
-        SlicingEngine["Découpe d'Ouvertures (Sutherland-Hodgman)"]
-        RoomDetection["Détection de Pièces & Triangulation (Earcut)"]
+        WallJunctions["Topologie des Jonctions de Murs (L, T, X, Colinéaire)"]
+        SlicingEngine["Découpe d'Ouvertures 2.5D (Conservation de volume)"]
+        RoomDetection["Détection Automatique de Pièces (polygon-clipping)"]
+        Triangulation["Triangulation Concave avec Trous & Extrusion (earcut)"]
     end
 
     subgraph Persistence ["Couche Persistance"]

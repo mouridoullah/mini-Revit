@@ -8,16 +8,27 @@
 
 ## 1. Vue d'Ensemble des Phases
 
-Le développement de Mini-BIM est structuré selon une progression incrémentale stricte où chaque phase produit un livrable exécutable, testé et documenté avant tout passage à la phase suivante.
+Le développement de Mini-BIM est structuré en deux grandes saisons selon une progression incrémentale stricte où chaque phase produit un livrable exécutable, testé et documenté avant tout passage à la phase suivante.
 
 ```mermaid
-flowchart LR
-    P0["Phase 0<br/>Cadrage & Specs"] --> P1["Phase 1<br/>Noyau Géométrique"]
-    P1 --> P2["Phase 2<br/>Éditeur & Viewports"]
-    P2 --> P3["Phase 3<br/>Noyau BIM Paramétrique"]
-    P3 --> P4["Phase 4<br/>Intelligence & Métrés"]
-    P4 --> P5["Phase 5<br/>Plans & Documentation"]
-    P5 --> P6["Phase 6<br/>Extension MEP"]
+flowchart TD
+    subgraph S1 ["SAISON 1 (V1.0 LIVRÉE & CERTIFIÉE — 507 TESTS)"]
+        direction LR
+        P0["Phase 0<br/>Cadrage & Specs"] --> P1["Phase 1<br/>Noyau Géométrique"]
+        P1 --> P2["Phase 2<br/>Éditeur & Viewports"]
+        P2 --> P3["Phase 3<br/>Noyau BIM Paramétrique"]
+        P3 --> P4["Phase 4<br/>Intelligence & Métrés"]
+        P4 --> P5["Phase 5<br/>Plans & OpenBIM IFC4"]
+    end
+
+    subgraph S2 ["SAISON 2 (V2.0 EN COURS — VERS UN OUTIL BIM RICHE & COMPLET)"]
+        direction LR
+        P6["Phase 6<br/>Dalles, Multi-Niveaux & Escalier"] --> P7["Phase 7<br/>Toitures, Pentes & Coupes Dynamiques"]
+        P7 --> P8["Phase 8<br/>Objets, Mobilier & Bibliothèque"]
+        P8 --> P9["Phase 9<br/>MEP, Clashs & Import IFC"]
+    end
+
+    S1 ==> S2
 ```
 
 ---
@@ -239,20 +250,71 @@ _Dépendances : Phase 1.1 à 1.3 (`@mini-bim/geometry`), Phase 1.4 (`@mini-bim/v
 
 ---
 
-### Phase 6 — Extension Réseaux MEP (Post-MVP / Évolution Future)
+## 3. Saison 2 : Feuille de Route vers Mini-BIM V2.0 (Outil BIM Riche & Complet)
 
-- **Objectif :** Intégrer la coordination 3D des réseaux techniques (plomberie, ventilation, électricité).
-- **Spécification :** Prête et découpée en 3 sous-phases (6.1 Modèle topologique pur, 6.2 Rendu 3D/2D instancié, 6.3 Détection de collisions et IFC MEP).
-- **Statut :** Spécification documentée dans les notes d'évolution — la version V1.0 stabilisée de Mini-BIM couvre l'intégralité du cycle architectural, calculatoire et OpenBIM.
+La Saison 2 étend le cœur architectural de Mini-BIM vers un outil professionnel complet capable de modéliser des édifices multi-étages avec planchers, toitures à pentes, coupes vectorielles dynamiques, bibliothèque d'équipements et réseaux techniques coordonnés.
+
+```mermaid
+flowchart LR
+    P6["Phase 6<br/>Dalles, Multi-Niveaux & Escalier"] --> P7["Phase 7<br/>Toitures & Coupes Dynamiques"]
+    P7 --> P8["Phase 8<br/>Objets & Mobilier"]
+    P8 --> P9["Phase 9<br/>MEP, Clashs & Import IFC"]
+```
+
+---
+
+### Phase 6 — Dalles (Slabs), Multi-Niveaux (Levels R+1) & Escalier (`Stair`)
+
+- **Objectif :** Dépasser le simple niveau unique pour modéliser des édifices multi-étages complets avec leurs planchers horizontaux, trémies et circulations verticales.
+- **Sous-phases :**
+  - **6.1 Modèle Dalles & Niveaux (`@mini-bim/core`) :**
+    - Entité `Slab` dans `BimState.slabs` : `id`, `levelId`, `boundary: Vec2[]` (contour extérieur CCW), `holes: Vec2[][]` (trémies CW), `thickness: number` (ex: 200 mm), `baseOffset: number`.
+    - Commandes transactionnelles Immer : `AddSlabCommand`, `UpdateSlabCommand`, `DeleteSlabCommand`.
+    - Commandes de Niveaux : `AddLevelCommand`, `UpdateLevelCommand`, `DeleteLevelCommand` avec gestion paramétrique des élévations ($Z = \sum \text{hauteurs}$).
+    - Validation métier stricte (`validateSlab`) : non-auto-intersection, aire minimale, inclusion stricte des trémies à l'intérieur du contour extérieur.
+    - Export IFC4 étendu : `IfcSlab` (`.FLOOR.`, `.BASESLAB.`) avec extrusion solide descendante et relations `IfcRelContainedInSpatialStructure`.
+  - **6.2 Rendu 2D, 3D & Vue Fantôme Underlay (`@mini-bim/view-2d`, `@mini-bim/view-3d`) :**
+    - Rendu 3D Three.js : triangulation polygonale concave avec trous (`earcut`) et extrusion descendante de la dalle depuis l'élévation du niveau (`Z = level.elevation`).
+    - Rendu 2D Canvas : affichage du contour de la dalle avec hachure béton ou bordure stylisée, trémies transparentes.
+    - Rendu Underlay (Vue Fantôme) : affichage en grisé estompé (traits pointillés gris clair) des murs porteurs du niveau inférieur ($N-1$) sur le plan actif.
+  - **6.3 Outils Interactifs UI (`apps/web`) :**
+    - `SlabTool` (Raccourci `L`) : dessin polygonal de dalles par clics consécutifs avec magnétisme sur les angles de murs extérieurs.
+    - Sélecteur de Niveau UI (`LevelSelector`) dans la barre d'outils supérieure : passage instantané du RDC au R+1, avec synchronisation du plan 2D et de la caméra 3D.
+    - Snapping vertical inter-niveaux : alignement direct des murs de l'étage sur les murs du niveau inférieur grâce à l'Underlay.
+  - **6.4 Escalier Paramétrique Droit (`Stair`) :**
+    - Modèle `Stair` : point de départ, point d'arrivée, niveau bas, niveau haut, largeur de volée.
+    - Calcul automatique de la formule de sécurité et de confort de Blondel : $2h + g \approx 64\text{ cm}$.
+    - Génération automatique de la trémie correspondante dans la dalle du niveau supérieur.
+    - Rendu 2D avec flèche de sens de montée et ligne de foulée, maillage 3D crénelé de volée de marches.
+
+---
+
+### Phase 7 — Toitures (Roofs), Pentes & Vues en Coupe Dynamiques (Sections)
+
+- **Objectif :** Clore l'enveloppe extérieure du bâtiment par le haut et fournir les outils d'inspection en coupe indispensables aux permis de construire.
 - **Fonctionnalités :**
-  - Enregistrement des catégories MEP via le registre de catégories (`CategoryDef`).
-  - Définition des systèmes de distribution (`mep_system` : eau froide, évacuation, gaines C1).
-  - Modélisation de tronçons (segments ronds et rectangulaires) via balayage (`sweep`) et instanciation 3D.
-  - Connecteurs paramétriques (ports) et graphe de connexions de réseaux.
-  - Génération des réservations et traversées automatiques dans les murs et dalles.
-  - Détection des collisions (Clash Detection) entre réseaux et éléments de structure.
-- **Dépendances :** Phase 5 validée et stabilisée.
-- **Livrables :** Package `@mini-bim/mep`.
-- **Critères d'acceptation :**
-  - Réseau complet modélisé sous plafond, avec détection automatique des pénétrations de cloisons.
-  - Panneau cliquable recensant les collisions physiques détectées.
+  - **Toitures Paramétriques (`Roof`) :** Toiture terrasse étanchée ou toiture à 1 ou 2 pans inclinés (`gable`) avec angle de pente ($0^\circ$ à $60^\circ$) et débord de toit (*eaves*).
+  - **Attachement Automatique des Murs (`Wall Attachment`) :** Les murs sous toiture s'étirent et leurs sommets sont biseautés automatiquement pour épouser la sous-face des versants de toiture.
+  - **Ligne de Coupe Dynamique (`SectionView`) :** Tracé d'une ligne de coupe A-A sur le plan 2D $\to$ génération instantanée d'une vue vectorielle en coupe verticale avec pochés des parois traversées (murs, dalles, toiture).
+  - **Plan de Coupe 3D Interactif :** Clipping plane matériel WebGL Three.js pour écorcher la maquette 3D à n'importe quelle altitude.
+
+---
+
+### Phase 8 — Objets, Mobilier & Bibliothèque de Composants (`Components`)
+
+- **Objectif :** Meubler et équiper les espaces pour valider l'habitabilité, l'accessibilité PMR et enrichir les rendus.
+- **Fonctionnalités :**
+  - **Catalogue d'Équipements (`ComponentType`) :** Sanitaires (WC, lavabo, douche, baignoire), Cuisine (évier, plaques, réfrigérateur), Mobilier (lit, table, chaises).
+  - **Outil d'Insertion (`ComponentTool`) :** Placement interactif par clic sur plan avec rotation à 90° par la touche `Espace`.
+  - **Représentation Hybride 2D/3D :** Symbole graphique vectoriel normalisé en plan 2D et maillage 3D basse consommation géométrique sous Three.js.
+  - **Cotations Altimétriques :** Symboles de niveau altimétrique normalisés (+0.00, +2.80) en plan et en coupe.
+
+---
+
+### Phase 9 — Coordination Technique (MEP), Détection de Collisions & Import IFC
+
+- **Objectif :** Atteindre la maturité d'une suite BIM pluridisciplinaire avec réseaux fluides/aérauliques et interopérabilité bidirectionnelle complète.
+- **Fonctionnalités :**
+  - **Réseaux MEP Topologiques :** Tuyauteries sanitaires (eau froide, eau chaude, évacuation), gaines de ventilation et chemins de câbles avec connecteurs (ports) dérivés.
+  - **Détection Automatique de Collisions (Clash Detection) :** Algorithme géométrique d'Ericson (intersection segment-segment 3D et boîtes englobantes orientées OBB) détectant les collisions tuyaux/murs et tuyaux/dalles, avec mise en évidence rouge dans l'UI.
+  - **Import IFC4 (Round-Trip OpenBIM) :** Moteur de lecture basé sur `web-ifc` reconstituant un `BimDocument` modifiable à partir d'un fichier IFC produit par Revit, ArchiCAD ou BlenderBIM.
