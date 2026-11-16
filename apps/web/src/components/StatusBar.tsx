@@ -21,6 +21,7 @@ export function StatusBar({
 
   const wallCount = Object.keys(state.walls).length;
   const slabCount = Object.keys(state.slabs ?? {}).length;
+  const roofCount = Object.keys(state.roofs ?? {}).length;
   const doorCount = Object.keys(state.doors ?? {}).length;
   const windowCount = Object.keys(state.windows ?? {}).length;
   const levelCount = Object.keys(state.levels).length;
@@ -55,6 +56,11 @@ export function StatusBar({
   } else if (activeToolKind === 'slab') {
     toolMessage =
       'Outil : Dalle (L) — Cliquer pour tracer les sommets, Entrée ou double-clic pour clore (Shift = ortho, Échap = annuler)';
+  } else if (activeToolKind === 'stair') {
+    toolMessage = 'Outil : Escalier (E) — Clic départ puis clic arrivée de la volée (Échap = annuler)';
+  } else if (activeToolKind === 'roof') {
+    toolMessage =
+      'Outil : Toiture (R) — Sommets d\'empreinte, Entrée pour clore, puis faîtage si 2 pans (Échap = annuler)';
   }
 
   return (
@@ -92,6 +98,11 @@ export function StatusBar({
         {slabCount > 0 && (
           <span>
             Dalles : <strong style={{ color: '#e5e7eb' }}>{slabCount}</strong>
+          </span>
+        )}
+        {roofCount > 0 && (
+          <span>
+            Toitures : <strong style={{ color: '#e5e7eb' }}>{roofCount}</strong>
           </span>
         )}
         {doorCount > 0 && (

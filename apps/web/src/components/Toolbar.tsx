@@ -72,6 +72,8 @@ export function Toolbar({
         onSelectTool('slab');
       } else if (e.key === 'e' || e.key === 'E') {
         onSelectTool('stair');
+      } else if (e.key === 'r' || e.key === 'R') {
+        onSelectTool('roof');
       }
     };
 
@@ -199,6 +201,24 @@ export function Toolbar({
             }}
           >
             Escalier (E)
+          </button>
+          <button
+            type="button"
+            data-testid="tool-roof-btn"
+            onClick={() => onSelectTool('roof')}
+            style={{
+              padding: '6px 12px',
+              fontSize: '12px',
+              fontWeight: activeToolKind === 'roof' ? 600 : 400,
+              borderRadius: '4px',
+              backgroundColor: activeToolKind === 'roof' ? '#2563eb' : '#374151',
+              color: activeToolKind === 'roof' ? '#ffffff' : '#d1d5db',
+              border: activeToolKind === 'roof' ? '1px solid #3b82f6' : '1px solid #4b5563',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease-in-out',
+            }}
+          >
+            Toiture (R)
           </button>
           <button
             type="button"

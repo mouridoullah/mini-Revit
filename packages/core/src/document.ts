@@ -108,6 +108,27 @@ export class BimDocument {
       width: 900,
     };
 
+    const defaultGableRoofTypeId = 'default-gable-roof-type';
+    const defaultFlatRoofTypeId = 'default-flat-roof-type';
+
+    const defaultGableRoofType: import('./types.js').GableRoofType = {
+      id: defaultGableRoofTypeId,
+      name: 'Toiture 2 pans Tuiles 35°',
+      category: 'roofType',
+      family: 'gable',
+      thickness: 250,
+      slopeDeg: 35,
+      overhangMm: 400,
+    };
+
+    const defaultFlatRoofType: import('./types.js').FlatRoofType = {
+      id: defaultFlatRoofTypeId,
+      name: 'Toiture terrasse béton 200mm',
+      category: 'roofType',
+      family: 'flat',
+      thickness: 200,
+    };
+
     const state: BimState = {
       schemaVersion: 2,
       units: 'mm',
@@ -117,6 +138,10 @@ export class BimDocument {
       doorTypes: { [defaultDoorTypeId]: defaultDoorType },
       windowTypes: { [defaultWindowTypeId]: defaultWindowType },
       stairTypes: { [defaultStairTypeId]: defaultStairType },
+      roofTypes: {
+        [defaultGableRoofTypeId]: defaultGableRoofType,
+        [defaultFlatRoofTypeId]: defaultFlatRoofType,
+      },
       walls: {},
       slabs: {},
       doors: {},
@@ -124,6 +149,8 @@ export class BimDocument {
       rooms: {},
       dimensions: {},
       stairs: {},
+      roofs: {},
+      roofOpenings: {},
     };
 
     return new BimDocument(state);

@@ -592,4 +592,193 @@ describe('Générateur IFC4 ISO 10303-21 (packages/core/ifc)', () => {
     // Point de placement avec baseOffset 500.00
     expect(ifcContent).toContain('IFCCARTESIANPOINT((0.00,0.00,500.00))');
   });
+
+  // Toitures IFC4 (ADR-053 [D6])
+  it('T-IFC-ROOF-01 : Export IFC4 d’une toiture 2 pans -> entité IFCROOF (.GABLE_ROOF.) et agrégation IFCRELAGGREGATES', () => {
+    const doc = BimDocument.createDefaultProject();
+    const baseState = doc.getState();
+    const lvl0 = Object.keys(baseState.levels)[0] ?? 'lvl_0';
+
+    const roofState: BimState = {
+      ...baseState,
+      roofTypes: {
+        rt_gable: {
+          id: 'rt_gable',
+          category: 'roofType',
+          name: 'Toit 2 pans 35°',
+          family: 'gable',
+          thickness: 250,
+          slopeDeg: 35,
+          overhangMm: 300,
+        },
+      },
+      roofs: {
+        roof_01: {
+          id: 'roof_01',
+          name: 'Toiture Principale',
+          category: 'roof',
+          roofTypeId: 'rt_gable',
+          levelId: lvl0,
+          footprint: [
+            { x: 0, y: 0 },
+            { x: 8000, y: 0 },
+            { x: 8000, y: 6000 },
+            { x: 0, y: 6000 },
+          ],
+          ridgeAxis: {
+            start: { x: 0, y: 3000 },
+            end: { x: 8000, y: 3000 },
+          },
+        },
+      },
+    };
+
+    const ifcContent = exportToIfc(roofState);
+
+    expect(ifcContent).toContain('IFCROOF(');
+    expect(ifcContent).toContain('.GABLE_ROOF.');
+    expect(ifcContent).toContain('Toiture Principale');
+    expect(ifcContent).toContain('RoofSlabAggregation');
+    expect(ifcContent).toContain('.ROOF.');
+  });
+
+  it('T-IFC-ROOF-02 : Export IFC4 d’une toiture terrasse -> entité IFCROOF (.FLAT_ROOF.)', () => {
+    const doc = BimDocument.createDefaultProject();
+    const baseState = doc.getState();
+    const lvl0 = Object.keys(baseState.levels)[0] ?? 'lvl_0';
+
+    const roofState: BimState = {
+      ...baseState,
+      roofTypes: {
+        rt_flat: {
+          id: 'rt_flat',
+          category: 'roofType',
+          name: 'Toit terrasse béton',
+          family: 'flat',
+          thickness: 200,
+        },
+      },
+      roofs: {
+        roof_flat: {
+          id: 'roof_flat',
+          name: 'Toiture Terrasse',
+          category: 'roof',
+          roofTypeId: 'rt_flat',
+          levelId: lvl0,
+          footprint: [
+            { x: 0, y: 0 },
+            { x: 6000, y: 0 },
+            { x: 6000, y: 4000 },
+            { x: 0, y: 4000 },
+          ],
+        },
+      },
+    };
+
+    const ifcContent = exportToIfc(roofState);
+
+    expect(ifcContent).toContain('IFCROOF(');
+    expect(ifcContent).toContain('.FLAT_ROOF.');
+    expect(ifcContent).toContain('Toiture Terrasse');
+  });
+
+  it('T-IFC-ROOF-03 : Toiture 2 pans -> 2 versants IFCSLAB (.ROOF.) agrégés sous IFCROOF', () => {
+    const doc = BimDocument.createDefaultProject();
+    const baseState = doc.getState();
+    const lvl0 = Object.keys(baseState.levels)[0] ?? 'lvl_0';
+
+    const roofState: BimState = {
+      ...baseState,
+      roofTypes: {
+        rt_gable: {
+          id: 'rt_gable',
+          category: 'roofType',
+          name: 'Toit 2 pans 35°',
+          family: 'gable',
+          thickness: 250,
+          slopeDeg: 35,
+          overhangMm: 0,
+        },
+      },
+      roofs: {
+        roof_01: {
+          id: 'roof_01',
+          category: 'roof',
+          roofTypeId: 'rt_gable',
+          levelId: lvl0,
+          footprint: [
+            { x: 0, y: 0 },
+            { x: 8000, y: 0 },
+            { x: 8000, y: 6000 },
+            { x: 0, y: 6000 },
+          ],
+          ridgeAxis: {
+            start: { x: 0, y: 3000 },
+            end: { x: 8000, y: 3000 },
+          },
+        },
+      },
+    };
+
+    const ifcContent = exportToIfc(roofState);
+
+    // 2 versants IfcSlab avec .ROOF.
+    const slabMatches = ifcContent.match(/IFCSLAB\([^)]*\.ROOF\.\)/g);
+    expect(slabMatches).toBeDefined();
+    expect(slabMatches?.length).toBe(2);
+  });
+
+  it('T-IFC-ROOF-04 : Validation structurelle web-ifc — IFCROOF et ses IFCSLAB (.ROOF.) sont parsés sans erreur', async () => {
+    const doc = BimDocument.createDefaultProject();
+    const baseState = doc.getState();
+    const lvl0 = Object.keys(baseState.levels)[0] ?? 'lvl_0';
+
+    const roofState: BimState = {
+      ...baseState,
+      roofTypes: {
+        rt_gable: {
+          id: 'rt_gable',
+          category: 'roofType',
+          name: 'Toit 2 pans 35°',
+          family: 'gable',
+          thickness: 250,
+          slopeDeg: 35,
+          overhangMm: 0,
+        },
+      },
+      roofs: {
+        roof_01: {
+          id: 'roof_01',
+          name: 'Toiture 2 Pans',
+          category: 'roof',
+          roofTypeId: 'rt_gable',
+          levelId: lvl0,
+          footprint: [
+            { x: 0, y: 0 },
+            { x: 8000, y: 0 },
+            { x: 8000, y: 6000 },
+            { x: 0, y: 6000 },
+          ],
+          ridgeAxis: {
+            start: { x: 0, y: 3000 },
+            end: { x: 8000, y: 3000 },
+          },
+        },
+      },
+    };
+
+    const ifcContent = exportToIfc(roofState);
+
+    const ifcApi = new WebIFC.IfcAPI();
+    await ifcApi.Init();
+    const modelId = ifcApi.OpenModel(new TextEncoder().encode(ifcContent));
+
+    const roofs = ifcApi.GetLineIDsWithType(modelId, WebIFC.IFCROOF);
+    expect(roofs.size()).toBe(1);
+
+    const slabs = ifcApi.GetLineIDsWithType(modelId, WebIFC.IFCSLAB);
+    expect(slabs.size()).toBe(2);
+
+    ifcApi.CloseModel(modelId);
+  });
 });

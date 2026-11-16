@@ -301,4 +301,42 @@ describe('PropertyInspector — Panneau latéral d’inspection et d’édition 
     });
     expect(baseOffsetInput.value).toBe('250');
   });
+
+  it('T-ROOF-INSP-01 : inspection d’une Toiture (nom, type, pente, débord, baseOffset)', () => {
+    const roof: import('@mini-bim/core').Roof = {
+      id: 'roof_test_insp',
+      category: 'roof',
+      roofTypeId: 'default-gable-roof-type',
+      levelId: level0Id,
+      footprint: [
+        { x: 0, y: 0 },
+        { x: 8000, y: 0 },
+        { x: 8000, y: 6000 },
+        { x: 0, y: 6000 },
+      ],
+      ridgeAxis: {
+        start: { x: 0, y: 3000 },
+        end: { x: 8000, y: 3000 },
+      },
+      baseOffset: 150,
+      slopeOverrideDeg: 40,
+    };
+    doc.execute(new Commands.AddRoofCommand(roof));
+
+    render(<PropertyInspector doc={doc} selectedIds={['roof_test_insp']} />);
+
+    expect(screen.getByTestId('inspector-roof-panel')).toBeDefined();
+    expect(screen.getByTestId('roof-id').textContent).toBe('roof_test_insp');
+
+    const baseOffsetInput = screen.getByTestId('roof-base-offset-input') as HTMLInputElement;
+    expect(baseOffsetInput.value).toBe('150');
+
+    const slopeInput = screen.getByTestId('roof-slope-input') as HTMLInputElement;
+    expect(slopeInput.value).toBe('40');
+
+    // Modification de la pente via le panel
+    fireEvent.change(slopeInput, { target: { value: '45' } });
+    fireEvent.blur(slopeInput);
+    expect(doc.getState().roofs?.['roof_test_insp']?.slopeOverrideDeg).toBe(45);
+  });
 });

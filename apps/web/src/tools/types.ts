@@ -12,7 +12,8 @@ export type ToolKind =
   | 'moveWall'
   | 'moveOpening'
   | 'slab'
-  | 'stair';
+  | 'stair'
+  | 'roof';
 
 /**
  * États possibles de la machine à états SelectTool.
@@ -116,6 +117,23 @@ export type StairToolState =
     };
 
 /**
+ * États possibles de la machine à états RoofTool (ADR-053).
+ */
+export type RoofToolState =
+  | { readonly kind: 'idle' }
+  | {
+      readonly kind: 'drawing-footprint';
+      readonly points: readonly Vec2[];
+      readonly currentWorld: Vec2;
+    }
+  | {
+      readonly kind: 'picking-ridge';
+      readonly footprint: readonly Vec2[];
+      readonly ridgeStart?: Vec2;
+      readonly currentWorld: Vec2;
+    };
+
+/**
  * Paramètres par défaut configurables pour l'insertion de portes.
  */
 export interface DoorDefaults {
@@ -205,7 +223,8 @@ export interface Tool {
     | MoveWallToolState
     | MoveOpeningToolState
     | SlabToolState
-    | StairToolState;
+    | StairToolState
+    | RoofToolState;
   handle(event: ToolEvent, ctx: ToolContext): ToolOutput;
   reset(): void;
 }

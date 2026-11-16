@@ -8,6 +8,7 @@ import {
 } from '../types.js';
 import { detectRooms } from '../rooms/detect.js';
 import { computeStairGeometry } from '../stairs.js';
+import { computeRoofSlopes } from '../roofs/slopes.js';
 import { resolveWallGeometry } from '../walls/resolve.js';
 import { isPointInPolygon, type Vec2 } from '@mini-bim/geometry';
 import { createIfcGuid, escapeIfcString } from './guid.js';
@@ -489,6 +490,96 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
         storeyElementsMap.get(stair.bottomLevelId) || storeyElementsMap.get(defaultLevel.id);
       if (elementsList) {
         elementsList.push(ifcStair);
+      }
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Toitures (IfcRoof agrégeant IfcSlab .ROOF. - ADR-053 [D6])
+  // -------------------------------------------------------------------------
+  if (state.roofs && Object.keys(state.roofs).length > 0) {
+    for (const roof of Object.values(state.roofs)) {
+      if (!roof.footprint || roof.footprint.length < 3) continue;
+
+      const roofType = state.roofTypes?.[roof.roofTypeId];
+      const isGable = roofType?.family === 'gable';
+      const thickness = roofType?.thickness ?? 250;
+      const baseOffset = roof.baseOffset ?? 0;
+
+      const defaultStorey = storeyMap.get(defaultLevel.id);
+      const storeyInfo = storeyMap.get(roof.levelId) || defaultStorey;
+      if (!storeyInfo) continue;
+
+      // Placement de la toiture au niveau d'assise + baseOffset
+      const ptRoof = writer.add(
+        `IFCCARTESIANPOINT((0.,0.,${baseOffset.toFixed(2)}))`,
+      );
+      const placementRoof3D = writer.add(`IFCAXIS2PLACEMENT3D(#${ptRoof},#${dirZ},#${dirX})`);
+      const roofPlacement = writer.add(
+        `IFCLOCALPLACEMENT(#${storeyInfo.placementId},#${placementRoof3D})`,
+      );
+
+      // Calcul des versants de toiture
+      const slopes = computeRoofSlopes(roof, state);
+      const aggregatedSlabIds: number[] = [];
+
+      for (let sIdx = 0; sIdx < slopes.length; sIdx++) {
+        const slope = slopes[sIdx];
+        if (!slope || slope.polygon.length < 3) continue;
+
+        // Contour 2D du versant
+        const polyPoints = slope.polygon.map((p) =>
+          writer.add(`IFCCARTESIANPOINT((${p.x.toFixed(2)},${p.y.toFixed(2)}))`),
+        );
+        const firstPoint = polyPoints[0];
+        if (firstPoint !== undefined) {
+          polyPoints.push(firstPoint); // Fermeture CCW
+        }
+        const polyline = writer.add(`IFCPOLYLINE((${polyPoints.map((id) => `#${id}`).join(',')}))`);
+        const slopeProfile = writer.add(
+          `IFCARBITRARYCLOSEDPROFILEDEF(.AREA.,'RoofSlabProfile_${sIdx}',#${polyline})`,
+        );
+
+        // Extrusion solide
+        const slopeSolid = writer.add(
+          `IFCEXTRUDEDAREASOLID(#${slopeProfile},#${placementWorld3D},#${dirZ},${thickness.toFixed(2)})`,
+        );
+        const slopeShapeRep = writer.add(
+          `IFCSHAPEREPRESENTATION(#${geomSubContext},'Body','SweptSolid',(#${slopeSolid}))`,
+        );
+        const slopeProdShape = writer.add(`IFCPRODUCTDEFINITIONSHAPE($,$,(#${slopeShapeRep}))`);
+
+        const slabPlacement = writer.add(
+          `IFCLOCALPLACEMENT(#${roofPlacement},#${placementWorld3D})`,
+        );
+        const slabGuid = createIfcGuid();
+        const slabName = `${roof.name || roof.id} Versant ${sIdx + 1}`;
+        const ifcSlab = writer.add(
+          `IFCSLAB('${slabGuid}',#${ownerHistory},'${escapeIfcString(slabName)}',$,'RoofSlab',#${slabPlacement},#${slopeProdShape},$,.ROOF.)`,
+        );
+        aggregatedSlabIds.push(ifcSlab);
+      }
+
+      // Entité IfcRoof
+      const roofGuid = createIfcGuid();
+      const predefinedType = isGable ? '.GABLE_ROOF.' : '.FLAT_ROOF.';
+      const ifcRoof = writer.add(
+        `IFCROOF('${roofGuid}',#${ownerHistory},'${escapeIfcString(roof.name || roof.id)}',$,'Roof',#${roofPlacement},$,$,${predefinedType})`,
+      );
+
+      // Agrégation IfcRelAggregates
+      if (aggregatedSlabIds.length > 0) {
+        const relGuid = createIfcGuid();
+        writer.add(
+          `IFCRELAGGREGATES('${relGuid}',#${ownerHistory},'RoofSlabAggregation',$,#${ifcRoof},(${aggregatedSlabIds.map((id) => `#${id}`).join(',')}))`,
+        );
+      }
+
+      // Rattachement au niveau (IfcRelContainedInSpatialStructure)
+      const elementsList =
+        storeyElementsMap.get(roof.levelId) || storeyElementsMap.get(defaultLevel.id);
+      if (elementsList) {
+        elementsList.push(ifcRoof);
       }
     }
   }
