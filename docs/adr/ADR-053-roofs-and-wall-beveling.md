@@ -108,6 +108,10 @@ export interface RoofOpening {
   readonly height: number;
 }
 ```
+> [!NOTE]
+> **Périmètre Phase 7 vs Phase 8 :**
+> `RoofOpening` est une entité de données pour Phase 7 (modèle géométrique, calculs d'ouvertures effectives avec `computeEffectiveRoofPolygon`, validation `ROOF_SEVERED`/`ROOF_EMPTY`, sérialisation). L'outil interactif de dessin sur plan (`RoofOpeningTool`) est reporté en Phase 8.
+
 Les trémies ne sont jamais fusionnées de manière destructive dans `roof.footprint` ; elles sont passées à la demande via `computeEffectiveRoofPolygon`.
 
 ### 5. D5 — Rendu 3D Fusionné & Polyèdre Étanche (Euler = 2)
