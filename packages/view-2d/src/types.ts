@@ -124,6 +124,55 @@ export interface StairFor2D {
 }
 
 /**
+ * Familles de toitures supportées en vue 2D (ADR-053).
+ */
+export type RoofFamilyFor2D = 'flat' | 'gable';
+
+export interface FlatRoofTypeFor2D {
+  readonly id: string;
+  readonly name: string;
+  readonly family: 'flat';
+  readonly thickness: number;
+}
+
+export interface GableRoofTypeFor2D {
+  readonly id: string;
+  readonly name: string;
+  readonly family: 'gable';
+  readonly thickness: number;
+  readonly slopeDeg: number;
+  readonly overhangMm?: number;
+}
+
+export type RoofTypeFor2D = FlatRoofTypeFor2D | GableRoofTypeFor2D;
+
+export interface RoofOpeningFor2D {
+  readonly id: string;
+  readonly category?: 'roofOpening';
+  readonly roofId: string;
+  readonly offsetU: number;
+  readonly offsetV: number;
+  readonly width: number;
+  readonly height: number;
+}
+
+export interface RoofFor2D {
+  readonly id: string;
+  readonly category?: 'roof';
+  readonly roofTypeId: string;
+  readonly levelId: string;
+  readonly footprint: readonly Vec2[];
+  readonly ridgeAxis?:
+    | { readonly start: Vec2; readonly end: Vec2 }
+    | readonly [Vec2, Vec2]
+    | undefined;
+  readonly slopeDegOverride?: number | undefined;
+  readonly overhangOverride?: number | undefined;
+  readonly baseOffset?: number | undefined;
+  readonly name?: string | undefined;
+}
+
+/**
  * Interface structurelle neutre d'un document pour la vue en plan 2D.
  * Permet à View2D de consommer BimDocument sans dépendance directe ni import de @mini-bim/core.
  */
@@ -163,6 +212,9 @@ export interface DocumentFor2D {
     readonly dimensions?: Record<string, DimensionFor2D> | undefined;
     readonly stairTypes?: Record<string, StairTypeFor2D> | undefined;
     readonly stairs?: Record<string, StairFor2D> | undefined;
+    readonly roofTypes?: Record<string, RoofTypeFor2D> | undefined;
+    readonly roofs?: Record<string, RoofFor2D> | undefined;
+    readonly roofOpenings?: Record<string, RoofOpeningFor2D> | undefined;
   };
 }
 
@@ -331,6 +383,20 @@ export interface StairRenderConfig {
   readonly selectedStrokeWidth: number;
 }
 
+export interface RoofRenderConfig {
+  readonly fillColor: string;
+  readonly strokeColor: string;
+  readonly strokeWidth: number;
+  readonly ridgeColor: string;
+  readonly ridgeWidth: number;
+  readonly ridgeDash?: readonly number[];
+  readonly overhangStrokeColor: string;
+  readonly overhangDash?: readonly number[];
+  readonly openingStrokeColor: string;
+  readonly selectedStrokeColor: string;
+  readonly selectedStrokeWidth: number;
+}
+
 /**
  * Configuration globale du moteur de rendu 2D.
  */
@@ -347,6 +413,8 @@ export interface View2DRenderConfig {
   readonly slab?: SlabRenderConfig;
   /** Configuration de rendu des escaliers */
   readonly stair?: StairRenderConfig;
+  /** Configuration de rendu des toitures */
+  readonly roof?: RoofRenderConfig;
   /** Configuration de rendu de la vue fantôme */
   readonly underlay?: UnderlayRenderConfig;
   /** Configuration de rendu des pièces */
@@ -382,7 +450,15 @@ export type PreviewShape =
   | { readonly kind: 'line'; readonly start: Vec2; readonly end: Vec2 }
   | { readonly kind: 'rect'; readonly min: Vec2; readonly max: Vec2 }
   | { readonly kind: 'polygon'; readonly points: readonly Vec2[] }
-  | { readonly kind: 'stair'; readonly start: Vec2; readonly end: Vec2; readonly width?: number };
+  | { readonly kind: 'stair'; readonly start: Vec2; readonly end: Vec2; readonly width?: number }
+  | {
+      readonly kind: 'roof';
+      readonly footprint: readonly Vec2[];
+      readonly ridgeAxis?:
+        | { readonly start: Vec2; readonly end: Vec2 }
+        | readonly [Vec2, Vec2]
+        | undefined;
+    };
 
 /**
  * Callback invoqué lors de l'émission d'une intention de commande de mutation.

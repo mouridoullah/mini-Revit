@@ -21,6 +21,7 @@ export {
   createRoomFloorMesh,
   createSlabMesh,
   createStairMesh,
+  createRoofMesh,
   type WallGeometryParams,
   type WallTypeGeometryParams,
   type OpeningGeometryParams,
@@ -30,6 +31,10 @@ export {
   type SlabTypeGeometryParams,
   type StairGeometryParams,
   type StairTypeGeometryParams,
+  type RoofGeometryParams,
+  type RoofTypeGeometryParams,
+  type FlatRoofTypeGeometryParams,
+  type GableRoofTypeGeometryParams,
 } from './mesh-generator.js';
 export {
   computeWallFootprint2d,

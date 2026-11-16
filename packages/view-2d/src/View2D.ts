@@ -17,6 +17,7 @@ import {
   type DetectedRoomFor2D,
   type DimensionFor2D,
   type SlabFor2D,
+  type RoofFor2D,
 } from './types.js';
 
 /**
@@ -40,6 +41,7 @@ export class View2D {
   private rooms: DetectedRoomFor2D[] = [];
   private dimensions: DimensionFor2D[] = [];
   private slabs: SlabFor2D[] = [];
+  private roofs: RoofFor2D[] = [];
   private selectedIds: Set<string> = new Set();
   private activeLevelId: string | null = null;
   private underlayLevelId: string | null = null;
@@ -173,6 +175,15 @@ export class View2D {
 
   public getSlabs(): readonly SlabFor2D[] {
     return this.slabs;
+  }
+
+  public setRoofs(roofs: readonly RoofFor2D[]): void {
+    this.roofs = Array.from(roofs);
+    this.render();
+  }
+
+  public getRoofs(): readonly RoofFor2D[] {
+    return this.roofs;
   }
 
   public getSelectedIds(): readonly string[] {
@@ -380,6 +391,7 @@ export class View2D {
       effectiveDimensions,
       effectiveSlabs,
       underlayPath,
+      this.roofs.length > 0 ? this.roofs : undefined,
     );
   }
 

@@ -30,6 +30,7 @@ export class Scene3D {
   private readonly highlightMaterial: THREE.MeshStandardMaterial;
   private readonly slabMaterial: THREE.MeshStandardMaterial;
   private readonly stairMaterial: THREE.MeshStandardMaterial;
+  private readonly roofMaterial: THREE.MeshStandardMaterial;
 
   /**
    * Registre des maillages architecturaux indexés par elementId.
@@ -125,6 +126,12 @@ export class Scene3D {
       metalness: 0.1,
       side: THREE.DoubleSide,
     });
+    this.roofMaterial = new THREE.MeshStandardMaterial({
+      color: 0x92400e,
+      roughness: 0.65,
+      metalness: 0.05,
+      side: THREE.DoubleSide,
+    });
 
     // 8. Rendu à la demande sur interaction caméra
     this.onControlsChange = () => {
@@ -145,7 +152,8 @@ export class Scene3D {
       mat === this.defaultMaterial ||
       mat === this.highlightMaterial ||
       mat === this.slabMaterial ||
-      mat === this.stairMaterial
+      mat === this.stairMaterial ||
+      mat === this.roofMaterial
     );
   }
 
@@ -372,6 +380,36 @@ export class Scene3D {
   }
 
   /**
+   * Ajoute une toiture dans la scène 3D avec un matériau architectural terre cuite (#92400e).
+   */
+  public addRoofMesh(roofId: string, rawMesh: RawMeshData): THREE.Mesh {
+    return this.addMesh(
+      {
+        ...rawMesh,
+        elementId: roofId,
+        userData: {
+          elementId: roofId,
+          category: 'roof',
+          ...(rawMesh.userData ?? {}),
+        },
+      },
+      this.roofMaterial,
+    );
+  }
+
+  /**
+   * Met à jour une toiture (libère l'ancienne géométrie et remplace le mesh).
+   */
+  public updateRoofMesh(roofId: string, rawMesh: RawMeshData): THREE.Mesh {
+    this.removeMesh(roofId);
+    return this.addRoofMesh(roofId, rawMesh);
+  }
+
+  public removeRoofMesh(roofId: string): void {
+    this.removeMesh(roofId);
+  }
+
+  /**
    * Applique ou retire la surbrillance de sélection sur les éléments spécifiés.
    * Bascule le matériau entre son matériau de base (ou defaultMaterial) et highlightMaterial (#2563eb).
    *
@@ -515,6 +553,7 @@ export class Scene3D {
     this.highlightMaterial.dispose();
     this.slabMaterial.dispose();
     this.stairMaterial.dispose();
+    this.roofMaterial.dispose();
 
     // 5. Vider la scène Three.js
     this.scene.clear();

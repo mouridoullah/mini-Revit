@@ -512,4 +512,148 @@ describe('DependencyGraph — Graphe de Dépendances Minimal (T-DAG-01 à 17)', 
     expect(levelDependents).toContain(stairId);
     expect(levelDependents).toContain(slabUpperId);
   });
+
+  it('T-DAG-ROOF-01 : Mutation d’un roofType -> invalide la toiture et les murs dépendants', () => {
+    const roofTypeId = 'rt_gable_35';
+    const roofId = 'roof_01';
+    const wallId = 'wall_gable_01';
+    const lvlId = 'lvl_roof';
+
+    const state = createMockState({
+      levels: {
+        [lvlId]: { id: lvlId, name: 'Combles', elevation: 3000 },
+      },
+      roofTypes: {
+        [roofTypeId]: {
+          id: roofTypeId,
+          category: 'roofType',
+          name: 'Tuiles 35°',
+          family: 'gable',
+          thickness: 250,
+          slopeDeg: 35,
+          overhangMm: 0,
+        },
+      },
+      roofs: {
+        [roofId]: {
+          id: roofId,
+          category: 'roof',
+          roofTypeId,
+          levelId: lvlId,
+          footprint: [{ x: 0, y: 0 }, { x: 8000, y: 0 }, { x: 8000, y: 6000 }, { x: 0, y: 6000 }],
+        },
+      },
+      walls: {
+        [wallId]: {
+          id: wallId,
+          category: 'wall',
+          typeId: 'wt_standard',
+          levelId: lvlId,
+          start: { x: 0, y: 0 },
+          end: { x: 0, y: 6000 },
+          topConstraint: { kind: 'roof', roofId },
+        },
+      },
+    });
+
+    const dag = DependencyGraph.build(state);
+
+    const typeDependents = dag.getDependents(roofTypeId);
+    expect(typeDependents).toContain(roofId);
+    expect(typeDependents).toContain(wallId);
+  });
+
+  it('T-DAG-ROOF-02 : Mutation d’une toiture -> invalide les murs sous toiture et ses ouvertures hébergées', () => {
+    const roofId = 'roof_main';
+    const wallId = 'wall_under_roof';
+    const openingId = 'skylight_01';
+    const lvlId = 'lvl_roof';
+
+    const state = createMockState({
+      levels: {
+        [lvlId]: { id: lvlId, name: 'Combles', elevation: 3000 },
+      },
+      roofTypes: {
+        rt_flat: { id: 'rt_flat', category: 'roofType', name: 'Toit plat', family: 'flat', thickness: 200 },
+      },
+      roofs: {
+        [roofId]: {
+          id: roofId,
+          category: 'roof',
+          roofTypeId: 'rt_flat',
+          levelId: lvlId,
+          footprint: [{ x: 0, y: 0 }, { x: 5000, y: 0 }, { x: 5000, y: 5000 }, { x: 0, y: 5000 }],
+        },
+      },
+      roofOpenings: {
+        [openingId]: {
+          id: openingId,
+          category: 'roofOpening',
+          roofId,
+          offsetU: 1000,
+          offsetV: 1000,
+          width: 800,
+          height: 1000,
+        },
+      },
+      walls: {
+        [wallId]: {
+          id: wallId,
+          category: 'wall',
+          typeId: 'wt_standard',
+          levelId: lvlId,
+          start: { x: 0, y: 0 },
+          end: { x: 5000, y: 0 },
+          topConstraint: { kind: 'roof', roofId },
+        },
+      },
+    });
+
+    const dag = DependencyGraph.build(state);
+
+    const roofDependents = dag.getDependents(roofId);
+    expect(roofDependents).toContain(wallId);
+    expect(roofDependents).toContain(openingId);
+  });
+
+  it('T-DAG-ROOF-03 : Dépendance transitive du niveau altimétrique vers la toiture et ses ouvertures', () => {
+    const roofId = 'roof_main';
+    const openingId = 'skylight_01';
+    const lvlId = 'lvl_roof';
+
+    const state = createMockState({
+      levels: {
+        [lvlId]: { id: lvlId, name: 'Combles', elevation: 3000 },
+      },
+      roofTypes: {
+        rt_flat: { id: 'rt_flat', category: 'roofType', name: 'Toit plat', family: 'flat', thickness: 200 },
+      },
+      roofs: {
+        [roofId]: {
+          id: roofId,
+          category: 'roof',
+          roofTypeId: 'rt_flat',
+          levelId: lvlId,
+          footprint: [{ x: 0, y: 0 }, { x: 5000, y: 0 }, { x: 5000, y: 5000 }, { x: 0, y: 5000 }],
+        },
+      },
+      roofOpenings: {
+        [openingId]: {
+          id: openingId,
+          category: 'roofOpening',
+          roofId,
+          offsetU: 1000,
+          offsetV: 1000,
+          width: 800,
+          height: 1000,
+        },
+      },
+    });
+
+    const dag = DependencyGraph.build(state);
+
+    const levelDependents = dag.getDependents(lvlId);
+    expect(levelDependents).toContain(roofId);
+    expect(levelDependents).toContain(openingId);
+  });
 });

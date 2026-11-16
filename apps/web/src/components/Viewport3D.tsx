@@ -7,6 +7,7 @@ import {
   createWindowPlaceholderMaterial,
   createSlabMesh,
   createStairMesh,
+  createRoofMesh,
   solveWallJunctions,
   type WallInput,
   type OpeningGeometryParams,
@@ -72,6 +73,7 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
     const windows = state.windows ?? {};
     const slabs = state.slabs ?? {};
     const stairs = state.stairs ?? {};
+    const roofs = state.roofs ?? {};
 
     const currentElementIds = new Set([
       ...Object.keys(state.walls),
@@ -79,6 +81,7 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
       ...Object.keys(windows),
       ...Object.keys(slabs),
       ...Object.keys(stairs),
+      ...Object.keys(roofs),
     ]);
 
     // 1. Suppression des maillages d'éléments supprimés (murs ou ouvertures en cascade)
@@ -149,6 +152,7 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
         openings: openingParams,
         elevation: resolved.zBase,
         height: resolved.height,
+        topProfile: resolved.topProfile,
         ...(resolvedPoly ? { polygon: resolvedPoly } : {}),
       });
 
@@ -267,6 +271,42 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
 
       if (stairMesh) {
         scene.updateStairMesh(stair.id, stairMesh);
+      }
+    }
+
+    // 7. Maillages 3D des toitures (plates et 2 pans, ADR-053)
+    for (const roof of Object.values(roofs)) {
+      const roofType = state.roofTypes?.[roof.roofTypeId];
+      if (!roofType) continue;
+
+      const level = state.levels[roof.levelId];
+      const elevation = level?.elevation ?? 0;
+
+      const roofOpenings = Object.values(state.roofOpenings ?? {}).filter(
+        (op) => op.roofId === roof.id,
+      );
+
+      const roofMesh = createRoofMesh(
+        {
+          id: roof.id,
+          footprint: roof.footprint,
+          ridgeAxis: roof.ridgeAxis,
+          slopeOverrideDeg: roof.slopeOverrideDeg,
+          overhangOverride: roof.overhangOverrideMm,
+          baseOffset: roof.baseOffset,
+          elevation,
+          openings: roofOpenings.map((op) => ({
+            offsetU: op.offsetU,
+            offsetV: op.offsetV,
+            width: op.width,
+            height: op.height,
+          })),
+        },
+        roofType,
+      );
+
+      if (roofMesh) {
+        scene.updateRoofMesh(roof.id, roofMesh);
       }
     }
 
