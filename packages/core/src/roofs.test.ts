@@ -307,4 +307,14 @@ describe('Toitures & Commandes Métier (ADR-053)', () => {
       roofId: roof.id,
     });
   });
+
+  it('T-ROOF-13 : BimDocument.createEmptyState() initialise explicitement roofTypes, roofs et roofOpenings', () => {
+    const emptyState = BimDocument.createEmptyState();
+    expect(emptyState.roofTypes).toBeDefined();
+    expect(emptyState.roofTypes).toEqual({});
+    expect(emptyState.roofs).toBeDefined();
+    expect(emptyState.roofs).toEqual({});
+    expect(emptyState.roofOpenings).toBeDefined();
+    expect(emptyState.roofOpenings).toEqual({});
+  });
 });

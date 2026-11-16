@@ -1,4 +1,4 @@
-import { type Vec2, vec2 } from '@mini-bim/geometry';
+import { type Vec2, vec2, segment2, intersectSegments } from '@mini-bim/geometry';
 import { type BimState, type Wall, type Roof, type GableRoofType } from '../types.js';
 
 /**
@@ -64,8 +64,22 @@ export function isWallCoveredByRoof(wall: Wall, roof: Roof): boolean {
     return true;
   }
 
-  // Si le mur traverse le polygone sans que ses extrémités ne soient dedans
-  return true;
+  // 3. Test d'intersection du segment de mur avec chaque arête du polygone
+  const wallSeg = segment2(wall.start, wall.end);
+  const n = footprint.length;
+  for (let i = 0; i < n; i++) {
+    const p1 = footprint[i];
+    const p2 = footprint[(i + 1) % n];
+    if (p1 && p2) {
+      const edgeSeg = segment2(p1, p2);
+      const res = intersectSegments(wallSeg, edgeSeg);
+      if (res.type !== 'none' && res.type !== 'degenerate') {
+        return true;
+      }
+    }
+  }
+
+  return false;
 }
 
 /**

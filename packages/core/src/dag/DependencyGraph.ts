@@ -2,6 +2,7 @@ import type { BimState, ElementId } from '../types.js';
 import { BimValidationError } from '../rules.js';
 import type { RelationDef, EntityCategory } from '../relations/types.js';
 import { RELATIONS_REGISTRY } from '../relations/registry.js';
+import { isWallCoveredByRoof } from '../roofs/top-profile.js';
 
 function getEntitiesForCategory(
   state: BimState,
@@ -314,11 +315,15 @@ export class DependencyGraph {
             for (const wallId in walls) {
               const w = walls[wallId];
               if (!w) continue;
-              if (w.topConstraint?.kind === 'roof' && w.topConstraint.roofId === r.id) {
-                graph.addEdge(r.id, w.id);
-              } else if (!w.topConstraint || w.topConstraint.kind === 'roof') {
-                // Dépendance souple si le mur est sous l'emprise du toit
-                graph.addEdge(r.id, w.id);
+              if (w.topConstraint?.kind === 'roof') {
+                if (w.topConstraint.roofId === r.id) {
+                  graph.addEdge(r.id, w.id);
+                }
+              } else if (!w.topConstraint) {
+                // Dépendance géométrique ciblée : uniquement si le mur est sous l'emprise du toit
+                if (isWallCoveredByRoof(w, r)) {
+                  graph.addEdge(r.id, w.id);
+                }
               }
             }
           }

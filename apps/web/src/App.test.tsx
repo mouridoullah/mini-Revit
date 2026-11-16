@@ -1288,4 +1288,46 @@ describe('App Integration & Squelette Double Viewport (apps/web)', () => {
 
     await clearIndexedDB();
   });
+
+  it('T-APP-AUTOSAVE-RESTORE-ONCE : Restauration unique au montage — loadFromIndexedDB n’est appelé qu’une seule fois (ADR-051 §D4)', async () => {
+    const autoSaveModule = await import('./persistence/autoSave.js');
+    await autoSaveModule.clearIndexedDB();
+
+    const savedDoc = BimDocument.createDefaultProject();
+    const typeId = Object.keys(savedDoc.getState().wallTypes)[0]!;
+    const levelId = Object.keys(savedDoc.getState().levels)[0]!;
+    savedDoc.execute(
+      new Commands.AddWallCommand({
+        id: 'w_restore_once',
+        category: 'wall',
+        typeId,
+        levelId,
+        start: { x: 0, y: 0 },
+        end: { x: 6000, y: 0 },
+      }),
+    );
+
+    await autoSaveModule.saveToIndexedDB(savedDoc);
+
+    const loadSpy = vi.spyOn(autoSaveModule, 'loadFromIndexedDB');
+
+    const { findByTestId, unmount } = render(<App />);
+
+    const infoBanner = await findByTestId('info-banner');
+    expect(infoBanner).toBeDefined();
+
+    await waitFor(() => {
+      const statusBar = document.querySelector('footer');
+      expect(statusBar?.textContent).toContain('Murs : 1');
+    });
+
+    // Attendre pour s’assurer qu’aucune boucle infinie ne re-déclenche de restauration
+    await new Promise((r) => setTimeout(r, 100));
+
+    expect(loadSpy).toHaveBeenCalledTimes(1);
+
+    loadSpy.mockRestore();
+    unmount();
+    await autoSaveModule.clearIndexedDB();
+  });
 });

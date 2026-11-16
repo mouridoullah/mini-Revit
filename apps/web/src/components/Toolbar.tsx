@@ -122,7 +122,7 @@ export function Toolbar({
             color: '#9ca3af',
           }}
         >
-          Phase 6 — Dalles, Niveaux & Inspecteur
+          Phase 7 — Toitures & Biseautage
         </span>
       </div>
 

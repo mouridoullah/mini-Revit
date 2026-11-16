@@ -781,4 +781,16 @@ describe('Générateur IFC4 ISO 10303-21 (packages/core/ifc)', () => {
 
     ifcApi.CloseModel(modelId);
   });
+
+  it('T-IFC-GUID-BUILDINGSMART : 1 000 GUIDs consécutifs respectent strictement le standard ISO 16739 (22 chars, premier char dans 0..3)', () => {
+    const validFirstChars = new Set(['0', '1', '2', '3']);
+    const ifcAlphabetRegex = /^[0-9A-Za-z_$]{22}$/;
+
+    for (let i = 0; i < 1000; i++) {
+      const guid = createIfcGuid();
+      expect(guid).toHaveLength(22);
+      expect(ifcAlphabetRegex.test(guid)).toBe(true);
+      expect(validFirstChars.has(guid[0]!)).toBe(true);
+    }
+  });
 });

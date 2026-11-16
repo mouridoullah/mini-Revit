@@ -42,8 +42,15 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
     autoSaveManagerRef.current = new AutoSaveManager(500);
   }
 
-  // Restauration automatique au montage depuis IndexedDB (S2-8) ou chargement démo ?demo=roof
+  const hasRestoredRef = useRef(false);
+
+  // Restauration automatique au montage initial depuis IndexedDB (S2-8 / ADR-051 §D4) ou chargement démo ?demo=roof
   useEffect(() => {
+    if (hasInitialDoc || hasRestoredRef.current) {
+      return;
+    }
+    hasRestoredRef.current = true;
+
     let isCancelled = false;
     async function restoreProject() {
       try {
@@ -74,9 +81,7 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
       }
     }
 
-    if (!hasInitialDoc) {
-      void restoreProject();
-    }
+    void restoreProject();
 
     return () => {
       isCancelled = true;

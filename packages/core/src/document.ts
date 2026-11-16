@@ -52,6 +52,9 @@ export class BimDocument {
       dimensions: {},
       stairTypes: {},
       stairs: {},
+      roofTypes: {},
+      roofs: {},
+      roofOpenings: {},
     };
   }
 

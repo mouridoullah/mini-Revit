@@ -656,4 +656,83 @@ describe('DependencyGraph — Graphe de Dépendances Minimal (T-DAG-01 à 17)', 
     expect(levelDependents).toContain(roofId);
     expect(levelDependents).toContain(openingId);
   });
+
+  it('T-DAG-ROOF-04 : Pas de contamination croisée entre toitures distinctes ni avec les murs hors emprise', () => {
+    const lvlId = 'lvl_roof';
+    const state = createMockState({
+      levels: {
+        [lvlId]: { id: lvlId, name: 'Combles', elevation: 3000 },
+      },
+      roofTypes: {
+        rt_flat: { id: 'rt_flat', category: 'roofType', name: 'Toit plat', family: 'flat', thickness: 200 },
+      },
+      roofs: {
+        roof_A: {
+          id: 'roof_A',
+          category: 'roof',
+          roofTypeId: 'rt_flat',
+          levelId: lvlId,
+          footprint: [{ x: 0, y: 0 }, { x: 5000, y: 0 }, { x: 5000, y: 5000 }, { x: 0, y: 5000 }],
+        },
+        roof_B: {
+          id: 'roof_B',
+          category: 'roof',
+          roofTypeId: 'rt_flat',
+          levelId: lvlId,
+          footprint: [{ x: 10000, y: 0 }, { x: 15000, y: 0 }, { x: 15000, y: 5000 }, { x: 10000, y: 5000 }],
+        },
+      },
+      walls: {
+        w_under_A: {
+          id: 'w_under_A',
+          category: 'wall',
+          typeId: 'wt_standard',
+          levelId: lvlId,
+          start: { x: 0, y: 0 },
+          end: { x: 5000, y: 0 },
+          topConstraint: { kind: 'roof', roofId: 'roof_A' },
+        },
+        w_under_B: {
+          id: 'w_under_B',
+          category: 'wall',
+          typeId: 'wt_standard',
+          levelId: lvlId,
+          start: { x: 10000, y: 0 },
+          end: { x: 15000, y: 0 },
+          topConstraint: { kind: 'roof', roofId: 'roof_B' },
+        },
+        w_outside: {
+          id: 'w_outside',
+          category: 'wall',
+          typeId: 'wt_standard',
+          levelId: lvlId,
+          start: { x: 20000, y: 0 },
+          end: { x: 25000, y: 0 },
+        },
+        w_level: {
+          id: 'w_level',
+          category: 'wall',
+          typeId: 'wt_standard',
+          levelId: lvlId,
+          start: { x: 1000, y: 1000 },
+          end: { x: 4000, y: 1000 },
+          topConstraint: { kind: 'level', levelId: lvlId },
+        },
+      },
+    });
+
+    const dag = DependencyGraph.build(state);
+
+    const depsA = dag.getDependents('roof_A');
+    expect(depsA).toContain('w_under_A');
+    expect(depsA).not.toContain('w_under_B');
+    expect(depsA).not.toContain('w_outside');
+    expect(depsA).not.toContain('w_level');
+
+    const depsB = dag.getDependents('roof_B');
+    expect(depsB).toContain('w_under_B');
+    expect(depsB).not.toContain('w_under_A');
+    expect(depsB).not.toContain('w_outside');
+    expect(depsB).not.toContain('w_level');
+  });
 });

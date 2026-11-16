@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
 import { type BimDocument, type BimState, type Command, type CommandResult } from '@mini-bim/core';
 import { createDemoDocument } from '../demo/demoDocument.js';
 
@@ -41,26 +41,29 @@ export function BimDocumentProvider({ initialDoc, children }: BimDocumentProvide
     return unsubscribe;
   }, [doc]);
 
-  const execute = (cmd: Command): CommandResult => doc.execute(cmd);
-  const undo = (): boolean => doc.undo();
-  const redo = (): boolean => doc.redo();
-  const canUndo = (): boolean => doc.canUndo();
-  const canRedo = (): boolean => doc.canRedo();
-  const setDocument = (newDoc: BimDocument): void => {
+  const execute = useCallback((cmd: Command): CommandResult => doc.execute(cmd), [doc]);
+  const undo = useCallback((): boolean => doc.undo(), [doc]);
+  const redo = useCallback((): boolean => doc.redo(), [doc]);
+  const canUndo = useCallback((): boolean => doc.canUndo(), [doc]);
+  const canRedo = useCallback((): boolean => doc.canRedo(), [doc]);
+  const setDocument = useCallback((newDoc: BimDocument): void => {
     setDoc(newDoc);
     setState(newDoc.getState());
-  };
+  }, []);
 
-  const value: BimDocumentContextValue = {
-    doc,
-    state,
-    execute,
-    undo,
-    redo,
-    canUndo,
-    canRedo,
-    setDocument,
-  };
+  const value: BimDocumentContextValue = useMemo(
+    () => ({
+      doc,
+      state,
+      execute,
+      undo,
+      redo,
+      canUndo,
+      canRedo,
+      setDocument,
+    }),
+    [doc, state, execute, undo, redo, canUndo, canRedo, setDocument],
+  );
 
   return <BimDocumentContext.Provider value={value}>{children}</BimDocumentContext.Provider>;
 }
