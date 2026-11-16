@@ -343,3 +343,20 @@ Cette convention assure une zone d'attraction ergonomique constante sous le poin
 - **Résolution altimétrique automatique :**
   - Attachement du pied à `activeLevelId`.
   - Attachement de la tête au niveau immédiatement supérieur adjacent (`topLevelId`) par tri altimétrique des niveaux du document.
+
+### 7.8 `RoofTool` (Modélisation Interactive de Toitures — Phase 7 / ADR-053)
+
+- **Raccourci clavier :** `R`
+- **Machine à états :**
+  - `idle` : en attente d'interaction.
+  - `drawing-footprint` : saisie séquentielle des sommets du polygone d'emprise (`footprint`).
+    - Magnétisme sur les sommets de murs existants et sur le premier sommet pour fermeture automatique.
+    - Contrainte orthogonale 45° sur maintien de la touche `Shift`.
+    - Validation par touche `Enter` ou double-clic (minimum 3 sommets).
+  - `picking-ridge` (pour toitures à 2 pans / `family: 'gable'`) :
+    - Saisie du premier point d'axe de faîtage (`ridgeStart`), puis élastique jusqu'au second point (`ridgeEnd`).
+    - Émission finale de `Commands.AddRoofCommand`.
+- **Contrôles clavier :**
+  - `Escape` : annulation de l'opération en cours et retour à l'état `idle`.
+  - `Enter` : validation immédiate du contour ou de l'axe.
+

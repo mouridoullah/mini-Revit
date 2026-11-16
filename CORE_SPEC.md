@@ -400,3 +400,18 @@ Exemple de document sérialisé en JSON conforme au Schéma Version 2 (`schemaVe
 
 > [!NOTE] Migration Automatisée sans Perte (ADR-043)
 > La fonction pure `migrateSchemaV1toV2` convertit automatiquement tout document de schéma v1 (Phases 1 à 5). Elle synthétise un `DoorType` par couple distinct $(width, height)$ et un `WindowType` par triplet distinct $(width, height, sillHeight)$, préserve la hauteur d'origine des murs via `heightOverride = wallType.height`, et garantit une conservation de volume et une égalité bit-à-bit stricte lors du round-trip.
+
+---
+
+## 7. Extensions Phase 7 — Toitures & Biseautage Altimétrique (ADR-053)
+
+### 7.1 Entités `RoofType`, `Roof` et `RoofOpening`
+- `RoofType` : union discriminée stricte entre `flat` (épaisseur, acrotère) et `gable` (épaisseur, pente 5-60°, débord 0-1500 mm).
+- `Roof` : instance hébergée sur un niveau avec `footprint: readonly Vec2[]`, `ridgeAxis` (pour toit 2 pans), et `baseOffset`.
+- `RoofOpening` : trémies ou réservations pour verrières, cheminées ou lucarnes dérivées à la volée (`computeEffectiveRoofPolygon`).
+
+### 7.2 Résolution Altimétrique Avancée (`resolveWallGeometry`)
+- Interface `ResolvedWall` complétée avec `topProfile: readonly Vec2[]` (profil polygonal 2D local $0 \le u \le L$).
+- Sommet biseauté automatique : trapézoïdal sous un seul versant, en chevron à 3 sommets pour les murs pignons croisant l'axe de faîtage ($Z_{\text{ridge}} = Z_{\text{base}} + W_{\text{half}} \cdot \tan(\alpha)$).
+- Rétrocompatibilité : migration automatique des contraintes de sommet (`WallTopConstraint`) vers `{ kind: 'level' }` ou `{ kind: 'roof' }`.
+

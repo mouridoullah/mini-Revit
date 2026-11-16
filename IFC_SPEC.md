@@ -73,6 +73,11 @@ DATA;
 #103=IFCDOOR('4L4Hr$v95BwnAdNVERRW$y',#5,'door_demo',$,'Door',#60,#95,$,2100.00,900.00,.DOOR.,.SINGLE_SWING_RIGHT.,$);
 #104=IFCRELFILLSELEMENT('2B2Br$t95BwnAdNVERRW$2',#5,$,$,#101,#103);
 #105=IFCSLAB('5M5Ir$w95BwnAdNVERRW$z',#5,'slab_demo_ground',$,'Slab',#70,#110,$,.FLOOR.);
+#106=IFCROOF('6N6Jr$x95BwnAdNVERRW$a',#5,'roof_main',$,'Roof',#80,#120,$,.GABLE_ROOF.);
+#107=IFCSLAB('7O7Kr$y95BwnAdNVERRW$b',#5,'roof_main_slope_1',$,'Roof Slope 1',#82,#122,$,.ROOF.);
+#108=IFCSLAB('8P8Lr$z95BwnAdNVERRW$c',#5,'roof_main_slope_2',$,'Roof Slope 2',#84,#124,$,.ROOF.);
+#109=IFCRELAGGREGATES('9Q9Mr$095BwnAdNVERRW$d',#5,$,$,#106,(#107,#108));
+#110=IFCRELCONTAINEDINSPATIALSTRUCTURE('0R0Nr$195BwnAdNVERRW$e',#5,$,$,(#106),#40);
 ...
 ENDSEC;
 END-ISO-10303-21;
@@ -80,13 +85,27 @@ END-ISO-10303-21;
 
 ---
 
-## 4. Validation et Compatibilité
+## 4. Spécification Toitures IFC4 (`IFCROOF` — Phase 7 / ADR-053)
+
+Conformément à la norme ISO 16739 :
+1. **Entité conteneur spatial :**
+   `IFCROOF` instanciée avec `PredefinedType = .GABLE_ROOF.` (toiture 2 pans) ou `.FLAT_ROOF.` (toiture terrasse).
+2. **Décomposition en versants (`IFCSLAB`) :**
+   Chaque versant de toiture inclinée est exporté sous forme d'un solide extrudé `IFCSLAB` avec `PredefinedType = .ROOF.`.
+3. **Relations d'agrégation et de confinement :**
+   - `IFCRELAGGREGATES` lie l'`IFCROOF` conteneur aux versants `IFCSLAB` composants.
+   - `IFCRELCONTAINEDINSPATIALSTRUCTURE` rattache l'`IFCROOF` au niveau `IFCBUILDINGSTOREY` correspondant.
+
+---
+
+## 5. Validation et Compatibilité
 
 L'export IFC a été validé selon les critères :
 
 - Validité syntaxique ISO 10303-21 (délimiteurs de blocs `HEADER`, `DATA`, `ENDSEC`, points-virgules finaux, format des réels).
 - GUIDs de 22 caractères encodés selon la table de conversion standard `0-9A-Za-z_$`.
-- Conformité de chargement sous les principaux visionneurs IFC OpenBIM du marché.
+- Conformité de chargement sous le parser standard `web-ifc` (`T-IFC-ROOF-01..04`).
+
 
 > [!NOTE]
 > **Déterminisme des GUIDs IFC (Note Phase 6) :**

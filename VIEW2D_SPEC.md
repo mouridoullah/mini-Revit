@@ -401,4 +401,30 @@ export function drawStairs(
 5. **Prévisualisation interactive (`PreviewShape.kind === 'stair'`) :**
    - Tracé en temps réel lors de l'interaction à deux clics de `StairTool`, avec affichage dynamique des nez de marches et de la ligne de foulée prévisionnels.
 
+---
+
+## 9. Rendu des Toitures Architecturales (Phase 7 / ADR-053)
+
+Le module `renderer.ts` implémente le rendu 2D des toitures plates et à deux pans (`drawRoofs`, `drawRoof`) :
+
+```typescript
+export function drawRoof(
+  ctx: CanvasRenderingContext2D,
+  transform: Transform2D,
+  roof: RoofFor2D,
+  roofType: RoofTypeFor2D,
+  openings: readonly RoofOpeningFor2D[],
+  isSelected: boolean,
+  config?: Partial<RoofRenderConfig>,
+): void;
+```
+
+### Conventions Graphiques Normalisées :
+1. **Empreinte de toiture (`footprint`) :** Contour fermé noir (`#1f2937`, épaisseur 2.0px).
+2. **Débords de toiture (`overhang`) :** Ligne décalée vers l'extérieur tracée en tiretés bleutés (`#3b82f6`, tirets `[6, 4]`).
+3. **Axe de faîtage (`ridgeAxis`) :** Trait continu renforcé (`#111827`, épaisseur 3.0px) avec cercles d'extrémités.
+4. **Trémies et châssis de toit (`roofOpenings`) :** Réservation évidée avec croix diagonale normalisée.
+5. **Prévisualisation interactive (`PreviewShape.kind === 'roof'`) :** Dessin élastique du polygone en cours et prévisualisation du faîtage.
+
+
 

@@ -324,18 +324,26 @@ flowchart LR
 
 ---
 
-### Phase 7 — Toitures (Roofs), Pentes & Vues en Coupe Dynamiques (Sections)
+### Phase 7 — Toitures (Roofs), Pentes & Biseautage des Murs [LIVRÉ & CERTIFIÉ]
 
-- **Objectif :** Clore l'enveloppe extérieure du bâtiment par le haut et fournir les outils d'inspection en coupe indispensables aux permis de construire.
-- **Jalon d'Arbitrage Architectural Préalable (Toitures & Biseautage de Murs) :**
-  - _Option A (Recommandation Claude / CSG pure) :_ Définition d'un « plan de sommet incliné par pièce de mur ». Chaque tranche de mur résolue par le moteur de jonctions calcule sa hauteur à ses extrémités via l'équation du plan de toiture, produisant des prismes trapézoïdaux exacts sans calcul booléen 3D lourd.
-  - _Option B (Prismes à sommet plat découpés par B-Rep) :_ Découpe des solides de murs verticaux par un plan de coupe 3D B-Rep / CSG booléenne.
-  - _Arbitrage formel consigné dans `ROOFS_SPEC.md` avant tout début de développement de la Phase 7._
-- **Fonctionnalités :**
-  - **Toitures Paramétriques (`Roof`) :** Toiture terrasse étanchée ou toiture à 1 ou 2 pans inclinés (`gable`) avec angle de pente ($0^\circ$ à $60^\circ$) et débord de toit (_eaves_).
-  - **Attachement Automatique des Murs (`Wall Attachment`) :** Les murs sous toiture s'étirent et leurs sommets sont biseautés automatiquement pour épouser la sous-face des versants de toiture.
-  - **Ligne de Coupe Dynamique (`SectionView`) :** Tracé d'une ligne de coupe A-A sur le plan 2D $\to$ génération instantanée d'une vue vectorielle en coupe verticale avec union 2D des polygones coupés et pochés des parois traversées (murs, dalles, toiture).
-  - **Plan de Coupe 3D Interactif :** Clipping plane matériel WebGL Three.js pour écorcher la maquette 3D à n'importe quelle altitude.
+- **Objectif :** Clore l'enveloppe extérieure du bâtiment par le haut avec toitures plates et à 2 pans, biseautage automatique des têtes de murs, rendu 2D/3D étanche ($V - E + F = 2$), outils interactifs et interopérabilité IFC4 (`IfcRoof`).
+- **Jalons Livrés (Décisions D1 à D9 / ADR-053) :**
+  - **7a — Modèle de Toitures, Résolveur Altimétrique & Biseautage (`@mini-bim/core`) :**
+    - Union discriminée `RoofType` (`family: 'flat'` vs `family: 'gable'`), instances `Roof`, entités d'ouvertures dérivées `RoofOpening`.
+    - Migration de schéma documentaire `WallTopConstraint` (`{ kind: 'level' }` vs `{ kind: 'roof' }`).
+    - Algorithme analytique `computeRoofSlopes` et dérivation non-destructive de trémies `computeEffectiveRoofPolygon`.
+    - Extension du résolveur unique `resolveWallGeometry` : arase supérieure sous forme de polyligne 2D locale `topProfile: Vec2[]`.
+    - Profils trapézoïdaux sous pan unique et chevrons à 3 sommets pour les murs pignons traversant le faîtage ($Z_{\text{ridge}} = Z_{\text{base}} + W_{\text{half}} \cdot \tan(\alpha)$).
+  - **7b — Rendu 2D & Rendu 3D Étanche (`@mini-bim/view-2d`, `@mini-bim/view-3d`) :**
+    - Rendu 2D Canvas : contour d'empreinte, débords de toiture en tiretés bleus, axe de faîtage épais, découpes de trémies avec double diagonale en croix.
+    - Rendu 3D Three.js : solide étanche de toiture vérifiant la caractéristique d'Euler-Poincaré $V - E + F = 2$, calcul de volume analytique exact $2 \times S_{\text{versant}} \times e$, biseautage des têtes de murs dans `createWallMeshWithOpenings` (quads/triangles de faîte sans fente ni T-junction), matériau terre cuite `#92400e`.
+    - Intégration dans le Graphe de Dépendances (`DependencyGraph`) avec invalidation réactive en cascade.
+  - **7c — Outils Interactifs, PropertyInspector & Export IFC4 (`apps/web`, `@mini-bim/core`) :**
+    - Outil interactif `RoofTool` (Raccourci clavier 'R') : tracé polygonal d'empreinte avec bouclage automatique, sélection interactive du faîtage pour toiture à 2 pans.
+    - Inspecteur de propriétés `PropertyInspector` : panneau complet d'inspection de la toiture (famille, nom, pente modifiable, débords, décalage vertical `baseOffset`).
+    - Intégration Toolbar (`Toiture (R)`), StatusBar (compteur de toitures) et types de toiture par défaut dans `createDefaultProject()`.
+    - Export IFC4 standardisé (ISO 16739) : conteneur spatial `IFCROOF` agrégeant des entités `IFCSLAB` avec `PredefinedType = .ROOF.` via `IFCRELAGGREGATES`, rattaché à l'`IfcBuildingStorey`.
+- **100% Tests Verts Monorepo :** 902 tests passants (0 fail, 0 skip, 0 régression, +62 nouveaux tests unitaires et d'intégration par rapport à la baseline 840).
 
 ---
 

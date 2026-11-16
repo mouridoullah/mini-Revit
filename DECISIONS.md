@@ -2198,6 +2198,43 @@ Le package `@mini-bim/view-3d` reste strictement découplé de `@mini-bim/core`.
    - Interdiction absolue d'importer `BimDocument`, `CommandBus`, les commandes concrètes de mutation (`AddWallCommand`, etc.), Immer (`produceWithPatches`), l'historique undo/redo ou tout état applicatif mutable.
    - `View2D` demeure un visualiseur Canvas 2D impératif et passif, qui n'applique aucune mutation directe et émet uniquement des intentions via ses callbacks.
 
+---
+
+## ADR-053 : Toitures (Plat & 2 Pans), Biseautage des Murs sous Toiture via `topProfile`, et Dérivation des Trémies de Toit
+
+### Statut
+
+**Accepté** (Phase 7 — 15 novembre 2026)
+
+### Décisions Clés
+
+1. **D1 — Modèle Discriminated Union (`RoofType`) :**
+   - Séparation stricte des types `RoofType` selon la famille `flat` (épaisseur, acrotère) vs `gable` (épaisseur, pente, débord).
+   - Invalidation immédiate au niveau du type-checker de propriétés invalides (pente sur toit plat).
+
+2. **D2 — Biseautage des Murs via `topProfile: Vec2[]` :**
+   - Extension de `ResolvedWall` : `topProfile` décrit la ligne brisée d'arase supérieure.
+   - Murs pignons traversant le faîtage : profil en chevron à 3 sommets avec pic exact $z_{\text{ridge}} = z_{\text{base}} + W_{\text{half}} \cdot \tan(\alpha)$.
+
+3. **D3 & D4 — Dérivation Non-Destructive des Trémies (`computeEffectiveRoofPolygon`) :**
+   - Les trémies (`RoofOpening`) ne sont pas fusionnées dans le polygone d'assise mais dérivées à la volée.
+
+4. **D5 — Rendu 3D Solide Étanche (Euler-Poincaré = 2) :**
+   - Maillage étanche et calcul de volume analytique $V = 2 \times S_{\text{versant}} \times e$.
+
+5. **D6 — Interopérabilité IFC4 :**
+   - Export conforme ISO 16739 : `IFCROOF` agrégeant des entités `IFCSLAB.ROOF.`.
+
+6. **D7 — Migration Schéma `topConstraint` :**
+   - Discriminated union `{ kind: 'level' }` | `{ kind: 'roof' }` avec rétrocompatibilité automatique.
+
+7. **D8 — Algorithme de Couverture Wall $\to$ Roof :**
+   - Liaison explicite ou détection géométrique d'intersection 2D.
+
+8. **D9 — Outil Interactif `RoofTool` & PropertyInspector :**
+   - Workflow fluide de tracé, saisie du faîtage, et édition dynamique des propriétés.
+
+
 
 
 

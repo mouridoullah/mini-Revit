@@ -42,11 +42,27 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
     autoSaveManagerRef.current = new AutoSaveManager(500);
   }
 
-  // Restauration automatique au montage depuis IndexedDB (S2-8)
+  // Restauration automatique au montage depuis IndexedDB (S2-8) ou chargement démo ?demo=roof
   useEffect(() => {
     let isCancelled = false;
     async function restoreProject() {
       try {
+        if (typeof window !== 'undefined') {
+          const params = new URLSearchParams(window.location.search);
+          if (params.get('demo') === 'roof') {
+            const resp = await fetch('/demo-roof-plan.json');
+            if (resp.ok) {
+              const text = await resp.text();
+              if (!isCancelled) {
+                const roofDoc = BimDocument.fromJSON(text);
+                setDocument(roofDoc);
+                setInfoMessage('Démo Toitures & Biseautage chargée');
+                return;
+              }
+            }
+          }
+        }
+
         const result = await loadFromIndexedDB();
         if (result && !isCancelled) {
           const restoredDoc = BimDocument.fromJSON(result.json);

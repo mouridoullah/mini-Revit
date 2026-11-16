@@ -1,0 +1,244 @@
+{
+  "schemaVersion": 2,
+  "units": "mm",
+  "levels": {
+    "01M7GW44DAQFX71K2J0375D8ZV": {
+      "id": "01M7GW44DAQFX71K2J0375D8ZV",
+      "name": "Niveau 0 (RDC)",
+      "elevation": 0
+    }
+  },
+  "wallTypes": {
+    "01M7GW44DBNJJEP1HN0SYMA3CP": {
+      "id": "01M7GW44DBNJJEP1HN0SYMA3CP",
+      "name": "Générique - 200mm",
+      "thickness": 200,
+      "height": 2800
+    }
+  },
+  "slabTypes": {
+    "default-slab-type": {
+      "id": "default-slab-type",
+      "name": "Dalle BA 200mm",
+      "thickness": 200
+    }
+  },
+  "doorTypes": {
+    "default-door-type": {
+      "id": "default-door-type",
+      "name": "Porte 900×2100 mm",
+      "width": 900,
+      "height": 2100
+    }
+  },
+  "windowTypes": {
+    "default-window-type": {
+      "id": "default-window-type",
+      "name": "Fenêtre 1200×1400 mm",
+      "width": 1200,
+      "height": 1400,
+      "defaultSillHeight": 900
+    }
+  },
+  "stairTypes": {
+    "default-stair-type": {
+      "id": "default-stair-type",
+      "name": "Escalier Droit 900mm",
+      "width": 900
+    }
+  },
+  "roofTypes": {
+    "default-gable-roof-type": {
+      "id": "default-gable-roof-type",
+      "name": "Toiture 2 pans Tuiles 35°",
+      "category": "roofType",
+      "family": "gable",
+      "thickness": 250,
+      "slopeDeg": 35,
+      "overhangMm": 400
+    },
+    "default-flat-roof-type": {
+      "id": "default-flat-roof-type",
+      "name": "Toiture terrasse béton 200mm",
+      "category": "roofType",
+      "family": "flat",
+      "thickness": 200
+    }
+  },
+  "walls": {
+    "wall_south": {
+      "id": "wall_south",
+      "category": "wall",
+      "typeId": "01M7GW44DBNJJEP1HN0SYMA3CP",
+      "levelId": "01M7GW44DAQFX71K2J0375D8ZV",
+      "start": {
+        "x": 0,
+        "y": 0
+      },
+      "end": {
+        "x": 8000,
+        "y": 0
+      },
+      "topConstraint": {
+        "kind": "roof",
+        "roofId": "roof_main"
+      }
+    },
+    "wall_east": {
+      "id": "wall_east",
+      "category": "wall",
+      "typeId": "01M7GW44DBNJJEP1HN0SYMA3CP",
+      "levelId": "01M7GW44DAQFX71K2J0375D8ZV",
+      "start": {
+        "x": 8000,
+        "y": 0
+      },
+      "end": {
+        "x": 8000,
+        "y": 5000
+      },
+      "topConstraint": {
+        "kind": "roof",
+        "roofId": "roof_main"
+      }
+    },
+    "wall_north": {
+      "id": "wall_north",
+      "category": "wall",
+      "typeId": "01M7GW44DBNJJEP1HN0SYMA3CP",
+      "levelId": "01M7GW44DAQFX71K2J0375D8ZV",
+      "start": {
+        "x": 8000,
+        "y": 5000
+      },
+      "end": {
+        "x": 0,
+        "y": 5000
+      },
+      "topConstraint": {
+        "kind": "roof",
+        "roofId": "roof_main"
+      }
+    },
+    "wall_west": {
+      "id": "wall_west",
+      "category": "wall",
+      "typeId": "01M7GW44DBNJJEP1HN0SYMA3CP",
+      "levelId": "01M7GW44DAQFX71K2J0375D8ZV",
+      "start": {
+        "x": 0,
+        "y": 5000
+      },
+      "end": {
+        "x": 0,
+        "y": 0
+      },
+      "topConstraint": {
+        "kind": "roof",
+        "roofId": "roof_main"
+      }
+    }
+  },
+  "slabs": {
+    "slab_ground": {
+      "id": "slab_ground",
+      "category": "slab",
+      "slabTypeId": "default-slab-type",
+      "levelId": "01M7GW44DAQFX71K2J0375D8ZV",
+      "boundary": [
+        {
+          "x": 0,
+          "y": 0
+        },
+        {
+          "x": 8000,
+          "y": 0
+        },
+        {
+          "x": 8000,
+          "y": 5000
+        },
+        {
+          "x": 0,
+          "y": 5000
+        }
+      ],
+      "elevation": 0
+    }
+  },
+  "doors": {
+    "door_south": {
+      "id": "door_south",
+      "category": "door",
+      "kind": "door",
+      "doorTypeId": "default-door-type",
+      "hostWallId": "wall_south",
+      "offsetAlong": 2500,
+      "swing": {
+        "side": "right",
+        "direction": "in"
+      }
+    }
+  },
+  "windows": {
+    "window_south": {
+      "id": "window_south",
+      "category": "window",
+      "kind": "window",
+      "windowTypeId": "default-window-type",
+      "hostWallId": "wall_south",
+      "offsetAlong": 5500,
+      "sillHeight": 900
+    },
+    "window_east": {
+      "id": "window_east",
+      "category": "window",
+      "kind": "window",
+      "windowTypeId": "default-window-type",
+      "hostWallId": "wall_east",
+      "offsetAlong": 1800,
+      "sillHeight": 900
+    }
+  },
+  "rooms": {},
+  "dimensions": {},
+  "stairs": {},
+  "roofs": {
+    "roof_main": {
+      "id": "roof_main",
+      "category": "roof",
+      "roofTypeId": "default-gable-roof-type",
+      "levelId": "01M7GW44DAQFX71K2J0375D8ZV",
+      "footprint": [
+        {
+          "x": 0,
+          "y": 0
+        },
+        {
+          "x": 8000,
+          "y": 0
+        },
+        {
+          "x": 8000,
+          "y": 5000
+        },
+        {
+          "x": 0,
+          "y": 5000
+        }
+      ],
+      "ridgeAxis": {
+        "start": {
+          "x": 0,
+          "y": 2500
+        },
+        "end": {
+          "x": 8000,
+          "y": 2500
+        }
+      },
+      "baseOffset": 2800
+    }
+  },
+  "roofOpenings": {}
+}

@@ -357,3 +357,51 @@ export function createStairMesh(
    - Associé au mesh Three.js via `stairMesh.userData = { category: 'stair', elementId: stair.id }`.
    - Permet la sélection directe dans le viewport 3D et la synchronisation avec l'inspecteur de propriétés.
 
+---
+
+## 10. Maillage 3D des Toitures et Biseautage des Murs (`createRoofMesh`, `topProfile` — Phase 7 / ADR-053)
+
+### 10.1 Générateur de Toitures Étanche (`createRoofMesh`)
+
+```typescript
+export interface RoofGeometryParams {
+  readonly id: string;
+  readonly footprint: readonly { readonly x: number; readonly y: number }[];
+  readonly ridgeAxis?: {
+    readonly start: { readonly x: number; readonly y: number };
+    readonly end: { readonly x: number; readonly y: number };
+  };
+  readonly slopeOverrideDeg?: number;
+  readonly overhangOverrideMm?: number;
+  readonly baseOffset?: number;
+}
+
+export interface RoofTypeGeometryParams {
+  readonly family: 'flat' | 'gable';
+  readonly thickness: number;
+  readonly slopeDeg?: number;
+  readonly overhangMm?: number;
+}
+
+export function createRoofMesh(
+  roof: RoofGeometryParams,
+  roofType: RoofTypeGeometryParams,
+  elevation?: number,
+  openings?: readonly RoofOpeningGeometryParams[],
+): RawMeshData | null;
+```
+
+#### Invariants Topologiques :
+1. **Étanchéité et Euler-Poincaré :**
+   Le maillage fusionné de toiture forme un solide fermé de genre 0 vérifiant :
+   $$\chi = V - E + F = 2$$
+2. **Volume analytique exact :**
+   $$V = 2 \times S_{\text{versant}} \times e_{\text{toit}}$$
+3. **Matériau standard :** Terre cuite `#92400e` (rugosité 0.7, métal 0.05).
+
+### 10.2 Biseautage des Murs sous Toiture (`topProfile`)
+Dans `createWallMeshWithOpenings`, la tête de mur accepte désormais un paramètre `topProfile: readonly Vec2[]`.
+- Si `topProfile` est trapézoïdal : les sommets supérieurs sont ajustés pour suivre la pente du versant unique.
+- Si `topProfile` est en chevron (3 sommets) : le prisme de tête est scindé en deux pans rejoignant l'arête de faîtage sans fente ni artefact.
+
+
