@@ -74,6 +74,8 @@ export function Toolbar({
         onSelectTool('stair');
       } else if (e.key === 'r' || e.key === 'R') {
         onSelectTool('roof');
+      } else if (e.key === 'c' || e.key === 'C') {
+        onSelectTool('component');
       }
     };
 
@@ -122,7 +124,7 @@ export function Toolbar({
             color: '#9ca3af',
           }}
         >
-          Phase 7 — Toitures & Biseautage
+          Phase 8 — Composants & Mobilier Paramétrique
         </span>
       </div>
 
@@ -219,6 +221,24 @@ export function Toolbar({
             }}
           >
             Toiture (R)
+          </button>
+          <button
+            type="button"
+            data-testid="tool-component-btn"
+            onClick={() => onSelectTool('component')}
+            style={{
+              padding: '6px 12px',
+              fontSize: '12px',
+              fontWeight: activeToolKind === 'component' ? 600 : 400,
+              borderRadius: '4px',
+              backgroundColor: activeToolKind === 'component' ? '#2563eb' : '#374151',
+              color: activeToolKind === 'component' ? '#ffffff' : '#d1d5db',
+              border: activeToolKind === 'component' ? '1px solid #3b82f6' : '1px solid #4b5563',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease-in-out',
+            }}
+          >
+            Composant (C)
           </button>
           <button
             type="button"

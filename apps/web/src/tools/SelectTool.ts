@@ -1,4 +1,4 @@
-import { findWallAtScreen } from '@mini-bim/view-2d';
+import { findWallAtScreen, findComponentAtScreen } from '@mini-bim/view-2d';
 import {
   type Tool,
   type ToolEvent,
@@ -12,7 +12,7 @@ import {
  *
  * Machine à états pure :
  * - idle : en attente d'interaction.
- * - selected : un mur a été sélectionné par clic.
+ * - selected : un élément (composant, mur) a été sélectionné par clic.
  *
  * Ne dépend ni de React, ni de Three.js, ni du DOM.
  */
@@ -31,13 +31,24 @@ export class SelectTool implements Tool {
         return { kind: 'noop' };
       }
 
-      const hitId = findWallAtScreen(event.screen, ctx.transform, ctx.doc, {
+      // 1. Priorité aux composants d'aménagement (dessus d'abord)
+      const hitComponentId = findComponentAtScreen(event.screen, ctx.transform, ctx.doc, {
         activeLevelId: ctx.activeLevelId,
       });
 
-      if (hitId) {
-        this.state = { kind: 'selected', wallId: hitId };
-        return { kind: 'selectionChanged', ids: [hitId] };
+      if (hitComponentId) {
+        this.state = { kind: 'selected', wallId: hitComponentId };
+        return { kind: 'selectionChanged', ids: [hitComponentId] };
+      }
+
+      // 2. Murs architecturaux
+      const hitWallId = findWallAtScreen(event.screen, ctx.transform, ctx.doc, {
+        activeLevelId: ctx.activeLevelId,
+      });
+
+      if (hitWallId) {
+        this.state = { kind: 'selected', wallId: hitWallId };
+        return { kind: 'selectionChanged', ids: [hitWallId] };
       }
 
       this.state = { kind: 'idle' };

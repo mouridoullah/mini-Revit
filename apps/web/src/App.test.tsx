@@ -1330,4 +1330,30 @@ describe('App Integration & Squelette Double Viewport (apps/web)', () => {
     unmount();
     await autoSaveModule.clearIndexedDB();
   });
+
+  it('T-APP-COMPONENT-01 : activation de l’outil Composant, affichage du bandeau et implantation', async () => {
+    const { getByTestId, findByTestId } = render(<App />);
+
+    // Activation de l'outil Composant
+    const compToolBtn = getByTestId('tool-component-btn');
+    fireEvent.click(compToolBtn);
+
+    // Vérification de la présence du bandeau d'options de composants
+    const ribbon = await findByTestId('component-ribbon');
+    expect(ribbon).toBeDefined();
+
+    const toolInfo = getByTestId('status-tool-info');
+    expect(toolInfo.textContent).toContain('Outil : Composant (C)');
+
+    // Implantation via clic sur le canvas 2D
+    const canvas2D = getByTestId('viewport-2d-canvas');
+    fireEvent.pointerDown(canvas2D, { clientX: 450, clientY: 350, button: 0 });
+
+    await waitFor(() => {
+      const statusBar = document.querySelector('footer');
+      expect(statusBar?.textContent).toContain('Composants : 1');
+    });
+
+    cleanup();
+  });
 });

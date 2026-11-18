@@ -22,6 +22,7 @@ export interface Viewport2DProps {
   readonly activeLevelId?: string;
   readonly underlayLevelId?: string | null;
   readonly snapToUnderlay?: boolean;
+  readonly activeComponentTypeId?: string;
 }
 
 /**
@@ -38,6 +39,7 @@ export function Viewport2D({
   activeLevelId: activeLevelIdProp,
   underlayLevelId: underlayLevelIdProp,
   snapToUnderlay: snapToUnderlayProp = true,
+  activeComponentTypeId: activeComponentTypeIdProp,
 }: Viewport2DProps = {}) {
   const { doc, state } = useBimDocument();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -194,6 +196,7 @@ export function Viewport2D({
         activeLevelId: currentLevelId,
         activeWallTypeId,
         activeSlabTypeId,
+        activeComponentTypeId: activeComponentTypeIdProp,
         underlayLevelId: underlayLevelIdProp ?? null,
         snapToUnderlay: snapToUnderlayProp,
       };
@@ -283,6 +286,7 @@ export function Viewport2D({
         activeLevelId: currentLevelId,
         activeWallTypeId,
         activeSlabTypeId,
+        activeComponentTypeId: activeComponentTypeIdProp,
         underlayLevelId: underlayLevelIdProp ?? null,
         snapToUnderlay: snapToUnderlayProp,
       };

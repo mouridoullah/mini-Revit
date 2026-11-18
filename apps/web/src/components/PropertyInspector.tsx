@@ -1179,6 +1179,228 @@ export function PropertyInspector({
       );
     }
 
+    if (state.components?.[id]) {
+      const comp = state.components[id];
+      if (!comp) return null;
+      const compTypes = state.componentTypes ?? {};
+      const compType = compTypes[comp.typeId];
+      const level = state.levels[comp.levelId];
+      const rotationDeg = Math.round(((comp.placement.rotation ?? 0) * 180) / Math.PI);
+
+      const familyLabels: Record<string, string> = {
+        sanitary: 'Sanitaire',
+        kitchen: 'Cuisine',
+        furniture: 'Mobilier',
+        glazing: 'Menuiserie',
+      };
+      const familyColor: Record<string, string> = {
+        sanitary: '#38bdf8',
+        kitchen: '#f59e0b',
+        furniture: '#a855f7',
+        glazing: '#10b981',
+      };
+      const famName = compType ? (familyLabels[compType.family] ?? compType.family) : 'Composant';
+      const famColor = compType ? (familyColor[compType.family] ?? '#60a5fa') : '#60a5fa';
+
+      return (
+        <div data-testid="inspector-component-panel">
+          <div
+            style={{ fontSize: '13px', fontWeight: 600, color: famColor, marginBottom: '12px' }}
+          >
+            {compType ? `${famName} — ${compType.name}` : 'Composant'}
+          </div>
+
+          <div style={{ fontSize: '11px', color: '#9ca3af', marginBottom: '8px' }}>
+            ID : <span data-testid="component-id">{comp.id}</span>
+          </div>
+
+          <DebouncedTextInput
+            testId="component-name-input"
+            label="Nom"
+            value={comp.name ?? compType?.name ?? 'Composant'}
+            onChange={(name) => {
+              execute(new Commands.UpdateComponentCommand(comp.id, { name }));
+            }}
+          />
+
+          <div
+            style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '10px' }}
+          >
+            <label style={{ fontSize: '11px', color: '#9ca3af' }}>Type de composant</label>
+            <select
+              data-testid="component-type-select"
+              value={comp.typeId}
+              onChange={(e) => {
+                execute(new Commands.UpdateComponentCommand(comp.id, { typeId: e.target.value }));
+              }}
+              style={{
+                padding: '5px 8px',
+                fontSize: '12px',
+                borderRadius: '4px',
+                backgroundColor: '#1f2937',
+                color: '#f9fafb',
+                border: '1px solid #4b5563',
+              }}
+            >
+              {Object.values(compTypes).map((ct) => (
+                <option key={ct.id} value={ct.id}>
+                  {ct.name} ({ct.width}×{ct.depth}×{ct.height})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {compType && (
+            <div style={{ fontSize: '11px', color: '#9ca3af', marginBottom: '8px' }}>
+              Dimensions : <b>{compType.width} × {compType.depth} × {compType.height} mm</b>
+            </div>
+          )}
+
+          <div style={{ fontSize: '12px', color: '#d1d5db', marginBottom: '6px' }}>
+            Niveau : {level?.name ?? 'Niveau 0'}
+          </div>
+
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
+            <div style={{ flex: 1 }}>
+              <DebouncedNumberInput
+                testId="component-pos-x-input"
+                label="Position X (mm)"
+                value={comp.placement.x}
+                step={50}
+                onChange={(x) => {
+                  execute(
+                    new Commands.UpdateComponentCommand(comp.id, {
+                      placement: { ...comp.placement, x },
+                    }),
+                  );
+                }}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <DebouncedNumberInput
+                testId="component-pos-y-input"
+                label="Position Y (mm)"
+                value={comp.placement.y}
+                step={50}
+                onChange={(y) => {
+                  execute(
+                    new Commands.UpdateComponentCommand(comp.id, {
+                      placement: { ...comp.placement, y },
+                    }),
+                  );
+                }}
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <DebouncedNumberInput
+              testId="component-rotation-input"
+              label="Rotation (°)"
+              value={rotationDeg}
+              min={0}
+              max={360}
+              step={15}
+              unit="°"
+              onChange={(deg) => {
+                const rad = ((deg % 360) * Math.PI) / 180;
+                execute(
+                  new Commands.UpdateComponentCommand(comp.id, {
+                    placement: { ...comp.placement, rotation: rad },
+                  }),
+                );
+              }}
+            />
+            <button
+              type="button"
+              data-testid="component-rotate-90-btn"
+              onClick={() => {
+                const curRot = comp.placement.rotation ?? 0;
+                const nextRot = (curRot + Math.PI / 2) % (2 * Math.PI);
+                execute(
+                  new Commands.UpdateComponentCommand(comp.id, {
+                    placement: { ...comp.placement, rotation: nextRot },
+                  }),
+                );
+              }}
+              style={{
+                padding: '4px 8px',
+                fontSize: '11px',
+                borderRadius: '4px',
+                backgroundColor: '#374151',
+                color: '#ffffff',
+                border: '1px solid #4b5563',
+                cursor: 'pointer',
+                marginTop: '12px',
+              }}
+            >
+              ↻ +90°
+            </button>
+          </div>
+
+          <DebouncedNumberInput
+            testId="component-elevation-offset-input"
+            label="Décalage vertical (elevationOffset mm)"
+            value={comp.placement.elevationOffset ?? 0}
+            step={50}
+            onChange={(elevationOffset) => {
+              execute(
+                new Commands.UpdateComponentCommand(comp.id, {
+                  placement: { ...comp.placement, elevationOffset },
+                }),
+              );
+            }}
+          />
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+            <label style={{ fontSize: '11px', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <input
+                type="checkbox"
+                data-testid="component-flipped-checkbox"
+                checked={comp.placement.flipped ?? false}
+                onChange={(e) => {
+                  execute(
+                    new Commands.UpdateComponentCommand(comp.id, {
+                      placement: { ...comp.placement, flipped: e.target.checked },
+                    }),
+                  );
+                }}
+              />
+              Inversion miroir (flipped)
+            </label>
+          </div>
+
+          {comp.placement.hostWallId && (
+            <div style={{ fontSize: '11px', color: '#9ca3af', marginBottom: '10px' }}>
+              Mur adossé : <code>{comp.placement.hostWallId}</code>
+            </div>
+          )}
+
+          <button
+            type="button"
+            data-testid="delete-component-btn"
+            onClick={() => {
+              execute(new Commands.DeleteComponentCommand(comp.id));
+            }}
+            style={{
+              width: '100%',
+              padding: '6px 10px',
+              fontSize: '11px',
+              fontWeight: 500,
+              borderRadius: '4px',
+              backgroundColor: '#dc2626',
+              color: '#ffffff',
+              border: 'none',
+              cursor: 'pointer',
+              marginTop: '12px',
+            }}
+          >
+            Supprimer le composant
+          </button>
+        </div>
+      );
+    }
+
     return <div style={{ color: '#9ca3af', fontSize: '12px' }}>Élément sélectionné : {id}</div>;
   };
 

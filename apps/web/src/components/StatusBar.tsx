@@ -24,6 +24,7 @@ export function StatusBar({
   const roofCount = Object.keys(state.roofs ?? {}).length;
   const doorCount = Object.keys(state.doors ?? {}).length;
   const windowCount = Object.keys(state.windows ?? {}).length;
+  const componentCount = Object.keys(state.components ?? {}).length;
   const levelCount = Object.keys(state.levels).length;
   const activeLevelId =
     activeLevelIdProp && state.levels[activeLevelIdProp]
@@ -61,6 +62,9 @@ export function StatusBar({
   } else if (activeToolKind === 'roof') {
     toolMessage =
       'Outil : Toiture (R) — Sommets d\'empreinte, Entrée pour clore, puis faîtage si 2 pans (Échap = annuler)';
+  } else if (activeToolKind === 'component') {
+    toolMessage =
+      'Outil : Composant (C) — Survoler et cliquer pour implanter (Espace = pivoter 90°, Échap = annuler)';
   }
 
   return (
@@ -113,6 +117,11 @@ export function StatusBar({
         {windowCount > 0 && (
           <span>
             Fenêtres : <strong style={{ color: '#e5e7eb' }}>{windowCount}</strong>
+          </span>
+        )}
+        {componentCount > 0 && (
+          <span>
+            Composants : <strong style={{ color: '#e5e7eb' }}>{componentCount}</strong>
           </span>
         )}
       </div>

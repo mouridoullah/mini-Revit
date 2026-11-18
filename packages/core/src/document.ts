@@ -56,6 +56,8 @@ export class BimDocument {
       roofTypes: {},
       roofs: {},
       roofOpenings: {},
+      componentTypes: {},
+      components: {},
     };
   }
 

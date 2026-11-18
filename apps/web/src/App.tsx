@@ -5,9 +5,11 @@ import { Toolbar } from './components/Toolbar.js';
 import { StatusBar } from './components/StatusBar.js';
 import { MetricsPanel } from './components/MetricsPanel.js';
 import { PropertyInspector } from './components/PropertyInspector.js';
+import { ComponentRibbon } from './components/ComponentRibbon.js';
 import { Viewport2D } from './components/Viewport2D.js';
 import { Viewport3D } from './components/Viewport3D.js';
 import { useActiveTool } from './tools/useActiveTool.js';
+import { ComponentTool } from './tools/ComponentTool.js';
 import { exportToFile, importFromFile } from './persistence/jsonIO.js';
 import {
   AutoSaveManager,
@@ -34,6 +36,7 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
   const [activeLevelId, setActiveLevelId] = useState<string>(
     () => Object.keys(doc.getState().levels)[0] ?? '',
   );
+  const [activeComponentTypeId, setActiveComponentTypeId] = useState<string>('ct_toilet_wall_hung');
   const [underlayEnabled, setUnderlayEnabled] = useState(true);
   const [isInspectorCollapsed, setIsInspectorCollapsed] = useState(false);
 
@@ -311,6 +314,20 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
         hasUnderlayLevel={hasUnderlayLevel}
       />
 
+      {/* Galerie / Bandeau d'options pour l'outil Composant (Phase 8) */}
+      {activeToolKind === 'component' && (
+        <ComponentRibbon
+          componentTypes={doc.getState().componentTypes ?? {}}
+          activeComponentTypeId={activeComponentTypeId}
+          onSelectComponentType={setActiveComponentTypeId}
+          onRotate={() => {
+            if (activeTool instanceof ComponentTool) {
+              activeTool.rotate90();
+            }
+          }}
+        />
+      )}
+
       {/* Bannière de notification d'information (ex. restauration automatique) */}
       {infoMessage && (
         <aside
@@ -421,6 +438,7 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
               activeLevelId={activeLevelId}
               underlayLevelId={underlayLevelId}
               snapToUnderlay={underlayEnabled}
+              activeComponentTypeId={activeComponentTypeId}
             />
           </section>
 

@@ -9,6 +9,7 @@ import { MoveOpeningTool } from './MoveOpeningTool.js';
 import { SlabTool } from './SlabTool.js';
 import { StairTool } from './StairTool.js';
 import { RoofTool } from './RoofTool.js';
+import { ComponentTool } from './ComponentTool.js';
 
 export interface UseActiveToolResult {
   readonly activeToolKind: ToolKind;
@@ -34,6 +35,7 @@ export function useActiveTool(initialKind: ToolKind = 'select'): UseActiveToolRe
   const slabToolRef = useRef<SlabTool | null>(null);
   const stairToolRef = useRef<StairTool | null>(null);
   const roofToolRef = useRef<RoofTool | null>(null);
+  const componentToolRef = useRef<ComponentTool | null>(null);
 
   if (!selectToolRef.current) selectToolRef.current = new SelectTool();
   if (!wallToolRef.current) wallToolRef.current = new WallTool();
@@ -44,6 +46,7 @@ export function useActiveTool(initialKind: ToolKind = 'select'): UseActiveToolRe
   if (!slabToolRef.current) slabToolRef.current = new SlabTool();
   if (!stairToolRef.current) stairToolRef.current = new StairTool();
   if (!roofToolRef.current) roofToolRef.current = new RoofTool();
+  if (!componentToolRef.current) componentToolRef.current = new ComponentTool();
 
   const selectTool = selectToolRef.current;
   const wallTool = wallToolRef.current;
@@ -54,6 +57,7 @@ export function useActiveTool(initialKind: ToolKind = 'select'): UseActiveToolRe
   const slabTool = slabToolRef.current;
   const stairTool = stairToolRef.current;
   const roofTool = roofToolRef.current;
+  const componentTool = componentToolRef.current;
 
   const setActiveToolKind = (nextKind: ToolKind) => {
     // Réinitialisation de l'outil sortant pour nettoyer les états transitoires (rubber-band, drag)
@@ -85,6 +89,9 @@ export function useActiveTool(initialKind: ToolKind = 'select'): UseActiveToolRe
       case 'roof':
         roofTool.reset();
         break;
+      case 'component':
+        componentTool.reset();
+        break;
     }
     setActiveToolKindState(nextKind);
   };
@@ -107,6 +114,8 @@ export function useActiveTool(initialKind: ToolKind = 'select'): UseActiveToolRe
         return stairTool;
       case 'roof':
         return roofTool;
+      case 'component':
+        return componentTool;
       case 'select':
       default:
         return selectTool;
@@ -122,6 +131,7 @@ export function useActiveTool(initialKind: ToolKind = 'select'): UseActiveToolRe
     slabTool,
     stairTool,
     roofTool,
+    componentTool,
   ]);
 
   return {

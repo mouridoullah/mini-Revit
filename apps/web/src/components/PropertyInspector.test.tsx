@@ -339,4 +339,44 @@ describe('PropertyInspector — Panneau latéral d’inspection et d’édition 
     fireEvent.blur(slopeInput);
     expect(doc.getState().roofs?.['roof_test_insp']?.slopeOverrideDeg).toBe(45);
   });
+
+  it('T-COMP-INSP-01 : inspection d’un Composant (type, position, rotation, élévation, suppression)', () => {
+    const comp: import('@mini-bim/core').Component = {
+      id: 'comp_wc_insp',
+      category: 'component',
+      typeId: 'ct_toilet_wall_hung',
+      levelId: level0Id,
+      placement: {
+        x: 1200,
+        y: 1800,
+        rotation: 0,
+        elevationOffset: 50,
+      },
+    };
+    doc.execute(new Commands.AddComponentCommand(comp));
+
+    render(<PropertyInspector doc={doc} selectedIds={['comp_wc_insp']} />);
+
+    expect(screen.getByTestId('inspector-component-panel')).toBeDefined();
+    expect(screen.getByTestId('component-id').textContent).toBe('comp_wc_insp');
+
+    const posXInput = screen.getByTestId('component-pos-x-input') as HTMLInputElement;
+    expect(posXInput.value).toBe('1200');
+
+    const rotInput = screen.getByTestId('component-rotation-input') as HTMLInputElement;
+    expect(rotInput.value).toBe('0');
+
+    // Clic sur bouton pivoter 90°
+    const rotBtn = screen.getByTestId('component-rotate-90-btn');
+    fireEvent.click(rotBtn);
+
+    const updatedComp = doc.getState().components?.['comp_wc_insp'];
+    expect(updatedComp?.placement.rotation).toBeCloseTo(Math.PI / 2, 4);
+
+    // Suppression via le bouton de suppression
+    const delBtn = screen.getByTestId('delete-component-btn');
+    fireEvent.click(delBtn);
+
+    expect(doc.getState().components?.['comp_wc_insp']).toBeUndefined();
+  });
 });

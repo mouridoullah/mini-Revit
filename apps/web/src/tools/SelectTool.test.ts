@@ -175,4 +175,37 @@ describe('SelectTool (Machine à états pure sans DOM)', () => {
     selectTool.reset();
     expect(selectTool.getState()).toEqual({ kind: 'idle' });
   });
+
+  it('pointerdown sur un composant sélectionne le composant et émet selectionChanged', () => {
+    doc.execute(
+      new Commands.AddComponentCommand({
+        id: 'comp_select_test',
+        category: 'component',
+        typeId: 'ct_toilet_wall_hung',
+        levelId: ctx.activeLevelId,
+        placement: { x: 1000, y: 1000 },
+      }),
+    );
+
+    const screenPos = transform.worldToScreen({ x: 1000, y: 1000 });
+    const output = selectTool.handle(
+      {
+        type: 'pointerdown',
+        screen: screenPos,
+        button: 0,
+        shift: false,
+        alt: false,
+      },
+      ctx,
+    );
+
+    expect(output).toEqual({
+      kind: 'selectionChanged',
+      ids: ['comp_select_test'],
+    });
+    expect(selectTool.getState()).toEqual({
+      kind: 'selected',
+      wallId: 'comp_select_test',
+    });
+  });
 });

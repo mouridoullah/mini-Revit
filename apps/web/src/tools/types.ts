@@ -13,7 +13,8 @@ export type ToolKind =
   | 'moveOpening'
   | 'slab'
   | 'stair'
-  | 'roof';
+  | 'roof'
+  | 'component';
 
 /**
  * États possibles de la machine à états SelectTool.
@@ -134,6 +135,22 @@ export type RoofToolState =
     };
 
 /**
+ * États possibles de la machine à états ComponentTool (Phase 8).
+ */
+export type ComponentToolState =
+  | { readonly kind: 'idle' }
+  | {
+      readonly kind: 'hovering';
+      readonly worldPos: Vec2;
+      readonly rotation: number;
+      readonly hostWallId?: string | undefined;
+    }
+  | {
+      readonly kind: 'placed';
+      readonly componentId: string;
+    };
+
+/**
  * Paramètres par défaut configurables pour l'insertion de portes.
  */
 export interface DoorDefaults {
@@ -208,6 +225,7 @@ export interface ToolContext {
   readonly snapToUnderlay?: boolean;
   readonly doorDefaults?: DoorDefaults;
   readonly windowDefaults?: WindowDefaults;
+  readonly activeComponentTypeId?: string | undefined;
 }
 
 /**
@@ -224,7 +242,8 @@ export interface Tool {
     | MoveOpeningToolState
     | SlabToolState
     | StairToolState
-    | RoofToolState;
+    | RoofToolState
+    | ComponentToolState;
   handle(event: ToolEvent, ctx: ToolContext): ToolOutput;
   reset(): void;
 }
