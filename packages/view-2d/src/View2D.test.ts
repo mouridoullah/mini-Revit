@@ -562,5 +562,43 @@ describe('View2D (View2D.ts)', () => {
 
       view.dispose();
     });
+
+    it('setRoomDiagnostics() enregistre les fuites et dessine le marqueur de brèche et le badge d alerte', () => {
+      const { canvas, mock } = createMockCanvas(800, 600);
+      const view = new View2D(canvas);
+
+      mock.clearCalls();
+
+      const testDiagnostics = [
+        {
+          roomId: 'room_open',
+          roomName: 'Salon Ouvert',
+          seed: vec2(2000, 1500),
+          kind: 'unclosed_boundary' as const,
+          leakPoint: vec2(3950, 0),
+          leakGap: {
+            start: vec2(3900, 0),
+            end: vec2(4000, 0),
+            distanceMm: 100,
+          },
+          message: 'Brèche de 100 mm',
+        },
+      ];
+
+      view.setRoomDiagnostics(testDiagnostics);
+
+      expect(view.getRoomDiagnostics()).toHaveLength(1);
+      expect(view.getRoomDiagnostics()[0]?.roomId).toBe('room_open');
+
+      // Vérification des appels graphiques de tracé d'alerte
+      const strokeCalls = mock.filterCalls('stroke');
+      expect(strokeCalls.length).toBeGreaterThan(0);
+
+      const fillTextCalls = mock.filterCalls('fillText');
+      expect(fillTextCalls.some((c) => String(c.args[0]).includes('⚠️ Fuite : 100 mm'))).toBe(true);
+      expect(fillTextCalls.some((c) => String(c.args[0]).includes('Salon Ouvert (Non clos)'))).toBe(true);
+
+      view.dispose();
+    });
   });
 });

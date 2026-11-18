@@ -18,6 +18,7 @@ import {
   type DimensionFor2D,
   type SlabFor2D,
   type RoofFor2D,
+  type RoomDiagnosticFor2D,
 } from './types.js';
 
 /**
@@ -42,6 +43,7 @@ export class View2D {
   private dimensions: DimensionFor2D[] = [];
   private slabs: SlabFor2D[] = [];
   private roofs: RoofFor2D[] = [];
+  private roomDiagnostics: RoomDiagnosticFor2D[] = [];
   private selectedIds: Set<string> = new Set();
   private activeLevelId: string | null = null;
   private underlayLevelId: string | null = null;
@@ -154,6 +156,18 @@ export class View2D {
 
   public getRooms(): readonly DetectedRoomFor2D[] {
     return this.rooms;
+  }
+
+  /**
+   * Configure les diagnostics de pièces pour affichage visuel des fuites/brèches.
+   */
+  public setRoomDiagnostics(diagnostics: readonly RoomDiagnosticFor2D[]): void {
+    this.roomDiagnostics = [...diagnostics];
+    this.render();
+  }
+
+  public getRoomDiagnostics(): readonly RoomDiagnosticFor2D[] {
+    return this.roomDiagnostics;
   }
 
   /**
@@ -392,6 +406,7 @@ export class View2D {
       effectiveSlabs,
       underlayPath,
       this.roofs.length > 0 ? this.roofs : undefined,
+      this.roomDiagnostics.length > 0 ? this.roomDiagnostics : undefined,
     );
   }
 

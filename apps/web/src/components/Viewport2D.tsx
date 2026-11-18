@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { type BimDocument, type BimState, detectRooms } from '@mini-bim/core';
+import { type BimDocument, type BimState, detectRooms, diagnoseRoomLeaks } from '@mini-bim/core';
 import { View2D, type DetectedRoomFor2D } from '@mini-bim/view-2d';
 import { useBimDocument } from '../hooks/useBimDocument.js';
 import { useResizeObserver } from '../hooks/useResizeObserver.js';
@@ -143,6 +143,8 @@ export function Viewport2D({
           return roomObj;
         });
         viewRef.current.setRooms(roomsFor2D);
+        const leaks = diagnoseRoomLeaks(docState, currentLevelId);
+        viewRef.current.setRoomDiagnostics(leaks);
       }
       if (docState.slabs) {
         const slabsFor2D = Object.values(docState.slabs).filter(

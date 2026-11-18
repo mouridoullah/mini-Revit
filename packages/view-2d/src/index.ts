@@ -34,6 +34,7 @@ export {
   drawOpeningDoor,
   drawOpeningWindow,
   drawOpenings,
+  drawRoomDiagnostics,
   renderPlanView,
 } from './renderer.js';
 export {

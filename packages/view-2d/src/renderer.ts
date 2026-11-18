@@ -20,6 +20,7 @@ import {
   type OpeningFor2D,
   type DetectedRoomFor2D,
   type RoomRenderConfig,
+  type RoomDiagnosticFor2D,
   type DimensionFor2D,
   type DimensionRenderConfig,
   type SlabFor2D,
@@ -955,6 +956,119 @@ export function drawRooms(
 }
 
 /**
+ * Dessine les diagnostics visuels des pièces (brèches de fuite en tiret rouge, alertes).
+ */
+export function drawRoomDiagnostics(
+  ctx: CanvasRenderingContext2D,
+  transform: Transform2D,
+  diagnostics: readonly RoomDiagnosticFor2D[],
+): void {
+  if (diagnostics.length === 0) return;
+
+  ctx.save();
+
+  for (const diag of diagnostics) {
+    if (diag.kind === 'unclosed_boundary' && diag.leakGap) {
+      const p1 = transform.worldToScreen(diag.leakGap.start);
+      const p2 = transform.worldToScreen(diag.leakGap.end);
+
+      // 1. Ligne en tireté rouge vif entre les deux extrémités de la brèche
+      ctx.beginPath();
+      ctx.setLineDash([6, 4]);
+      ctx.strokeStyle = '#ef4444';
+      ctx.lineWidth = 3;
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
+      ctx.stroke();
+
+      // 2. Pastilles aux extrémités
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#ef4444';
+      ctx.beginPath();
+      ctx.arc(p1.x, p1.y, 4, 0, Math.PI * 2);
+      ctx.arc(p2.x, p2.y, 4, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 3. Badge d'alerte avec la taille de la fuite au centre du gap
+      const midScreen = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+      const badgeText = `⚠️ Fuite : ${diag.leakGap.distanceMm} mm`;
+      ctx.font = 'bold 11px sans-serif';
+      const textWidth = typeof ctx.measureText === 'function' ? ctx.measureText(badgeText).width : badgeText.length * 7;
+      const padX = 6;
+      const padY = 3;
+
+      ctx.fillStyle = 'rgba(239, 68, 68, 0.9)';
+      if (typeof ctx.roundRect === 'function') {
+        ctx.beginPath();
+        ctx.roundRect(
+          midScreen.x - textWidth / 2 - padX,
+          midScreen.y - 12 - padY,
+          textWidth + padX * 2,
+          16 + padY,
+          4,
+        );
+        ctx.fill();
+      } else {
+        ctx.fillRect(
+          midScreen.x - textWidth / 2 - padX,
+          midScreen.y - 12 - padY,
+          textWidth + padX * 2,
+          16 + padY,
+        );
+      }
+
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(badgeText, midScreen.x, midScreen.y - 4);
+    }
+
+    // Badge d'état au niveau du seed de la pièce non enclose
+    const seedScreen = transform.worldToScreen(diag.seed);
+    const label =
+      diag.kind === 'redundant'
+        ? `⚠️ ${diag.roomName} (Redondant)`
+        : `⚠️ ${diag.roomName} (Non clos)`;
+    const bgCol =
+      diag.kind === 'redundant'
+        ? 'rgba(245, 158, 11, 0.9)'
+        : 'rgba(239, 68, 68, 0.85)';
+
+    ctx.font = 'bold 11px sans-serif';
+    const labelWidth = typeof ctx.measureText === 'function' ? ctx.measureText(label).width : label.length * 7;
+    const pX = 6;
+    const pY = 3;
+
+    ctx.fillStyle = bgCol;
+    if (typeof ctx.roundRect === 'function') {
+      ctx.beginPath();
+      ctx.roundRect(
+        seedScreen.x - labelWidth / 2 - pX,
+        seedScreen.y - 8 - pY,
+        labelWidth + pX * 2,
+        16 + pY,
+        4,
+      );
+      ctx.fill();
+    } else {
+      ctx.fillRect(
+        seedScreen.x - labelWidth / 2 - pX,
+        seedScreen.y - 8 - pY,
+        labelWidth + pX * 2,
+        16 + pY,
+      );
+    }
+
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(label, seedScreen.x, seedScreen.y);
+  }
+
+  ctx.restore();
+}
+
+/**
  * Dessine les cotations linéaires 2D (lignes de rappel, ligne de cote, traits obliques 45° et valeur).
  */
 export function drawDimensions(
@@ -1659,6 +1773,7 @@ export function renderPlanView(
   slabs?: readonly SlabFor2D[],
   underlayPath?: Path2D | null,
   roofs?: readonly RoofFor2D[],
+  roomDiagnostics?: readonly RoomDiagnosticFor2D[],
 ): void {
   const mergedConfig: View2DRenderConfig = {
     backgroundColor: config.backgroundColor ?? DEFAULT_VIEW2D_RENDER_CONFIG.backgroundColor,
@@ -1788,6 +1903,11 @@ export function renderPlanView(
       mergedConfig.dimension,
       levelFilter,
     );
+  }
+
+  // 6b. Diagnostics visuels des pièces (fuites, brèches, alertes)
+  if (roomDiagnostics && roomDiagnostics.length > 0) {
+    drawRoomDiagnostics(ctx, transform, roomDiagnostics);
   }
 
   // 7. Forme de prévisualisation interactive (rubber-band)

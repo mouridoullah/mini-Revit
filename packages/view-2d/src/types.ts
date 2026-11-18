@@ -233,6 +233,23 @@ export interface DetectedRoomFor2D {
 }
 
 /**
+ * Diagnostic d'une anomalie de délimitation ou de fermeture d'une pièce.
+ */
+export interface RoomDiagnosticFor2D {
+  readonly roomId: string;
+  readonly roomName: string;
+  readonly seed: Vec2;
+  readonly kind: 'unclosed_boundary' | 'redundant' | 'isolated';
+  readonly leakPoint?: Vec2 | undefined;
+  readonly leakGap?: {
+    readonly start: Vec2;
+    readonly end: Vec2;
+    readonly distanceMm: number;
+  } | undefined;
+  readonly message: string;
+}
+
+/**
  * Configuration stylistique du rendu des pièces en plan (poché pastel, libellés).
  */
 export interface RoomRenderConfig {

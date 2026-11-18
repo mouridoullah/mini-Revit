@@ -189,6 +189,11 @@ export function createMockCanvas(
     }),
 
     getLineDash: vi.fn(() => [...lineDash]),
+
+    measureText: vi.fn((text: string) => {
+      record('measureText', [text]);
+      return { width: text.length * 8 } as TextMetrics;
+    }),
   } as unknown as CanvasRenderingContext2D;
 
   const canvas = document.createElement('canvas');
