@@ -878,17 +878,19 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
         );
       } else if (entity === 'IfcSystemFurnitureElement') {
         const predType = type.ifcPredefinedType ? `.${type.ifcPredefinedType}.` : '.USERDEFINED.';
+        const elemType = type.subType.toUpperCase();
         ifcTypeId = writer.add(
-          `IFCSYSTEMFURNITUREELEMENTTYPE('${typeGuid}',#${ownerHistory},'${typeName}',$,$,$,$,$,$,${predType})`,
+          `IFCSYSTEMFURNITUREELEMENTTYPE('${typeGuid}',#${ownerHistory},'${typeName}',$,$,$,$,$,'${elemType}',${predType})`,
         );
       } else if (entity === 'IfcDoor') {
-        const opType = type.subType === 'sliding_door' ? '.SLIDING.' : '.USERDEFINED.';
+        const opType = type.subType === 'sliding_door' ? '.DOUBLE_DOOR_SLIDING.' : '.USERDEFINED.';
         ifcTypeId = writer.add(
-          `IFCDOORTYPE('${typeGuid}',#${ownerHistory},'${typeName}',$,$,$,$,$,$,.DOOR.,${opType},$,$)`,
+          `IFCDOORTYPE('${typeGuid}',#${ownerHistory},'${typeName}',$,$,$,$,$,'${typeName}',.DOOR.,${opType},$,$)`,
         );
       } else if (entity === 'IfcWindow') {
+        const partType = type.subType === 'french_window' ? '.DOUBLE_PANEL_VERTICAL.' : '.NOTDEFINED.';
         ifcTypeId = writer.add(
-          `IFCWINDOWTYPE('${typeGuid}',#${ownerHistory},'${typeName}',$,$,$,$,$,$,.WINDOW.,.NOTDEFINED.,$,$)`,
+          `IFCWINDOWTYPE('${typeGuid}',#${ownerHistory},'${typeName}',$,$,$,$,$,'${typeName}',.WINDOW.,${partType},$,$)`,
         );
       } else {
         // IfcFurnitureType (official buildingSMART IFC4)
@@ -900,9 +902,10 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
           else if (type.subType === 'bed') predType = '.BED.';
           else if (type.subType === 'cabinet') predType = '.SHELF.';
         }
+        const elemType = type.subType.toUpperCase();
 
         ifcTypeId = writer.add(
-          `IFCFURNITURETYPE('${typeGuid}',#${ownerHistory},'${typeName}',$,$,$,$,$,$,${predType})`,
+          `IFCFURNITURETYPE('${typeGuid}',#${ownerHistory},'${typeName}',$,$,$,$,$,'${elemType}',.NOTDEFINED.,${predType})`,
         );
       }
 
@@ -971,17 +974,19 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
         );
       } else if (entity === 'IfcSystemFurnitureElement') {
         const predType = type.ifcPredefinedType ? `.${type.ifcPredefinedType}.` : '.USERDEFINED.';
+        const objType = type.subType.toUpperCase();
         ifcElemId = writer.add(
-          `IFCSYSTEMFURNITUREELEMENT('${compGuid}',#${ownerHistory},'${compName}',$,'${typeName}',#${compPlacement},#${prodShape},$,${predType})`,
+          `IFCSYSTEMFURNITUREELEMENT('${compGuid}',#${ownerHistory},'${compName}',$,'${objType}',#${compPlacement},#${prodShape},$,${predType})`,
         );
       } else if (entity === 'IfcDoor') {
-        const opType = type.subType === 'sliding_door' ? '.SLIDING.' : '.USERDEFINED.';
+        const opType = type.subType === 'sliding_door' ? '.DOUBLE_DOOR_SLIDING.' : '.USERDEFINED.';
         ifcElemId = writer.add(
           `IFCDOOR('${compGuid}',#${ownerHistory},'${compName}',$,'${typeName}',#${compPlacement},#${prodShape},$,${effH.toFixed(2)},${effW.toFixed(2)},.DOOR.,${opType},$)`,
         );
       } else if (entity === 'IfcWindow') {
+        const partType = type.subType === 'french_window' ? '.DOUBLE_PANEL_VERTICAL.' : '.NOTDEFINED.';
         ifcElemId = writer.add(
-          `IFCWINDOW('${compGuid}',#${ownerHistory},'${compName}',$,'${typeName}',#${compPlacement},#${prodShape},$,${effH.toFixed(2)},${effW.toFixed(2)},.WINDOW.,$,$)`,
+          `IFCWINDOW('${compGuid}',#${ownerHistory},'${compName}',$,'${typeName}',#${compPlacement},#${prodShape},$,${effH.toFixed(2)},${effW.toFixed(2)},.WINDOW.,${partType},$)`,
         );
       } else {
         // IfcFurniture (official buildingSMART IFC4 entity)
@@ -993,9 +998,10 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
           else if (type.subType === 'bed') predType = '.BED.';
           else if (type.subType === 'cabinet') predType = '.SHELF.';
         }
+        const objType = type.ifcPredefinedType === 'USERDEFINED' ? type.subType.toUpperCase() : typeName;
 
         ifcElemId = writer.add(
-          `IFCFURNITURE('${compGuid}',#${ownerHistory},'${compName}',$,'${typeName}',#${compPlacement},#${prodShape},$,${predType})`,
+          `IFCFURNITURE('${compGuid}',#${ownerHistory},'${compName}',$,'${objType}',#${compPlacement},#${prodShape},$,${predType})`,
         );
       }
 
