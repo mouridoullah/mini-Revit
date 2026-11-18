@@ -793,4 +793,81 @@ describe('Générateur IFC4 ISO 10303-21 (packages/core/ifc)', () => {
       expect(validFirstChars.has(guid[0]!)).toBe(true);
     }
   });
+
+  it('T-IFC-WALL-GABLE-PROFILE : Mur pignon sous toiture 2 pans -> profil supérieur biseauté dans le contenu IFC (GableWallProfile)', async () => {
+    const doc = BimDocument.createDefaultProject();
+    const baseState = doc.getState();
+    const lvl0 = Object.keys(baseState.levels)[0] ?? 'lvl_0';
+
+    const gableState: BimState = {
+      ...baseState,
+      roofTypes: {
+        rt_gable: {
+          id: 'rt_gable',
+          category: 'roofType',
+          name: 'Toit 2 pans 45°',
+          family: 'gable',
+          thickness: 250,
+          slopeDeg: 45,
+          overhangMm: 0,
+        },
+      },
+      roofs: {
+        roof_gable: {
+          id: 'roof_gable',
+          category: 'roof',
+          roofTypeId: 'rt_gable',
+          levelId: lvl0,
+          baseOffset: 0,
+          footprint: [
+            { x: 0, y: 0 },
+            { x: 10000, y: 0 },
+            { x: 10000, y: 8000 },
+            { x: 0, y: 8000 },
+          ],
+          ridgeAxis: {
+            start: { x: 0, y: 4000 },
+            end: { x: 10000, y: 4000 },
+          },
+        },
+      },
+      walls: {
+        wall_gable_west: {
+          id: 'wall_gable_west',
+          category: 'wall',
+          typeId: 'wt_200',
+          levelId: lvl0,
+          start: { x: 0, y: 0 },
+          end: { x: 0, y: 8000 },
+          topConstraint: { kind: 'roof', roofId: 'roof_gable' },
+        },
+        wall_regular: {
+          id: 'wall_regular',
+          category: 'wall',
+          typeId: 'wt_200',
+          levelId: lvl0,
+          start: { x: 0, y: 0 },
+          end: { x: 10000, y: 0 },
+        },
+      },
+      roofOpenings: {},
+    };
+
+    const ifcContent = exportToIfc(gableState);
+
+    // Le mur pignon (topConstraint: roof) doit générer un profil non-rectangulaire
+    // Vérification : IFCARBITRARYCLOSEDPROFILEDEF avec label 'GableWallProfile' pour le mur pignon
+    expect(ifcContent).toContain('GableWallProfile');
+
+    // Le mur classique conserve son WallProfile rectangulaire
+    expect(ifcContent).toContain('WallProfile');
+
+    // Validation structurelle web-ifc — le fichier reste parsable et valide
+    const ifcApi = new WebIFC.IfcAPI();
+    await ifcApi.Init();
+    const modelId = ifcApi.OpenModel(new TextEncoder().encode(ifcContent));
+    const walls = ifcApi.GetLineIDsWithType(modelId, WebIFC.IFCWALL);
+    expect(walls.size()).toBe(2);
+    ifcApi.CloseModel(modelId);
+  });
 });

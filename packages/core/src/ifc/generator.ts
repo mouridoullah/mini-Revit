@@ -203,19 +203,62 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
       `IFCLOCALPLACEMENT(#${storeyInfo.placementId},#${placementWall3D})`,
     );
 
-    // Profil du mur : rectangle centré sur l'axe X de 0 à L et Y de -T/2 à T/2
+    // Profil du mur : biseauté sous toiture (GableWallProfile) ou rectangulaire standard (WallProfile)
     const halfT = thickness / 2;
-    const p1 = writer.add(`IFCCARTESIANPOINT((0.,${(-halfT).toFixed(2)}))`);
-    const p2 = writer.add(`IFCCARTESIANPOINT((${length.toFixed(2)},${(-halfT).toFixed(2)}))`);
-    const p3 = writer.add(`IFCCARTESIANPOINT((${length.toFixed(2)},${halfT.toFixed(2)}))`);
-    const p4 = writer.add(`IFCCARTESIANPOINT((0.,${halfT.toFixed(2)}))`);
-    const polyline = writer.add(`IFCPOLYLINE((#${p1},#${p2},#${p3},#${p4},#${p1}))`);
-    const profile = writer.add(`IFCARBITRARYCLOSEDPROFILEDEF(.AREA.,'WallProfile',#${polyline})`);
+    const tp = resolved.topProfile;
+    const isNonRectangular =
+      tp &&
+      (tp.length > 2 ||
+        (tp.length === 2 && Math.abs((tp[0]?.y ?? 0) - (tp[1]?.y ?? 0)) > 0.5));
 
-    // Solide extrudé vertical
-    const solid = writer.add(
-      `IFCEXTRUDEDAREASOLID(#${profile},#${placementWorld3D},#${dirZ},${height.toFixed(2)})`,
-    );
+    let solid: number;
+
+    if (isNonRectangular && tp) {
+      // Profil en chevron ou trapèze : IfcArbitraryClosedProfileDef dans le plan longitudinal-vertical du mur
+      // Sens anti-horaire : coins bas gauche -> coins bas droite -> crête droite vers gauche
+      const profilePts2D = [
+        { u: 0, relZ: 0 },
+        { u: length, relZ: 0 },
+        ...[...tp].reverse().map((p) => ({ u: p.x, relZ: p.y - resolved.zBase })),
+      ];
+
+      // Points 2D IFC dans le plan de section du mur (X = longitudinal, Y = vertical)
+      const ptIds = profilePts2D.map((p) =>
+        writer.add(`IFCCARTESIANPOINT((${p.u.toFixed(2)},${p.relZ.toFixed(2)}))`),
+      );
+      const closedPl = writer.add(
+        `IFCPOLYLINE((${ptIds.map((id) => `#${id}`).join(',')},#${ptIds[0]}))`,
+      );
+      const profileId = writer.add(
+        `IFCARBITRARYCLOSEDPROFILEDEF(.AREA.,'GableWallProfile',#${closedPl})`,
+      );
+
+      // Le profil 2D est dans le plan longitudinal-vertical du mur (X = axe mur, Y = Z vertical)
+      // En coordonnées locales du mur, la face avant est à Y = +halfT, avec normale vers -Y : (0, -1, 0)
+      // L'extrusion le long de cette normale par 'thickness' couvre l'intervalle Y in [+halfT, -halfT]
+      const ptProfile = writer.add(`IFCCARTESIANPOINT((0.,${halfT.toFixed(2)},0.))`);
+      const dirProfileNormal = writer.add(`IFCDIRECTION((0.,-1.,0.))`);
+      const profilePlacement = writer.add(
+        `IFCAXIS2PLACEMENT3D(#${ptProfile},#${dirProfileNormal},#${dirX})`,
+      );
+
+      solid = writer.add(
+        `IFCEXTRUDEDAREASOLID(#${profileId},#${profilePlacement},#${dirZ},${thickness.toFixed(2)})`,
+      );
+    } else {
+      // Profil rectangulaire standard
+      const p1 = writer.add(`IFCCARTESIANPOINT((0.,${(-halfT).toFixed(2)}))`);
+      const p2 = writer.add(`IFCCARTESIANPOINT((${length.toFixed(2)},${(-halfT).toFixed(2)}))`);
+      const p3 = writer.add(`IFCCARTESIANPOINT((${length.toFixed(2)},${halfT.toFixed(2)}))`);
+      const p4 = writer.add(`IFCCARTESIANPOINT((0.,${halfT.toFixed(2)}))`);
+      const polyline = writer.add(`IFCPOLYLINE((#${p1},#${p2},#${p3},#${p4},#${p1}))`);
+      const profile = writer.add(`IFCARBITRARYCLOSEDPROFILEDEF(.AREA.,'WallProfile',#${polyline})`);
+
+      // Solide extrudé vertical
+      solid = writer.add(
+        `IFCEXTRUDEDAREASOLID(#${profile},#${placementWorld3D},#${dirZ},${height.toFixed(2)})`,
+      );
+    }
     const shapeRep = writer.add(
       `IFCSHAPEREPRESENTATION(#${geomSubContext},'Body','SweptSolid',(#${solid}))`,
     );

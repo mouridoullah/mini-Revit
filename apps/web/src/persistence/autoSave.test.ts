@@ -203,4 +203,59 @@ describe('S2-8 : Persistance & Sauvegarde Automatique IndexedDB (apps/web/src/pe
     detach();
     manager.destroy();
   });
+
+  it('T-AUTOSAVE-09 : AutoSaveManager maintient dirty = true et notifie onSaveFailed si saveToIndexedDB échoue', async () => {
+    vi.useFakeTimers();
+    mockIDB.simulateOpenError = true; // Simuler une panne IndexedDB
+    const manager = new AutoSaveManager(500, mockIDB as unknown as IDBFactory);
+    const doc = BimDocument.createDefaultProject();
+    const onSavedSpy = vi.fn();
+    const onFailedSpy = vi.fn();
+
+    manager.scheduleSave(doc, { onSaved: onSavedSpy, onSaveFailed: onFailedSpy });
+    expect(manager.isDirty()).toBe(true);
+
+    // Exécuter le timer
+    await vi.advanceTimersByTimeAsync(500);
+
+    // Constat : onSaved n'a pas été appelé, onSaveFailed a été notifié, et dirty reste TRUE !
+    expect(onSavedSpy).not.toHaveBeenCalled();
+    expect(onFailedSpy).toHaveBeenCalled();
+    expect(manager.isDirty()).toBe(true);
+
+    // flushSave échoue aussi et retourne false tout en conservant dirty = true
+    const flushSuccess = await manager.flushSave(doc);
+    expect(flushSuccess).toBe(false);
+    expect(manager.isDirty()).toBe(true);
+
+    manager.destroy();
+    vi.useRealTimers();
+  });
+
+  it('T-AUTOSAVE-10 : Modification concurrente pendant l’écriture asynchrone -> dirty reste true grâce à changeId', async () => {
+    const manager = new AutoSaveManager(500, mockIDB as unknown as IDBFactory);
+    const doc = BimDocument.createDefaultProject();
+
+    // Marquer comme modifié et démarrer une sauvegarde
+    manager.markDirty();
+    const savePromise = manager.flushSave(doc);
+    expect(manager.isSaving()).toBe(true);
+
+    // Mutation concurrente intervenant immédiatement pendant l’écriture
+    manager.markDirty();
+
+    // Attendre la résolution de la première écriture
+    const firstSuccess = await savePromise;
+    expect(firstSuccess).toBe(true);
+
+    // Constat : dirty reste true car changeId a été incrémenté pendant la sauvegarde
+    expect(manager.isDirty()).toBe(true);
+
+    // Le flush suivant sauve la mutation concurrente et repasse dirty à false
+    const secondSuccess = await manager.flushSave(doc);
+    expect(secondSuccess).toBe(true);
+    expect(manager.isDirty()).toBe(false);
+
+    manager.destroy();
+  });
 });

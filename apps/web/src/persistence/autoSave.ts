@@ -183,12 +183,23 @@ export async function clearIndexedDB(customFactory?: IDBFactory): Promise<void> 
 }
 
 /**
+ * Callbacks optionnels pour le suivi du cycle de vie de la sauvegarde automatique.
+ */
+export interface AutoSaveCallbacks {
+  readonly onSaved?: (record: { timestamp: number }) => void;
+  readonly onSaveFailed?: (error?: unknown) => void;
+}
+
+/**
  * Gestionnaire debouncé de persistance automatique pour React / UI.
+ * Intègre un suivi de version (changeId) pour éviter les conditions de concurrence
+ * et maintient l'état `dirty = true` tant que l'écriture n'est pas formellement acquittée.
  */
 export class AutoSaveManager {
   private timer: ReturnType<typeof setTimeout> | null = null;
   private dirty = false;
   private saving = false;
+  private changeId = 0;
 
   public constructor(
     private readonly debounceMs = 500,
@@ -205,42 +216,73 @@ export class AutoSaveManager {
 
   public markDirty(): void {
     this.dirty = true;
+    this.changeId++;
   }
 
   public scheduleSave(
     doc: BimDocument,
-    onSaved?: (record: { timestamp: number }) => void,
+    onSavedOrCallbacks?: ((record: { timestamp: number }) => void) | AutoSaveCallbacks,
   ): void {
     this.dirty = true;
+    this.changeId++;
+
+    const callbacks: AutoSaveCallbacks =
+      typeof onSavedOrCallbacks === 'function'
+        ? { onSaved: onSavedOrCallbacks }
+        : (onSavedOrCallbacks ?? {});
+
     if (this.timer) {
       clearTimeout(this.timer);
     }
     this.timer = setTimeout(async () => {
       this.timer = null;
       if (!this.dirty) return;
+
+      const targetChangeId = this.changeId;
       try {
         this.saving = true;
-        await saveToIndexedDB(doc, this.customFactory);
-        this.dirty = false;
-        onSaved?.({ timestamp: Date.now() });
+        const success = await saveToIndexedDB(doc, this.customFactory);
+        if (success) {
+          // Si aucune nouvelle modification n'est survenue pendant l'écriture
+          if (this.changeId === targetChangeId) {
+            this.dirty = false;
+          } else {
+            // Modification concurrente intervenue pendant la sauvegarde : re-planifier
+            this.scheduleSave(doc, callbacks);
+          }
+          callbacks.onSaved?.({ timestamp: Date.now() });
+        } else {
+          // Échec de la sauvegarde (quota, DB inaccessible) : dirty reste true pour permettre un retry ultérieur
+          console.warn('[AutoSaveManager] Échec de la sauvegarde IndexedDB, dirty maintenu à true');
+          callbacks.onSaveFailed?.();
+        }
       } catch (err) {
         console.error('[AutoSaveManager] Erreur lors de la sauvegarde automatique :', err);
+        callbacks.onSaveFailed?.(err);
       } finally {
         this.saving = false;
       }
     }, this.debounceMs);
   }
 
-  public async flushSave(doc: BimDocument): Promise<void> {
+  public async flushSave(doc: BimDocument): Promise<boolean> {
     if (this.timer) {
       clearTimeout(this.timer);
       this.timer = null;
     }
-    if (!this.dirty) return;
+    if (!this.dirty) return true;
+
+    const targetChangeId = this.changeId;
     try {
       this.saving = true;
-      await saveToIndexedDB(doc, this.customFactory);
-      this.dirty = false;
+      const success = await saveToIndexedDB(doc, this.customFactory);
+      if (success) {
+        if (this.changeId === targetChangeId) {
+          this.dirty = false;
+        }
+        return true;
+      }
+      return false;
     } finally {
       this.saving = false;
     }

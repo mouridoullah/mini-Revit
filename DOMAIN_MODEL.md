@@ -141,6 +141,9 @@ classDiagram
 
 ## 3. Spécification Détaillée des Entités
 
+> [!NOTE]
+> En Phase 7 (schéma `BimState` v2), `Project` et `Building` sont traités comme des singletons implicites ancrés dans le document (`BimDocument`) et matérialisés dans la hiérarchie spatiale IFC (`IfcProject` -> `IfcSite` -> `IfcBuilding`). La gestion d'une arborescence multi-bâtiments explicite dans l'UI et le state est différée à la Saison 3.
+
 ### 3.1 `Project` (Projet Global)
 
 - **Raison d'être :** Racine unique du document BIM, identité globale et métadonnées du fichier.
