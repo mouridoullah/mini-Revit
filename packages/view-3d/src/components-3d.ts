@@ -11,6 +11,9 @@ export interface ComponentMeshInput {
     readonly rotation?: number | undefined;
     readonly elevationOffset?: number | undefined;
   };
+  readonly widthOverride?: number | undefined;
+  readonly depthOverride?: number | undefined;
+  readonly heightOverride?: number | undefined;
 }
 
 /**
@@ -38,9 +41,9 @@ export function createComponentMesh(
   compType: ComponentTypeMeshInput,
   levelElevation: number = 0,
 ): RawMeshData | null {
-  const width = compType.width;
-  const depth = compType.depth;
-  const height = compType.height;
+  const width = comp.widthOverride ?? compType.width;
+  const depth = comp.depthOverride ?? compType.depth;
+  const height = comp.heightOverride ?? compType.height;
 
   if (width <= 0 || depth <= 0 || height <= 0) {
     return null;

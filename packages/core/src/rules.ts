@@ -1269,6 +1269,56 @@ export function checkComponentTypeViolations(componentType: ComponentType): Rule
       offendingIds: [componentType.id],
     });
   }
+  if (componentType.minWidth !== undefined && (!Number.isFinite(componentType.minWidth) || componentType.minWidth <= 0)) {
+    violations.push({
+      code: 'INVALID_COMPONENT_DIMENSIONS',
+      message: `ComponentType "${componentType.id}" minWidth must be a strictly positive finite number.`,
+      offendingIds: [componentType.id],
+    });
+  }
+  if (componentType.maxWidth !== undefined && (!Number.isFinite(componentType.maxWidth) || componentType.maxWidth <= 0)) {
+    violations.push({
+      code: 'INVALID_COMPONENT_DIMENSIONS',
+      message: `ComponentType "${componentType.id}" maxWidth must be a strictly positive finite number.`,
+      offendingIds: [componentType.id],
+    });
+  }
+  if (
+    componentType.minWidth !== undefined &&
+    componentType.maxWidth !== undefined &&
+    componentType.minWidth > componentType.maxWidth
+  ) {
+    violations.push({
+      code: 'INVALID_COMPONENT_DIMENSIONS',
+      message: `ComponentType "${componentType.id}" minWidth (${componentType.minWidth}) cannot exceed maxWidth (${componentType.maxWidth}).`,
+      offendingIds: [componentType.id],
+    });
+  }
+  if (componentType.minDepth !== undefined && (!Number.isFinite(componentType.minDepth) || componentType.minDepth <= 0)) {
+    violations.push({
+      code: 'INVALID_COMPONENT_DIMENSIONS',
+      message: `ComponentType "${componentType.id}" minDepth must be a strictly positive finite number.`,
+      offendingIds: [componentType.id],
+    });
+  }
+  if (componentType.maxDepth !== undefined && (!Number.isFinite(componentType.maxDepth) || componentType.maxDepth <= 0)) {
+    violations.push({
+      code: 'INVALID_COMPONENT_DIMENSIONS',
+      message: `ComponentType "${componentType.id}" maxDepth must be a strictly positive finite number.`,
+      offendingIds: [componentType.id],
+    });
+  }
+  if (
+    componentType.minDepth !== undefined &&
+    componentType.maxDepth !== undefined &&
+    componentType.minDepth > componentType.maxDepth
+  ) {
+    violations.push({
+      code: 'INVALID_COMPONENT_DIMENSIONS',
+      message: `ComponentType "${componentType.id}" minDepth (${componentType.minDepth}) cannot exceed maxDepth (${componentType.maxDepth}).`,
+      offendingIds: [componentType.id],
+    });
+  }
   return violations;
 }
 
@@ -1322,6 +1372,96 @@ export function checkComponentViolations(component: Component, state: BimState):
       message: `Component "${component.id}" references non-existent host wall ID: "${component.placement.hostWallId}".`,
       offendingIds: [component.id],
     });
+  }
+
+  // 5. Validation des surcharges dimensionnelles (Phase 8.4)
+  const compType = state.componentTypes ? state.componentTypes[component.typeId] : undefined;
+  if (compType) {
+    if (component.widthOverride !== undefined) {
+      if (!Number.isFinite(component.widthOverride) || component.widthOverride <= 0) {
+        violations.push({
+          code: 'INVALID_COMPONENT_DIMENSIONS',
+          message: `Component "${component.id}" widthOverride must be a strictly positive finite number.`,
+          offendingIds: [component.id],
+        });
+      } else {
+        if (compType.minWidth !== undefined && component.widthOverride < compType.minWidth) {
+          violations.push({
+            code: 'INVALID_COMPONENT_DIMENSIONS',
+            message: `Component "${component.id}" widthOverride (${component.widthOverride}) is below minimum allowed (${compType.minWidth}).`,
+            offendingIds: [component.id],
+          });
+        }
+        if (compType.maxWidth !== undefined && component.widthOverride > compType.maxWidth) {
+          violations.push({
+            code: 'INVALID_COMPONENT_DIMENSIONS',
+            message: `Component "${component.id}" widthOverride (${component.widthOverride}) exceeds maximum allowed (${compType.maxWidth}).`,
+            offendingIds: [component.id],
+          });
+        }
+        if (
+          compType.allowedWidths &&
+          compType.allowedWidths.length > 0 &&
+          !compType.allowedWidths.includes(component.widthOverride)
+        ) {
+          violations.push({
+            code: 'INVALID_COMPONENT_DIMENSIONS',
+            message: `Component "${component.id}" widthOverride (${component.widthOverride}) is not in allowed list [${compType.allowedWidths.join(', ')}].`,
+            offendingIds: [component.id],
+          });
+        }
+      }
+    }
+
+    if (component.depthOverride !== undefined) {
+      if (!Number.isFinite(component.depthOverride) || component.depthOverride <= 0) {
+        violations.push({
+          code: 'INVALID_COMPONENT_DIMENSIONS',
+          message: `Component "${component.id}" depthOverride must be a strictly positive finite number.`,
+          offendingIds: [component.id],
+        });
+      } else {
+        if (compType.minDepth !== undefined && component.depthOverride < compType.minDepth) {
+          violations.push({
+            code: 'INVALID_COMPONENT_DIMENSIONS',
+            message: `Component "${component.id}" depthOverride (${component.depthOverride}) is below minimum allowed (${compType.minDepth}).`,
+            offendingIds: [component.id],
+          });
+        }
+        if (compType.maxDepth !== undefined && component.depthOverride > compType.maxDepth) {
+          violations.push({
+            code: 'INVALID_COMPONENT_DIMENSIONS',
+            message: `Component "${component.id}" depthOverride (${component.depthOverride}) exceeds maximum allowed (${compType.maxDepth}).`,
+            offendingIds: [component.id],
+          });
+        }
+      }
+    }
+
+    if (component.heightOverride !== undefined) {
+      if (!Number.isFinite(component.heightOverride) || component.heightOverride <= 0) {
+        violations.push({
+          code: 'INVALID_COMPONENT_DIMENSIONS',
+          message: `Component "${component.id}" heightOverride must be a strictly positive finite number.`,
+          offendingIds: [component.id],
+        });
+      } else {
+        if (compType.minHeight !== undefined && component.heightOverride < compType.minHeight) {
+          violations.push({
+            code: 'INVALID_COMPONENT_DIMENSIONS',
+            message: `Component "${component.id}" heightOverride (${component.heightOverride}) is below minimum allowed (${compType.minHeight}).`,
+            offendingIds: [component.id],
+          });
+        }
+        if (compType.maxHeight !== undefined && component.heightOverride > compType.maxHeight) {
+          violations.push({
+            code: 'INVALID_COMPONENT_DIMENSIONS',
+            message: `Component "${component.id}" heightOverride (${component.heightOverride}) exceeds maximum allowed (${compType.maxHeight}).`,
+            offendingIds: [component.id],
+          });
+        }
+      }
+    }
   }
 
   return violations;

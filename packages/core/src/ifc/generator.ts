@@ -12,6 +12,7 @@ import { computeRoofSlopes } from '../roofs/slopes.js';
 import { resolveWallGeometry } from '../walls/resolve.js';
 import { isPointInPolygon, signedArea, type Vec2 } from '@mini-bim/geometry';
 import { createIfcGuid, escapeIfcString } from './guid.js';
+import { getComponentEffectiveDimensions } from '../components/dimensions.js';
 
 /**
  * Options d'exportation IFC4.
@@ -855,9 +856,52 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
   }
 
   // -------------------------------------------------------------------------
-  // Composants d'aménagement et mobilier (IfcFurnishingElement, IfcSanitaryTerminal - Phase 8)
+  // Composants d'aménagement et mobilier (IFC4 buildingSMART : IfcFurniture, IfcSanitaryTerminal, etc. - Phase 8.4)
   // -------------------------------------------------------------------------
   if (state.components && Object.keys(state.components).length > 0) {
+    // 1. Définition des types IFC4 (IfcTypeProduct) pour chaque famille utilisée
+    const typeIfcMap = new Map<ElementId, { typeId: number; occurrences: number[] }>();
+
+    for (const comp of Object.values(state.components)) {
+      const type = state.componentTypes?.[comp.typeId];
+      if (!type || typeIfcMap.has(type.id)) continue;
+
+      const typeGuid = createIfcGuid();
+      const typeName = escapeIfcString(type.name);
+      const entity = type.ifcEntity || (type.family === 'sanitary' ? 'IfcSanitaryTerminal' : 'IfcFurniture');
+
+      let ifcTypeId: number;
+      if (entity === 'IfcSanitaryTerminal') {
+        ifcTypeId = writer.add(
+          `IFCSANITARYTERMINALTYPE('${typeGuid}',#${ownerHistory},'${typeName}',$,$,$,$,$,$,.NOTDEFINED.)`,
+        );
+      } else if (entity === 'IfcDoor') {
+        const opType = type.subType === 'sliding_door' ? '.SLIDING.' : '.USERDEFINED.';
+        ifcTypeId = writer.add(
+          `IFCDOORTYPE('${typeGuid}',#${ownerHistory},'${typeName}',$,$,$,$,$,$,.DOOR.,${opType},$,$)`,
+        );
+      } else if (entity === 'IfcWindow') {
+        ifcTypeId = writer.add(
+          `IFCWINDOWTYPE('${typeGuid}',#${ownerHistory},'${typeName}',$,$,$,$,$,$,.WINDOW.,.NOTDEFINED.,$,$)`,
+        );
+      } else {
+        // IfcFurnitureType (official buildingSMART IFC4)
+        let predType = '.NOTDEFINED.';
+        if (type.subType === 'chair') predType = '.CHAIR.';
+        else if (type.subType === 'table') predType = '.TABLE.';
+        else if (type.subType === 'sofa') predType = '.SOFA.';
+        else if (type.subType === 'bed') predType = '.BED.';
+        else if (type.subType === 'cabinet') predType = '.SHELF.';
+
+        ifcTypeId = writer.add(
+          `IFCFURNITURETYPE('${typeGuid}',#${ownerHistory},'${typeName}',$,$,$,$,$,$,${predType})`,
+        );
+      }
+
+      typeIfcMap.set(type.id, { typeId: ifcTypeId, occurrences: [] });
+    }
+
+    // 2. Instanciation des occurrences et solides géométriques
     for (const comp of Object.values(state.components)) {
       const type = state.componentTypes?.[comp.typeId];
       if (!type) continue;
@@ -865,6 +909,11 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
       const defaultStorey = storeyMap.get(defaultLevel.id);
       const storeyInfo = storeyMap.get(comp.levelId) || defaultStorey;
       if (!storeyInfo) continue;
+
+      const effDims = getComponentEffectiveDimensions(comp, type);
+      const effW = effDims.width;
+      const effD = effDims.depth;
+      const effH = effDims.height;
 
       const elevationOffset = comp.placement.elevationOffset ?? type.defaultElevationOffset ?? 0;
       const rotation = comp.placement.rotation ?? 0;
@@ -881,9 +930,9 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
         `IFCLOCALPLACEMENT(#${storeyInfo.placementId},#${placementComp3D})`,
       );
 
-      // Solide prismatique extrudé (rectangle W × D centré en plan)
-      const halfW = type.width / 2;
-      const halfD = type.depth / 2;
+      // Solide prismatique extrudé (rectangle W × D centré en plan) selon les dimensions effectives
+      const halfW = effW / 2;
+      const halfD = effD / 2;
       const p1 = writer.add(`IFCCARTESIANPOINT((${(-halfW).toFixed(2)},${(-halfD).toFixed(2)}))`);
       const p2 = writer.add(`IFCCARTESIANPOINT((${halfW.toFixed(2)},${(-halfD).toFixed(2)}))`);
       const p3 = writer.add(`IFCCARTESIANPOINT((${halfW.toFixed(2)},${halfD.toFixed(2)}))`);
@@ -893,7 +942,7 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
         `IFCARBITRARYCLOSEDPROFILEDEF(.AREA.,'${escapeIfcString(type.name)}Profile',#${polyline})`,
       );
       const solid = writer.add(
-        `IFCEXTRUDEDAREASOLID(#${profile},#${placementWorld3D},#${dirZ},${type.height.toFixed(2)})`,
+        `IFCEXTRUDEDAREASOLID(#${profile},#${placementWorld3D},#${dirZ},${effH.toFixed(2)})`,
       );
       const shapeRep = writer.add(
         `IFCSHAPEREPRESENTATION(#${geomSubContext},'Body','SweptSolid',(#${solid}))`,
@@ -905,24 +954,89 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
       const typeName = escapeIfcString(type.name);
 
       let ifcElemId: number;
-      const entity = type.ifcEntity || (type.family === 'sanitary' ? 'IfcSanitaryTerminal' : 'IfcFurnishingElement');
+      const entity = type.ifcEntity || (type.family === 'sanitary' ? 'IfcSanitaryTerminal' : 'IfcFurniture');
 
       if (entity === 'IfcSanitaryTerminal') {
         ifcElemId = writer.add(
           `IFCSANITARYTERMINAL('${compGuid}',#${ownerHistory},'${compName}',$,'${typeName}',#${compPlacement},#${prodShape},$,.NOTDEFINED.)`,
         );
       } else if (entity === 'IfcDoor') {
+        const opType = type.subType === 'sliding_door' ? '.SLIDING.' : '.USERDEFINED.';
         ifcElemId = writer.add(
-          `IFCDOOR('${compGuid}',#${ownerHistory},'${compName}',$,'${typeName}',#${compPlacement},#${prodShape},$,${type.height.toFixed(2)},${type.width.toFixed(2)},.USERDEFINED.,.SWINGING.,$)`,
+          `IFCDOOR('${compGuid}',#${ownerHistory},'${compName}',$,'${typeName}',#${compPlacement},#${prodShape},$,${effH.toFixed(2)},${effW.toFixed(2)},.DOOR.,${opType},$)`,
         );
       } else if (entity === 'IfcWindow') {
         ifcElemId = writer.add(
-          `IFCWINDOW('${compGuid}',#${ownerHistory},'${compName}',$,'${typeName}',#${compPlacement},#${prodShape},$,${type.height.toFixed(2)},${type.width.toFixed(2)},.USERDEFINED.,.SIDEHUNG.,$)`,
+          `IFCWINDOW('${compGuid}',#${ownerHistory},'${compName}',$,'${typeName}',#${compPlacement},#${prodShape},$,${effH.toFixed(2)},${effW.toFixed(2)},.WINDOW.,$,$)`,
         );
       } else {
+        // IfcFurniture (official buildingSMART IFC4 entity)
+        let predType = '.NOTDEFINED.';
+        if (type.subType === 'chair') predType = '.CHAIR.';
+        else if (type.subType === 'table') predType = '.TABLE.';
+        else if (type.subType === 'sofa') predType = '.SOFA.';
+        else if (type.subType === 'bed') predType = '.BED.';
+        else if (type.subType === 'cabinet') predType = '.SHELF.';
+
         ifcElemId = writer.add(
-          `IFCFURNISHINGELEMENT('${compGuid}',#${ownerHistory},'${compName}',$,'${typeName}',#${compPlacement},#${prodShape},$)`,
+          `IFCFURNITURE('${compGuid}',#${ownerHistory},'${compName}',$,'${typeName}',#${compPlacement},#${prodShape},$,${predType})`,
         );
+      }
+
+      // Enregistrer l'occurrence sous son type pour IfcRelDefinesByType
+      typeIfcMap.get(type.id)?.occurrences.push(ifcElemId);
+
+      // Si le composant est une menuiserie adossée à un mur hôte, générer la réservation IfcOpeningElement
+      if (
+        comp.placement.hostWallId &&
+        (type.family === 'glazing' || entity === 'IfcDoor' || entity === 'IfcWindow' || comp.openingId)
+      ) {
+        const hostInfo = wallMap.get(comp.placement.hostWallId);
+        const hostWall = state.walls[comp.placement.hostWallId];
+        if (hostInfo && hostWall) {
+          const dx = hostWall.end.x - hostWall.start.x;
+          const dy = hostWall.end.y - hostWall.start.y;
+          const wallLen = Math.hypot(dx, dy);
+          const pVec = { x: comp.placement.x - hostWall.start.x, y: comp.placement.y - hostWall.start.y };
+          const projDist = wallLen > 0 ? (pVec.x * dx + pVec.y * dy) / wallLen : 0;
+          const opOffset = Math.max(0, projDist - effW / 2);
+
+          // Réservation (IfcOpeningElement)
+          const ptOp = writer.add(`IFCCARTESIANPOINT((${opOffset.toFixed(2)},0.,${elevationOffset.toFixed(2)}))`);
+          const placementOp3D = writer.add(`IFCAXIS2PLACEMENT3D(#${ptOp},#${dirZ},#${dirX})`);
+          const opPlacement = writer.add(`IFCLOCALPLACEMENT(#${hostInfo.placementId},#${placementOp3D})`);
+
+          const cutT = hostInfo.thickness * 1.2;
+          const halfCutT = cutT / 2;
+          const opP1 = writer.add(`IFCCARTESIANPOINT((0.,${(-halfCutT).toFixed(2)}))`);
+          const opP2 = writer.add(`IFCCARTESIANPOINT((${effW.toFixed(2)},${(-halfCutT).toFixed(2)}))`);
+          const opP3 = writer.add(`IFCCARTESIANPOINT((${effW.toFixed(2)},${halfCutT.toFixed(2)}))`);
+          const opP4 = writer.add(`IFCCARTESIANPOINT((0.,${halfCutT.toFixed(2)}))`);
+          const opPolyline = writer.add(`IFCPOLYLINE((#${opP1},#${opP2},#${opP3},#${opP4},#${opP1}))`);
+          const opProfile = writer.add(
+            `IFCARBITRARYCLOSEDPROFILEDEF(.AREA.,'OpeningProfile_${escapeIfcString(comp.id)}',#${opPolyline})`,
+          );
+          const opSolid = writer.add(
+            `IFCEXTRUDEDAREASOLID(#${opProfile},#${placementWorld3D},#${dirZ},${effH.toFixed(2)})`,
+          );
+          const opShapeRep = writer.add(
+            `IFCSHAPEREPRESENTATION(#${geomSubContext},'Body','SweptSolid',(#${opSolid}))`,
+          );
+          const opProdShape = writer.add(`IFCPRODUCTDEFINITIONSHAPE($,$,(#${opShapeRep}))`);
+
+          const openingGuid = createIfcGuid();
+          const ifcOpening = writer.add(
+            `IFCOPENINGELEMENT('${openingGuid}',#${ownerHistory},'Opening_${escapeIfcString(comp.id)}',$,$,#${opPlacement},#${opProdShape},$,.OPENING.)`,
+          );
+
+          // Chaîne buildingSMART : IfcWall -> IfcRelVoidsElement -> IfcOpeningElement -> IfcRelFillsElement -> IfcDoor/IfcWindow
+          writer.add(
+            `IFCRELVOIDSELEMENT('${createIfcGuid()}',#${ownerHistory},$,$,#${hostInfo.id},#${ifcOpening})`,
+          );
+          writer.add(
+            `IFCRELFILLSELEMENT('${createIfcGuid()}',#${ownerHistory},$,$,#${ifcOpening},#${ifcElemId})`,
+          );
+        }
       }
 
       // Rattachement au niveau (IfcRelContainedInSpatialStructure)
@@ -930,6 +1044,16 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
         storeyElementsMap.get(comp.levelId) || storeyElementsMap.get(defaultLevel.id);
       if (elementsList) {
         elementsList.push(ifcElemId);
+      }
+    }
+
+    // 3. Liaison Type <-> Occurrences (IfcRelDefinesByType)
+    for (const [, { typeId, occurrences }] of typeIfcMap) {
+      if (occurrences.length > 0) {
+        const refs = occurrences.map((id) => `#${id}`).join(',');
+        writer.add(
+          `IFCRELDEFINESBYTYPE('${createIfcGuid()}',#${ownerHistory},$,$,(${refs}),#${typeId})`,
+        );
       }
     }
   }

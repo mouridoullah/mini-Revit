@@ -366,7 +366,25 @@ export interface ComponentType {
   readonly depth: number; // en mm (> 0), dimension locale Y
   readonly height: number; // en mm (> 0), dimension locale Z
   readonly defaultElevationOffset?: number | undefined; // surélévation par défaut par rapport au sol (ex: 850mm)
-  readonly ifcEntity?: ('IfcFurnishingElement' | 'IfcSanitaryTerminal' | 'IfcFlowTerminal' | 'IfcDoor' | 'IfcWindow') | undefined;
+  readonly minWidth?: number | undefined;
+  readonly maxWidth?: number | undefined;
+  readonly minDepth?: number | undefined;
+  readonly maxDepth?: number | undefined;
+  readonly minHeight?: number | undefined;
+  readonly maxHeight?: number | undefined;
+  readonly allowedWidths?: readonly number[] | undefined;
+  readonly clearanceDepth?: number | undefined; // profondeur de dégagement d'usage recommandé (mm)
+  readonly ifcEntity?:
+    | (
+        | 'IfcFurniture'
+        | 'IfcSystemFurnitureElement'
+        | 'IfcFurnishingElement'
+        | 'IfcSanitaryTerminal'
+        | 'IfcFlowTerminal'
+        | 'IfcDoor'
+        | 'IfcWindow'
+      )
+    | undefined;
   readonly parameters?: Record<string, number | string | boolean> | undefined;
 }
 
@@ -391,6 +409,11 @@ export interface Component {
   readonly typeId: ElementId; // Référence vers ComponentType
   readonly levelId: ElementId; // Rattachement altimétrique et spatial
   readonly placement: ComponentPlacement;
+  readonly widthOverride?: number | undefined;
+  readonly depthOverride?: number | undefined;
+  readonly heightOverride?: number | undefined;
+  readonly showClearanceZone?: boolean | undefined;
+  readonly openingId?: ElementId | undefined; // Réservation d'ouverture dans le mur hôte si menuiserie
   readonly name?: string | undefined;
   readonly materialOverride?: string | undefined;
 }

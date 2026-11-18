@@ -379,4 +379,45 @@ describe('PropertyInspector — Panneau latéral d’inspection et d’édition 
 
     expect(doc.getState().components?.['comp_wc_insp']).toBeUndefined();
   });
+
+  it('T-COMP-PARAM-01 : inspection et surcharges dimensionnelles & dégagement ergonomique (Phase 8.4)', () => {
+    const comp: import('@mini-bim/core').Component = {
+      id: 'comp_table_param',
+      category: 'component',
+      typeId: 'ct_dining_table',
+      levelId: level0Id,
+      placement: {
+        x: 2000,
+        y: 2500,
+        rotation: 0,
+      },
+    };
+    doc.execute(new Commands.AddComponentCommand(comp));
+
+    render(<PropertyInspector doc={doc} selectedIds={['comp_table_param']} />);
+
+    expect(screen.getByTestId('inspector-component-panel')).toBeDefined();
+    expect(screen.getByText(/Paramétrie Dimensionnelle/)).toBeDefined();
+
+    // Vérification des entrées de surcharges
+    const widthInput = screen.getByTestId('component-width-override-input') as HTMLInputElement;
+    const depthInput = screen.getByTestId('component-depth-override-input') as HTMLInputElement;
+    const heightInput = screen.getByTestId('component-height-override-input') as HTMLInputElement;
+
+    expect(widthInput.value).toBe('1600'); // Valeur nominale par défaut
+    expect(depthInput.value).toBe('900');
+    expect(heightInput.value).toBe('750');
+
+    // Modification de la largeur à 2200 mm
+    fireEvent.change(widthInput, { target: { value: '2200' } });
+    fireEvent.blur(widthInput);
+    expect(doc.getState().components?.['comp_table_param']?.widthOverride).toBe(2200);
+
+    // Bascule de la case à cocher Zone de dégagement
+    const clearanceCheckbox = screen.getByTestId('component-clearance-checkbox') as HTMLInputElement;
+    expect(clearanceCheckbox.checked).toBe(false);
+
+    fireEvent.click(clearanceCheckbox);
+    expect(doc.getState().components?.['comp_table_param']?.showClearanceZone).toBe(true);
+  });
 });

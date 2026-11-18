@@ -528,8 +528,27 @@ export function drawComponents(
       ctx.scale(-1, 1);
     }
 
+    const effWidth = comp.widthOverride ?? type.width;
+    const effDepth = comp.depthOverride ?? type.depth;
+
+    // Zone de dégagement ergonomique normalisée (Phase 8.4)
+    const showClearance = comp.showClearanceZone || (isSelected && (type.clearanceDepth ?? 0) > 0);
+    const clearance = type.clearanceDepth ?? 0;
+    if (showClearance && clearance > 0) {
+      ctx.save();
+      ctx.setLineDash([4, 4]);
+      ctx.fillStyle = 'rgba(59, 130, 246, 0.08)';
+      ctx.strokeStyle = '#3b82f6';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.rect(-effWidth / 2, -effDepth / 2 - clearance, effWidth, clearance);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+
     // Dessin de la symbologie normalisée
-    drawComponentSymbol(ctx, type.subType, type.width, type.depth, fillColor, strokeColor);
+    drawComponentSymbol(ctx, type.subType, effWidth, effDepth, fillColor, strokeColor);
 
     ctx.restore();
   }

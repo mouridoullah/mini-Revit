@@ -19,6 +19,8 @@ import {
   validateComponentType,
   validateComponent,
   canDeleteComponentType,
+  getComponentEffectiveDimensions,
+  resolveWallGeometry,
   BimValidationError,
   toJSON,
   fromJSON,
@@ -111,6 +113,99 @@ describe('Composants architecturaux et mobilier paramétrique (Phase 8.1 - Core 
       ).toThrowError(/invalid family/);
     });
 
+    it('T-COMP-TYPE-CONSTRAINTS-01 : validateComponentType rejette minWidth > maxWidth ou bornes négatives (Phase 8.4)', () => {
+      const baseType: ComponentType = {
+        id: 'ct_test_bounds',
+        category: 'componentType',
+        name: 'Type Test Bornes',
+        family: 'furniture',
+        subType: 'table',
+        width: 1600,
+        depth: 900,
+        height: 750,
+      };
+
+      // minWidth > maxWidth
+      expect(() =>
+        validateComponentType({ ...baseType, minWidth: 2000, maxWidth: 1000 }),
+      ).toThrowError(/minWidth .* cannot exceed maxWidth/);
+
+      // minDepth > maxDepth
+      expect(() =>
+        validateComponentType({ ...baseType, minDepth: 1200, maxDepth: 800 }),
+      ).toThrowError(/minDepth .* cannot exceed maxDepth/);
+
+      // minWidth négatif
+      expect(() =>
+        validateComponentType({ ...baseType, minWidth: -50 }),
+      ).toThrowError(/minWidth must be a strictly positive finite number/);
+    });
+
+    it('T-COMP-OVERRIDE-DEPTH-01 : validateComponent contrôle depthOverride et heightOverride (Phase 8.4)', () => {
+      const doc = BimDocument.createDefaultProject();
+      const state = doc.getState();
+      const levelId = Object.keys(state.levels)[0] ?? 'lvl_0';
+
+      const comp: Component = {
+        id: 'comp_table_depth_test',
+        category: 'component',
+        typeId: 'ct_dining_table',
+        levelId,
+        placement: { x: 1000, y: 1000 },
+      };
+
+      // ct_dining_table a minDepth: 700, maxDepth: 1100
+      expect(() =>
+        validateComponent({ ...comp, depthOverride: 500 }, state),
+      ).toThrowError(/is below minimum allowed/);
+
+      expect(() =>
+        validateComponent({ ...comp, depthOverride: 1500 }, state),
+      ).toThrowError(/exceeds maximum allowed/);
+
+      expect(() =>
+        validateComponent({ ...comp, depthOverride: 900 }, state),
+      ).not.toThrow();
+    });
+
+    it('T-COMP-WALL-METRICS-01 : une baie vitrée sur un mur réduit la surface nette calculée du mur (Phase 8.4)', () => {
+      const doc = BimDocument.createDefaultProject();
+      const levelId = Object.keys(doc.getState().levels)[0] ?? 'lvl_0';
+      const wallTypeId = Object.keys(doc.getState().wallTypes)[0] ?? 'wt_default';
+      const wallId = 'wall_net_area_test';
+
+      doc.execute(
+        new AddWallCommand({
+          id: wallId,
+          category: 'wall',
+          typeId: wallTypeId,
+          levelId,
+          start: { x: 0, y: 0 },
+          end: { x: 5000, y: 0 },
+        }),
+      );
+
+      const resBefore = resolveWallGeometry(doc.getState().walls[wallId]!, doc.getState());
+      expect(resBefore.openings).toHaveLength(0);
+
+      // Ajout d'une baie coulissante de 2000 mm × 2150 mm
+      doc.execute(
+        new AddComponentCommand({
+          id: 'comp_bay_net',
+          category: 'component',
+          typeId: 'ct_sliding_door',
+          levelId,
+          placement: { x: 2500, y: 0, hostWallId: wallId },
+          widthOverride: 2000,
+        }),
+      );
+
+      const resAfter = resolveWallGeometry(doc.getState().walls[wallId]!, doc.getState());
+      expect(resAfter.openings).toHaveLength(1);
+      expect(resAfter.openings[0]?.width).toBe(2000);
+      expect(resAfter.openings[0]?.height).toBe(2150);
+    });
+
     it('rejette un composant pointant vers un typeId ou levelId inexistant', () => {
       const doc = BimDocument.createDefaultProject();
       const state = doc.getState();
@@ -153,6 +248,100 @@ describe('Composants architecturaux et mobilier paramétrique (Phase 8.1 - Core 
           state,
         ),
       ).toThrowError(/references non-existent host wall/);
+
+      // Surcharge dimensionnelle hors bornes (Phase 8.4)
+      // ct_bed_double a minWidth: 900, maxWidth: 2000, allowedWidths: [900, 1400, 1600, 1800, 2000]
+      expect(() =>
+        validateComponent({ ...validComp, widthOverride: 500 }, state),
+      ).toThrowError(/is below minimum allowed/);
+
+      expect(() =>
+        validateComponent({ ...validComp, widthOverride: 2500 }, state),
+      ).toThrowError(/exceeds maximum allowed/);
+
+      expect(() =>
+        validateComponent({ ...validComp, widthOverride: 1500 }, state),
+      ).toThrowError(/is not in allowed list/);
+
+      // Surcharges valides
+      expect(() =>
+        validateComponent({ ...validComp, widthOverride: 1600 }, state),
+      ).not.toThrow();
+
+      // Non-finite overrides
+      expect(() =>
+        validateComponent({ ...validComp, widthOverride: NaN }, state),
+      ).toThrowError(/must be a strictly positive finite number/);
+
+      expect(() =>
+        validateComponent({ ...validComp, depthOverride: -100 }, state),
+      ).toThrowError(/must be a strictly positive finite number/);
+    });
+
+    it('T-COMP-DIMS-01 : getComponentEffectiveDimensions résout correctement nominal vs surcharge (Phase 8.4)', () => {
+      const type = { width: 1600, depth: 900, height: 750 };
+
+      // Sans surcharge : nominal
+      const effNominal = getComponentEffectiveDimensions({}, type);
+      expect(effNominal.width).toBe(1600);
+      expect(effNominal.depth).toBe(900);
+      expect(effNominal.height).toBe(750);
+
+      // Avec surcharge partielle
+      const effPartial = getComponentEffectiveDimensions({ widthOverride: 2000 }, type);
+      expect(effPartial.width).toBe(2000);
+      expect(effPartial.depth).toBe(900);
+      expect(effPartial.height).toBe(750);
+
+      // Avec toutes surcharges
+      const effAll = getComponentEffectiveDimensions(
+        { widthOverride: 2400, depthOverride: 1000, heightOverride: 800 },
+        type,
+      );
+      expect(effAll.width).toBe(2400);
+      expect(effAll.depth).toBe(1000);
+      expect(effAll.height).toBe(800);
+    });
+
+    it('T-COMP-ROOF-GLAZING-01 : resolveWallGeometry intègre les baies vitrées de composants dans les réservations du mur hôte (Phase 8.4)', () => {
+      const doc = BimDocument.createDefaultProject();
+      const levelId = Object.keys(doc.getState().levels)[0] ?? 'lvl_0';
+      const wallTypeId = Object.keys(doc.getState().wallTypes)[0] ?? 'wt_default';
+      const wallId = 'wall_bay_test';
+
+      // Mur de 6000 mm de long, hauteur nominale 2800 mm
+      doc.execute(
+        new AddWallCommand({
+          id: wallId,
+          category: 'wall',
+          typeId: wallTypeId,
+          levelId,
+          start: { x: 0, y: 0 },
+          end: { x: 6000, y: 0 },
+        }),
+      );
+
+      // Insertion d'une baie coulissante de 2400 mm centrée en X=3000
+      doc.execute(
+        new AddComponentCommand({
+          id: 'comp_bay_opening',
+          category: 'component',
+          typeId: 'ct_sliding_door',
+          levelId,
+          placement: { x: 3000, y: 0, hostWallId: wallId },
+          widthOverride: 2400,
+        }),
+      );
+
+      const resolved = resolveWallGeometry(doc.getState().walls[wallId]!, doc.getState());
+      expect(resolved.openings).toHaveLength(1);
+
+      const op = resolved.openings[0]!;
+      expect(op.id).toBe('comp_bay_opening');
+      expect(op.kind).toBe('door');
+      expect(op.width).toBe(2400);
+      // Centre en 3000, largeur 2400 -> offsetAlong = 3000 - 1200 = 1800
+      expect(op.offsetAlong).toBeCloseTo(1800, 1);
     });
   });
 
@@ -427,14 +616,14 @@ describe('Composants architecturaux et mobilier paramétrique (Phase 8.1 - Core 
   });
 
   // -------------------------------------------------------------------------
-  // 6. Exportation IFC4 et Validation Industrielle WebIFC
+  // 6. Exportation IFC4 et Validation Industrielle WebIFC (Phase 8 & 8.4)
   // -------------------------------------------------------------------------
-  describe('Exportation IFC4 ISO 10303-21', () => {
-    it('exporte les composants comme IfcFurnishingElement et IfcSanitaryTerminal avec solides 3D', async () => {
+  describe('Exportation IFC4 ISO 10303-21 (buildingSMART)', () => {
+    it('exporte les composants selon le standard IFC4 officiel (IfcFurniture, IfcSanitaryTerminal, types et IfcRelDefinesByType)', async () => {
       const doc = BimDocument.createDefaultProject();
       const levelId = Object.keys(doc.getState().levels)[0] ?? 'lvl_0';
 
-      // 1 Mobilier (Table)
+      // 1 Mobilier (Table) avec surcharges dimensionnelles (Phase 8.4)
       doc.execute(
         new AddComponentCommand({
           id: 'comp_table',
@@ -442,6 +631,8 @@ describe('Composants architecturaux et mobilier paramétrique (Phase 8.1 - Core 
           typeId: 'ct_dining_table',
           levelId,
           placement: { x: 3000, y: 3000, rotation: 0 },
+          widthOverride: 2000,
+          depthOverride: 1000,
           name: 'Grande Table Salle à Manger',
         }),
       );
@@ -461,8 +652,11 @@ describe('Composants architecturaux et mobilier paramétrique (Phase 8.1 - Core 
       const ifcString = exportToIfc(doc.getState());
 
       // Vérifications textuelles STEP
-      expect(ifcString).toContain('IFCFURNISHINGELEMENT(');
+      expect(ifcString).toContain('IFCFURNITURE(');
+      expect(ifcString).toContain('IFCFURNITURETYPE(');
       expect(ifcString).toContain('IFCSANITARYTERMINAL(');
+      expect(ifcString).toContain('IFCSANITARYTERMINALTYPE(');
+      expect(ifcString).toContain('IFCRELDEFINESBYTYPE(');
       expect(ifcString).toContain('Grande Table Salle à Manger');
       expect(ifcString).toContain('WC Suspendu RDC');
 
@@ -474,15 +668,79 @@ describe('Composants architecturaux et mobilier paramétrique (Phase 8.1 - Core 
       const modelId = ifcApi.OpenModel(data);
       expect(modelId).toBeGreaterThanOrEqual(0);
 
-      const furnishingLines = ifcApi.GetLineIDsWithType(modelId, WebIFC.IFCFURNISHINGELEMENT);
-      expect(furnishingLines.size()).toBe(1);
+      const furnitureLines = ifcApi.GetLineIDsWithType(modelId, WebIFC.IFCFURNITURE);
+      expect(furnitureLines.size()).toBe(1);
+
+      const furnitureTypeLines = ifcApi.GetLineIDsWithType(modelId, WebIFC.IFCFURNITURETYPE);
+      expect(furnitureTypeLines.size()).toBe(1);
 
       const sanitaryLines = ifcApi.GetLineIDsWithType(modelId, WebIFC.IFCSANITARYTERMINAL);
       expect(sanitaryLines.size()).toBe(1);
 
+      const relDefines = ifcApi.GetLineIDsWithType(modelId, WebIFC.IFCRELDEFINESBYTYPE);
+      expect(relDefines.size()).toBeGreaterThanOrEqual(2);
+
       // Vérification que les solides extrudés 3D sont bien créés
       const extrudedSolids = ifcApi.GetLineIDsWithType(modelId, WebIFC.IFCEXTRUDEDAREASOLID);
       expect(extrudedSolids.size()).toBeGreaterThanOrEqual(2);
+
+      ifcApi.CloseModel(modelId);
+    });
+
+    it('génère la chaîne buildingSMART complète pour les menuiseries hôtes (IfcWall -> IfcRelVoidsElement -> IfcOpeningElement -> IfcRelFillsElement -> IfcDoor)', async () => {
+      const doc = BimDocument.createDefaultProject();
+      const levelId = Object.keys(doc.getState().levels)[0] ?? 'lvl_0';
+      const wallTypeId = Object.keys(doc.getState().wallTypes)[0] ?? 'wt_default';
+      const wallSouthId = 'wall_south';
+
+      doc.execute(
+        new AddWallCommand({
+          id: wallSouthId,
+          category: 'wall',
+          typeId: wallTypeId,
+          levelId,
+          start: { x: 0, y: 0 },
+          end: { x: 6000, y: 0 },
+        }),
+      );
+
+      // Insertion d'une baie vitrée coulissante adossée au mur sud
+      doc.execute(
+        new AddComponentCommand({
+          id: 'comp_sliding_1',
+          category: 'component',
+          typeId: 'ct_sliding_door',
+          levelId,
+          placement: { x: 3000, y: 0, rotation: 0, hostWallId: wallSouthId },
+          widthOverride: 2400,
+          name: 'Baie Coulissante Salon',
+        }),
+      );
+
+      const ifcString = exportToIfc(doc.getState());
+
+      // Vérification de la chaîne de relations IFC4
+      expect(ifcString).toContain('IFCDOOR(');
+      expect(ifcString).toContain('IFCDOORTYPE(');
+      expect(ifcString).toContain('IFCOPENINGELEMENT(');
+      expect(ifcString).toContain('IFCRELVOIDSELEMENT(');
+      expect(ifcString).toContain('IFCRELFILLSELEMENT(');
+      expect(ifcString).toContain('Opening_comp_sliding_1');
+
+      // Validation WebIFC
+      const ifcApi = new WebIFC.IfcAPI();
+      await ifcApi.Init();
+      const modelId = ifcApi.OpenModel(new TextEncoder().encode(ifcString));
+      expect(modelId).toBeGreaterThanOrEqual(0);
+
+      const openings = ifcApi.GetLineIDsWithType(modelId, WebIFC.IFCOPENINGELEMENT);
+      expect(openings.size()).toBeGreaterThanOrEqual(1);
+
+      const relVoids = ifcApi.GetLineIDsWithType(modelId, WebIFC.IFCRELVOIDSELEMENT);
+      expect(relVoids.size()).toBeGreaterThanOrEqual(1);
+
+      const relFills = ifcApi.GetLineIDsWithType(modelId, WebIFC.IFCRELFILLSELEMENT);
+      expect(relFills.size()).toBeGreaterThanOrEqual(1);
 
       ifcApi.CloseModel(modelId);
     });

@@ -1252,9 +1252,72 @@ export function PropertyInspector({
 
           {compType && (
             <div style={{ fontSize: '11px', color: '#9ca3af', marginBottom: '8px' }}>
-              Dimensions : <b>{compType.width} × {compType.depth} × {compType.height} mm</b>
+              Dimensions nominales : <b>{compType.width} × {compType.depth} × {compType.height} mm</b>
             </div>
           )}
+
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+              marginBottom: '12px',
+              padding: '8px',
+              backgroundColor: '#111827',
+              borderRadius: '4px',
+              border: '1px solid #374151',
+            }}
+          >
+            <div style={{ fontSize: '11px', fontWeight: 600, color: '#60a5fa' }}>
+              Paramétrie Dimensionnelle (Instance)
+            </div>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              <div style={{ flex: 1 }}>
+                <DebouncedNumberInput
+                  testId="component-width-override-input"
+                  label="Largeur (mm)"
+                  value={comp.widthOverride ?? compType?.width ?? 600}
+                  min={compType?.minWidth ?? 100}
+                  max={compType?.maxWidth ?? 5000}
+                  step={50}
+                  onChange={(widthOverride) => {
+                    execute(new Commands.UpdateComponentCommand(comp.id, { widthOverride }));
+                  }}
+                />
+              </div>
+              <div style={{ flex: 1 }}>
+                <DebouncedNumberInput
+                  testId="component-depth-override-input"
+                  label="Profondeur (mm)"
+                  value={comp.depthOverride ?? compType?.depth ?? 600}
+                  min={compType?.minDepth ?? 100}
+                  max={compType?.maxDepth ?? 3000}
+                  step={50}
+                  onChange={(depthOverride) => {
+                    execute(new Commands.UpdateComponentCommand(comp.id, { depthOverride }));
+                  }}
+                />
+              </div>
+              <div style={{ flex: 1 }}>
+                <DebouncedNumberInput
+                  testId="component-height-override-input"
+                  label="Hauteur (mm)"
+                  value={comp.heightOverride ?? compType?.height ?? 600}
+                  min={compType?.minHeight ?? 100}
+                  max={compType?.maxHeight ?? 4000}
+                  step={50}
+                  onChange={(heightOverride) => {
+                    execute(new Commands.UpdateComponentCommand(comp.id, { heightOverride }));
+                  }}
+                />
+              </div>
+            </div>
+            {compType?.allowedWidths && compType.allowedWidths.length > 0 && (
+              <div style={{ fontSize: '10px', color: '#9ca3af' }}>
+                Largeurs standards : {compType.allowedWidths.join(', ')} mm
+              </div>
+            )}
+          </div>
 
           <div style={{ fontSize: '12px', color: '#d1d5db', marginBottom: '6px' }}>
             Niveau : {level?.name ?? 'Niveau 0'}
@@ -1367,6 +1430,24 @@ export function PropertyInspector({
                 }}
               />
               Inversion miroir (flipped)
+            </label>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+            <label style={{ fontSize: '11px', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <input
+                type="checkbox"
+                data-testid="component-clearance-checkbox"
+                checked={comp.showClearanceZone ?? false}
+                onChange={(e) => {
+                  execute(
+                    new Commands.UpdateComponentCommand(comp.id, {
+                      showClearanceZone: e.target.checked,
+                    }),
+                  );
+                }}
+              />
+              Zone de dégagement ({compType?.clearanceDepth ?? 0} mm)
             </label>
           </div>
 

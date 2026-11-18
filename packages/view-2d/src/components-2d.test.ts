@@ -216,5 +216,42 @@ describe('Rendu 2D des Composants et Mobilier (Phase 8.2A — packages/view-2d)'
       expect(view2d.hitTest(screenCenter)).toBe('comp_wc_hit');
       view2d.dispose();
     });
+
+    it('findComponentAtScreen et drawComponents prennent en compte les surcharges dimensionnelles et la zone de dégagement (Phase 8.4)', () => {
+      const doc = BimDocument.createDefaultProject();
+      const levelId = Object.keys(doc.getState().levels)[0] ?? 'lvl_0';
+
+      // Table surchargée à 2400 mm de largeur au lieu de 1600 mm nominal
+      doc.execute(
+        new AddComponentCommand({
+          id: 'comp_custom_table',
+          category: 'component',
+          typeId: 'ct_dining_table',
+          levelId,
+          placement: { x: 0, y: 0, rotation: 0 },
+          widthOverride: 2400,
+          showClearanceZone: true,
+        }),
+      );
+
+      const transform = new Transform2D();
+
+      // Hit-test à x=1000 : dedans avec widthOverride=2400 (halfW=1200), mais dehors avec nominal=1600 (halfW=800)
+      const screenPt1000 = transform.worldToScreen(vec2(1000, 0));
+      expect(findComponentAtScreen(screenPt1000, transform, doc)).toBe('comp_custom_table');
+
+      // Dessin avec zone de dégagement
+      drawComponents(
+        mockCtx,
+        transform,
+        doc.getState().components!,
+        doc.getState().componentTypes!,
+        new Set(['comp_custom_table']),
+        DEFAULT_COMPONENT_RENDER_CONFIG,
+      );
+
+      // Vérification que setLineDash a été invoqué pour tracer le contour pointillé du dégagement
+      expect(mockCtx.setLineDash).toHaveBeenCalledWith([4, 4]);
+    });
   });
 });
