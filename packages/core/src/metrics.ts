@@ -55,10 +55,15 @@ export function computeWallMetrics(
     'levels' in stateOrTypes &&
     'wallTypes' in stateOrTypes;
 
-  const heightMm = isFullState
-    ? resolveWallGeometry(wall, stateOrTypes as BimState).height
+  const resolved = isFullState
+    ? resolveWallGeometry(wall, stateOrTypes as BimState)
+    : undefined;
+  const heightMm = resolved
+    ? resolved.height
     : (wall.heightOverride ?? wallType.height);
-  const grossAreaMm2 = lengthMm * heightMm;
+  const grossAreaMm2 = resolved
+    ? resolved.grossAreaMm2
+    : lengthMm * heightMm;
 
   // Filtrer les ouvertures hébergées par ce mur
   const hosted = openings.filter((op) => op.hostWallId === wall.id);

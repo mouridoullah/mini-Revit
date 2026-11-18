@@ -469,23 +469,25 @@ describe('Détection des Pièces et Modèle Room (core)', () => {
       const deleteCmd = new DeleteWallCommand(wallWest.id);
       doc.execute(deleteCmd);
 
-      // 1. Invariant de cascade : le mur ET la Room sont supprimés
+      // 1. Invariant de cascade Phase 7.6 : le mur est supprimé, la Room est préservée avec statut 'unenclosed'
       expect(doc.getState().walls[wallWest.id]).toBeUndefined();
-      expect(doc.getState().rooms['room_cascade']).toBeUndefined();
+      expect(doc.getState().rooms['room_cascade']).toBeDefined();
+      expect(doc.getState().rooms['room_cascade']?.status).toBe('unenclosed');
 
-      // 2. getChangedIds inclut l'ID du mur et l'ID de la room supprimée
+      // 2. getChangedIds inclut l'ID du mur et l'ID de la room modifiée
       expect(deleteCmd.getChangedIds()).toEqual([wallWest.id, 'room_cascade']);
 
-      // 3. Undo restaure à la fois le mur et la Room
+      // 3. Undo restaure à la fois le mur et le statut originel de la Room
       doc.undo();
       expect(doc.getState().walls[wallWest.id]).toBeDefined();
       expect(doc.getState().rooms['room_cascade']).toBeDefined();
-      expect(doc.getState().rooms['room_cascade']!.name).toBe('Pièce Éphémère');
+      expect(doc.getState().rooms['room_cascade']?.status).toBe('enclosed');
+      expect(doc.getState().rooms['room_cascade']?.name).toBe('Pièce Éphémère');
 
-      // 4. Redo ré-applique la suppression en cascade
+      // 4. Redo ré-applique la suppression du mur et bascule la Room en 'unenclosed'
       doc.redo();
       expect(doc.getState().walls[wallWest.id]).toBeUndefined();
-      expect(doc.getState().rooms['room_cascade']).toBeUndefined();
+      expect(doc.getState().rooms['room_cascade']?.status).toBe('unenclosed');
     });
   });
 });

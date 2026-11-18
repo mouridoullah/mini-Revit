@@ -264,6 +264,21 @@ export function fromJSON(jsonString: string): BimState {
           offset: tc.offset ?? tc.topOffset ?? 0,
         };
       }
+      if (w.topConstraint.kind === 'level' || (!w.topConstraint.kind && w.topConstraint.levelId)) {
+        if (!state.levels[w.topConstraint.levelId!]) {
+          throw new BimValidationError(
+            'UNKNOWN_LEVEL',
+            `Wall "${id}" references non-existent Level ID in topConstraint: "${w.topConstraint.levelId}".`,
+          );
+        }
+      } else if (w.topConstraint.kind === 'roof' && w.topConstraint.roofId) {
+        if (!state.roofs || !state.roofs[w.topConstraint.roofId]) {
+          throw new BimValidationError(
+            'UNKNOWN_ROOF',
+            `Wall "${id}" references non-existent Roof ID in topConstraint: "${w.topConstraint.roofId}".`,
+          );
+        }
+      }
     }
   }
 
@@ -409,6 +424,12 @@ export function fromJSON(jsonString: string): BimState {
         `Room "${id}" has invalid or missing seed coordinates.`,
       );
     }
+    if (!state.levels[r.levelId]) {
+      throw new BimValidationError(
+        'UNKNOWN_LEVEL',
+        `Room "${id}" references non-existent Level ID: "${r.levelId}".`,
+      );
+    }
   }
 
   // 15. Validation des Cotations (Dimension)
@@ -433,6 +454,20 @@ export function fromJSON(jsonString: string): BimState {
         'MALFORMED_DIMENSION',
         `Dimension "${id}" is missing required fields or has invalid types.`,
       );
+    }
+    if (!state.levels[dim.levelId]) {
+      throw new BimValidationError(
+        'UNKNOWN_LEVEL',
+        `Dimension "${id}" references non-existent Level ID: "${dim.levelId}".`,
+      );
+    }
+    for (const refId of dim.references) {
+      if (!state.walls[refId]) {
+        throw new BimValidationError(
+          'UNKNOWN_REFERENCED_ELEMENT',
+          `Dimension "${id}" references non-existent Wall ID: "${refId}".`,
+        );
+      }
     }
   }
 
@@ -468,6 +503,24 @@ export function fromJSON(jsonString: string): BimState {
       ) {
         throw new BimValidationError('MALFORMED_STAIR', `Malformed stair entry at "${id}".`);
       }
+      if (!state.stairTypes || !state.stairTypes[str.stairTypeId]) {
+        throw new BimValidationError(
+          'UNKNOWN_STAIR_TYPE',
+          `Stair "${id}" references non-existent StairType ID: "${str.stairTypeId}".`,
+        );
+      }
+      if (!state.levels[str.bottomLevelId]) {
+        throw new BimValidationError(
+          'UNKNOWN_LEVEL',
+          `Stair "${id}" references non-existent bottom Level ID: "${str.bottomLevelId}".`,
+        );
+      }
+      if (!state.levels[str.topLevelId]) {
+        throw new BimValidationError(
+          'UNKNOWN_LEVEL',
+          `Stair "${id}" references non-existent top Level ID: "${str.topLevelId}".`,
+        );
+      }
     }
   }
 
@@ -501,6 +554,18 @@ export function fromJSON(jsonString: string): BimState {
       ) {
         throw new BimValidationError('MALFORMED_ROOF', `Malformed roof entry at "${id}".`);
       }
+      if (!state.roofTypes || !state.roofTypes[rf.roofTypeId]) {
+        throw new BimValidationError(
+          'UNKNOWN_ROOF_TYPE',
+          `Roof "${id}" references non-existent RoofType ID: "${rf.roofTypeId}".`,
+        );
+      }
+      if (!state.levels[rf.levelId]) {
+        throw new BimValidationError(
+          'UNKNOWN_LEVEL',
+          `Roof "${id}" references non-existent Level ID: "${rf.levelId}".`,
+        );
+      }
     }
   }
 
@@ -516,6 +581,12 @@ export function fromJSON(jsonString: string): BimState {
         !Number.isFinite(ro.height)
       ) {
         throw new BimValidationError('MALFORMED_ROOF_OPENING', `Malformed roofOpening entry at "${id}".`);
+      }
+      if (!state.roofs || !state.roofs[ro.roofId]) {
+        throw new BimValidationError(
+          'UNKNOWN_ROOF',
+          `RoofOpening "${id}" references non-existent Roof ID: "${ro.roofId}".`,
+        );
       }
     }
   }

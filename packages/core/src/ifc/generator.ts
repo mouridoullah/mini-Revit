@@ -290,10 +290,10 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
 
     // Quantités de base normalisées (Qto_WallBaseQuantities)
     const openingsArea = wallOpeningsMap.get(wallId)?.areaMm2 ?? 0;
-    const grossSideAreaM2 = (length * height) / 1e6;
-    const netSideAreaM2 = Math.max(0, (length * height - openingsArea) / 1e6);
-    const grossVolumeM3 = (length * thickness * height) / 1e9;
-    const netVolumeM3 = Math.max(0, (length * thickness * height - openingsArea * thickness) / 1e9);
+    const grossSideAreaM2 = resolved.grossAreaMm2 / 1e6;
+    const netSideAreaM2 = Math.max(0, (resolved.grossAreaMm2 - openingsArea) / 1e6);
+    const grossVolumeM3 = (resolved.grossAreaMm2 * thickness) / 1e9;
+    const netVolumeM3 = Math.max(0, (resolved.grossAreaMm2 * thickness - openingsArea * thickness) / 1e9);
 
     const qLength = writer.add(
       `IFCQUANTITYLENGTH('Length','Length of the wall',$,${length.toFixed(2)})`,
@@ -327,10 +327,11 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
     const pRef = writer.add(
       `IFCPROPERTYSINGLEVALUE('Reference',$,IFCLABEL('${escapeIfcString(wallType?.name ?? 'Standard Wall')}'),$)`,
     );
+    const isLoadBearing = (wall.loadBearing ?? wallType?.loadBearing ?? (thickness >= 150)) ? '.T.' : '.F.';
     const pLoadBearing = writer.add(
-      `IFCPROPERTYSINGLEVALUE('LoadBearing',$,IFCBOOLEAN(.T.),$)`,
+      `IFCPROPERTYSINGLEVALUE('LoadBearing',$,IFCBOOLEAN(${isLoadBearing}),$)`,
     );
-    const isExt = thickness >= 200 ? '.T.' : '.F.';
+    const isExt = (wall.isExternal ?? wallType?.isExternal ?? (thickness >= 200)) ? '.T.' : '.F.';
     const pIsExternal = writer.add(
       `IFCPROPERTYSINGLEVALUE('IsExternal',$,IFCBOOLEAN(${isExt}),$)`,
     );

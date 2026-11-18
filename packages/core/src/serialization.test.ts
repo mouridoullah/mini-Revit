@@ -584,4 +584,106 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
     });
     expect(() => fromJSON(v99Doc)).toThrowError(/UNSUPPORTED_SCHEMA_VERSION/);
   });
+
+  /* =========================================================================
+   * TESTS DE SÉRIALISATION PHASE 7.6 : INTÉGRITÉ RÉFÉRENTIELLE STRICTE (Chantier 7.6-D)
+   * ========================================================================= */
+
+  it('T-SER-7.6-01 : fromJSON rejette un mur avec topConstraint vers un niveau inexistant (UNKNOWN_LEVEL)', () => {
+    const invalidDoc = JSON.stringify({
+      ...sampleState,
+      walls: {
+        ...sampleState.walls,
+        w_dangling: {
+          id: 'w_dangling',
+          category: 'wall',
+          typeId: 'wt_01',
+          levelId: 'lvl_01',
+          start: { x: 0, y: 0 },
+          end: { x: 4000, y: 0 },
+          topConstraint: { kind: 'level', levelId: 'lvl_ghost' },
+        },
+      },
+    });
+    expect(() => fromJSON(invalidDoc)).toThrowError(BimValidationError);
+    expect(() => fromJSON(invalidDoc)).toThrowError(/UNKNOWN_LEVEL/);
+  });
+
+  it('T-SER-7.6-02 : fromJSON rejette un mur avec topConstraint vers une toiture inexistante (UNKNOWN_ROOF)', () => {
+    const invalidDoc = JSON.stringify({
+      ...sampleState,
+      walls: {
+        ...sampleState.walls,
+        w_dangling: {
+          id: 'w_dangling',
+          category: 'wall',
+          typeId: 'wt_01',
+          levelId: 'lvl_01',
+          start: { x: 0, y: 0 },
+          end: { x: 4000, y: 0 },
+          topConstraint: { kind: 'roof', roofId: 'roof_ghost' },
+        },
+      },
+    });
+    expect(() => fromJSON(invalidDoc)).toThrowError(BimValidationError);
+    expect(() => fromJSON(invalidDoc)).toThrowError(/UNKNOWN_ROOF/);
+  });
+
+  it('T-SER-7.6-03 : fromJSON rejette une cotation référençant un mur inexistant (UNKNOWN_REFERENCED_ELEMENT)', () => {
+    const invalidDoc = JSON.stringify({
+      ...sampleState,
+      dimensions: {
+        dim_ghost: {
+          id: 'dim_ghost',
+          category: 'dimension',
+          levelId: 'lvl_01',
+          references: ['wall_ghost'],
+          offset: 200,
+          value: 4000,
+        },
+      },
+    });
+    expect(() => fromJSON(invalidDoc)).toThrowError(BimValidationError);
+    expect(() => fromJSON(invalidDoc)).toThrowError(/UNKNOWN_REFERENCED_ELEMENT/);
+  });
+
+  it('T-SER-7.6-04 : fromJSON rejette un escalier référençant un stairType ou un niveau inexistant', () => {
+    const invalidDoc = JSON.stringify({
+      ...sampleState,
+      stairs: {
+        stair_ghost: {
+          id: 'stair_ghost',
+          category: 'stair',
+          stairTypeId: 'st_ghost',
+          bottomLevelId: 'lvl_01',
+          topLevelId: 'lvl_01',
+          start: { x: 0, y: 0 },
+          end: { x: 3000, y: 0 },
+        },
+      },
+    });
+    expect(() => fromJSON(invalidDoc)).toThrowError(BimValidationError);
+    expect(() => fromJSON(invalidDoc)).toThrowError(/UNKNOWN_STAIR_TYPE/);
+  });
+
+  it('T-SER-7.6-05 : fromJSON rejette une toiture référençant un roofType ou un niveau inexistant', () => {
+    const invalidDoc = JSON.stringify({
+      ...sampleState,
+      roofs: {
+        roof_ghost: {
+          id: 'roof_ghost',
+          category: 'roof',
+          roofTypeId: 'rt_ghost',
+          levelId: 'lvl_01',
+          footprint: [
+            { x: 0, y: 0 },
+            { x: 4000, y: 0 },
+            { x: 4000, y: 4000 },
+          ],
+        },
+      },
+    });
+    expect(() => fromJSON(invalidDoc)).toThrowError(BimValidationError);
+    expect(() => fromJSON(invalidDoc)).toThrowError(/UNKNOWN_ROOF_TYPE/);
+  });
 });

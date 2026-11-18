@@ -405,7 +405,9 @@ export class DeleteWallCommand implements Command {
     }
     this.cascadedIds = Array.from(cascadeDeletes).sort();
 
-    // 3. Cascade Rooms sur ce niveau (D1 / Phase 4)
+    // 3. Impact sur les Pièces de ce niveau (Préservation de l'identité - Phase 7.6)
+    // Un BIM professionnel conserve l'entité Room (nom, germe, métadonnées) et bascule son statut
+    // en 'unenclosed' pour le Room Leak Detector, sans la détruire du document.
     const cascadedRooms: ElementId[] = [];
     if (draft.rooms) {
       const remainingRoomsOnLevel = Object.entries(draft.rooms).filter(
@@ -417,7 +419,10 @@ export class DeleteWallCommand implements Command {
         for (const [roomId, room] of remainingRoomsOnLevel) {
           const stillClosed = remainingDetected.some((d) => isPointInPolygon(room.seed, d.polygon));
           if (!stillClosed) {
-            Reflect.deleteProperty(draft.rooms, roomId);
+            draft.rooms[roomId] = {
+              ...room,
+              status: 'unenclosed',
+            };
             cascadedRooms.push(roomId);
           }
         }

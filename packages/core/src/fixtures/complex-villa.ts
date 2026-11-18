@@ -38,18 +38,24 @@ export function createComplexVillaState(): BimState {
     name: 'Façade ITE 300mm',
     thickness: 300,
     height: 2800,
+    isExternal: true,
+    loadBearing: true,
   };
   const wtRefend200: WallType = {
     id: 'wt_refend_200',
     name: 'Refend Béton 200mm',
     thickness: 200,
     height: 2800,
+    isExternal: false,
+    loadBearing: true,
   };
   const wtPart70: WallType = {
     id: 'wt_part_70',
     name: 'Cloison Plâtre 70mm',
     thickness: 70,
     height: 2800,
+    isExternal: false,
+    loadBearing: false,
   };
 
   const dtFront: DoorType = {

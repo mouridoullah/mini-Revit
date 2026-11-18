@@ -28,7 +28,7 @@ import {
 } from '@mini-bim/geometry';
 import { detectRooms } from './rooms/detect.js';
 import { computeStairGeometry } from './stairs.js';
-import { resolveWallGeometry } from './walls/resolve.js';
+import { resolveWallGeometry, getWallLocalHeadroom } from './walls/resolve.js';
 
 /**
  * Représente une violation de règle métier BIM identifiée sur une entité.
@@ -324,7 +324,6 @@ export function checkDoorViolations(door: Door, state: BimState): RuleViolation[
   }
 
   const resolved = resolveWallGeometry(hostWall, state);
-  const wallHeight = resolved.height;
   const wallLength = Math.hypot(
     hostWall.end.x - hostWall.start.x,
     hostWall.end.y - hostWall.start.y,
@@ -374,11 +373,12 @@ export function checkDoorViolations(door: Door, state: BimState): RuleViolation[
     });
   }
 
-  // 5. Débordement en hauteur
-  if (doorHeight > wallHeight) {
+  // 5. Débordement en hauteur (contrôle altimétrique local sous toiture / biseau)
+  const localHeadroom = getWallLocalHeadroom(resolved.topProfile, door.offsetAlong, doorWidth, resolved.zBase);
+  if (doorHeight > localHeadroom + 1e-3) {
     violations.push({
       code: 'INVALID_OPENING_HEIGHT',
-      message: `Door height (${doorHeight} mm) exceeds host wall height (${wallHeight} mm).`,
+      message: `Door height (${doorHeight} mm) exceeds host wall local headroom (${localHeadroom.toFixed(0)} mm).`,
       offendingIds: [door.id, hostWall.id],
     });
   }
@@ -446,7 +446,6 @@ export function checkWindowViolations(window: Window, state: BimState): RuleViol
   }
 
   const resolved = resolveWallGeometry(hostWall, state);
-  const wallHeight = resolved.height;
   const wallLength = Math.hypot(
     hostWall.end.x - hostWall.start.x,
     hostWall.end.y - hostWall.start.y,
@@ -504,11 +503,12 @@ export function checkWindowViolations(window: Window, state: BimState): RuleViol
     });
   }
 
-  // 5. Débordement en hauteur
-  if (window.sillHeight + winHeight > wallHeight) {
+  // 5. Débordement en hauteur (contrôle altimétrique local sous toiture / biseau)
+  const localHeadroom = getWallLocalHeadroom(resolved.topProfile, window.offsetAlong, winWidth, resolved.zBase);
+  if (window.sillHeight + winHeight > localHeadroom + 1e-3) {
     violations.push({
       code: 'INVALID_OPENING_HEIGHT',
-      message: `Window top (${window.sillHeight + winHeight} mm) exceeds host wall height (${wallHeight} mm).`,
+      message: `Window top (${window.sillHeight + winHeight} mm) exceeds host wall local headroom (${localHeadroom.toFixed(0)} mm).`,
       offendingIds: [window.id, hostWall.id],
     });
   }

@@ -19,12 +19,85 @@ export interface ResolvedWall {
   readonly zBase: number; // level.elevation + (wall.baseOffset ?? 0)
   readonly zTop: number; // max(topProfile.y)
   readonly height: number; // zTop - zBase (>= 0)
+  readonly grossAreaMm2: number; // surface latérale brute exacte de la face du mur en mm² (intégration polygonale sous topProfile)
   readonly heightSource: 'override' | 'constraint' | 'nominal'; // conservé pour rétrocompatibilité
   readonly wallHeightSource: 'override' | 'level' | 'roof'; // ADR-053 [D2]
   readonly limitingSlabId?: ElementId;
   readonly limitingRoofId?: ElementId;
   readonly openings: readonly ResolvedOpening[];
   readonly topProfile: readonly Vec2[]; // polyligne (offsetAlong, zAbsolu) de u = 0 à u = L
+}
+
+/**
+ * Calcule la surface latérale brute exacte (en mm²) d'une face de mur définie par
+ * son arase inférieure zBase et son profil supérieur polygonal topProfile.
+ */
+export function computeWallPolygonalSideArea(topProfile: readonly Vec2[], zBase: number): number {
+  if (topProfile.length < 2) return 0;
+  let totalArea = 0;
+  for (let i = 0; i < topProfile.length - 1; i++) {
+    const p1 = topProfile[i];
+    const p2 = topProfile[i + 1];
+    if (p1 && p2) {
+      const du = Math.abs(p2.x - p1.x);
+      const h1 = Math.max(0, p1.y - zBase);
+      const h2 = Math.max(0, p2.y - zBase);
+      totalArea += du * ((h1 + h2) / 2);
+    }
+  }
+  return totalArea;
+}
+
+/**
+ * Calcule le dégagement vertical minimal (hauteur libre locale en mm au-dessus de zBase)
+ * disponible pour une baie hébergée sur l'intervalle [offsetAlong, offsetAlong + width].
+ *
+ * Pour un mur rectangulaire, cette valeur est constante et égale à height.
+ * Pour un mur sous toiture ou biseauté, c'est le minimum altimétrique sous la pente
+ * sur toute la largeur de l'ouverture.
+ */
+export function getWallLocalHeadroom(
+  topProfile: readonly Vec2[],
+  offsetAlong: number,
+  width: number,
+  zBase: number,
+): number {
+  if (topProfile.length < 2) return 0;
+
+  const uStart = Math.max(0, offsetAlong);
+  const uEnd = uStart + width;
+
+  function evalZ(u: number): number {
+    const first = topProfile[0];
+    const last = topProfile[topProfile.length - 1];
+    if (!first || !last) return zBase;
+    if (u <= first.x) return first.y;
+    if (u >= last.x) return last.y;
+
+    for (let i = 0; i < topProfile.length - 1; i++) {
+      const p1 = topProfile[i];
+      const p2 = topProfile[i + 1];
+      if (p1 && p2 && u >= p1.x && u <= p2.x) {
+        const span = p2.x - p1.x;
+        if (span <= 1e-6) return Math.min(p1.y, p2.y);
+        const t = (u - p1.x) / span;
+        return p1.y + t * (p2.y - p1.y);
+      }
+    }
+    return last.y;
+  }
+
+  let minZ = Math.min(evalZ(uStart), evalZ(uEnd));
+  for (let i = 0; i < topProfile.length; i++) {
+    const pt = topProfile[i];
+    if (pt && pt.x > uStart && pt.x < uEnd) {
+      if (pt.y < minZ) {
+        minZ = pt.y;
+      }
+    }
+  }
+
+  return Math.max(0, minZ - zBase);
 }
 
 /**
@@ -192,11 +265,14 @@ export function resolveWallGeometry(wall: Wall, state: BimState): ResolvedWall {
 
   openings.sort((a, b) => a.offsetAlong - b.offsetAlong);
 
+  const grossAreaMm2 = computeWallPolygonalSideArea(topProfile, zBase);
+
   return {
     wallId: wall.id,
     zBase,
     zTop,
     height,
+    grossAreaMm2,
     heightSource,
     wallHeightSource,
     ...(limitingSlabId ? { limitingSlabId } : {}),

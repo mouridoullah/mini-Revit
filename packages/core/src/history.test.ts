@@ -358,9 +358,10 @@ describe('Gestionnaire d’Historique Transactionnel (history.ts)', () => {
     const delRes = doc.execute(new Commands.DeleteWallCommand('w_hist_w'));
     expect(delRes.changed).toEqual(['w_hist_w', 'room_hist_cascade']);
 
-    // 1. Invariant de cascade : le mur ET la Room ont disparu du state
+    // 1. Invariant Phase 7.6 : le mur a disparu du state, la Room conserve son entité avec statut 'unenclosed'
     expect(doc.getState().walls['w_hist_w']).toBeUndefined();
-    expect(doc.getState().rooms['room_hist_cascade']).toBeUndefined();
+    expect(doc.getState().rooms['room_hist_cascade']).toBeDefined();
+    expect(doc.getState().rooms['room_hist_cascade']?.status).toBe('unenclosed');
 
     // 2. Undo -> Restauration intégrale bit-à-bit du mur ET de la Room
     const undoRes = doc.undo();
@@ -374,11 +375,11 @@ describe('Gestionnaire d’Historique Transactionnel (history.ts)', () => {
     expect(restoredState.rooms['room_hist_cascade']?.name).toBe('Salon Principal');
     expect(restoredState).toEqual(stateBeforeDelete);
 
-    // 3. Redo -> Suppression à nouveau du mur et de la Room en cascade
+    // 3. Redo -> Suppression à nouveau du mur et bascule de la Room en 'unenclosed'
     const redoRes = doc.redo();
     expect(redoRes).toBe(true);
 
     expect(doc.getState().walls['w_hist_w']).toBeUndefined();
-    expect(doc.getState().rooms['room_hist_cascade']).toBeUndefined();
+    expect(doc.getState().rooms['room_hist_cascade']?.status).toBe('unenclosed');
   });
 });

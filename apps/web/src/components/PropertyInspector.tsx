@@ -291,13 +291,15 @@ export function PropertyInspector({
       );
     }
 
-    const id = selectedIds[0]!;
+    const id = selectedIds[0];
+    if (!id) return null;
 
     // 1. Mur
-    if (state.walls[id]) {
-      const wall = state.walls[id]!;
+    const wall = state.walls[id];
+    if (wall) {
       const isAuto = wall.heightOverride === undefined;
       const effectiveH = computeWallEffectiveHeight(wall, state);
+      const wallType = state.wallTypes[wall.typeId];
 
       // Calcul de pénétration de dalle si mode Fixe
       let penetrationMm = 0;
@@ -457,13 +459,43 @@ export function PropertyInspector({
               execute(new Commands.UpdateWallCommand(wall.id, { baseOffset: bo }));
             }}
           />
+
+          <div style={{ marginTop: '12px', borderTop: '1px solid #374151', paddingTop: '10px' }}>
+            <div style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 600, marginBottom: '6px' }}>
+              Sémantique BIM (IFC Pset_WallCommon)
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#e5e7eb', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  data-testid="wall-load-bearing-checkbox"
+                  checked={wall.loadBearing ?? wallType?.loadBearing ?? (wallType ? wallType.thickness >= 150 : true)}
+                  onChange={(e) => {
+                    execute(new Commands.UpdateWallCommand(wall.id, { loadBearing: e.target.checked }));
+                  }}
+                />
+                Porteur (LoadBearing)
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#e5e7eb', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  data-testid="wall-is-external-checkbox"
+                  checked={wall.isExternal ?? wallType?.isExternal ?? (wallType ? wallType.thickness >= 200 : true)}
+                  onChange={(e) => {
+                    execute(new Commands.UpdateWallCommand(wall.id, { isExternal: e.target.checked }));
+                  }}
+                />
+                Extérieur (IsExternal)
+              </label>
+            </div>
+          </div>
         </div>
       );
     }
 
     // 2. Dalle
-    if (state.slabs?.[id]) {
-      const slab = state.slabs[id]!;
+    const slab = state.slabs?.[id];
+    if (slab) {
       const currentSlabType = state.slabTypes?.[slab.slabTypeId];
 
       return (

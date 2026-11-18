@@ -34,6 +34,8 @@ export interface WallType {
   readonly thickness: number; // en mm (> 0)
   readonly height: number; // hauteur nominale en mm (> 0)
   readonly layers?: readonly Layer[];
+  readonly isExternal?: boolean; // Sémantique métier BIM : mur extérieur / de façade (défaut: true si thickness >= 200)
+  readonly loadBearing?: boolean; // Portance structurelle (défaut: true)
 }
 
 /**
@@ -70,6 +72,8 @@ export interface Wall {
   readonly baseOffset?: number | undefined; // Décalage vertical par rapport au niveau en mm
   readonly heightOverride?: number | undefined; // Surcharge optionnelle de la hauteur du type en mm
   readonly topConstraint?: TopConstraint | undefined; // Contrainte altimétrique supérieure
+  readonly isExternal?: boolean | undefined; // Surcharge d'instance optionnelle
+  readonly loadBearing?: boolean | undefined; // Surcharge d'instance optionnelle
 }
 
 /**

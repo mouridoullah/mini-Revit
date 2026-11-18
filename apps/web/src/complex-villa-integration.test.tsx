@@ -45,10 +45,10 @@ describe('Intégration UI & Double Rendu 2D/3D — « Villa Contemporaine Comple
 
     const textContent = container.textContent ?? '';
 
-    // Vérification du tableau de métrés analytiques
+    // Vérification du tableau de métrés analytiques (calcul polygonal exact Phase 7.6 : 156.79m² réels sous pignon)
     expect(textContent).toContain('Métrés');
     expect(textContent).toContain('Linéaire total50.76m');
-    expect(textContent).toContain('Surface nette totale178.20m²');
+    expect(textContent).toContain('Surface nette totale156.79m²');
     expect(textContent).toContain('Portes4u');
     expect(textContent).toContain('Fenêtres2u');
     expect(textContent).toContain('Cellier4.38m²');

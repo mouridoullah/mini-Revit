@@ -150,6 +150,8 @@ export {
 } from './walls.js';
 export {
   resolveWallGeometry,
+  computeWallPolygonalSideArea,
+  getWallLocalHeadroom,
   type ResolvedWall,
   type ResolvedOpening,
 } from './walls/resolve.js';

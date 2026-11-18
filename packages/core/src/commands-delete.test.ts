@@ -10,6 +10,7 @@ import {
 } from './commands.js';
 import type { Door, Window, Dimension, Room } from './types.js';
 import { vec2 } from '@mini-bim/geometry';
+import { diagnoseRoomLeaks } from './rooms/leak-detector.js';
 
 describe('DeleteWallCommand Refactoré — Équivalence Comportementale (T-CMD-01 à 08)', () => {
   it('T-CMD-01: apply() sur mur avec 2 portes + 1 fenêtre supprime le mur et les 3 ouvertures', () => {
@@ -382,7 +383,7 @@ describe('DeleteWallCommand Refactoré — Équivalence Comportementale (T-CMD-0
     expect(doc.getState().walls['w_undo_1']).toBeUndefined();
   });
 
-  it('T-CMD-08: DeleteWallCommand continue de supprimer les Rooms en cascade (Phase 4 inchangée)', () => {
+  it('T-CMD-08: DeleteWallCommand préserve les Rooms en tant qu entités non closes (Cycle de vie BIM Phase 7.6)', () => {
     const doc = BimDocument.createDefaultProject();
     const levelId = Object.keys(doc.getState().levels)[0]!;
     const typeId = Object.keys(doc.getState().wallTypes)[0]!;
@@ -439,7 +440,20 @@ describe('DeleteWallCommand Refactoré — Équivalence Comportementale (T-CMD-0
     );
     expect(doc.getState().rooms['r_legacy']).toBeDefined();
 
-    doc.execute(new DeleteWallCommand('wa'));
-    expect(doc.getState().rooms['r_legacy']).toBeUndefined();
+    const cmd = new DeleteWallCommand('wa');
+    doc.execute(cmd);
+
+    // L'entité Room n'est plus sauvagement détruite : elle conserve son identité
+    expect(doc.getState().rooms['r_legacy']).toBeDefined();
+    expect(doc.getState().rooms['r_legacy']?.name).toBe('Salon');
+
+    // La commande l'a bien signalée comme impactée (changedIds)
+    expect(cmd.getChangedIds()).toContain('r_legacy');
+
+    // Le diagnostic de fuite de pièce (RoomLeakDetector) détecte immédiatement l'ouverture
+    const leaks = diagnoseRoomLeaks(doc.getState(), levelId);
+    expect(leaks.length).toBeGreaterThanOrEqual(1);
+    expect(['unclosed_boundary', 'isolated']).toContain(leaks[0]!.kind);
+    expect(doc.getState().rooms['r_legacy']?.status).toBe('unenclosed');
   });
 });
