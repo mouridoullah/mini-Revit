@@ -14,6 +14,9 @@ import {
   type Roof,
   type RoofOpening,
   type GableRoofType,
+  type ComponentType,
+  type Component,
+  type ComponentFamily,
   type BimState,
   type ElementId,
 } from './types.js';
@@ -1232,6 +1235,125 @@ export function validateRoofOpening(opening: RoofOpening, state: BimState): void
   }
 }
 
+/**
+ * Vérifie les contraintes métier sur un ComponentType (Phase 8).
+ */
+export function checkComponentTypeViolations(componentType: ComponentType): RuleViolation[] {
+  const violations: RuleViolation[] = [];
+  if (!componentType.name || componentType.name.trim() === '') {
+    violations.push({
+      code: 'INVALID_COMPONENT_NAME',
+      message: `ComponentType "${componentType.id}" has an empty name.`,
+      offendingIds: [componentType.id],
+    });
+  }
+  if (
+    !Number.isFinite(componentType.width) ||
+    componentType.width <= 0 ||
+    !Number.isFinite(componentType.depth) ||
+    componentType.depth <= 0 ||
+    !Number.isFinite(componentType.height) ||
+    componentType.height <= 0
+  ) {
+    violations.push({
+      code: 'INVALID_COMPONENT_DIMENSIONS',
+      message: `ComponentType "${componentType.id}" dimensions must be strictly positive finite numbers.`,
+      offendingIds: [componentType.id],
+    });
+  }
+  const validFamilies: ComponentFamily[] = ['sanitary', 'kitchen', 'furniture', 'glazing'];
+  if (!validFamilies.includes(componentType.family)) {
+    violations.push({
+      code: 'INVALID_COMPONENT_FAMILY',
+      message: `ComponentType "${componentType.id}" has invalid family "${componentType.family}".`,
+      offendingIds: [componentType.id],
+    });
+  }
+  return violations;
+}
+
+export function validateComponentType(componentType: ComponentType): void {
+  const violations = checkComponentTypeViolations(componentType);
+  if (violations.length > 0) {
+    const v = violations[0];
+    if (v) {
+      throw new BimValidationError(v.code, v.message, { offendingIds: v.offendingIds });
+    }
+  }
+}
+
+/**
+ * Vérifie les contraintes métier sur une instance de composant (Phase 8).
+ */
+export function checkComponentViolations(component: Component, state: BimState): RuleViolation[] {
+  const violations: RuleViolation[] = [];
+
+  // 1. Intégrité du type
+  if (!state.componentTypes || !state.componentTypes[component.typeId]) {
+    violations.push({
+      code: 'UNKNOWN_COMPONENT_TYPE',
+      message: `Component "${component.id}" references non-existent ComponentType ID: "${component.typeId}".`,
+      offendingIds: [component.id],
+    });
+  }
+
+  // 2. Intégrité du niveau
+  if (!state.levels[component.levelId]) {
+    violations.push({
+      code: 'UNKNOWN_LEVEL',
+      message: `Component "${component.id}" references non-existent Level ID: "${component.levelId}".`,
+      offendingIds: [component.id],
+    });
+  }
+
+  // 3. Intégrité de placement
+  if (!Number.isFinite(component.placement.x) || !Number.isFinite(component.placement.y)) {
+    violations.push({
+      code: 'MALFORMED_COMPONENT',
+      message: `Component "${component.id}" has non-finite placement coordinates.`,
+      offendingIds: [component.id],
+    });
+  }
+
+  // 4. Intégrité du mur hôte si spécifié
+  if (component.placement.hostWallId && !state.walls[component.placement.hostWallId]) {
+    violations.push({
+      code: 'UNKNOWN_HOST_WALL',
+      message: `Component "${component.id}" references non-existent host wall ID: "${component.placement.hostWallId}".`,
+      offendingIds: [component.id],
+    });
+  }
+
+  return violations;
+}
+
+export function validateComponent(component: Component, state: BimState): void {
+  const violations = checkComponentViolations(component, state);
+  if (violations.length > 0) {
+    const v = violations[0];
+    if (v) {
+      throw new BimValidationError(v.code, v.message, { offendingIds: v.offendingIds });
+    }
+  }
+}
+
+export function canDeleteComponentType(
+  componentTypeId: ElementId,
+  state: BimState,
+): { readonly allowed: boolean; readonly reason?: string } {
+  if (!state.componentTypes?.[componentTypeId]) {
+    return { allowed: false, reason: `ComponentType "${componentTypeId}" does not exist.` };
+  }
+  const attached = Object.values(state.components ?? {}).filter((c) => c.typeId === componentTypeId);
+  if (attached.length > 0) {
+    return {
+      allowed: false,
+      reason: `ComponentType "${componentTypeId}" is referenced by ${attached.length} component(s).`,
+    };
+  }
+  return { allowed: true };
+}
+
 export function canDeleteRoofType(
   roofTypeId: ElementId,
   state: BimState,
@@ -1327,6 +1449,14 @@ export function canDeleteLevel(
     return {
       allowed: false,
       reason: `Cannot delete Level "${levelId}": ${attachedRooms.length} room(s) are attached to it.`,
+    };
+  }
+
+  const attachedComponents = Object.values(state.components ?? {}).filter((c) => c.levelId === levelId);
+  if (attachedComponents.length > 0) {
+    return {
+      allowed: false,
+      reason: `Cannot delete Level "${levelId}": ${attachedComponents.length} component(s) are attached to it.`,
     };
   }
 
@@ -1469,6 +1599,22 @@ export function collectViolationsForDirty(
     const roofOpening = state.roofOpenings?.[id];
     if (roofOpening) {
       for (const v of checkRoofOpeningViolations(roofOpening, state)) {
+        pushViolation(v);
+      }
+    }
+
+    // 15. Composants (Components)
+    const component = state.components?.[id];
+    if (component) {
+      for (const v of checkComponentViolations(component, state)) {
+        pushViolation(v);
+      }
+    }
+
+    // 16. Types de composants (ComponentTypes)
+    const componentType = state.componentTypes?.[id];
+    if (componentType) {
+      for (const v of checkComponentTypeViolations(componentType)) {
         pushViolation(v);
       }
     }

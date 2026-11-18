@@ -20,6 +20,11 @@ export type {
   RoofFamily,
   FlatRoofType,
   GableRoofType,
+  ComponentFamily,
+  ComponentSubType,
+  ComponentType,
+  ComponentPlacement,
+  Component,
   DoorType,
   WindowType,
   TopConstraint,
@@ -91,6 +96,12 @@ export {
   AddRoofOpeningCommand,
   UpdateRoofOpeningCommand,
   DeleteRoofOpeningCommand,
+  AddComponentTypeCommand,
+  UpdateComponentTypeCommand,
+  DeleteComponentTypeCommand,
+  AddComponentCommand,
+  UpdateComponentCommand,
+  DeleteComponentCommand,
 } from './commands.js';
 export {
   BimValidationError,
@@ -117,6 +128,11 @@ export {
   checkRoofOpeningViolations,
   canDeleteRoof,
   canDeleteRoofType,
+  validateComponent,
+  validateComponentType,
+  checkComponentViolations,
+  checkComponentTypeViolations,
+  canDeleteComponentType,
   validateRoom,
   validateDimension,
   canDeleteWall,
@@ -138,6 +154,7 @@ export { generateId } from './ids.js';
 export { toJSON, fromJSON } from './serialization.js';
 export { HistoryStack, type HistoryEntry } from './history.js';
 export * from './roofs/index.js';
+export * from './components/catalog.js';
 export * from './rooms/index.js';
 export * from './metrics.js';
 export { computeDimensionValue } from './dimensions/index.js';

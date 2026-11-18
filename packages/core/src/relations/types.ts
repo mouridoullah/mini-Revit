@@ -16,6 +16,8 @@ export type EntityCategory =
   | 'slabType'
   | 'stairType'
   | 'roofType'
+  | 'component'
+  | 'componentType'
   | 'room';
 
 export interface RelationDef {

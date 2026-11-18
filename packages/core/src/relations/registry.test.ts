@@ -20,12 +20,14 @@ describe('RELATIONS_REGISTRY — Intégrité Référentielle Déclarative (T-REG
     'roofType',
     'roofOpening',
     'room',
+    'component',
+    'componentType',
   ]);
 
   const VALID_ACTIONS: Set<CascadeAction> = new Set(['cascade', 'restrict', 'detach']);
 
-  it('T-REG-01: Registry contient exactement les 15 relations déclarées (Phase 7)', () => {
-    expect(RELATIONS_REGISTRY.length).toBe(15);
+  it('T-REG-01: Registry contient exactement les 17 relations déclarées (Phase 8)', () => {
+    expect(RELATIONS_REGISTRY.length).toBe(17);
   });
 
   it('T-REG-02: Tous les sourceCategory sont des catégories existantes', () => {

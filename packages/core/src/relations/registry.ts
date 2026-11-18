@@ -104,4 +104,17 @@ export const RELATIONS_REGISTRY: readonly RelationDef[] = [
     targetCategory: 'roof',
     onDelete: 'cascade',
   },
+  // 9. Composants d'aménagement rattachés à leur type et niveau (Restrict, Phase 8)
+  {
+    sourceCategory: 'component',
+    field: 'typeId',
+    targetCategory: 'componentType',
+    onDelete: 'restrict',
+  },
+  {
+    sourceCategory: 'component',
+    field: 'levelId',
+    targetCategory: 'level',
+    onDelete: 'restrict',
+  },
 ] as const;

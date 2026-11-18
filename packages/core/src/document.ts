@@ -13,6 +13,7 @@ import { toJSON, fromJSON } from './serialization.js';
 import { generateId } from './ids.js';
 import { DependencyGraph } from './dag/DependencyGraph.js';
 import { validateDirty } from './rules.js';
+import { createDefaultComponentTypes } from './components/catalog.js';
 
 /**
  * Gestionnaire documentaire central du projet Mini-BIM.
@@ -145,6 +146,7 @@ export class BimDocument {
         [defaultGableRoofTypeId]: defaultGableRoofType,
         [defaultFlatRoofTypeId]: defaultFlatRoofType,
       },
+      componentTypes: createDefaultComponentTypes(),
       walls: {},
       slabs: {},
       doors: {},
@@ -154,6 +156,7 @@ export class BimDocument {
       stairs: {},
       roofs: {},
       roofOpenings: {},
+      components: {},
     };
 
     return new BimDocument(state);

@@ -325,6 +325,77 @@ export interface RoofOpening {
 }
 
 /**
+ * Grandes familles de composants architecturaux et mobilier (Phase 8).
+ */
+export type ComponentFamily = 'sanitary' | 'kitchen' | 'furniture' | 'glazing';
+
+/**
+ * Sous-catégories fonctionnelles des composants architecturaux.
+ */
+export type ComponentSubType =
+  // Sanitaires
+  | 'toilet'
+  | 'sink'
+  | 'shower'
+  | 'bath'
+  // Cuisine
+  | 'kitchen_base'
+  | 'kitchen_wall'
+  | 'sink_unit'
+  | 'appliance'
+  // Mobilier
+  | 'bed'
+  | 'table'
+  | 'chair'
+  | 'sofa'
+  | 'cabinet'
+  // Menuiseries enrichies
+  | 'sliding_door'
+  | 'french_window';
+
+/**
+ * Famille paramétrique d'un composant d'aménagement ou mobilier (Phase 8).
+ */
+export interface ComponentType {
+  readonly id: ElementId;
+  readonly category: 'componentType';
+  readonly name: string;
+  readonly family: ComponentFamily;
+  readonly subType: ComponentSubType;
+  readonly width: number; // en mm (> 0), dimension locale X
+  readonly depth: number; // en mm (> 0), dimension locale Y
+  readonly height: number; // en mm (> 0), dimension locale Z
+  readonly defaultElevationOffset?: number | undefined; // surélévation par défaut par rapport au sol (ex: 850mm)
+  readonly ifcEntity?: ('IfcFurnishingElement' | 'IfcSanitaryTerminal' | 'IfcFlowTerminal' | 'IfcDoor' | 'IfcWindow') | undefined;
+  readonly parameters?: Record<string, number | string | boolean> | undefined;
+}
+
+/**
+ * Positionnement spatial 2D/3D d'une instance de composant.
+ */
+export interface ComponentPlacement {
+  readonly x: number; // coordonnée X en mm dans le repère du niveau
+  readonly y: number; // coordonnée Y en mm dans le repère du niveau
+  readonly rotation?: number | undefined; // angle de rotation en radians autour de l'axe vertical Z (défaut: 0)
+  readonly elevationOffset?: number | undefined; // surcharge altimétrique optionnelle (mm)
+  readonly hostWallId?: ElementId | undefined; // identifiant optionnel du mur hôte / adossé
+  readonly flipped?: boolean | undefined; // inversion miroir locale X
+}
+
+/**
+ * Instance d'un composant architectural ou d'un meuble posé dans le bâtiment.
+ */
+export interface Component {
+  readonly id: ElementId;
+  readonly category: 'component';
+  readonly typeId: ElementId; // Référence vers ComponentType
+  readonly levelId: ElementId; // Rattachement altimétrique et spatial
+  readonly placement: ComponentPlacement;
+  readonly name?: string | undefined;
+  readonly materialOverride?: string | undefined;
+}
+
+/**
  * État documentaire immuable complet du projet Mini-BIM (Schéma v2 / Saison 2).
  * Normalisé sous forme de dictionnaires indexés par ElementId.
  */
@@ -338,6 +409,7 @@ export interface BimState {
   readonly windowTypes: Record<ElementId, WindowType>;
   readonly stairTypes?: Record<ElementId, StairType>;
   readonly roofTypes?: Record<ElementId, RoofType>;
+  readonly componentTypes?: Record<ElementId, ComponentType>;
   readonly walls: Record<ElementId, Wall>;
   readonly slabs: Record<ElementId, Slab>;
   readonly doors: Record<ElementId, Door>;
@@ -347,6 +419,7 @@ export interface BimState {
   readonly stairs?: Record<ElementId, Stair>;
   readonly roofs?: Record<ElementId, Roof>;
   readonly roofOpenings?: Record<ElementId, RoofOpening>;
+  readonly components?: Record<ElementId, Component>;
 }
 
 /**

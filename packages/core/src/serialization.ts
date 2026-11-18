@@ -593,5 +593,63 @@ export function fromJSON(jsonString: string): BimState {
     }
   }
 
+  // 18. Validation des Composants si présents (ComponentTypes & Components, Phase 8)
+  if (state.componentTypes && typeof state.componentTypes === 'object' && !Array.isArray(state.componentTypes)) {
+    for (const [id, ct] of Object.entries(state.componentTypes)) {
+      if (
+        !ct ||
+        typeof ct !== 'object' ||
+        ct.id !== id ||
+        ct.category !== 'componentType' ||
+        typeof ct.name !== 'string' ||
+        !Number.isFinite(ct.width) ||
+        ct.width <= 0 ||
+        !Number.isFinite(ct.depth) ||
+        ct.depth <= 0 ||
+        !Number.isFinite(ct.height) ||
+        ct.height <= 0
+      ) {
+        throw new BimValidationError('MALFORMED_COMPONENT_TYPE', `Malformed componentType entry at "${id}".`);
+      }
+    }
+  }
+
+  if (state.components && typeof state.components === 'object' && !Array.isArray(state.components)) {
+    for (const [id, comp] of Object.entries(state.components)) {
+      if (
+        !comp ||
+        typeof comp !== 'object' ||
+        comp.id !== id ||
+        comp.category !== 'component' ||
+        typeof comp.typeId !== 'string' ||
+        typeof comp.levelId !== 'string' ||
+        !comp.placement ||
+        typeof comp.placement !== 'object' ||
+        !Number.isFinite(comp.placement.x) ||
+        !Number.isFinite(comp.placement.y)
+      ) {
+        throw new BimValidationError('MALFORMED_COMPONENT', `Malformed component entry at "${id}".`);
+      }
+      if (!state.componentTypes || !state.componentTypes[comp.typeId]) {
+        throw new BimValidationError(
+          'UNKNOWN_COMPONENT_TYPE',
+          `Component "${id}" references non-existent ComponentType ID: "${comp.typeId}".`,
+        );
+      }
+      if (!state.levels[comp.levelId]) {
+        throw new BimValidationError(
+          'UNKNOWN_LEVEL',
+          `Component "${id}" references non-existent Level ID: "${comp.levelId}".`,
+        );
+      }
+      if (comp.placement.hostWallId && !state.walls[comp.placement.hostWallId]) {
+        throw new BimValidationError(
+          'UNKNOWN_HOST_WALL',
+          `Component "${id}" references non-existent host wall ID: "${comp.placement.hostWallId}".`,
+        );
+      }
+    }
+  }
+
   return state;
 }

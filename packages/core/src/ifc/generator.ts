@@ -855,6 +855,86 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
   }
 
   // -------------------------------------------------------------------------
+  // Composants d'aménagement et mobilier (IfcFurnishingElement, IfcSanitaryTerminal - Phase 8)
+  // -------------------------------------------------------------------------
+  if (state.components && Object.keys(state.components).length > 0) {
+    for (const comp of Object.values(state.components)) {
+      const type = state.componentTypes?.[comp.typeId];
+      if (!type) continue;
+
+      const defaultStorey = storeyMap.get(defaultLevel.id);
+      const storeyInfo = storeyMap.get(comp.levelId) || defaultStorey;
+      if (!storeyInfo) continue;
+
+      const elevationOffset = comp.placement.elevationOffset ?? type.defaultElevationOffset ?? 0;
+      const rotation = comp.placement.rotation ?? 0;
+      const cos = Math.cos(rotation);
+      const sin = Math.sin(rotation);
+
+      // Placement spatial 3D relatif à l'étage
+      const ptComp = writer.add(
+        `IFCCARTESIANPOINT((${comp.placement.x.toFixed(2)},${comp.placement.y.toFixed(2)},${elevationOffset.toFixed(2)}))`,
+      );
+      const dirU = writer.add(`IFCDIRECTION((${cos.toFixed(6)},${sin.toFixed(6)},0.))`);
+      const placementComp3D = writer.add(`IFCAXIS2PLACEMENT3D(#${ptComp},#${dirZ},#${dirU})`);
+      const compPlacement = writer.add(
+        `IFCLOCALPLACEMENT(#${storeyInfo.placementId},#${placementComp3D})`,
+      );
+
+      // Solide prismatique extrudé (rectangle W × D centré en plan)
+      const halfW = type.width / 2;
+      const halfD = type.depth / 2;
+      const p1 = writer.add(`IFCCARTESIANPOINT((${(-halfW).toFixed(2)},${(-halfD).toFixed(2)}))`);
+      const p2 = writer.add(`IFCCARTESIANPOINT((${halfW.toFixed(2)},${(-halfD).toFixed(2)}))`);
+      const p3 = writer.add(`IFCCARTESIANPOINT((${halfW.toFixed(2)},${halfD.toFixed(2)}))`);
+      const p4 = writer.add(`IFCCARTESIANPOINT((${(-halfW).toFixed(2)},${halfD.toFixed(2)}))`);
+      const polyline = writer.add(`IFCPOLYLINE((#${p1},#${p2},#${p3},#${p4},#${p1}))`);
+      const profile = writer.add(
+        `IFCARBITRARYCLOSEDPROFILEDEF(.AREA.,'${escapeIfcString(type.name)}Profile',#${polyline})`,
+      );
+      const solid = writer.add(
+        `IFCEXTRUDEDAREASOLID(#${profile},#${placementWorld3D},#${dirZ},${type.height.toFixed(2)})`,
+      );
+      const shapeRep = writer.add(
+        `IFCSHAPEREPRESENTATION(#${geomSubContext},'Body','SweptSolid',(#${solid}))`,
+      );
+      const prodShape = writer.add(`IFCPRODUCTDEFINITIONSHAPE($,$,(#${shapeRep}))`);
+
+      const compGuid = createIfcGuid();
+      const compName = escapeIfcString(comp.name || type.name);
+      const typeName = escapeIfcString(type.name);
+
+      let ifcElemId: number;
+      const entity = type.ifcEntity || (type.family === 'sanitary' ? 'IfcSanitaryTerminal' : 'IfcFurnishingElement');
+
+      if (entity === 'IfcSanitaryTerminal') {
+        ifcElemId = writer.add(
+          `IFCSANITARYTERMINAL('${compGuid}',#${ownerHistory},'${compName}',$,'${typeName}',#${compPlacement},#${prodShape},$,.NOTDEFINED.)`,
+        );
+      } else if (entity === 'IfcDoor') {
+        ifcElemId = writer.add(
+          `IFCDOOR('${compGuid}',#${ownerHistory},'${compName}',$,'${typeName}',#${compPlacement},#${prodShape},$,${type.height.toFixed(2)},${type.width.toFixed(2)},.USERDEFINED.,.SWINGING.,$)`,
+        );
+      } else if (entity === 'IfcWindow') {
+        ifcElemId = writer.add(
+          `IFCWINDOW('${compGuid}',#${ownerHistory},'${compName}',$,'${typeName}',#${compPlacement},#${prodShape},$,${type.height.toFixed(2)},${type.width.toFixed(2)},.USERDEFINED.,.SIDEHUNG.,$)`,
+        );
+      } else {
+        ifcElemId = writer.add(
+          `IFCFURNISHINGELEMENT('${compGuid}',#${ownerHistory},'${compName}',$,'${typeName}',#${compPlacement},#${prodShape},$)`,
+        );
+      }
+
+      // Rattachement au niveau (IfcRelContainedInSpatialStructure)
+      const elementsList =
+        storeyElementsMap.get(comp.levelId) || storeyElementsMap.get(defaultLevel.id);
+      if (elementsList) {
+        elementsList.push(ifcElemId);
+      }
+    }
+  }
+
+  // -------------------------------------------------------------------------
   // Rattachement spatial : IfcRelContainedInSpatialStructure
   // -------------------------------------------------------------------------
   for (const [lvlId, elemIds] of storeyElementsMap.entries()) {

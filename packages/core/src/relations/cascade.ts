@@ -41,6 +41,10 @@ function getEntitiesForCategory(
         return state.roofTypes ?? {};
       case 'roofOpening':
         return state.roofOpenings ?? {};
+      case 'component':
+        return state.components ?? {};
+      case 'componentType':
+        return state.componentTypes ?? {};
       default:
         return {};
     }
