@@ -1,4 +1,4 @@
-import type { BimState, ElementId } from '../types.js';
+import type { BimState, ElementId, Wall } from '../types.js';
 import { BimValidationError } from '../rules.js';
 import type { RelationDef, EntityCategory } from '../relations/types.js';
 import { RELATIONS_REGISTRY } from '../relations/registry.js';
@@ -229,6 +229,10 @@ export class DependencyGraph {
         }
       }
 
+      const wallsByTopLevelId = new Map<ElementId, ElementId[]>();
+      const wallsByRoofId = new Map<ElementId, ElementId[]>();
+      const unconstrainedWalls: Wall[] = [];
+
       const walls = state.walls;
       if (walls) {
         for (const id in walls) {
@@ -238,8 +242,22 @@ export class DependencyGraph {
           if (w.levelId) graph.addEdge(w.levelId, w.id);
           if (w.topConstraint?.kind === 'roof' && w.topConstraint.roofId) {
             graph.addEdge(w.topConstraint.roofId, w.id);
+            let rList = wallsByRoofId.get(w.topConstraint.roofId);
+            if (!rList) {
+              rList = [];
+              wallsByRoofId.set(w.topConstraint.roofId, rList);
+            }
+            rList.push(w.id);
           } else if (w.topConstraint?.levelId) {
             graph.addEdge(w.topConstraint.levelId, w.id);
+            let tList = wallsByTopLevelId.get(w.topConstraint.levelId);
+            if (!tList) {
+              tList = [];
+              wallsByTopLevelId.set(w.topConstraint.levelId, tList);
+            }
+            tList.push(w.id);
+          } else if (!w.topConstraint) {
+            unconstrainedWalls.push(w);
           }
         }
       }
@@ -261,21 +279,29 @@ export class DependencyGraph {
         }
       }
 
+      const slabsByLevelId = new Map<ElementId, ElementId[]>();
       const slabs = state.slabs;
       if (slabs) {
         for (const id in slabs) {
           const s = slabs[id];
           if (!s) continue;
-          if (s.levelId) graph.addEdge(s.levelId, s.id);
+          if (s.levelId) {
+            graph.addEdge(s.levelId, s.id);
+            let sList = slabsByLevelId.get(s.levelId);
+            if (!sList) {
+              sList = [];
+              slabsByLevelId.set(s.levelId, sList);
+            }
+            sList.push(s.id);
+          }
           if (s.slabTypeId) graph.addEdge(s.slabTypeId, s.id);
 
           // Arête slab(N+1) -> wall(N) pour les murs contraints par ce niveau (ADR-045 D2)
-          if (walls) {
-            for (const wallId in walls) {
-              const w = walls[wallId];
-              if (w && w.topConstraint?.levelId === s.levelId) {
-                graph.addEdge(s.id, w.id);
-              }
+          const matchingWalls = wallsByTopLevelId.get(s.levelId);
+          if (matchingWalls) {
+            for (let i = 0; i < matchingWalls.length; i++) {
+              const wid = matchingWalls[i];
+              if (wid) graph.addEdge(s.id, wid);
             }
           }
         }
@@ -288,14 +314,14 @@ export class DependencyGraph {
           if (!st) continue;
           if (st.stairTypeId) graph.addEdge(st.stairTypeId, st.id);
           if (st.bottomLevelId) graph.addEdge(st.bottomLevelId, st.id);
-          if (st.topLevelId) graph.addEdge(st.topLevelId, st.id);
-
-          // Arête DAG stair -> slab(topLevelId) pour la dérivation dynamique de trémie (ADR-048 §5)
-          if (slabs) {
-            for (const slabId in slabs) {
-              const slab = slabs[slabId];
-              if (slab && slab.levelId === st.topLevelId) {
-                graph.addEdge(st.id, slab.id);
+          if (st.topLevelId) {
+            graph.addEdge(st.topLevelId, st.id);
+            // Arête DAG stair -> slab(topLevelId) pour la dérivation dynamique de trémie (ADR-048 §5)
+            const matchingSlabs = slabsByLevelId.get(st.topLevelId);
+            if (matchingSlabs) {
+              for (let i = 0; i < matchingSlabs.length; i++) {
+                const sid = matchingSlabs[i];
+                if (sid) graph.addEdge(st.id, sid);
               }
             }
           }
@@ -311,20 +337,18 @@ export class DependencyGraph {
           if (r.levelId) graph.addEdge(r.levelId, r.id);
 
           // Arête DAG roof -> walls sous-jacents (ou wall.topConstraint.roofId)
-          if (walls) {
-            for (const wallId in walls) {
-              const w = walls[wallId];
-              if (!w) continue;
-              if (w.topConstraint?.kind === 'roof') {
-                if (w.topConstraint.roofId === r.id) {
-                  graph.addEdge(r.id, w.id);
-                }
-              } else if (!w.topConstraint) {
-                // Dépendance géométrique ciblée : uniquement si le mur est sous l'emprise du toit
-                if (isWallCoveredByRoof(w, r)) {
-                  graph.addEdge(r.id, w.id);
-                }
-              }
+          const constrainedRoofWalls = wallsByRoofId.get(r.id);
+          if (constrainedRoofWalls) {
+            for (let i = 0; i < constrainedRoofWalls.length; i++) {
+              const wid = constrainedRoofWalls[i];
+              if (wid) graph.addEdge(r.id, wid);
+            }
+          }
+          // Dépendance géométrique ciblée : uniquement pour les murs sans contrainte supérieure sous l'emprise du toit
+          for (let i = 0; i < unconstrainedWalls.length; i++) {
+            const w = unconstrainedWalls[i];
+            if (w && isWallCoveredByRoof(w, r)) {
+              graph.addEdge(r.id, w.id);
             }
           }
         }
