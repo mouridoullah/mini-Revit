@@ -279,8 +279,8 @@ export function findComponentAtScreen(
     const u = dx * cos - dy * sin;
     const v = dx * sin + dy * cos;
 
-    const halfW = type.width / 2;
-    const halfD = type.depth / 2;
+    const halfW = (comp.widthOverride ?? type.width) / 2;
+    const halfD = (comp.depthOverride ?? type.depth) / 2;
 
     if (
       Math.abs(u) <= halfW + toleranceMm &&

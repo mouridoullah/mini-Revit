@@ -189,6 +189,11 @@ export interface ComponentFor2D {
     readonly elevationOffset?: number | undefined;
     readonly hostWallId?: string | undefined;
   };
+  readonly widthOverride?: number | undefined;
+  readonly depthOverride?: number | undefined;
+  readonly heightOverride?: number | undefined;
+  readonly showClearanceZone?: boolean | undefined;
+  readonly openingId?: string | undefined;
   readonly name?: string | undefined;
 }
 
@@ -204,6 +209,14 @@ export interface ComponentTypeFor2D {
   readonly depth: number;
   readonly height: number;
   readonly defaultElevationOffset?: number | undefined;
+  readonly minWidth?: number | undefined;
+  readonly maxWidth?: number | undefined;
+  readonly minDepth?: number | undefined;
+  readonly maxDepth?: number | undefined;
+  readonly minHeight?: number | undefined;
+  readonly maxHeight?: number | undefined;
+  readonly allowedWidths?: readonly number[] | undefined;
+  readonly clearanceDepth?: number | undefined;
 }
 
 /**

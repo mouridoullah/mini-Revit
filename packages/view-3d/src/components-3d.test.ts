@@ -147,6 +147,41 @@ describe('Rendu 3D des Composants et Mobilier (Phase 8.2B — packages/view-3d)'
       expect(sizeY).toBeCloseTo(1600, 1);
     });
 
+    it('applique les surcharges dimensionnelles par instance (widthOverride, depthOverride, heightOverride - Phase 8.4)', () => {
+      const tableType = SAMPLE_CATALOG.find((c) => c.subType === 'table')!;
+      const nominalMesh = createComponentMesh({ id: 'comp_nominal', placement: { x: 0, y: 0 } }, tableType, 0)!;
+
+      const overriddenMesh = createComponentMesh(
+        {
+          id: 'comp_override',
+          placement: { x: 0, y: 0 },
+          widthOverride: 2400,
+          depthOverride: 1200,
+          heightOverride: 900,
+        },
+        tableType,
+        0,
+      )!;
+
+      // Calcul des boîtes englobantes des maillages générés
+      let maxNominalX = -Infinity;
+      for (let i = 0; i < nominalMesh.positions.length; i += 3) {
+        const x = nominalMesh.positions[i]!;
+        if (x > maxNominalX) maxNominalX = x;
+      }
+
+      let maxOverrideX = -Infinity;
+      for (let i = 0; i < overriddenMesh.positions.length; i += 3) {
+        const x = overriddenMesh.positions[i]!;
+        if (x > maxOverrideX) maxOverrideX = x;
+      }
+
+      // La table surchargée à 2400 mm de largeur a sa demi-largeur max à 1200 mm
+      expect(maxOverrideX).toBeCloseTo(1200, 1);
+      expect(maxNominalX).toBeCloseTo(tableType.width / 2, 1);
+      expect(maxOverrideX).toBeGreaterThan(maxNominalX);
+    });
+
     it('retourne null si les dimensions sont invalides ou nulles', () => {
       const invalidType: ComponentTypeMeshInput = {
         ...SAMPLE_CATALOG[0]!,

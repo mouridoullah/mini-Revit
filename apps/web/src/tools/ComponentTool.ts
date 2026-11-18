@@ -119,20 +119,75 @@ export class ComponentTool implements Tool {
     // 2. Déplacement du pointeur (Prévisualisation)
     if (event.type === 'pointermove') {
       const rawWorld = ctx.transform.screenToWorld(event.screen);
-      const snappedPos: Vec2 = {
+
+      // Détection optionnelle d'un mur hôte sous le curseur (avec tolérance magnétique de capture)
+      const hitWallId = findWallAtScreen(event.screen, ctx.transform, ctx.doc, {
+        activeLevelId: ctx.activeLevelId,
+        hitTolerancePx: 25,
+      });
+
+      let snappedPos: Vec2 = {
         x: snapToStep(rawWorld.x, 100),
         y: snapToStep(rawWorld.y, 100),
       };
+      let effectiveRotation = this.rotation;
 
-      // Détection optionnelle d'un mur hôte sous le curseur
-      const hitWallId = findWallAtScreen(event.screen, ctx.transform, ctx.doc, {
-        activeLevelId: ctx.activeLevelId,
-      });
+      // Magnétisme mural et orientation automatique intelligente (Phase 8.4)
+      if (hitWallId && docState.walls[hitWallId]) {
+        const wall = docState.walls[hitWallId];
+        const wallType = docState.wallTypes[wall.typeId];
+        const wallThickness = wallType?.thickness ?? 200;
+        const halfT = wallThickness / 2;
+        const halfD = depth / 2;
+
+        const dx = wall.end.x - wall.start.x;
+        const dy = wall.end.y - wall.start.y;
+        const wallLen = Math.hypot(dx, dy);
+
+        if (wallLen > 1e-4) {
+          const ux = dx / wallLen;
+          const uy = dy / wallLen;
+          const nx = -uy;
+          const ny = ux;
+
+          const wx = rawWorld.x - wall.start.x;
+          const wy = rawWorld.y - wall.start.y;
+          const s = Math.max(0, Math.min(wallLen, wx * ux + wy * uy));
+          const perpDist = wx * nx + wy * ny;
+          const side = perpDist >= 0 ? 1 : -1;
+
+          const isGlazing =
+            compType?.family === 'glazing' ||
+            compType?.ifcEntity === 'IfcDoor' ||
+            compType?.ifcEntity === 'IfcWindow' ||
+            compType?.subType === 'sliding_door' ||
+            compType?.subType === 'french_window';
+
+          if (isGlazing) {
+            // Menuiserie encastrée dans l'axe longitudinal du mur
+            snappedPos = {
+              x: wall.start.x + s * ux,
+              y: wall.start.y + s * uy,
+            };
+            effectiveRotation = Math.atan2(dy, dx);
+          } else {
+            // Mobilier adossé : la face arrière (+Y local) est plaquée contre le parement du mur
+            const offsetDist = side * (halfT + halfD);
+            snappedPos = {
+              x: wall.start.x + s * ux + nx * offsetDist,
+              y: wall.start.y + s * uy + ny * offsetDist,
+            };
+            // Orientation automatique où la face arrière (+Y) est dirigée vers le mur (-side * n)
+            const rawRot = Math.atan2(side * nx, -side * ny);
+            effectiveRotation = ((rawRot % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+          }
+        }
+      }
 
       this.state = {
         kind: 'hovering',
         worldPos: snappedPos,
-        rotation: this.rotation,
+        rotation: effectiveRotation,
         hostWallId: hitWallId ?? undefined,
       };
 
@@ -141,7 +196,7 @@ export class ComponentTool implements Tool {
         snappedPos.y,
         width,
         depth,
-        this.rotation,
+        effectiveRotation,
       );
       const preview: PreviewShape = { kind: 'polygon', points };
       return { kind: 'preview', preview };
@@ -149,15 +204,21 @@ export class ComponentTool implements Tool {
 
     // 3. Clic d'implantation (Ajout du composant)
     if (event.type === 'pointerdown' && event.button === 0) {
-      const rawWorld = ctx.transform.screenToWorld(event.screen);
-      const snappedPos: Vec2 = {
-        x: snapToStep(rawWorld.x, 100),
-        y: snapToStep(rawWorld.y, 100),
-      };
-
-      const hitWallId = findWallAtScreen(event.screen, ctx.transform, ctx.doc, {
-        activeLevelId: ctx.activeLevelId,
-      });
+      const placePos =
+        this.state.kind === 'hovering'
+          ? this.state.worldPos
+          : {
+              x: snapToStep(ctx.transform.screenToWorld(event.screen).x, 100),
+              y: snapToStep(ctx.transform.screenToWorld(event.screen).y, 100),
+            };
+      const placeRotation = this.state.kind === 'hovering' ? this.state.rotation : this.rotation;
+      const hitWallId =
+        this.state.kind === 'hovering'
+          ? this.state.hostWallId
+          : findWallAtScreen(event.screen, ctx.transform, ctx.doc, {
+              activeLevelId: ctx.activeLevelId,
+              hitTolerancePx: 25,
+            });
 
       const compId = generateId();
       const cmd = new Commands.AddComponentCommand({
@@ -166,9 +227,9 @@ export class ComponentTool implements Tool {
         typeId: activeTypeId,
         levelId: ctx.activeLevelId,
         placement: {
-          x: snappedPos.x,
-          y: snappedPos.y,
-          rotation: this.rotation,
+          x: placePos.x,
+          y: placePos.y,
+          rotation: placeRotation,
           flipped: this.flipped,
           elevationOffset: compType?.defaultElevationOffset ?? 0,
           hostWallId: hitWallId ?? undefined,

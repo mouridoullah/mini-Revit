@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { BimDocument } from '@mini-bim/core';
+import { BimDocument, Commands } from '@mini-bim/core';
 import { Transform2D } from '@mini-bim/view-2d';
 import { ComponentTool } from './ComponentTool.js';
 import { type ToolContext } from './types.js';
@@ -154,5 +154,88 @@ describe('ComponentTool (apps/web/src/tools/ComponentTool.ts — Phase 8.3)', ()
       expect(outEsc.preview).toBeNull();
     }
     expect(tool.getState().kind).toBe('idle');
+  });
+
+  it('magnétise automatiquement le composant contre la face du mur avec orientation du dos (Phase 8.4)', () => {
+    const wallTypeId = Object.keys(doc.getState().wallTypes)[0] ?? 'wt_default';
+    const wallId = 'wall_north';
+
+    // Mur horizontal de (0, 3000) à (6000, 3000), épaisseur 200 mm (halfT = 100)
+    doc.execute(
+      new Commands.AddWallCommand({
+        id: wallId,
+        category: 'wall',
+        typeId: wallTypeId,
+        levelId: ctx.activeLevelId,
+        start: { x: 0, y: 3000 },
+        end: { x: 6000, y: 3000 },
+      }),
+    );
+
+    // Survol juste au-dessus du mur à y=3200 (au nord du mur)
+    // ct_toilet_wall_hung a depth=540 (halfD=270).
+    // Adossé au nord : centre y doit valoir 3000 + halfT + halfD = 3000 + 100 + 270 = 3370 mm
+    const screenPos = transform.worldToScreen({ x: 2000, y: 3200 });
+
+    tool.handle(
+      {
+        type: 'pointermove',
+        screen: screenPos,
+        shift: false,
+        alt: false,
+      },
+      ctx,
+    );
+
+    const state = tool.getState();
+    expect(state.kind).toBe('hovering');
+    if (state.kind === 'hovering') {
+      expect(state.hostWallId).toBe(wallId);
+      expect(state.worldPos.x).toBeCloseTo(2000, 1);
+      expect(state.worldPos.y).toBeCloseTo(3370, 1);
+      // Face arrière tournée vers le sud (vers le mur) : rotation = PI
+      expect(state.rotation).toBeCloseTo(Math.PI, 2);
+    }
+  });
+
+  it('aligne les menuiseries (baies vitrées) au centre de l’axe du mur avec l’angle du mur (Phase 8.4)', () => {
+    const wallTypeId = Object.keys(doc.getState().wallTypes)[0] ?? 'wt_default';
+    const wallId = 'wall_center';
+
+    doc.execute(
+      new Commands.AddWallCommand({
+        id: wallId,
+        category: 'wall',
+        typeId: wallTypeId,
+        levelId: ctx.activeLevelId,
+        start: { x: 0, y: 1000 },
+        end: { x: 4000, y: 1000 },
+      }),
+    );
+
+    const ctxGlazing = {
+      ...ctx,
+      activeComponentTypeId: 'ct_sliding_door',
+    };
+
+    const screenPos = transform.worldToScreen({ x: 2000, y: 1050 });
+    tool.handle(
+      {
+        type: 'pointermove',
+        screen: screenPos,
+        shift: false,
+        alt: false,
+      },
+      ctxGlazing,
+    );
+
+    const state = tool.getState();
+    expect(state.kind).toBe('hovering');
+    if (state.kind === 'hovering') {
+      expect(state.hostWallId).toBe(wallId);
+      // Centré exactement sur l'axe du mur y=1000
+      expect(state.worldPos.y).toBeCloseTo(1000, 1);
+      expect(state.rotation).toBeCloseTo(0, 2);
+    }
   });
 });

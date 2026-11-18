@@ -1,8 +1,9 @@
 import type { ComponentType } from '../types.js';
 
 /**
- * Catalogue standard des familles de composants architecturaux et mobilier (Phase 8).
- * Fournit un référentiel normalisé pour l'aménagement intérieur des logements et villas.
+ * Catalogue standard des familles de composants architecturaux et mobilier (Phase 8 & 8.4).
+ * Fournit un référentiel normalisé pour l'aménagement intérieur avec contraintes dimensionnelles
+ * et classification IFC4 buildingSMART officielle (IfcFurniture, IfcSanitaryTerminal, etc.).
  */
 export const STANDARD_COMPONENT_CATALOG: readonly ComponentType[] = [
   // --- 1. SANITAIRES ---
@@ -16,6 +17,7 @@ export const STANDARD_COMPONENT_CATALOG: readonly ComponentType[] = [
     depth: 540,
     height: 400,
     defaultElevationOffset: 0,
+    clearanceDepth: 800,
     ifcEntity: 'IfcSanitaryTerminal',
   },
   {
@@ -28,6 +30,10 @@ export const STANDARD_COMPONENT_CATALOG: readonly ComponentType[] = [
     depth: 500,
     height: 850,
     defaultElevationOffset: 0,
+    minWidth: 500,
+    maxWidth: 1400,
+    allowedWidths: [600, 800, 1000, 1200],
+    clearanceDepth: 700,
     ifcEntity: 'IfcSanitaryTerminal',
   },
   {
@@ -40,6 +46,11 @@ export const STANDARD_COMPONENT_CATALOG: readonly ComponentType[] = [
     depth: 900,
     height: 60,
     defaultElevationOffset: 0,
+    minWidth: 800,
+    maxWidth: 1600,
+    minDepth: 800,
+    maxDepth: 1200,
+    clearanceDepth: 700,
     ifcEntity: 'IfcSanitaryTerminal',
   },
   {
@@ -52,6 +63,9 @@ export const STANDARD_COMPONENT_CATALOG: readonly ComponentType[] = [
     depth: 750,
     height: 550,
     defaultElevationOffset: 0,
+    minWidth: 1400,
+    maxWidth: 1900,
+    clearanceDepth: 600,
     ifcEntity: 'IfcSanitaryTerminal',
   },
 
@@ -66,7 +80,11 @@ export const STANDARD_COMPONENT_CATALOG: readonly ComponentType[] = [
     depth: 600,
     height: 850,
     defaultElevationOffset: 0,
-    ifcEntity: 'IfcFurnishingElement',
+    minWidth: 300,
+    maxWidth: 1200,
+    allowedWidths: [300, 400, 450, 600, 800, 900, 1200],
+    clearanceDepth: 900,
+    ifcEntity: 'IfcFurniture',
   },
   {
     id: 'ct_kitchen_sink_unit',
@@ -78,6 +96,10 @@ export const STANDARD_COMPONENT_CATALOG: readonly ComponentType[] = [
     depth: 600,
     height: 850,
     defaultElevationOffset: 0,
+    minWidth: 800,
+    maxWidth: 1600,
+    allowedWidths: [800, 900, 1000, 1200, 1400],
+    clearanceDepth: 900,
     ifcEntity: 'IfcSanitaryTerminal',
   },
   {
@@ -90,7 +112,11 @@ export const STANDARD_COMPONENT_CATALOG: readonly ComponentType[] = [
     depth: 350,
     height: 700,
     defaultElevationOffset: 1450,
-    ifcEntity: 'IfcFurnishingElement',
+    minWidth: 300,
+    maxWidth: 1200,
+    allowedWidths: [300, 400, 450, 600, 800, 900, 1200],
+    clearanceDepth: 0,
+    ifcEntity: 'IfcFurniture',
   },
   {
     id: 'ct_kitchen_fridge',
@@ -102,7 +128,10 @@ export const STANDARD_COMPONENT_CATALOG: readonly ComponentType[] = [
     depth: 650,
     height: 1850,
     defaultElevationOffset: 0,
-    ifcEntity: 'IfcFurnishingElement',
+    minWidth: 550,
+    maxWidth: 900,
+    clearanceDepth: 900,
+    ifcEntity: 'IfcFurniture',
   },
 
   // --- 3. MOBILIER ---
@@ -116,7 +145,11 @@ export const STANDARD_COMPONENT_CATALOG: readonly ComponentType[] = [
     depth: 2000,
     height: 500,
     defaultElevationOffset: 0,
-    ifcEntity: 'IfcFurnishingElement',
+    minWidth: 900,
+    maxWidth: 2000,
+    allowedWidths: [900, 1400, 1600, 1800, 2000],
+    clearanceDepth: 600,
+    ifcEntity: 'IfcFurniture',
   },
   {
     id: 'ct_dining_table',
@@ -128,7 +161,12 @@ export const STANDARD_COMPONENT_CATALOG: readonly ComponentType[] = [
     depth: 900,
     height: 750,
     defaultElevationOffset: 0,
-    ifcEntity: 'IfcFurnishingElement',
+    minWidth: 800,
+    maxWidth: 2600,
+    minDepth: 700,
+    maxDepth: 1100,
+    clearanceDepth: 800,
+    ifcEntity: 'IfcFurniture',
   },
   {
     id: 'ct_chair',
@@ -140,7 +178,10 @@ export const STANDARD_COMPONENT_CATALOG: readonly ComponentType[] = [
     depth: 450,
     height: 850,
     defaultElevationOffset: 0,
-    ifcEntity: 'IfcFurnishingElement',
+    minWidth: 400,
+    maxWidth: 600,
+    clearanceDepth: 450,
+    ifcEntity: 'IfcFurniture',
   },
   {
     id: 'ct_sofa_3p',
@@ -152,7 +193,11 @@ export const STANDARD_COMPONENT_CATALOG: readonly ComponentType[] = [
     depth: 900,
     height: 800,
     defaultElevationOffset: 0,
-    ifcEntity: 'IfcFurnishingElement',
+    minWidth: 1400,
+    maxWidth: 2800,
+    allowedWidths: [1400, 1800, 2200, 2600],
+    clearanceDepth: 600,
+    ifcEntity: 'IfcFurniture',
   },
   {
     id: 'ct_wardrobe',
@@ -164,7 +209,11 @@ export const STANDARD_COMPONENT_CATALOG: readonly ComponentType[] = [
     depth: 600,
     height: 2100,
     defaultElevationOffset: 0,
-    ifcEntity: 'IfcFurnishingElement',
+    minWidth: 600,
+    maxWidth: 3000,
+    allowedWidths: [600, 900, 1200, 1500, 1800, 2000, 2400],
+    clearanceDepth: 800,
+    ifcEntity: 'IfcFurniture',
   },
 
   // --- 4. MENUISERIES ENRICHIES ---
@@ -178,6 +227,9 @@ export const STANDARD_COMPONENT_CATALOG: readonly ComponentType[] = [
     depth: 150,
     height: 2150,
     defaultElevationOffset: 0,
+    minWidth: 1600,
+    maxWidth: 3600,
+    clearanceDepth: 0,
     ifcEntity: 'IfcDoor',
   },
   {
@@ -190,6 +242,9 @@ export const STANDARD_COMPONENT_CATALOG: readonly ComponentType[] = [
     depth: 150,
     height: 2150,
     defaultElevationOffset: 0,
+    minWidth: 800,
+    maxWidth: 2000,
+    clearanceDepth: 0,
     ifcEntity: 'IfcWindow',
   },
 ];

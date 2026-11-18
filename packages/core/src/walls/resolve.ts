@@ -2,6 +2,7 @@ import { type Vec2, vec2 } from '@mini-bim/geometry';
 import { type BimState, type Wall, type ElementId, type Roof } from '../types.js';
 import { computeWallVerticalBounds } from '../walls.js';
 import { computeWallTopProfile, isWallCoveredByRoof } from '../roofs/top-profile.js';
+import { getComponentEffectiveDimensions } from '../components/dimensions.js';
 
 export interface ResolvedOpening {
   readonly id: ElementId;
@@ -259,6 +260,42 @@ export function resolveWallGeometry(wall: Wall, state: BimState): ResolvedWall {
           sillZAbsolute,
           lintelZAbsolute,
         });
+      }
+    }
+  }
+
+  // 6c. Résolution des réservations d'ouvertures de menuiseries issues de composants (Phase 8.4)
+  if (state.components) {
+    for (const comp of Object.values(state.components)) {
+      if (comp.placement.hostWallId === wall.id) {
+        const ct = state.componentTypes?.[comp.typeId];
+        if (!ct) continue;
+        const isGlazing =
+          ct.family === 'glazing' ||
+          ct.ifcEntity === 'IfcDoor' ||
+          ct.ifcEntity === 'IfcWindow' ||
+          ct.subType === 'sliding_door' ||
+          ct.subType === 'french_window';
+        if (isGlazing || comp.openingId) {
+          const dims = getComponentEffectiveDimensions(comp, ct);
+          const pVec = { x: comp.placement.x - wall.start.x, y: comp.placement.y - wall.start.y };
+          const projDist = wallLength > 0 ? (pVec.x * dx + pVec.y * dy) / wallLength : 0;
+          const offsetAlong = Math.max(0, projDist - dims.width / 2);
+          const sillHeight = comp.placement.elevationOffset ?? ct.defaultElevationOffset ?? 0;
+          const sillZAbsolute = zBase + sillHeight;
+          const lintelZAbsolute = sillZAbsolute + dims.height;
+
+          openings.push({
+            id: comp.id,
+            kind: ct.ifcEntity === 'IfcWindow' || ct.subType === 'french_window' ? 'window' : 'door',
+            offsetAlong,
+            width: dims.width,
+            height: dims.height,
+            sillHeight,
+            sillZAbsolute,
+            lintelZAbsolute,
+          });
+        }
       }
     }
   }

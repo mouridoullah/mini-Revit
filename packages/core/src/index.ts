@@ -155,6 +155,7 @@ export { toJSON, fromJSON } from './serialization.js';
 export { HistoryStack, type HistoryEntry } from './history.js';
 export * from './roofs/index.js';
 export * from './components/catalog.js';
+export * from './components/dimensions.js';
 export * from './rooms/index.js';
 export * from './metrics.js';
 export { computeDimensionValue } from './dimensions/index.js';
