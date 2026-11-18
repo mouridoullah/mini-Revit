@@ -1264,11 +1264,11 @@ describe('Composants architecturaux et mobilier paramétrique (Phase 8.1 - Core 
         { id: 'villa_bed', typeId: 'ct_bed_double', x: 2000, y: 3000, rot: 0, wOver: 1800 },
         { id: 'villa_table', typeId: 'ct_dining_table', x: 8000, y: 5000, rot: 0, wOver: 2000 },
         { id: 'villa_chair1', typeId: 'ct_chair', x: 8000, y: 4400, rot: 0 },
-        { id: 'villa_chair2', typeId: 'ct_chair', x: 8000, y: 5600, rot: Math.PI },
         { id: 'villa_sofa', typeId: 'ct_sofa_3p', x: 5000, y: 3000, rot: 0, wOver: 2200 },
         { id: 'villa_wardrobe', typeId: 'ct_wardrobe', x: 1000, y: 1500, rot: 0 },
         // Menuiseries hôtes
         { id: 'villa_sliding', typeId: 'ct_sliding_door', x: 6000, y: 0, host: 'w_s', wOver: 2400 },
+        { id: 'villa_french', typeId: 'ct_french_window', x: 12000, y: 5000, host: 'w_e', wOver: 1400 },
       ];
 
       expect(villaComponents.length).toBe(15);
@@ -1306,12 +1306,12 @@ describe('Composants architecturaux et mobilier paramétrique (Phase 8.1 - Core 
       const modelId = ifcApi.OpenModel(new TextEncoder().encode(ifcContent));
       expect(modelId).toBeGreaterThanOrEqual(0);
 
-      // Vérification de la présence de toutes les familles d'entités
+      // Vérification de la présence de toutes les familles d'entités (exactement 15 composants distincts)
       const ifcSanitary = ifcApi.GetLineIDsWithType(modelId, WebIFC.IFCSANITARYTERMINAL);
       expect(ifcSanitary.size()).toBe(5);
 
       const ifcFurniture = ifcApi.GetLineIDsWithType(modelId, WebIFC.IFCFURNITURE);
-      expect(ifcFurniture.size()).toBe(7);
+      expect(ifcFurniture.size()).toBe(6);
 
       const ifcSystemFurn = ifcApi.GetLineIDsWithType(modelId, WebIFC.IFCSYSTEMFURNITUREELEMENT);
       expect(ifcSystemFurn.size()).toBe(2);
@@ -1319,8 +1319,124 @@ describe('Composants architecturaux et mobilier paramétrique (Phase 8.1 - Core 
       const ifcDoors = ifcApi.GetLineIDsWithType(modelId, WebIFC.IFCDOOR);
       expect(ifcDoors.size()).toBe(1);
 
+      const ifcWindows = ifcApi.GetLineIDsWithType(modelId, WebIFC.IFCWINDOW);
+      expect(ifcWindows.size()).toBe(1);
+
+      // 2 réservations (une pour la baie coulissante sur w_s, une pour la porte-fenêtre sur w_e)
       const ifcOpenings = ifcApi.GetLineIDsWithType(modelId, WebIFC.IFCOPENINGELEMENT);
-      expect(ifcOpenings.size()).toBe(1);
+      expect(ifcOpenings.size()).toBe(2);
+
+      const ifcRelVoids = ifcApi.GetLineIDsWithType(modelId, WebIFC.IFCRELVOIDSELEMENT);
+      expect(ifcRelVoids.size()).toBe(2);
+
+      const ifcRelFills = ifcApi.GetLineIDsWithType(modelId, WebIFC.IFCRELFILLSELEMENT);
+      expect(ifcRelFills.size()).toBe(2);
+
+      ifcApi.CloseModel(modelId);
+    });
+
+    it('Phase 8.5.1 : vérifie la conformité sémantique buildingSMART IFC4 et les signatures EXPRESS des types et occurrences', async () => {
+      const doc = BimDocument.createDefaultProject();
+      const levelId = Object.keys(doc.getState().levels)[0] ?? 'lvl_0';
+      const wallTypeId = Object.keys(doc.getState().wallTypes)[0] ?? 'wt_default';
+
+      // Mur hôte pour les menuiseries
+      doc.execute(
+        new AddWallCommand({
+          id: 'w_test',
+          category: 'wall',
+          typeId: wallTypeId,
+          levelId,
+          start: { x: 0, y: 0 },
+          end: { x: 10000, y: 0 },
+        }),
+      );
+
+      // Menuiserie coulissante (IfcDoor / DOUBLE_DOOR_SLIDING)
+      doc.execute(
+        new AddComponentCommand({
+          id: 'comp_slide',
+          category: 'component',
+          typeId: 'ct_sliding_door',
+          levelId,
+          placement: { x: 3000, y: 0, hostWallId: 'w_test' },
+        }),
+      );
+
+      // Porte-fenêtre (IfcWindow / DOUBLE_PANEL_VERTICAL)
+      doc.execute(
+        new AddComponentCommand({
+          id: 'comp_french',
+          category: 'component',
+          typeId: 'ct_french_window',
+          levelId,
+          placement: { x: 7000, y: 0, hostWallId: 'w_test' },
+        }),
+      );
+
+      // Mobilier modulaire cuisine (IfcSystemFurnitureElement / USERDEFINED avec ObjectType / ElementType)
+      doc.execute(
+        new AddComponentCommand({
+          id: 'comp_kitchen_base',
+          category: 'component',
+          typeId: 'ct_kitchen_base_60',
+          levelId,
+          placement: { x: 1000, y: 1000 },
+        }),
+      );
+
+      // Mobilier standard (IfcFurnitureType avec 11 arguments dont AssemblyPlace .NOTDEFINED.)
+      doc.execute(
+        new AddComponentCommand({
+          id: 'comp_bed',
+          category: 'component',
+          typeId: 'ct_bed_double',
+          levelId,
+          placement: { x: 5000, y: 2000 },
+        }),
+      );
+
+      const ifcContent = exportToIfc(doc.getState());
+
+      // Vérification textuelle exacte des constructions EXPRESS IFC4
+      // 1. IfcDoorType et IfcDoor : DOUBLE_DOOR_SLIDING (conforme buildingSMART IFC4, pas de .SLIDING. non standard)
+      expect(ifcContent).toContain('.DOUBLE_DOOR_SLIDING.');
+      expect(ifcContent).not.toContain("'.SLIDING.'");
+      expect(ifcContent).not.toMatch(/IFCDOOR\([^)]*\.SLIDING\./);
+
+      // 2. IfcWindowType et IfcWindow : DOUBLE_PANEL_VERTICAL
+      expect(ifcContent).toContain('.DOUBLE_PANEL_VERTICAL.');
+
+      // 3. IfcSystemFurnitureElementType & IfcSystemFurnitureElement : ElementType et ObjectType valorisés
+      expect(ifcContent).toMatch(/IFCSYSTEMFURNITUREELEMENTTYPE\([^,]+,[^,]+,[^,]+,[^,]+,[^,]+,[^,]+,[^,]+,[^,]+,'KITCHEN_BASE',\.USERDEFINED\.\)/);
+      expect(ifcContent).toMatch(/IFCSYSTEMFURNITUREELEMENT\([^,]+,[^,]+,[^,]+,[^,]+,'KITCHEN_BASE',/);
+
+      // 4. IfcFurnitureType : 11 arguments incluant AssemblyPlace .NOTDEFINED. et PredefinedType .BED.
+      expect(ifcContent).toMatch(/IFCFURNITURETYPE\([^,]+,[^,]+,[^,]+,[^,]+,[^,]+,[^,]+,[^,]+,[^,]+,'BED',\.NOTDEFINED\.,\.BED\.\)/);
+
+      // Validation structurelle WebIFC C++/WASM
+      const ifcApi = new WebIFC.IfcAPI();
+      await ifcApi.Init();
+      const modelId = ifcApi.OpenModel(new TextEncoder().encode(ifcContent));
+      expect(modelId).toBeGreaterThanOrEqual(0);
+
+      const doors = ifcApi.GetLineIDsWithType(modelId, WebIFC.IFCDOOR);
+      expect(doors.size()).toBe(1);
+
+      const windows = ifcApi.GetLineIDsWithType(modelId, WebIFC.IFCWINDOW);
+      expect(windows.size()).toBe(1);
+
+      const doorTypes = ifcApi.GetLineIDsWithType(modelId, WebIFC.IFCDOORTYPE);
+      expect(doorTypes.size()).toBe(1);
+
+      const windowTypes = ifcApi.GetLineIDsWithType(modelId, WebIFC.IFCWINDOWTYPE);
+      expect(windowTypes.size()).toBe(1);
+
+      const furnitureTypes = ifcApi.GetLineIDsWithType(modelId, WebIFC.IFCFURNITURETYPE);
+      expect(furnitureTypes.size()).toBe(1);
+
+      const sysFurnTypes = ifcApi.GetLineIDsWithType(modelId, WebIFC.IFCSYSTEMFURNITUREELEMENTTYPE);
+      expect(sysFurnTypes.size()).toBe(1);
 
       ifcApi.CloseModel(modelId);
     });
