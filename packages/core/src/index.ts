@@ -157,3 +157,7 @@ export { DependencyGraph } from './dag/DependencyGraph.js';
 export { RELATIONS_REGISTRY } from './relations/registry.js';
 export { resolveCascadeDeletions, type CascadeResult } from './relations/cascade.js';
 export type { RelationDef, CascadeAction, EntityCategory } from './relations/types.js';
+export {
+  createComplexVillaState,
+  createComplexVillaDocument,
+} from './fixtures/complex-villa.js';
