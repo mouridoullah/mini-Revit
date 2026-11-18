@@ -236,3 +236,59 @@ export function findOpeningAtScreen(
 
   return null;
 }
+
+/**
+ * Recherche si un composant d'aménagement ou mobilier est cliqué à l'écran.
+ */
+export function findComponentAtScreen(
+  screenPos: Vec2,
+  transform: Transform2D,
+  doc: DocumentFor2D,
+  options?: HitTestOptions,
+): string | null {
+  const hitTolerancePx = options?.hitTolerancePx ?? 6;
+  const activeLevelId = options?.activeLevelId ?? null;
+
+  const worldPos = transform.screenToWorld(screenPos);
+  const toleranceMm = transform.screenDistanceToWorld(hitTolerancePx);
+  const state = doc.getState();
+
+  const components = state.components ? Object.values(state.components) : [];
+  if (components.length === 0) return null;
+
+  // Parcourir du plus récent au plus ancien (dessus d'abord)
+  for (let i = components.length - 1; i >= 0; i--) {
+    const comp = components[i];
+    if (!comp) continue;
+
+    if (activeLevelId && comp.levelId !== activeLevelId) {
+      continue;
+    }
+
+    const type = state.componentTypes?.[comp.typeId];
+    if (!type) continue;
+
+    // Translation relative au centre du composant
+    const dx = worldPos.x - comp.placement.x;
+    const dy = worldPos.y - comp.placement.y;
+
+    // Rotation inverse
+    const rot = comp.placement.rotation ?? 0;
+    const cos = Math.cos(-rot);
+    const sin = Math.sin(-rot);
+    const u = dx * cos - dy * sin;
+    const v = dx * sin + dy * cos;
+
+    const halfW = type.width / 2;
+    const halfD = type.depth / 2;
+
+    if (
+      Math.abs(u) <= halfW + toleranceMm &&
+      Math.abs(v) <= halfD + toleranceMm
+    ) {
+      return comp.id;
+    }
+  }
+
+  return null;
+}

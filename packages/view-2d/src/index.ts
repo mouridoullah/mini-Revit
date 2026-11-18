@@ -51,6 +51,13 @@ export {
   hitTestWall,
   findWallAtScreen,
   findOpeningAtScreen,
+  findComponentAtScreen,
   type HitTestOptions,
   type HitOpeningResult,
 } from './hit-test.js';
+export {
+  drawComponentSymbol,
+  drawComponents,
+  DEFAULT_COMPONENT_RENDER_CONFIG,
+  type ComponentRenderConfig,
+} from './components-2d.js';

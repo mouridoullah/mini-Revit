@@ -1,4 +1,5 @@
 import { type Vec2 } from '@mini-bim/geometry';
+import type { ComponentRenderConfig } from './components-2d.js';
 
 export type { Vec2 };
 
@@ -173,6 +174,39 @@ export interface RoofFor2D {
 }
 
 /**
+ * Paramètres neutres d'un composant d'aménagement ou mobilier pour la vue 2D.
+ */
+export interface ComponentFor2D {
+  readonly id: string;
+  readonly category?: 'component';
+  readonly typeId: string;
+  readonly levelId: string;
+  readonly placement: {
+    readonly x: number;
+    readonly y: number;
+    readonly rotation?: number | undefined;
+    readonly flipped?: boolean | undefined;
+    readonly elevationOffset?: number | undefined;
+    readonly hostWallId?: string | undefined;
+  };
+  readonly name?: string | undefined;
+}
+
+/**
+ * Paramètres neutres d'un type de composant pour la vue 2D.
+ */
+export interface ComponentTypeFor2D {
+  readonly id: string;
+  readonly name: string;
+  readonly family: string;
+  readonly subType: string;
+  readonly width: number;
+  readonly depth: number;
+  readonly height: number;
+  readonly defaultElevationOffset?: number | undefined;
+}
+
+/**
  * Interface structurelle neutre d'un document pour la vue en plan 2D.
  * Permet à View2D de consommer BimDocument sans dépendance directe ni import de @mini-bim/core.
  */
@@ -215,6 +249,8 @@ export interface DocumentFor2D {
     readonly roofTypes?: Record<string, RoofTypeFor2D> | undefined;
     readonly roofs?: Record<string, RoofFor2D> | undefined;
     readonly roofOpenings?: Record<string, RoofOpeningFor2D> | undefined;
+    readonly components?: Record<string, ComponentFor2D> | undefined;
+    readonly componentTypes?: Record<string, ComponentTypeFor2D> | undefined;
   };
 }
 
@@ -438,6 +474,8 @@ export interface View2DRenderConfig {
   readonly room?: RoomRenderConfig;
   /** Configuration de rendu des cotations */
   readonly dimension?: DimensionRenderConfig;
+  /** Configuration de rendu des composants d'aménagement et mobilier */
+  readonly component?: ComponentRenderConfig;
 }
 
 /**

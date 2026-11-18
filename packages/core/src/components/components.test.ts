@@ -340,6 +340,7 @@ describe('Composants architecturaux et mobilier paramétrique (Phase 8.1 - Core 
       doc.execute(
         new AddWallCommand({
           id: 'host_wall_1',
+          category: 'wall',
           levelId,
           typeId: wallTypeId,
           start: { x: 0, y: 0 },

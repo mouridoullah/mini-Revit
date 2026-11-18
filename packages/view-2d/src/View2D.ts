@@ -2,7 +2,7 @@ import { type Vec2, vec2, distance } from '@mini-bim/geometry';
 import { computeStairShaft, type Stair, type BimState } from '@mini-bim/core';
 import { Transform2D } from './transform.js';
 import { renderPlanView, DEFAULT_VIEW2D_RENDER_CONFIG } from './renderer.js';
-import { findWallAtScreen } from './hit-test.js';
+import { findWallAtScreen, findComponentAtScreen } from './hit-test.js';
 import { UnderlayCache, type UnderlayInput } from './underlay/UnderlayCache.js';
 import {
   type View2DOptions,
@@ -538,6 +538,12 @@ export class View2D {
    */
   public hitTest(screenPos: Vec2, hitTolerancePx: number = 6): string | null {
     if (!this.doc) return null;
+    const hitComponent = findComponentAtScreen(screenPos, this.transform, this.doc, {
+      hitTolerancePx,
+      activeLevelId: this.activeLevelId,
+    });
+    if (hitComponent) return hitComponent;
+
     return findWallAtScreen(screenPos, this.transform, this.doc, {
       hitTolerancePx,
       activeLevelId: this.activeLevelId,

@@ -66,6 +66,12 @@ export function createMockCanvas(
       record('translate', [x, y]);
     }),
 
+    scale: vi.fn((x: number, y: number) => {
+      assertFiniteNumber(x, 'x', 'scale');
+      assertFiniteNumber(y, 'y', 'scale');
+      record('scale', [x, y]);
+    }),
+
     rotate: vi.fn((angle: number) => {
       assertFiniteNumber(angle, 'angle', 'rotate');
       record('rotate', [angle]);
@@ -139,6 +145,36 @@ export function createMockCanvas(
         record('arc', [x, y, radius, startAngle, endAngle, counterclockwise]);
       },
     ),
+
+    ellipse: vi.fn(
+      (
+        x: number,
+        y: number,
+        radiusX: number,
+        radiusY: number,
+        rotation: number,
+        startAngle: number,
+        endAngle: number,
+        counterclockwise: boolean = false,
+      ) => {
+        assertFiniteNumber(x, 'x', 'ellipse');
+        assertFiniteNumber(y, 'y', 'ellipse');
+        assertFiniteNumber(radiusX, 'radiusX', 'ellipse');
+        assertFiniteNumber(radiusY, 'radiusY', 'ellipse');
+        assertFiniteNumber(rotation, 'rotation', 'ellipse');
+        assertFiniteNumber(startAngle, 'startAngle', 'ellipse');
+        assertFiniteNumber(endAngle, 'endAngle', 'ellipse');
+        record('ellipse', [x, y, radiusX, radiusY, rotation, startAngle, endAngle, counterclockwise]);
+      },
+    ),
+
+    rect: vi.fn((x: number, y: number, w: number, h: number) => {
+      assertFiniteNumber(x, 'x', 'rect');
+      assertFiniteNumber(y, 'y', 'rect');
+      assertFiniteNumber(w, 'width', 'rect');
+      assertFiniteNumber(h, 'height', 'rect');
+      record('rect', [x, y, w, h]);
+    }),
 
     strokeRect: vi.fn((x: number, y: number, w: number, h: number) => {
       assertFiniteNumber(x, 'x', 'strokeRect');

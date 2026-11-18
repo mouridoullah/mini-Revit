@@ -8,6 +8,10 @@ import {
 } from '@mini-bim/geometry';
 import { type Transform2D } from './transform.js';
 import {
+  DEFAULT_COMPONENT_RENDER_CONFIG,
+  drawComponents,
+} from './components-2d.js';
+import {
   type GridConfig,
   type WallRenderConfig,
   type View2DRenderConfig,
@@ -144,6 +148,7 @@ export const DEFAULT_VIEW2D_RENDER_CONFIG: View2DRenderConfig = Object.freeze({
   underlay: DEFAULT_UNDERLAY_RENDER_CONFIG,
   room: DEFAULT_ROOM_RENDER_CONFIG,
   dimension: DEFAULT_DIMENSION_RENDER_CONFIG,
+  component: DEFAULT_COMPONENT_RENDER_CONFIG,
 });
 
 /**
@@ -1786,6 +1791,7 @@ export function renderPlanView(
     underlay: { ...DEFAULT_UNDERLAY_RENDER_CONFIG, ...config.underlay },
     room: { ...DEFAULT_ROOM_RENDER_CONFIG, ...config.room },
     dimension: { ...DEFAULT_DIMENSION_RENDER_CONFIG, ...config.dimension },
+    component: { ...DEFAULT_COMPONENT_RENDER_CONFIG, ...config.component },
   };
 
   // 1. Nettoyage de l'arrière-plan
@@ -1847,6 +1853,19 @@ export function renderPlanView(
   // 4. Pièces closes (poché pastel de fond et libellés)
   if (rooms && rooms.length > 0) {
     drawRooms(ctx, transform, rooms, mergedConfig.room);
+  }
+
+  // 4b. Composants d'aménagement et mobilier
+  if (state.components && Object.keys(state.components).length > 0) {
+    drawComponents(
+      ctx,
+      transform,
+      state.components,
+      state.componentTypes ?? {},
+      selectedIds,
+      mergedConfig.component,
+      levelFilter,
+    );
   }
 
   // 5. Murs architecturaux

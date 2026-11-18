@@ -57,3 +57,53 @@ export function createWindowPlaceholderMaterial(): THREE.MeshStandardMaterial {
     side: THREE.DoubleSide,
   });
 }
+
+/**
+ * Matériau pour les équipements sanitaires (céramique blanche brillante #f8fafc).
+ */
+export function createSanitaryMaterial(): THREE.MeshStandardMaterial {
+  return new THREE.MeshStandardMaterial({
+    color: 0xf8fafc,
+    roughness: 0.25,
+    metalness: 0.05,
+    side: THREE.FrontSide,
+  });
+}
+
+/**
+ * Matériau pour les meubles de cuisine et électroménager (mélaminé/inox ardoise #64748b).
+ */
+export function createKitchenMaterial(): THREE.MeshStandardMaterial {
+  return new THREE.MeshStandardMaterial({
+    color: 0x64748b,
+    roughness: 0.6,
+    metalness: 0.2,
+    side: THREE.FrontSide,
+  });
+}
+
+/**
+ * Matériau pour le mobilier d'aménagement intérieur (bois chaud ambré #b45309).
+ */
+export function createFurnitureMaterial(): THREE.MeshStandardMaterial {
+  return new THREE.MeshStandardMaterial({
+    color: 0xb45309,
+    roughness: 0.7,
+    metalness: 0.0,
+    side: THREE.FrontSide,
+  });
+}
+
+/**
+ * Matériau pour les menuiseries vitrées enrichies (alu et vitrage #38bdf8).
+ */
+export function createGlazingMaterial(): THREE.MeshStandardMaterial {
+  return new THREE.MeshStandardMaterial({
+    color: 0x38bdf8,
+    transparent: true,
+    opacity: 0.6,
+    roughness: 0.15,
+    metalness: 0.1,
+    side: THREE.DoubleSide,
+  });
+}

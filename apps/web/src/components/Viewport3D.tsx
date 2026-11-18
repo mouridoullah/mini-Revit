@@ -8,6 +8,7 @@ import {
   createSlabMesh,
   createStairMesh,
   createRoofMesh,
+  createComponentMesh,
   solveWallJunctions,
   type WallInput,
   type OpeningGeometryParams,
@@ -74,6 +75,7 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
     const slabs = state.slabs ?? {};
     const stairs = state.stairs ?? {};
     const roofs = state.roofs ?? {};
+    const components = state.components ?? {};
 
     const currentElementIds = new Set([
       ...Object.keys(state.walls),
@@ -82,6 +84,7 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
       ...Object.keys(slabs),
       ...Object.keys(stairs),
       ...Object.keys(roofs),
+      ...Object.keys(components),
     ]);
 
     // 1. Suppression des maillages d'éléments supprimés (murs ou ouvertures en cascade)
@@ -307,6 +310,20 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
 
       if (roofMesh) {
         scene.updateRoofMesh(roof.id, roofMesh);
+      }
+    }
+
+    // 8. Maillages 3D des composants architecturaux et mobilier (Phase 8)
+    for (const comp of Object.values(components)) {
+      const compType = state.componentTypes?.[comp.typeId];
+      if (!compType) continue;
+
+      const level = state.levels[comp.levelId];
+      const elevation = level?.elevation ?? 0;
+
+      const compMesh = createComponentMesh(comp, compType, elevation);
+      if (compMesh) {
+        scene.updateComponentMesh(comp.id, compMesh, compType.family);
       }
     }
 

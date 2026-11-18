@@ -7,13 +7,22 @@
  */
 
 export { MeshAdapter } from './MeshAdapter.js';
-export { Scene3D } from './Scene3D.js';
+export { Scene3D, type ComponentMeshFamily } from './Scene3D.js';
 export {
   createDefaultMaterial,
   createHighlightMaterial,
   createDoorPlaceholderMaterial,
   createWindowPlaceholderMaterial,
+  createSanitaryMaterial,
+  createKitchenMaterial,
+  createFurnitureMaterial,
+  createGlazingMaterial,
 } from './materials.js';
+export {
+  createComponentMesh,
+  type ComponentMeshInput,
+  type ComponentTypeMeshInput,
+} from './components-3d.js';
 export {
   createWallMesh,
   createWallMeshWithOpenings,

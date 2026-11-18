@@ -3,7 +3,16 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { type RawMeshData } from '@mini-bim/geometry';
 import { type SceneOptions } from './types.js';
 import { MeshAdapter } from './MeshAdapter.js';
-import { createDefaultMaterial, createHighlightMaterial } from './materials.js';
+import {
+  createDefaultMaterial,
+  createHighlightMaterial,
+  createSanitaryMaterial,
+  createKitchenMaterial,
+  createFurnitureMaterial,
+  createGlazingMaterial,
+} from './materials.js';
+
+export type ComponentMeshFamily = 'sanitary' | 'kitchen' | 'furniture' | 'glazing' | (string & {});
 
 /**
  * Gestionnaire impératif de scène 3D Three.js pour Mini-BIM.
@@ -31,6 +40,10 @@ export class Scene3D {
   private readonly slabMaterial: THREE.MeshStandardMaterial;
   private readonly stairMaterial: THREE.MeshStandardMaterial;
   private readonly roofMaterial: THREE.MeshStandardMaterial;
+  private readonly sanitaryMaterial: THREE.MeshStandardMaterial;
+  private readonly kitchenMaterial: THREE.MeshStandardMaterial;
+  private readonly furnitureMaterial: THREE.MeshStandardMaterial;
+  private readonly glazingMaterial: THREE.MeshStandardMaterial;
 
   /**
    * Registre des maillages architecturaux indexés par elementId.
@@ -132,6 +145,10 @@ export class Scene3D {
       metalness: 0.05,
       side: THREE.DoubleSide,
     });
+    this.sanitaryMaterial = createSanitaryMaterial();
+    this.kitchenMaterial = createKitchenMaterial();
+    this.furnitureMaterial = createFurnitureMaterial();
+    this.glazingMaterial = createGlazingMaterial();
 
     // 8. Rendu à la demande sur interaction caméra
     this.onControlsChange = () => {
@@ -153,7 +170,11 @@ export class Scene3D {
       mat === this.highlightMaterial ||
       mat === this.slabMaterial ||
       mat === this.stairMaterial ||
-      mat === this.roofMaterial
+      mat === this.roofMaterial ||
+      mat === this.sanitaryMaterial ||
+      mat === this.kitchenMaterial ||
+      mat === this.furnitureMaterial ||
+      mat === this.glazingMaterial
     );
   }
 
@@ -410,6 +431,63 @@ export class Scene3D {
   }
 
   /**
+   * Ajoute un composant d'aménagement ou mobilier dans la scène 3D.
+   */
+  public addComponentMesh(
+    componentId: string,
+    rawMesh: RawMeshData,
+    family: ComponentMeshFamily = 'furniture',
+  ): THREE.Mesh {
+    let mat: THREE.MeshStandardMaterial;
+    switch (family) {
+      case 'sanitary':
+        mat = this.sanitaryMaterial;
+        break;
+      case 'kitchen':
+        mat = this.kitchenMaterial;
+        break;
+      case 'furniture':
+        mat = this.furnitureMaterial;
+        break;
+      case 'glazing':
+        mat = this.glazingMaterial;
+        break;
+      default:
+        mat = this.furnitureMaterial;
+    }
+
+    return this.addMesh(
+      {
+        ...rawMesh,
+        elementId: componentId,
+        userData: {
+          elementId: componentId,
+          category: 'component',
+          family,
+          ...(rawMesh.userData ?? {}),
+        },
+      },
+      mat,
+    );
+  }
+
+  /**
+   * Met à jour un composant d'aménagement (libère l'ancienne géométrie et remplace le mesh).
+   */
+  public updateComponentMesh(
+    componentId: string,
+    rawMesh: RawMeshData,
+    family: ComponentMeshFamily = 'furniture',
+  ): THREE.Mesh {
+    this.removeMesh(componentId);
+    return this.addComponentMesh(componentId, rawMesh, family);
+  }
+
+  public removeComponentMesh(componentId: string): void {
+    this.removeMesh(componentId);
+  }
+
+  /**
    * Applique ou retire la surbrillance de sélection sur les éléments spécifiés.
    * Bascule le matériau entre son matériau de base (ou defaultMaterial) et highlightMaterial (#2563eb).
    *
@@ -554,6 +632,10 @@ export class Scene3D {
     this.slabMaterial.dispose();
     this.stairMaterial.dispose();
     this.roofMaterial.dispose();
+    this.sanitaryMaterial.dispose();
+    this.kitchenMaterial.dispose();
+    this.furnitureMaterial.dispose();
+    this.glazingMaterial.dispose();
 
     // 5. Vider la scène Three.js
     this.scene.clear();
