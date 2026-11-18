@@ -385,6 +385,7 @@ export interface ComponentType {
         | 'IfcWindow'
       )
     | undefined;
+  readonly ifcPredefinedType?: string | undefined;
   readonly parameters?: Record<string, number | string | boolean> | undefined;
 }
 

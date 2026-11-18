@@ -872,8 +872,14 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
 
       let ifcTypeId: number;
       if (entity === 'IfcSanitaryTerminal') {
+        const predType = type.ifcPredefinedType ? `.${type.ifcPredefinedType}.` : '.NOTDEFINED.';
         ifcTypeId = writer.add(
-          `IFCSANITARYTERMINALTYPE('${typeGuid}',#${ownerHistory},'${typeName}',$,$,$,$,$,$,.NOTDEFINED.)`,
+          `IFCSANITARYTERMINALTYPE('${typeGuid}',#${ownerHistory},'${typeName}',$,$,$,$,$,$,${predType})`,
+        );
+      } else if (entity === 'IfcSystemFurnitureElement') {
+        const predType = type.ifcPredefinedType ? `.${type.ifcPredefinedType}.` : '.USERDEFINED.';
+        ifcTypeId = writer.add(
+          `IFCSYSTEMFURNITUREELEMENTTYPE('${typeGuid}',#${ownerHistory},'${typeName}',$,$,$,$,$,$,${predType})`,
         );
       } else if (entity === 'IfcDoor') {
         const opType = type.subType === 'sliding_door' ? '.SLIDING.' : '.USERDEFINED.';
@@ -886,12 +892,14 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
         );
       } else {
         // IfcFurnitureType (official buildingSMART IFC4)
-        let predType = '.NOTDEFINED.';
-        if (type.subType === 'chair') predType = '.CHAIR.';
-        else if (type.subType === 'table') predType = '.TABLE.';
-        else if (type.subType === 'sofa') predType = '.SOFA.';
-        else if (type.subType === 'bed') predType = '.BED.';
-        else if (type.subType === 'cabinet') predType = '.SHELF.';
+        let predType = type.ifcPredefinedType ? `.${type.ifcPredefinedType}.` : '.NOTDEFINED.';
+        if (!type.ifcPredefinedType) {
+          if (type.subType === 'chair') predType = '.CHAIR.';
+          else if (type.subType === 'table') predType = '.TABLE.';
+          else if (type.subType === 'sofa') predType = '.SOFA.';
+          else if (type.subType === 'bed') predType = '.BED.';
+          else if (type.subType === 'cabinet') predType = '.SHELF.';
+        }
 
         ifcTypeId = writer.add(
           `IFCFURNITURETYPE('${typeGuid}',#${ownerHistory},'${typeName}',$,$,$,$,$,$,${predType})`,
@@ -957,8 +965,14 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
       const entity = type.ifcEntity || (type.family === 'sanitary' ? 'IfcSanitaryTerminal' : 'IfcFurniture');
 
       if (entity === 'IfcSanitaryTerminal') {
+        const predType = type.ifcPredefinedType ? `.${type.ifcPredefinedType}.` : '.NOTDEFINED.';
         ifcElemId = writer.add(
-          `IFCSANITARYTERMINAL('${compGuid}',#${ownerHistory},'${compName}',$,'${typeName}',#${compPlacement},#${prodShape},$,.NOTDEFINED.)`,
+          `IFCSANITARYTERMINAL('${compGuid}',#${ownerHistory},'${compName}',$,'${typeName}',#${compPlacement},#${prodShape},$,${predType})`,
+        );
+      } else if (entity === 'IfcSystemFurnitureElement') {
+        const predType = type.ifcPredefinedType ? `.${type.ifcPredefinedType}.` : '.USERDEFINED.';
+        ifcElemId = writer.add(
+          `IFCSYSTEMFURNITUREELEMENT('${compGuid}',#${ownerHistory},'${compName}',$,'${typeName}',#${compPlacement},#${prodShape},$,${predType})`,
         );
       } else if (entity === 'IfcDoor') {
         const opType = type.subType === 'sliding_door' ? '.SLIDING.' : '.USERDEFINED.';
@@ -971,12 +985,14 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
         );
       } else {
         // IfcFurniture (official buildingSMART IFC4 entity)
-        let predType = '.NOTDEFINED.';
-        if (type.subType === 'chair') predType = '.CHAIR.';
-        else if (type.subType === 'table') predType = '.TABLE.';
-        else if (type.subType === 'sofa') predType = '.SOFA.';
-        else if (type.subType === 'bed') predType = '.BED.';
-        else if (type.subType === 'cabinet') predType = '.SHELF.';
+        let predType = type.ifcPredefinedType ? `.${type.ifcPredefinedType}.` : '.NOTDEFINED.';
+        if (!type.ifcPredefinedType) {
+          if (type.subType === 'chair') predType = '.CHAIR.';
+          else if (type.subType === 'table') predType = '.TABLE.';
+          else if (type.subType === 'sofa') predType = '.SOFA.';
+          else if (type.subType === 'bed') predType = '.BED.';
+          else if (type.subType === 'cabinet') predType = '.SHELF.';
+        }
 
         ifcElemId = writer.add(
           `IFCFURNITURE('${compGuid}',#${ownerHistory},'${compName}',$,'${typeName}',#${compPlacement},#${prodShape},$,${predType})`,
@@ -999,7 +1015,7 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
           const wallLen = Math.hypot(dx, dy);
           const pVec = { x: comp.placement.x - hostWall.start.x, y: comp.placement.y - hostWall.start.y };
           const projDist = wallLen > 0 ? (pVec.x * dx + pVec.y * dy) / wallLen : 0;
-          const opOffset = Math.max(0, projDist - effW / 2);
+          const opOffset = projDist - effW / 2;
 
           // Réservation (IfcOpeningElement)
           const ptOp = writer.add(`IFCCARTESIANPOINT((${opOffset.toFixed(2)},0.,${elevationOffset.toFixed(2)}))`);

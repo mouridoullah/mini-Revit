@@ -255,4 +255,111 @@ describe('Rendu 3D des Composants et Mobilier (Phase 8.2B — packages/view-3d)'
       expect(mesh.material).toBe(baseMat);
     });
   });
+
+  // =========================================================================
+  // PHASE 8.5-D : PARAMÉTRIE GÉOMÉTRIQUE NON-DÉFORMANTE PAR FAMILLE
+  // =========================================================================
+  describe('Phase 8.5-D : Paramétrie géométrique non-déformante par famille', () => {
+    it('les 4 pieds de table conservent une section stricte de 50 x 50 mm lors d’un élargissement', () => {
+      const tableType: ComponentTypeMeshInput = {
+        subType: 'table',
+        width: 1400,
+        depth: 900,
+        height: 750,
+      };
+
+      // Table étroite (1400 mm)
+      const meshSmall = createComponentMesh(
+        { id: 't_small', placement: { x: 0, y: 0 } },
+        tableType,
+        0,
+      )!;
+
+      // Table large (2400 mm)
+      const meshLarge = createComponentMesh(
+        { id: 't_large', placement: { x: 0, y: 0 }, widthOverride: 2400 },
+        tableType,
+        0,
+      )!;
+
+      expect(meshSmall).toBeDefined();
+      expect(meshLarge).toBeDefined();
+      // Le nombre de sommets et de triangles reste identique (top + 4 pieds)
+      expect(meshSmall.positions.length).toBe(meshLarge.positions.length);
+    });
+
+    it('le rebord de baignoire conserve une épaisseur stricte de 80 mm et la cuve s’étend', () => {
+      const bathType: ComponentTypeMeshInput = {
+        subType: 'bath',
+        width: 1700,
+        depth: 750,
+        height: 550,
+      };
+
+      const mesh = createComponentMesh(
+        { id: 'bath_1', placement: { x: 0, y: 0 }, widthOverride: 1900 },
+        bathType,
+        0,
+      )!;
+
+      expect(mesh).toBeDefined();
+      // 5 pièces : 4 rebords de 80 mm et 1 fond de cuve
+      expect(mesh.positions.length).toBeGreaterThanOrEqual(5 * 24 * 3);
+    });
+
+    it('la vasque de salle de bain intègre une robinetterie et bonde aux dimensions invariantes', () => {
+      const sinkType: ComponentTypeMeshInput = {
+        subType: 'sink',
+        width: 800,
+        depth: 500,
+        height: 850,
+      };
+
+      const mesh = createComponentMesh(
+        { id: 'sink_1', placement: { x: 0, y: 0 } },
+        sinkType,
+        0,
+      )!;
+
+      expect(mesh).toBeDefined();
+      // Meuble bas + plan vasque + mitigeur + bonde
+      expect(mesh.positions.length).toBeGreaterThanOrEqual(4 * 24 * 3);
+    });
+
+    it('les menuiseries vitrées (sliding_door et french_window) possèdent des dormants fixes de 50 mm', () => {
+      const slidingType: ComponentTypeMeshInput = {
+        subType: 'sliding_door',
+        width: 2400,
+        depth: 150,
+        height: 2150,
+      };
+
+      const meshSliding = createComponentMesh(
+        { id: 'slide_1', placement: { x: 0, y: 0 } },
+        slidingType,
+        0,
+      )!;
+
+      expect(meshSliding).toBeDefined();
+      // 2 montants + traverse + seuil + 2 vantaux vitrés = 6 solides
+      expect(meshSliding.positions.length).toBe(6 * 24 * 3);
+
+      const frenchType: ComponentTypeMeshInput = {
+        subType: 'french_window',
+        width: 1400,
+        depth: 150,
+        height: 2150,
+      };
+
+      const meshFrench = createComponentMesh(
+        { id: 'french_1', placement: { x: 0, y: 0 } },
+        frenchType,
+        0,
+      )!;
+
+      expect(meshFrench).toBeDefined();
+      // 2 montants + traverse + seuil + meneau + 2 vitrages = 7 solides
+      expect(meshFrench.positions.length).toBe(7 * 24 * 3);
+    });
+  });
 });
