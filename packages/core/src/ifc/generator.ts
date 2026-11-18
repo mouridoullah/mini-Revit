@@ -324,19 +324,31 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
     );
 
     // Propriétés standardisées (Pset_WallCommon)
+    // Règle d'or BIM : aucune inférence arbitraire basée sur l'épaisseur géométrique.
+    // Seules les propriétés explicitement définies (sur l'instance ou sur le type) sont exportées.
     const pRef = writer.add(
       `IFCPROPERTYSINGLEVALUE('Reference',$,IFCLABEL('${escapeIfcString(wallType?.name ?? 'Standard Wall')}'),$)`,
     );
-    const isLoadBearing = (wall.loadBearing ?? wallType?.loadBearing ?? (thickness >= 150)) ? '.T.' : '.F.';
-    const pLoadBearing = writer.add(
-      `IFCPROPERTYSINGLEVALUE('LoadBearing',$,IFCBOOLEAN(${isLoadBearing}),$)`,
-    );
-    const isExt = (wall.isExternal ?? wallType?.isExternal ?? (thickness >= 200)) ? '.T.' : '.F.';
-    const pIsExternal = writer.add(
-      `IFCPROPERTYSINGLEVALUE('IsExternal',$,IFCBOOLEAN(${isExt}),$)`,
-    );
+    const wallCommonPropIds: number[] = [pRef];
+
+    const explicitLoadBearing = wall.loadBearing ?? wallType?.loadBearing;
+    if (explicitLoadBearing !== undefined) {
+      const pLoadBearing = writer.add(
+        `IFCPROPERTYSINGLEVALUE('LoadBearing',$,IFCBOOLEAN(${explicitLoadBearing ? '.T.' : '.F.'}),$)`,
+      );
+      wallCommonPropIds.push(pLoadBearing);
+    }
+
+    const explicitIsExternal = wall.isExternal ?? wallType?.isExternal;
+    if (explicitIsExternal !== undefined) {
+      const pIsExternal = writer.add(
+        `IFCPROPERTYSINGLEVALUE('IsExternal',$,IFCBOOLEAN(${explicitIsExternal ? '.T.' : '.F.'}),$)`,
+      );
+      wallCommonPropIds.push(pIsExternal);
+    }
+
     const wallPset = writer.add(
-      `IFCPROPERTYSET('${createIfcGuid()}',#${ownerHistory},'Pset_WallCommon',$,(#${pRef},#${pLoadBearing},#${pIsExternal}))`,
+      `IFCPROPERTYSET('${createIfcGuid()}',#${ownerHistory},'Pset_WallCommon',$,(#${wallCommonPropIds.join(',#')}))`,
     );
     writer.add(
       `IFCRELDEFINESBYPROPERTIES('${createIfcGuid()}',#${ownerHistory},$,$,(#${ifcWall}),#${wallPset})`,

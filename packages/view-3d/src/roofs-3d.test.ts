@@ -277,4 +277,34 @@ describe('Phase 7 — Rendu 3D des Toitures & Biseautage des Murs (packages/view
     const euler = computeEulerCharacteristic(m.positions, m.indices);
     expect(euler).toBe(2);
   });
+
+  it('T-WALL-BEVEL-3D-03 : Conformité géométrique continue — tous les sommets supérieurs 3D épousent rigoureusement topProfile (Point A / Phase 7.6.1)', () => {
+    const topProfile = [vec2(0, 3000), vec2(4000, 4200)];
+    const wallMeshes = createWallMeshWithOpenings({
+      wall: {
+        id: 'wall_sloped_check',
+        start: { x: 0, y: 0 },
+        end: { x: 4000, y: 0 },
+      },
+      wallType: {
+        thickness: 200,
+        height: 2800,
+      },
+      openings: [],
+      elevation: 0,
+      topProfile,
+    });
+
+    const m = wallMeshes[0]!;
+    // Pour chaque sommet 3D ayant z > 0 (sommet de l'arase supérieure)
+    for (let i = 0; i < m.positions.length; i += 3) {
+      const x = m.positions[i]!;
+      const z = m.positions[i + 2]!;
+      if (z > 100) {
+        // En coordonnées du mur (start: (0,0), end: (4000,0)), u = x
+        const expectedZ = 3000 + (x / 4000) * (4200 - 3000);
+        expect(z).toBeCloseTo(expectedZ, 1);
+      }
+    }
+  });
 });

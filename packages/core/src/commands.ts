@@ -62,6 +62,7 @@ export interface Command {
 
 export class AddWallCommand implements Command {
   public readonly name = 'AddWall';
+  private impactedRoomIds: ElementId[] = [];
 
   public constructor(public readonly wall: Wall) {}
 
@@ -75,16 +76,43 @@ export class AddWallCommand implements Command {
     // Validation d'intégrité métier
     validateWall(this.wall, draft as BimState);
     draft.walls[this.wall.id] = this.wall;
+
+    // Mise à jour associative des pièces de ce niveau (ex: fermeture d'une pièce jusqu'ici non enclose)
+    const impactedRooms: ElementId[] = [];
+    if (draft.rooms) {
+      const levelRooms = Object.values(draft.rooms).filter((r) => r.levelId === this.wall.levelId);
+      if (levelRooms.length > 0) {
+        const detected = detectRooms(draft as BimState, this.wall.levelId);
+        for (const room of levelRooms) {
+          const match = detected.find((d) => isPointInPolygon(room.seed, d.polygon));
+          if (match) {
+            draft.rooms[room.id] = {
+              ...room,
+              status: 'enclosed',
+              area: match.areaMm2 / 1_000_000,
+            };
+          } else {
+            draft.rooms[room.id] = {
+              ...room,
+              status: 'unenclosed',
+            };
+          }
+          impactedRooms.push(room.id);
+        }
+      }
+    }
+    this.impactedRoomIds = impactedRooms.sort();
   }
 
   public getChangedIds(): readonly ElementId[] {
-    return [this.wall.id];
+    return [this.wall.id, ...this.impactedRoomIds];
   }
 }
 
 export class UpdateWallCommand implements Command {
   public readonly name = 'UpdateWall';
   private impactedDimensionIds: ElementId[] = [];
+  private impactedRoomIds: ElementId[] = [];
 
   public constructor(
     public readonly wallId: ElementId,
@@ -109,6 +137,12 @@ export class UpdateWallCommand implements Command {
     if ('heightOverride' in this.patch && this.patch.heightOverride === undefined) {
       delete (updatedWall as { heightOverride?: number }).heightOverride;
     }
+    if ('loadBearing' in this.patch && this.patch.loadBearing === undefined) {
+      delete (updatedWall as { loadBearing?: boolean }).loadBearing;
+    }
+    if ('isExternal' in this.patch && this.patch.isExternal === undefined) {
+      delete (updatedWall as { isExternal?: boolean }).isExternal;
+    }
 
     validateWall(updatedWall, draft as BimState);
     draft.walls[this.wallId] = updatedWall;
@@ -128,10 +162,36 @@ export class UpdateWallCommand implements Command {
       }
     }
     this.impactedDimensionIds = impacted.sort();
+
+    // Mise à jour associative des pièces de ce niveau (Point B / Phase 7.6.1)
+    const impactedRooms: ElementId[] = [];
+    if (draft.rooms) {
+      const levelRooms = Object.values(draft.rooms).filter((r) => r.levelId === updatedWall.levelId);
+      if (levelRooms.length > 0) {
+        const detected = detectRooms(draft as BimState, updatedWall.levelId);
+        for (const room of levelRooms) {
+          const match = detected.find((d) => isPointInPolygon(room.seed, d.polygon));
+          if (match) {
+            draft.rooms[room.id] = {
+              ...room,
+              status: 'enclosed',
+              area: match.areaMm2 / 1_000_000,
+            };
+          } else {
+            draft.rooms[room.id] = {
+              ...room,
+              status: 'unenclosed',
+            };
+          }
+          impactedRooms.push(room.id);
+        }
+      }
+    }
+    this.impactedRoomIds = impactedRooms.sort();
   }
 
   public getChangedIds(): readonly ElementId[] {
-    return [this.wallId, ...this.impactedDimensionIds];
+    return [this.wallId, ...this.impactedDimensionIds, ...this.impactedRoomIds];
   }
 }
 

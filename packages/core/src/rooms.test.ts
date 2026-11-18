@@ -3,6 +3,7 @@ import { vec2 } from '@mini-bim/geometry';
 import { BimDocument } from './document.js';
 import {
   AddWallCommand,
+  UpdateWallCommand,
   DeleteWallCommand,
   AddRoomCommand,
   UpdateRoomCommand,
@@ -488,6 +489,88 @@ describe('Détection des Pièces et Modèle Room (core)', () => {
       doc.redo();
       expect(doc.getState().walls[wallWest.id]).toBeUndefined();
       expect(doc.getState().rooms['room_cascade']?.status).toBe('unenclosed');
+    });
+
+    it('T-ROOM-UPDATE-LIFECYCLE-01 : UpdateWallCommand modifiant la géométrie ouvre puis referme une Room (Point B / Phase 7.6.1)', () => {
+      const { wallWest } = setupRectangularRoom();
+
+      const room: Room = {
+        id: 'room_dynamic',
+        category: 'room',
+        levelId,
+        seed: vec2(2000, 1500),
+        name: 'Chambre Principale',
+      };
+      doc.execute(new AddRoomCommand(room));
+      expect(doc.getState().rooms['room_dynamic']?.status).toBe('enclosed');
+      const initialArea = doc.getState().rooms['room_dynamic']?.area;
+      expect(initialArea).toBeCloseTo(10.64, 2);
+
+      // 1. Raccourcissement du mur Ouest créant une brèche de 1000 mm (end: (0, 1000) au lieu de (0, 0))
+      const updateCmd1 = new UpdateWallCommand(wallWest.id, {
+        end: vec2(0, 1000),
+      });
+      const res1 = doc.execute(updateCmd1);
+
+      // Invariant : la pièce est préservée, passe en 'unenclosed', signalée dans changedIds
+      expect(doc.getState().rooms['room_dynamic']).toBeDefined();
+      expect(doc.getState().rooms['room_dynamic']?.status).toBe('unenclosed');
+      expect(res1.changed).toContain('room_dynamic');
+      expect(updateCmd1.getChangedIds()).toContain('room_dynamic');
+
+      // 2. Allongement du mur Ouest restaurant la fermeture complète (end: (0, 0))
+      const updateCmd2 = new UpdateWallCommand(wallWest.id, {
+        end: vec2(0, 0),
+      });
+      const res2 = doc.execute(updateCmd2);
+
+      // Invariant : la pièce redevient 'enclosed', surface recalculée, signalée dans changedIds
+      expect(doc.getState().rooms['room_dynamic']?.status).toBe('enclosed');
+      expect(doc.getState().rooms['room_dynamic']?.area).toBeCloseTo(10.64, 2);
+      expect(res2.changed).toContain('room_dynamic');
+
+      // 3. Undo de la refermeture -> repasse en 'unenclosed'
+      doc.undo();
+      expect(doc.getState().rooms['room_dynamic']?.status).toBe('unenclosed');
+
+      // 4. Redo -> redevient 'enclosed'
+      doc.redo();
+      expect(doc.getState().rooms['room_dynamic']?.status).toBe('enclosed');
+      expect(doc.getState().rooms['room_dynamic']?.area).toBeCloseTo(10.64, 2);
+    });
+
+    it('T-ROOM-ADDWALL-LIFECYCLE-02 : AddWallCommand refermant une enceinte passe une Room unenclosed en enclosed', () => {
+      const { wallWest } = setupRectangularRoom();
+
+      // Ajouter une pièce puis supprimer le mur Ouest -> pièce unenclosed
+      const room: Room = {
+        id: 'room_reclose',
+        category: 'room',
+        levelId,
+        seed: vec2(2000, 1500),
+        name: 'Bureau',
+      };
+      doc.execute(new AddRoomCommand(room));
+      doc.execute(new DeleteWallCommand(wallWest.id));
+      expect(doc.getState().rooms['room_reclose']?.status).toBe('unenclosed');
+
+      // Ajouter un nouveau mur qui referme exactement le côté Ouest (de (0, 3000) à (0, 0))
+      const newWall: Wall = {
+        id: 'wall_west_new',
+        category: 'wall',
+        typeId,
+        levelId,
+        start: vec2(0, 3000),
+        end: vec2(0, 0),
+      };
+      const addCmd = new AddWallCommand(newWall);
+      const res = doc.execute(addCmd);
+
+      // La pièce est maintenant refermée
+      expect(doc.getState().rooms['room_reclose']?.status).toBe('enclosed');
+      expect(doc.getState().rooms['room_reclose']?.area).toBeCloseTo(10.64, 2);
+      expect(res.changed).toContain('room_reclose');
+      expect(addCmd.getChangedIds()).toContain('room_reclose');
     });
   });
 });

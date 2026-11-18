@@ -870,4 +870,152 @@ describe('Générateur IFC4 ISO 10303-21 (packages/core/ifc)', () => {
     expect(walls.size()).toBe(2);
     ifcApi.CloseModel(modelId);
   });
+
+  /* =========================================================================
+   * TESTS DE CONFORMITÉ GÉOMÉTRIQUE IFC4 PHASE 7.6.1 (Point A & Point C)
+   * ========================================================================= */
+
+  it('T-IFC-GEOM-7.6.1-GABLE-AND-TRAPEZOID : Le profil IFC extrudé (GableWallProfile) épouse exactement les sommets de topProfile pour pignon et pan incliné', async () => {
+    const doc = BimDocument.createDefaultProject();
+    const baseState = doc.getState();
+    const lvl0 = Object.keys(baseState.levels)[0] ?? 'lvl_0';
+
+    const roofState: BimState = {
+      ...baseState,
+      roofTypes: {
+        rt_gable: {
+          id: 'rt_gable',
+          category: 'roofType',
+          name: 'Toit 2 pans 45°',
+          family: 'gable',
+          thickness: 250,
+          slopeDeg: 45,
+          overhangMm: 0,
+        },
+      },
+      roofs: {
+        rf_gable: {
+          id: 'rf_gable',
+          category: 'roof',
+          roofTypeId: 'rt_gable',
+          levelId: lvl0,
+          baseOffset: 2800,
+          footprint: [
+            { x: 0, y: 0 },
+            { x: 6000, y: 0 },
+            { x: 6000, y: 8000 },
+            { x: 0, y: 8000 },
+          ],
+          ridgeAxis: {
+            start: { x: 0, y: 4000 },
+            end: { x: 6000, y: 4000 },
+          },
+        },
+      },
+      walls: {
+        wall_gable_triangular: {
+          id: 'wall_gable_triangular',
+          category: 'wall',
+          typeId: 'wt_200',
+          levelId: lvl0,
+          start: { x: 0, y: 0 },
+          end: { x: 0, y: 8000 },
+          topConstraint: { kind: 'roof', roofId: 'rf_gable' },
+        },
+      },
+      roofOpenings: {},
+    };
+
+    const ifcContent = exportToIfc(roofState);
+
+    // 1. Profil chevron 3D exact : (0, 0), (8000, 0), les points d'arase et retour (0, 0)
+    expect(ifcContent).toContain("GableWallProfile'");
+    expect(ifcContent).toContain('IFCCARTESIANPOINT((0.00,0.00))');
+    expect(ifcContent).toContain('IFCCARTESIANPOINT((8000.00,0.00))');
+
+    // Le faîtage pour un pignon de 8000 mm à 45° a son sommet à u = 4000 mm
+    expect(ifcContent).toContain('4000.00');
+
+    // 2. Validation Web-IFC du modèle contenant le profil pignon
+    const ifcApi = new WebIFC.IfcAPI();
+    await ifcApi.Init();
+    const modelId = ifcApi.OpenModel(new TextEncoder().encode(ifcContent));
+    const ifcWalls = ifcApi.GetLineIDsWithType(modelId, WebIFC.IFCWALL);
+    expect(ifcWalls.size()).toBe(1);
+    ifcApi.CloseModel(modelId);
+  });
+
+  it('T-IFC-PSET-7.6.1-SEMANTICS-STRICT : Pset_WallCommon n’invente aucun booléen quand isExternal ou loadBearing sont non spécifiés (Point C)', () => {
+    const doc = BimDocument.createDefaultProject();
+    const baseState = doc.getState();
+    const lvl0 = Object.keys(baseState.levels)[0] ?? 'lvl_0';
+
+    const testState: BimState = {
+      ...baseState,
+      wallTypes: {
+        wt_neutral: {
+          id: 'wt_neutral',
+          name: 'Cloison Neutre 160mm',
+          thickness: 160,
+          height: 2800,
+          // loadBearing et isExternal sont volontairement NON RENSEIGNÉS (undefined)
+        },
+        wt_declared: {
+          id: 'wt_declared',
+          name: 'Mur Déclaré',
+          thickness: 100,
+          height: 2800,
+          loadBearing: true,
+          isExternal: false,
+        },
+      },
+      walls: {
+        w_neutral: {
+          id: 'w_neutral',
+          category: 'wall',
+          typeId: 'wt_neutral',
+          levelId: lvl0,
+          start: { x: 0, y: 0 },
+          end: { x: 3000, y: 0 },
+          // loadBearing et isExternal undefined sur l'instance
+        },
+        w_declared: {
+          id: 'w_declared',
+          category: 'wall',
+          typeId: 'wt_declared',
+          levelId: lvl0,
+          start: { x: 0, y: 3000 },
+          end: { x: 3000, y: 3000 },
+        },
+        w_overridden: {
+          id: 'w_overridden',
+          category: 'wall',
+          typeId: 'wt_declared',
+          levelId: lvl0,
+          start: { x: 0, y: 6000 },
+          end: { x: 3000, y: 6000 },
+          loadBearing: false, // Surcharge d'instance
+          isExternal: true, // Surcharge d'instance
+        },
+      },
+    };
+
+    const ifcContent = exportToIfc(testState);
+
+    // 1. Sur le mur déclaré, les booléens explicites du type apparaissent
+    expect(ifcContent).toContain("IFCPROPERTYSINGLEVALUE('LoadBearing',$,IFCBOOLEAN(.T.),$)");
+    expect(ifcContent).toContain("IFCPROPERTYSINGLEVALUE('IsExternal',$,IFCBOOLEAN(.F.),$)");
+
+    // 2. Sur le mur surchargé par instance, les surcharges de l'instance (.F. et .T.) apparaissent
+    expect(ifcContent).toContain("IFCPROPERTYSINGLEVALUE('LoadBearing',$,IFCBOOLEAN(.F.),$)");
+    expect(ifcContent).toContain("IFCPROPERTYSINGLEVALUE('IsExternal',$,IFCBOOLEAN(.T.),$)");
+
+    // 3. Sur le mur neutre, aucune propriété LoadBearing ou IsExternal n'a été arbitrairement injectée
+    // Il y a 3 murs, mais seulement 2 murs ont LoadBearing et IsExternal déclarés
+    const loadBearingMatches = ifcContent.match(/IFCPROPERTYSINGLEVALUE\('LoadBearing'/g) ?? [];
+    expect(loadBearingMatches.length).toBe(2);
+
+    const isExternalMatches = ifcContent.match(/IFCPROPERTYSINGLEVALUE\('IsExternal'/g) ?? [];
+    expect(isExternalMatches.length).toBe(2);
+  });
 });

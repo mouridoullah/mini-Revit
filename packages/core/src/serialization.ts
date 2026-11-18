@@ -265,17 +265,19 @@ export function fromJSON(jsonString: string): BimState {
         };
       }
       if (w.topConstraint.kind === 'level' || (!w.topConstraint.kind && w.topConstraint.levelId)) {
-        if (!state.levels[w.topConstraint.levelId!]) {
+        const lvlId = w.topConstraint.levelId;
+        if (!lvlId || !state.levels[lvlId]) {
           throw new BimValidationError(
             'UNKNOWN_LEVEL',
-            `Wall "${id}" references non-existent Level ID in topConstraint: "${w.topConstraint.levelId}".`,
+            `Wall "${id}" references non-existent Level ID in topConstraint: "${lvlId}".`,
           );
         }
       } else if (w.topConstraint.kind === 'roof' && w.topConstraint.roofId) {
-        if (!state.roofs || !state.roofs[w.topConstraint.roofId]) {
+        const rfId = w.topConstraint.roofId;
+        if (!state.roofs || !state.roofs[rfId]) {
           throw new BimValidationError(
             'UNKNOWN_ROOF',
-            `Wall "${id}" references non-existent Roof ID in topConstraint: "${w.topConstraint.roofId}".`,
+            `Wall "${id}" references non-existent Roof ID in topConstraint: "${rfId}".`,
           );
         }
       }

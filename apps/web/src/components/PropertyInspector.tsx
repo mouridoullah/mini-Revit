@@ -461,32 +461,81 @@ export function PropertyInspector({
           />
 
           <div style={{ marginTop: '12px', borderTop: '1px solid #374151', paddingTop: '10px' }}>
-            <div style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 600, marginBottom: '6px' }}>
+            <div style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 600, marginBottom: '8px' }}>
               Sémantique BIM (IFC Pset_WallCommon)
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#e5e7eb', cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  data-testid="wall-load-bearing-checkbox"
-                  checked={wall.loadBearing ?? wallType?.loadBearing ?? (wallType ? wallType.thickness >= 150 : true)}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                <label style={{ fontSize: '11px', color: '#9ca3af' }}>Fonction porteuse (LoadBearing)</label>
+                <select
+                  data-testid="wall-load-bearing-select"
+                  value={wall.loadBearing === undefined ? 'inherit' : wall.loadBearing ? 'true' : 'false'}
                   onChange={(e) => {
-                    execute(new Commands.UpdateWallCommand(wall.id, { loadBearing: e.target.checked }));
+                    const val = e.target.value;
+                    execute(
+                      new Commands.UpdateWallCommand(wall.id, {
+                        loadBearing: val === 'inherit' ? undefined : val === 'true',
+                      }),
+                    );
                   }}
-                />
-                Porteur (LoadBearing)
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#e5e7eb', cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  data-testid="wall-is-external-checkbox"
-                  checked={wall.isExternal ?? wallType?.isExternal ?? (wallType ? wallType.thickness >= 200 : true)}
+                  style={{
+                    padding: '4px 6px',
+                    fontSize: '11px',
+                    borderRadius: '4px',
+                    backgroundColor: '#1f2937',
+                    color: '#f3f4f6',
+                    border: '1px solid #4b5563',
+                  }}
+                >
+                  <option value="inherit">
+                    Hérité du type (
+                    {wallType?.loadBearing !== undefined
+                      ? wallType.loadBearing
+                        ? 'Porteur'
+                        : 'Non porteur'
+                      : 'Non spécifié'}
+                    )
+                  </option>
+                  <option value="true">Oui (Porteur)</option>
+                  <option value="false">Non (Non porteur)</option>
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                <label style={{ fontSize: '11px', color: '#9ca3af' }}>Position de façade (IsExternal)</label>
+                <select
+                  data-testid="wall-is-external-select"
+                  value={wall.isExternal === undefined ? 'inherit' : wall.isExternal ? 'true' : 'false'}
                   onChange={(e) => {
-                    execute(new Commands.UpdateWallCommand(wall.id, { isExternal: e.target.checked }));
+                    const val = e.target.value;
+                    execute(
+                      new Commands.UpdateWallCommand(wall.id, {
+                        isExternal: val === 'inherit' ? undefined : val === 'true',
+                      }),
+                    );
                   }}
-                />
-                Extérieur (IsExternal)
-              </label>
+                  style={{
+                    padding: '4px 6px',
+                    fontSize: '11px',
+                    borderRadius: '4px',
+                    backgroundColor: '#1f2937',
+                    color: '#f3f4f6',
+                    border: '1px solid #4b5563',
+                  }}
+                >
+                  <option value="inherit">
+                    Hérité du type (
+                    {wallType?.isExternal !== undefined
+                      ? wallType.isExternal
+                        ? 'Extérieur'
+                        : 'Intérieur'
+                      : 'Non spécifié'}
+                    )
+                  </option>
+                  <option value="true">Oui (Extérieur)</option>
+                  <option value="false">Non (Intérieur)</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>

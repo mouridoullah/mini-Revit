@@ -686,4 +686,155 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
     expect(() => fromJSON(invalidDoc)).toThrowError(BimValidationError);
     expect(() => fromJSON(invalidDoc)).toThrowError(/UNKNOWN_ROOF_TYPE/);
   });
+
+  /* =========================================================================
+   * TESTS DE MATRICE D'INTÉGRITÉ RÉFÉRENTIELLE EXHAUSTIVE PHASE 7.6.1
+   * ========================================================================= */
+
+  it('T-SER-7.6.1-01 : fromJSON rejette une dalle avec slabType ou niveau orphelin', () => {
+    const invalidSlabType = JSON.stringify({
+      ...sampleState,
+      slabs: {
+        sl_ghost: {
+          id: 'sl_ghost',
+          category: 'slab',
+          slabTypeId: 'st_ghost',
+          levelId: 'lvl_01',
+          boundary: [{ x: 0, y: 0 }, { x: 2000, y: 0 }, { x: 2000, y: 2000 }],
+        },
+      },
+    });
+    expect(() => fromJSON(invalidSlabType)).toThrowError(/UNKNOWN_SLAB_TYPE/);
+
+    const invalidSlabLevel = JSON.stringify({
+      ...sampleState,
+      slabs: {
+        sl_ghost: {
+          id: 'sl_ghost',
+          category: 'slab',
+          slabTypeId: 'default-slab-type',
+          levelId: 'lvl_ghost',
+          boundary: [{ x: 0, y: 0 }, { x: 2000, y: 0 }, { x: 2000, y: 2000 }],
+        },
+      },
+    });
+    expect(() => fromJSON(invalidSlabLevel)).toThrowError(/UNKNOWN_LEVEL/);
+  });
+
+  it('T-SER-7.6.1-02 : fromJSON rejette une ouverture de toit (RoofOpening) orpheline', () => {
+    const invalidRoofOpening = JSON.stringify({
+      ...sampleState,
+      roofOpenings: {
+        ro_ghost: {
+          id: 'ro_ghost',
+          category: 'roofOpening',
+          roofId: 'roof_ghost',
+          uAlong: 1000,
+          vSlope: 1000,
+          width: 800,
+          height: 1200,
+        },
+      },
+    });
+    expect(() => fromJSON(invalidRoofOpening)).toThrowError(/UNKNOWN_ROOF/);
+  });
+
+  it('T-SER-7.6.1-03 : fromJSON rejette une porte ou fenêtre avec mur hôte ou type orphelin', () => {
+    const invalidHost = JSON.stringify({
+      ...sampleState,
+      doors: {
+        d_ghost: {
+          id: 'd_ghost',
+          category: 'door',
+          hostWallId: 'wall_ghost',
+          doorTypeId: 'dt_01',
+          offsetAlong: 500,
+          swing: { side: 'left', direction: 'in' },
+        },
+      },
+    });
+    expect(() => fromJSON(invalidHost)).toThrowError(/UNKNOWN_HOST_WALL/);
+
+    const invalidDoorType = JSON.stringify({
+      ...sampleState,
+      doors: {
+        d_ghost: {
+          id: 'd_ghost',
+          category: 'door',
+          hostWallId: 'w_01',
+          doorTypeId: 'dt_ghost',
+          offsetAlong: 500,
+          swing: { side: 'left', direction: 'in' },
+        },
+      },
+    });
+    expect(() => fromJSON(invalidDoorType)).toThrowError(/UNKNOWN_DOOR_TYPE/);
+  });
+
+  it('T-SER-7.6.1-04 : Migration Schema V1 vers V2 via fromJSON sans perte ni erreur de clé étrangère', () => {
+    const legacyV1 = JSON.stringify({
+      schemaVersion: 1,
+      units: 'mm',
+      levels: {
+        lvl_v1: { id: 'lvl_v1', name: 'RDC V1', elevation: 0, height: 2800 },
+      },
+      wallTypes: {
+        wt_v1: { id: 'wt_v1', name: 'Mur V1', thickness: 200, height: 2800 },
+      },
+      walls: {
+        w_v1: {
+          id: 'w_v1',
+          category: 'wall',
+          typeId: 'wt_v1',
+          levelId: 'lvl_v1',
+          start: { x: 0, y: 0 },
+          end: { x: 5000, y: 0 },
+        },
+      },
+      doors: {
+        d_v1: {
+          id: 'd_v1',
+          category: 'door',
+          hostWallId: 'w_v1',
+          offsetAlong: 1000,
+          width: 900,
+          height: 2100,
+          swing: { side: 'left', direction: 'in' },
+        },
+      },
+      windows: {
+        win_v1: {
+          id: 'win_v1',
+          category: 'window',
+          hostWallId: 'w_v1',
+          offsetAlong: 3000,
+          width: 1200,
+          height: 1400,
+          sillHeight: 900,
+        },
+      },
+    });
+
+    const migrated = fromJSON(legacyV1);
+    expect(migrated.schemaVersion).toBe(2);
+    expect(migrated.walls['w_v1']).toBeDefined();
+    expect(migrated.doors['d_v1']).toBeDefined();
+    expect(migrated.windows['win_v1']).toBeDefined();
+
+    // Vérifie que les DoorTypes et WindowTypes synthétisés satisfont strictement les contrôles de clés étrangères
+    expect(migrated.doorTypes).toBeDefined();
+    expect(Object.keys(migrated.doorTypes).length).toBe(1);
+    expect(migrated.doors['d_v1']?.doorTypeId).toBeDefined();
+    expect(migrated.doorTypes[migrated.doors['d_v1']!.doorTypeId]).toBeDefined();
+
+    expect(migrated.windowTypes).toBeDefined();
+    expect(Object.keys(migrated.windowTypes).length).toBe(1);
+    expect(migrated.windows['win_v1']?.windowTypeId).toBeDefined();
+    expect(migrated.windowTypes[migrated.windows['win_v1']!.windowTypeId]).toBeDefined();
+
+    // Round-trip complet sans altération
+    const reserialized = toJSON(migrated);
+    const reloaded = fromJSON(reserialized);
+    expect(reloaded).toEqual(migrated);
+  });
 });
