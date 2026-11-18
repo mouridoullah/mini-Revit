@@ -280,7 +280,7 @@ export function resolveWallGeometry(wall: Wall, state: BimState): ResolvedWall {
           const dims = getComponentEffectiveDimensions(comp, ct);
           const pVec = { x: comp.placement.x - wall.start.x, y: comp.placement.y - wall.start.y };
           const projDist = wallLength > 0 ? (pVec.x * dx + pVec.y * dy) / wallLength : 0;
-          const offsetAlong = Math.max(0, projDist - dims.width / 2);
+          const offsetAlong = projDist - dims.width / 2;
           const sillHeight = comp.placement.elevationOffset ?? ct.defaultElevationOffset ?? 0;
           const sillZAbsolute = zBase + sillHeight;
           const lintelZAbsolute = sillZAbsolute + dims.height;

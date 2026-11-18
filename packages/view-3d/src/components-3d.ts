@@ -147,7 +147,7 @@ export function createComponentMesh(
     }
 
     case 'sink': {
-      // Meuble vasque caisson bas
+      // Meuble vasque caisson bas (s'étend avec width et depth)
       pieces.push(
         makeOrientedBox(
           `${comp.id}_base`,
@@ -171,6 +171,30 @@ export function createComponentMesh(
           height,
         ),
       );
+      // Sous-élément invariant : mitigeur / robinetterie aux dimensions fixes (40x40x120 mm)
+      pieces.push(
+        makeOrientedBox(
+          `${comp.id}_faucet`,
+          -20,
+          halfD * 0.7 - 20,
+          20,
+          halfD * 0.7 + 20,
+          height,
+          height + 120,
+        ),
+      );
+      // Sous-élément invariant : bonde centrale fixe (30x30x10 mm)
+      pieces.push(
+        makeOrientedBox(
+          `${comp.id}_drain`,
+          -15,
+          -15,
+          15,
+          15,
+          height - 10,
+          height,
+        ),
+      );
       break;
     }
 
@@ -191,18 +215,82 @@ export function createComponentMesh(
     }
 
     case 'bath': {
-      // Baignoire pleine / tablier
-      pieces.push(
-        makeOrientedBox(
-          `${comp.id}_tub`,
-          -halfW,
-          -halfD,
-          halfW,
-          halfD,
-          0,
-          height,
-        ),
-      );
+      // Baignoire paramétrique à rebord fixe de 80 mm et cuve expansible
+      const rim = 80;
+      if (width > 2 * rim && depth > 2 * rim) {
+        // Rebord avant
+        pieces.push(
+          makeOrientedBox(
+            `${comp.id}_rim_front`,
+            -halfW,
+            -halfD,
+            halfW,
+            -halfD + rim,
+            0,
+            height,
+          ),
+        );
+        // Rebord arrière
+        pieces.push(
+          makeOrientedBox(
+            `${comp.id}_rim_back`,
+            -halfW,
+            halfD - rim,
+            halfW,
+            halfD,
+            0,
+            height,
+          ),
+        );
+        // Rebord gauche
+        pieces.push(
+          makeOrientedBox(
+            `${comp.id}_rim_left`,
+            -halfW,
+            -halfD + rim,
+            -halfW + rim,
+            halfD - rim,
+            0,
+            height,
+          ),
+        );
+        // Rebord droit
+        pieces.push(
+          makeOrientedBox(
+            `${comp.id}_rim_right`,
+            halfW - rim,
+            -halfD + rim,
+            halfW,
+            halfD - rim,
+            0,
+            height,
+          ),
+        );
+        // Fond de cuve
+        pieces.push(
+          makeOrientedBox(
+            `${comp.id}_cavity_bottom`,
+            -halfW + rim,
+            -halfD + rim,
+            halfW - rim,
+            halfD - rim,
+            0,
+            60,
+          ),
+        );
+      } else {
+        pieces.push(
+          makeOrientedBox(
+            `${comp.id}_tub`,
+            -halfW,
+            -halfD,
+            halfW,
+            halfD,
+            0,
+            height,
+          ),
+        );
+      }
       break;
     }
 
@@ -300,8 +388,8 @@ export function createComponentMesh(
           height,
         ),
       );
-      // 4 pieds
-      const legSize = Math.min(60, width * 0.08);
+      // 4 pieds invariants aux dimensions fixes strictes de 50 x 50 mm
+      const legSize = 50;
       const legHeight = height - 40;
       // Pied avant-gauche
       pieces.push(
@@ -483,7 +571,193 @@ export function createComponentMesh(
       break;
     }
 
-    // Par défaut (armoire, baie coulissante, meuble générique) : boîte pleine
+    // -------------------------------------------------------------------------
+    // 4. MENUISERIES VITRÉES PARAMÉTRIQUES NON-DÉFORMANTES (Phase 8.5)
+    // -------------------------------------------------------------------------
+    case 'sliding_door': {
+      // Profils de dormant invariants (largeur 50 mm, profondeur 70 mm)
+      const frameW = 50;
+      const frameD = Math.min(depth, 70);
+      const halfFD = frameD / 2;
+
+      // Montant gauche fixe
+      pieces.push(
+        makeOrientedBox(
+          `${comp.id}_jamb_l`,
+          -halfW,
+          -halfFD,
+          -halfW + frameW,
+          halfFD,
+          0,
+          height,
+        ),
+      );
+      // Montant droit fixe
+      pieces.push(
+        makeOrientedBox(
+          `${comp.id}_jamb_r`,
+          halfW - frameW,
+          -halfFD,
+          halfW,
+          halfFD,
+          0,
+          height,
+        ),
+      );
+      // Traverse haute fixe
+      pieces.push(
+        makeOrientedBox(
+          `${comp.id}_head`,
+          -halfW + frameW,
+          -halfFD,
+          halfW - frameW,
+          halfFD,
+          height - frameW,
+          height,
+        ),
+      );
+      // Seuil bas fixe
+      pieces.push(
+        makeOrientedBox(
+          `${comp.id}_sill`,
+          -halfW + frameW,
+          -halfFD,
+          halfW - frameW,
+          halfFD,
+          0,
+          frameW,
+        ),
+      );
+
+      // Panneaux vitrés qui s'étendent avec les dimensions effectives
+      const glassH0 = frameW;
+      const glassH1 = height - frameW;
+      const glassW = (width - 2 * frameW) / 2 + 20; // Recouvrement central
+      // Vantail vitré 1 (avant)
+      pieces.push(
+        makeOrientedBox(
+          `${comp.id}_glass1`,
+          -halfW + frameW,
+          -halfFD + 8,
+          -halfW + frameW + glassW,
+          -halfFD + 20,
+          glassH0,
+          glassH1,
+        ),
+      );
+      // Vantail vitré 2 (arrière)
+      pieces.push(
+        makeOrientedBox(
+          `${comp.id}_glass2`,
+          halfW - frameW - glassW,
+          halfFD - 20,
+          halfW - frameW,
+          halfFD - 8,
+          glassH0,
+          glassH1,
+        ),
+      );
+      break;
+    }
+
+    case 'french_window': {
+      // Porte-fenêtre : cadre fixe et 2 vantaux vitrés
+      const frameW = 50;
+      const frameD = Math.min(depth, 70);
+      const halfFD = frameD / 2;
+
+      // Montant gauche fixe
+      pieces.push(
+        makeOrientedBox(
+          `${comp.id}_jamb_l`,
+          -halfW,
+          -halfFD,
+          -halfW + frameW,
+          halfFD,
+          0,
+          height,
+        ),
+      );
+      // Montant droit fixe
+      pieces.push(
+        makeOrientedBox(
+          `${comp.id}_jamb_r`,
+          halfW - frameW,
+          -halfFD,
+          halfW,
+          halfFD,
+          0,
+          height,
+        ),
+      );
+      // Traverse haute fixe
+      pieces.push(
+        makeOrientedBox(
+          `${comp.id}_head`,
+          -halfW + frameW,
+          -halfFD,
+          halfW - frameW,
+          halfFD,
+          height - frameW,
+          height,
+        ),
+      );
+      // Seuil bas fixe
+      pieces.push(
+        makeOrientedBox(
+          `${comp.id}_sill`,
+          -halfW + frameW,
+          -halfFD,
+          halfW - frameW,
+          halfFD,
+          0,
+          frameW,
+        ),
+      );
+      // Meneau central fixe
+      pieces.push(
+        makeOrientedBox(
+          `${comp.id}_mullion`,
+          -frameW / 2,
+          -halfFD,
+          frameW / 2,
+          halfFD,
+          frameW,
+          height - frameW,
+        ),
+      );
+
+      // Panneaux vitrés expansibles
+      const glassH0 = frameW;
+      const glassH1 = height - frameW;
+      // Vitrage gauche
+      pieces.push(
+        makeOrientedBox(
+          `${comp.id}_glass_l`,
+          -halfW + frameW,
+          -6,
+          -frameW / 2,
+          6,
+          glassH0,
+          glassH1,
+        ),
+      );
+      // Vitrage droit
+      pieces.push(
+        makeOrientedBox(
+          `${comp.id}_glass_r`,
+          frameW / 2,
+          -6,
+          halfW - frameW,
+          6,
+          glassH0,
+          glassH1,
+        ),
+      );
+      break;
+    }
+
+    // Par défaut (armoire, meuble générique) : boîte pleine
     default: {
       pieces.push(
         makeOrientedBox(

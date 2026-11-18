@@ -204,6 +204,10 @@ export class ComponentTool implements Tool {
 
     // 3. Clic d'implantation (Ajout du composant)
     if (event.type === 'pointerdown' && event.button === 0) {
+      if (this.state.kind !== 'hovering') {
+        this.handle({ type: 'pointermove', screen: event.screen, shift: event.shift, alt: event.alt }, ctx);
+      }
+
       const placePos =
         this.state.kind === 'hovering'
           ? this.state.worldPos

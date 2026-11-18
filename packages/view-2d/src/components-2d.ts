@@ -148,17 +148,17 @@ export function drawComponentSymbol(
       ctx.fill();
       ctx.stroke();
 
-      // Cuve intérieure aux coins arrondis
-      const margin = Math.min(60, width * 0.05);
+      // Cuve intérieure avec rebord invariant de 80 mm (Phase 8.5)
+      const margin = 80;
       const innerW = width - 2 * margin;
       const innerD = depth - 2 * margin;
       ctx.beginPath();
-      ctx.ellipse(0, 0, innerW / 2, innerD / 2, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, 0, Math.max(10, innerW / 2), Math.max(10, innerD / 2), 0, 0, Math.PI * 2);
       ctx.stroke();
 
       // Bonde vers l'un des côtés
       ctx.beginPath();
-      ctx.arc(-halfW + margin * 2, 0, 25, 0, Math.PI * 2);
+      ctx.arc(-halfW + margin * 1.5, 0, 20, 0, Math.PI * 2);
       ctx.stroke();
       break;
     }
@@ -306,8 +306,8 @@ export function drawComponentSymbol(
       ctx.fill();
       ctx.stroke();
 
-      // Pieds intérieurs stylisés
-      const legSize = Math.min(60, width * 0.08);
+      // 4 pieds invariants aux dimensions fixes de 50 x 50 mm (Phase 8.5)
+      const legSize = 50;
       ctx.beginPath();
       ctx.rect(-halfW + 20, -halfD + 20, legSize, legSize);
       ctx.rect(halfW - 20 - legSize, -halfD + 20, legSize, legSize);

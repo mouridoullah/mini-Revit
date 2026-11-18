@@ -18,6 +18,8 @@ import {
   AddWallCommand,
   validateComponentType,
   validateComponent,
+  checkComponentCollisions,
+  checkFunctionalClearance,
   canDeleteComponentType,
   getComponentEffectiveDimensions,
   resolveWallGeometry,
@@ -741,6 +743,584 @@ describe('Composants architecturaux et mobilier paramétrique (Phase 8.1 - Core 
 
       const relFills = ifcApi.GetLineIDsWithType(modelId, WebIFC.IFCRELFILLSELEMENT);
       expect(relFills.size()).toBeGreaterThanOrEqual(1);
+
+      ifcApi.CloseModel(modelId);
+    });
+  });
+
+  // =========================================================================
+  // PHASE 8.5 : QUALIFICATION INDUSTRIELLE DES COMPOSANTS
+  // =========================================================================
+
+  describe('Phase 8.5-A : Qualification Sémantique IFC4 & buildingSMART', () => {
+    it('génère IfcSystemFurnitureElement et IfcSystemFurnitureElementType pour les meubles modulaires de cuisine', async () => {
+      const doc = BimDocument.createDefaultProject();
+      const levelId = Object.keys(doc.getState().levels)[0] ?? 'lvl_0';
+
+      doc.execute(
+        new AddComponentCommand({
+          id: 'comp_kitchen_base',
+          category: 'component',
+          typeId: 'ct_kitchen_base_60',
+          levelId,
+          placement: { x: 1000, y: 1000 },
+          name: 'Meuble Bas Cuisine 60',
+        }),
+      );
+
+      doc.execute(
+        new AddComponentCommand({
+          id: 'comp_kitchen_wall',
+          category: 'component',
+          typeId: 'ct_kitchen_wall_60',
+          levelId,
+          placement: { x: 1000, y: 1000, elevationOffset: 1400 },
+          name: 'Meuble Haut Cuisine 60',
+        }),
+      );
+
+      const ifc = exportToIfc(doc.getState());
+
+      expect(ifc).toContain('IFCSYSTEMFURNITUREELEMENTTYPE(');
+      expect(ifc).toContain('IFCSYSTEMFURNITUREELEMENT(');
+      expect(ifc).toContain('.USERDEFINED.');
+
+      const ifcApi = new WebIFC.IfcAPI();
+      await ifcApi.Init();
+      const modelId = ifcApi.OpenModel(new TextEncoder().encode(ifc));
+      expect(modelId).toBeGreaterThanOrEqual(0);
+
+      const sysElements = ifcApi.GetLineIDsWithType(modelId, WebIFC.IFCSYSTEMFURNITUREELEMENT);
+      expect(sysElements.size()).toBe(2);
+
+      const sysTypes = ifcApi.GetLineIDsWithType(modelId, WebIFC.IFCSYSTEMFURNITUREELEMENTTYPE);
+      expect(sysTypes.size()).toBe(2);
+
+      ifcApi.CloseModel(modelId);
+    });
+
+    it('génère les énumérations IFC4 officielles pour tous les appareils sanitaires (TOILETPAN, WASHHANDBASIN, SHOWER, BATH, SINK)', () => {
+      const doc = BimDocument.createDefaultProject();
+      const levelId = Object.keys(doc.getState().levels)[0] ?? 'lvl_0';
+
+      const sanitaries = [
+        { id: 'c_wc', typeId: 'ct_toilet_wall_hung', enumVal: '.TOILETPAN.' },
+        { id: 'c_basin', typeId: 'ct_sink_vanity', enumVal: '.WASHHANDBASIN.' },
+        { id: 'c_shower', typeId: 'ct_shower_tray', enumVal: '.SHOWER.' },
+        { id: 'c_bath', typeId: 'ct_bath_tub', enumVal: '.BATH.' },
+        { id: 'c_sink', typeId: 'ct_kitchen_sink_unit', enumVal: '.SINK.' },
+      ];
+
+      for (let i = 0; i < sanitaries.length; i++) {
+        const s = sanitaries[i]!;
+        doc.execute(
+          new AddComponentCommand({
+            id: s.id,
+            category: 'component',
+            typeId: s.typeId,
+            levelId,
+            placement: { x: 500 * (i + 1), y: 500 },
+          }),
+        );
+      }
+
+      const ifc = exportToIfc(doc.getState());
+
+      for (const s of sanitaries) {
+        expect(ifc).toContain(s.enumVal);
+      }
+    });
+
+    it('génère les énumérations officielles pour le mobilier (BED, TABLE, CHAIR, SOFA, USERDEFINED)', () => {
+      const doc = BimDocument.createDefaultProject();
+      const levelId = Object.keys(doc.getState().levels)[0] ?? 'lvl_0';
+
+      const furniture = [
+        { id: 'c_bed', typeId: 'ct_bed_double', enumVal: '.BED.' },
+        { id: 'c_table', typeId: 'ct_dining_table', enumVal: '.TABLE.' },
+        { id: 'c_chair', typeId: 'ct_chair', enumVal: '.CHAIR.' },
+        { id: 'c_sofa', typeId: 'ct_sofa_3p', enumVal: '.SOFA.' },
+        { id: 'c_wardrobe', typeId: 'ct_wardrobe', enumVal: '.USERDEFINED.' },
+      ];
+
+      for (let i = 0; i < furniture.length; i++) {
+        const f = furniture[i]!;
+        doc.execute(
+          new AddComponentCommand({
+            id: f.id,
+            category: 'component',
+            typeId: f.typeId,
+            levelId,
+            placement: { x: 800 * (i + 1), y: 1500 },
+          }),
+        );
+      }
+
+      const ifc = exportToIfc(doc.getState());
+
+      for (const f of furniture) {
+        expect(ifc).toContain(f.enumVal);
+      }
+    });
+  });
+
+  describe('Phase 8.5-B : Qualification Géométrique des Menuiseries Hôtes', () => {
+    it('rejette avec INVALID_OPENING_POSITION une menuiserie dépassant les extrémités du mur hôte (aucun clampage silencieux)', () => {
+      const doc = BimDocument.createDefaultProject();
+      const levelId = Object.keys(doc.getState().levels)[0] ?? 'lvl_0';
+      const wallTypeId = Object.keys(doc.getState().wallTypes)[0] ?? 'wt_default';
+
+      // Mur de 3000 mm de long de (0,0) à (3000, 0)
+      doc.execute(
+        new AddWallCommand({
+          id: 'wall_bounds_test',
+          category: 'wall',
+          typeId: wallTypeId,
+          levelId,
+          start: { x: 0, y: 0 },
+          end: { x: 3000, y: 0 },
+        }),
+      );
+
+      // Baie coulissante de largeur 2400 mm centrée en x = 500 :
+      // offsetAlong = 500 - 1200 = -700 < 0 -> doit être rejeté !
+      expect(() => {
+        doc.execute(
+          new AddComponentCommand({
+            id: 'comp_overflow_start',
+            category: 'component',
+            typeId: 'ct_sliding_door',
+            levelId,
+            placement: { x: 500, y: 0, hostWallId: 'wall_bounds_test' },
+            widthOverride: 2400,
+          }),
+        );
+      }).toThrowError(/INVALID_OPENING_POSITION/);
+
+      // Baie coulissante centrée en x = 2500 :
+      // offsetAlong = 2500 - 1200 = 1300 ; fin = 1300 + 2400 = 3700 > 3000 -> doit être rejeté !
+      expect(() => {
+        doc.execute(
+          new AddComponentCommand({
+            id: 'comp_overflow_end',
+            category: 'component',
+            typeId: 'ct_sliding_door',
+            levelId,
+            placement: { x: 2500, y: 0, hostWallId: 'wall_bounds_test' },
+            widthOverride: 2400,
+          }),
+        );
+      }).toThrowError(/INVALID_OPENING_POSITION/);
+    });
+
+    it('rejette avec INVALID_HOST_WALL_DISTANCE une menuiserie placée trop loin de l’axe du mur hôte', () => {
+      const doc = BimDocument.createDefaultProject();
+      const levelId = Object.keys(doc.getState().levels)[0] ?? 'lvl_0';
+      const wallTypeId = Object.keys(doc.getState().wallTypes)[0] ?? 'wt_default';
+
+      doc.execute(
+        new AddWallCommand({
+          id: 'wall_dist_test',
+          category: 'wall',
+          typeId: wallTypeId,
+          levelId,
+          start: { x: 0, y: 0 },
+          end: { x: 5000, y: 0 },
+        }),
+      );
+
+      // Mur d'épaisseur 200 mm : limite = 200/2 + 50 = 150 mm.
+      // Placement à y = 250 mm -> écart orthogonal de 250 mm > 150 mm -> rejet !
+      expect(() => {
+        doc.execute(
+          new AddComponentCommand({
+            id: 'comp_too_far',
+            category: 'component',
+            typeId: 'ct_sliding_door',
+            levelId,
+            placement: { x: 2500, y: 250, hostWallId: 'wall_dist_test' },
+            widthOverride: 1800,
+          }),
+        );
+      }).toThrowError(/INVALID_HOST_WALL_DISTANCE/);
+    });
+
+    it('rejette avec OPENING_OVERLAP une menuiserie chevauchant une autre baie sur le même mur hôte', () => {
+      const doc = BimDocument.createDefaultProject();
+      const levelId = Object.keys(doc.getState().levels)[0] ?? 'lvl_0';
+      const wallTypeId = Object.keys(doc.getState().wallTypes)[0] ?? 'wt_default';
+
+      doc.execute(
+        new AddWallCommand({
+          id: 'wall_overlap_test',
+          category: 'wall',
+          typeId: wallTypeId,
+          levelId,
+          start: { x: 0, y: 0 },
+          end: { x: 6000, y: 0 },
+        }),
+      );
+
+      // Première menuiserie de 2000 mm de large centrée en x = 2000 mm (emprise [1000, 3000])
+      doc.execute(
+        new AddComponentCommand({
+          id: 'comp_window_1',
+          category: 'component',
+          typeId: 'ct_french_window',
+          levelId,
+          placement: { x: 2000, y: 0, hostWallId: 'wall_overlap_test' },
+          widthOverride: 2000,
+        }),
+      );
+
+      // Seconde menuiserie de 1800 mm centrée en x = 2600 mm (emprise [1700, 3500]) -> chevauchement [1700, 3000] !
+      expect(() => {
+        doc.execute(
+          new AddComponentCommand({
+            id: 'comp_window_2',
+            category: 'component',
+            typeId: 'ct_sliding_door',
+            levelId,
+            placement: { x: 2600, y: 0, hostWallId: 'wall_overlap_test' },
+            widthOverride: 1800,
+          }),
+        );
+      }).toThrowError(/OPENING_OVERLAP/);
+    });
+
+    it('gère le cycle de vie complet : création, retaillage, suppression avec restitution de matière et suppression du mur hôte', () => {
+      const doc = BimDocument.createDefaultProject();
+      const levelId = Object.keys(doc.getState().levels)[0] ?? 'lvl_0';
+      const wallTypeId = Object.keys(doc.getState().wallTypes)[0] ?? 'wt_default';
+      const wallId = 'wall_lifecycle';
+
+      doc.execute(
+        new AddWallCommand({
+          id: wallId,
+          category: 'wall',
+          typeId: wallTypeId,
+          levelId,
+          start: { x: 0, y: 0 },
+          end: { x: 5000, y: 0 },
+        }),
+      );
+
+      // 1. Ajout de la menuiserie
+      doc.execute(
+        new AddComponentCommand({
+          id: 'comp_door_lifecycle',
+          category: 'component',
+          typeId: 'ct_sliding_door',
+          levelId,
+          placement: { x: 2500, y: 0, hostWallId: wallId },
+          widthOverride: 2000,
+        }),
+      );
+
+      let resolved = resolveWallGeometry(doc.getState().walls[wallId]!, doc.getState());
+      expect(resolved.openings.length).toBe(1);
+      expect(resolved.openings[0]?.offsetAlong).toBe(1500);
+      expect(resolved.openings[0]?.width).toBe(2000);
+
+      // 2. Retaillage de la menuiserie via UpdateComponentCommand
+      doc.execute(
+        new UpdateComponentCommand('comp_door_lifecycle', {
+          widthOverride: 2400,
+        }),
+      );
+
+      resolved = resolveWallGeometry(doc.getState().walls[wallId]!, doc.getState());
+      expect(resolved.openings[0]?.offsetAlong).toBe(1300);
+      expect(resolved.openings[0]?.width).toBe(2400);
+
+      // 3. Suppression de la menuiserie -> matière du mur intégralement restituée
+      doc.execute(new DeleteComponentCommand('comp_door_lifecycle'));
+      resolved = resolveWallGeometry(doc.getState().walls[wallId]!, doc.getState());
+      expect(resolved.openings.length).toBe(0);
+
+      // 4. Ré-insertion puis suppression du mur hôte -> le composant est détaché gracieusement
+      doc.execute(
+        new AddComponentCommand({
+          id: 'comp_attached',
+          category: 'component',
+          typeId: 'ct_sliding_door',
+          levelId,
+          placement: { x: 2500, y: 0, hostWallId: wallId },
+        }),
+      );
+      expect(doc.getState().components?.['comp_attached']?.placement.hostWallId).toBe(wallId);
+
+      doc.execute(new DeleteWallCommand(wallId));
+      expect(doc.getState().components?.['comp_attached']?.placement.hostWallId).toBeUndefined();
+    });
+  });
+
+  describe('Phase 8.5-C : Moteur de Détection de Collisions & Dégagements Fonctionnels', () => {
+    it('checkComponentCollisions détecte les collisions 2D/3D entre composants au même niveau et ignore les composants à des altitudes disjointes', () => {
+      const doc = BimDocument.createDefaultProject();
+      const state = doc.getState();
+      const levelId = Object.keys(state.levels)[0] ?? 'lvl_0';
+
+      // Composant 1 : Meuble bas cuisine 60 (600x600x860) à (1000, 1000)
+      const comp1: Component = {
+        id: 'comp_base',
+        category: 'component',
+        typeId: 'ct_kitchen_base_60',
+        levelId,
+        placement: { x: 1000, y: 1000, rotation: 0, elevationOffset: 0 },
+      };
+
+      // Composant 2 : Table à manger qui chevauche comp1 en plan à (1200, 1000)
+      const comp2Colliding: Component = {
+        id: 'comp_table',
+        category: 'component',
+        typeId: 'ct_dining_table',
+        levelId,
+        placement: { x: 1200, y: 1000, rotation: 0, elevationOffset: 0 },
+      };
+
+      const collidingState: BimState = {
+        ...state,
+        components: {
+          [comp1.id]: comp1,
+          [comp2Colliding.id]: comp2Colliding,
+        },
+      };
+
+      const collisions = checkComponentCollisions(comp1, collidingState);
+      expect(collisions.length).toBe(1);
+      expect(collisions[0]?.code).toBe('COMPONENT_COLLISION');
+      expect(collisions[0]?.offendingIds).toContain(comp2Colliding.id);
+
+      // Composant 3 : Meuble haut de cuisine superposé en plan (1000, 1000), mais en hauteur à z = 1400 mm
+      const comp3High: Component = {
+        id: 'comp_wall_unit',
+        category: 'component',
+        typeId: 'ct_kitchen_wall_60',
+        levelId,
+        placement: { x: 1000, y: 1000, rotation: 0, elevationOffset: 1400 },
+      };
+
+      const nonCollidingState: BimState = {
+        ...state,
+        components: {
+          [comp1.id]: comp1,
+          [comp3High.id]: comp3High,
+        },
+      };
+
+      const noCollisions = checkComponentCollisions(comp1, nonCollidingState);
+      expect(noCollisions.length).toBe(0);
+    });
+
+    it('checkComponentCollisions ignore le mur hôte pour les menuiseries hôtes et détecte les collisions avec les autres murs', () => {
+      const doc = BimDocument.createDefaultProject();
+      const levelId = Object.keys(doc.getState().levels)[0] ?? 'lvl_0';
+      const wallTypeId = Object.keys(doc.getState().wallTypes)[0] ?? 'wt_default';
+
+      const hostWallId = 'w_host';
+      const obstacleWallId = 'w_obstacle';
+
+      const state: BimState = {
+        ...doc.getState(),
+        walls: {
+          [hostWallId]: {
+            id: hostWallId,
+            category: 'wall',
+            typeId: wallTypeId,
+            levelId,
+            start: { x: 0, y: 0 },
+            end: { x: 5000, y: 0 },
+          },
+          [obstacleWallId]: {
+            id: obstacleWallId,
+            category: 'wall',
+            typeId: wallTypeId,
+            levelId,
+            start: { x: 2500, y: -2000 },
+            end: { x: 2500, y: 2000 },
+          },
+        },
+      };
+
+      // Composant 1 : Baie coulissante hébergée sur hostWallId, ne traversant pas obstacleWallId
+      const compHosted: Component = {
+        id: 'comp_glazing',
+        category: 'component',
+        typeId: 'ct_sliding_door',
+        levelId,
+        placement: { x: 1000, y: 0, hostWallId },
+      };
+
+      const hostedViolations = checkComponentCollisions(compHosted, {
+        ...state,
+        components: { [compHosted.id]: compHosted },
+      });
+      // Le mur hôte w_host n'est pas rapporté comme une collision
+      expect(hostedViolations.some((v) => v.offendingIds.includes(hostWallId))).toBe(false);
+
+      // Composant 2 : Lit placé à travers le mur d'obstacle
+      const compObstacle: Component = {
+        id: 'comp_bed_clash',
+        category: 'component',
+        typeId: 'ct_bed_double',
+        levelId,
+        placement: { x: 2500, y: 500, rotation: 0 },
+      };
+
+      const wallClashViolations = checkComponentCollisions(compObstacle, {
+        ...state,
+        components: { [compObstacle.id]: compObstacle },
+      });
+      expect(wallClashViolations.some((v) => v.offendingIds.includes(obstacleWallId))).toBe(true);
+    });
+
+    it('checkFunctionalClearance détecte les obstacles dans la zone de dégagement ergonomique recommandée', () => {
+      const doc = BimDocument.createDefaultProject();
+      const levelId = Object.keys(doc.getState().levels)[0] ?? 'lvl_0';
+
+      // WC suspendu (largeur 360, profondeur 540, clearanceDepth = 800 mm)
+      // Placé en (2000, 2000), rotation 0 (avant orienté vers -Y)
+      const wc: Component = {
+        id: 'wc_clearance_test',
+        category: 'component',
+        typeId: 'ct_toilet_wall_hung',
+        levelId,
+        placement: { x: 2000, y: 2000, rotation: 0 },
+      };
+
+      const emptyState: BimState = {
+        ...doc.getState(),
+        components: { [wc.id]: wc },
+      };
+
+      const freeCheck = checkFunctionalClearance(wc, emptyState);
+      expect(freeCheck.isObstructed).toBe(false);
+      expect(freeCheck.obstacles.length).toBe(0);
+
+      // Obstacle : une chaise placée dans les 800 mm de dégagement frontal (par ex. à y = 1600 mm)
+      const chairObstacle: Component = {
+        id: 'chair_obstacle',
+        category: 'component',
+        typeId: 'ct_chair',
+        levelId,
+        placement: { x: 2000, y: 1600 },
+      };
+
+      const obstructedState: BimState = {
+        ...doc.getState(),
+        components: {
+          [wc.id]: wc,
+          [chairObstacle.id]: chairObstacle,
+        },
+      };
+
+      const obstructedCheck = checkFunctionalClearance(wc, obstructedState);
+      expect(obstructedCheck.isObstructed).toBe(true);
+      expect(obstructedCheck.obstacles).toContain('chair_obstacle');
+    });
+  });
+
+  describe('Phase 8.5-E : Villa Étalon — Qualification Industrielle Exhaustive des 15 Composants', () => {
+    it('instancie l’ensemble des 15 composants du catalogue dans une configuration architecturale réaliste et valide l’export IFC4 avec WebIFC', async () => {
+      const doc = BimDocument.createDefaultProject();
+      const levelId = Object.keys(doc.getState().levels)[0] ?? 'lvl_0';
+      const wallTypeId = Object.keys(doc.getState().wallTypes)[0] ?? 'wt_default';
+
+      // 1. Murs périphériques de la Villa Étalon (12m x 10m)
+      const walls = [
+        { id: 'w_s', start: { x: 0, y: 0 }, end: { x: 12000, y: 0 } },
+        { id: 'w_e', start: { x: 12000, y: 0 }, end: { x: 12000, y: 10000 } },
+        { id: 'w_n', start: { x: 12000, y: 10000 }, end: { x: 0, y: 10000 } },
+        { id: 'w_w', start: { x: 0, y: 10000 }, end: { x: 0, y: 0 } },
+      ];
+
+      for (const w of walls) {
+        doc.execute(
+          new AddWallCommand({
+            id: w.id,
+            category: 'wall',
+            typeId: wallTypeId,
+            levelId,
+            start: w.start,
+            end: w.end,
+          }),
+        );
+      }
+
+      // 2. Instanciation des 15 composants du catalogue standard
+      const villaComponents = [
+        // Sanitaires
+        { id: 'villa_wc', typeId: 'ct_toilet_wall_hung', x: 2000, y: 9500, rot: 0, host: 'w_n' },
+        { id: 'villa_basin', typeId: 'ct_sink_vanity', x: 3000, y: 9500, rot: 0, host: 'w_n' },
+        { id: 'villa_shower', typeId: 'ct_shower_tray', x: 1000, y: 9000, rot: 0 },
+        { id: 'villa_bath', typeId: 'ct_bath_tub', x: 1000, y: 7500, rot: 0 },
+        // Cuisine
+        { id: 'villa_kitchen_base', typeId: 'ct_kitchen_base_60', x: 5000, y: 9500, rot: 0 },
+        { id: 'villa_kitchen_sink', typeId: 'ct_kitchen_sink_unit', x: 6000, y: 9500, rot: 0 },
+        { id: 'villa_kitchen_wall', typeId: 'ct_kitchen_wall_60', x: 5000, y: 9500, elev: 1400 },
+        { id: 'villa_fridge', typeId: 'ct_kitchen_fridge', x: 7000, y: 9500, rot: 0 },
+        // Mobilier
+        { id: 'villa_bed', typeId: 'ct_bed_double', x: 2000, y: 3000, rot: 0, wOver: 1800 },
+        { id: 'villa_table', typeId: 'ct_dining_table', x: 8000, y: 5000, rot: 0, wOver: 2000 },
+        { id: 'villa_chair1', typeId: 'ct_chair', x: 8000, y: 4400, rot: 0 },
+        { id: 'villa_chair2', typeId: 'ct_chair', x: 8000, y: 5600, rot: Math.PI },
+        { id: 'villa_sofa', typeId: 'ct_sofa_3p', x: 5000, y: 3000, rot: 0, wOver: 2200 },
+        { id: 'villa_wardrobe', typeId: 'ct_wardrobe', x: 1000, y: 1500, rot: 0 },
+        // Menuiseries hôtes
+        { id: 'villa_sliding', typeId: 'ct_sliding_door', x: 6000, y: 0, host: 'w_s', wOver: 2400 },
+      ];
+
+      expect(villaComponents.length).toBe(15);
+
+      for (const c of villaComponents) {
+        doc.execute(
+          new AddComponentCommand({
+            id: c.id,
+            category: 'component',
+            typeId: c.typeId,
+            levelId,
+            placement: {
+              x: c.x,
+              y: c.y,
+              rotation: c.rot ?? 0,
+              elevationOffset: c.elev ?? 0,
+              hostWallId: c.host,
+            },
+            ...(c.wOver ? { widthOverride: c.wOver } : {}),
+          }),
+        );
+      }
+
+      // Vérification du nombre de composants instanciés
+      expect(Object.keys(doc.getState().components ?? {}).length).toBe(15);
+
+      // Génération et export IFC4
+      const ifcContent = exportToIfc(doc.getState(), {
+        projectName: 'Villa Étalon Composants',
+      });
+
+      // Validation stricte WebIFC C++/WASM
+      const ifcApi = new WebIFC.IfcAPI();
+      await ifcApi.Init();
+      const modelId = ifcApi.OpenModel(new TextEncoder().encode(ifcContent));
+      expect(modelId).toBeGreaterThanOrEqual(0);
+
+      // Vérification de la présence de toutes les familles d'entités
+      const ifcSanitary = ifcApi.GetLineIDsWithType(modelId, WebIFC.IFCSANITARYTERMINAL);
+      expect(ifcSanitary.size()).toBe(5);
+
+      const ifcFurniture = ifcApi.GetLineIDsWithType(modelId, WebIFC.IFCFURNITURE);
+      expect(ifcFurniture.size()).toBe(7);
+
+      const ifcSystemFurn = ifcApi.GetLineIDsWithType(modelId, WebIFC.IFCSYSTEMFURNITUREELEMENT);
+      expect(ifcSystemFurn.size()).toBe(2);
+
+      const ifcDoors = ifcApi.GetLineIDsWithType(modelId, WebIFC.IFCDOOR);
+      expect(ifcDoors.size()).toBe(1);
+
+      const ifcOpenings = ifcApi.GetLineIDsWithType(modelId, WebIFC.IFCOPENINGELEMENT);
+      expect(ifcOpenings.size()).toBe(1);
 
       ifcApi.CloseModel(modelId);
     });
