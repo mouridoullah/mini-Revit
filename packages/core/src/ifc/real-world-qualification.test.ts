@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import * as WebIFC from 'web-ifc';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import * as os from 'node:os';
 import { exportToIfc } from './generator.js';
 import { createComplexVillaState } from '../fixtures/complex-villa.js';
 
@@ -147,7 +148,7 @@ describe('Qualification IFC4 Réelle - Banc d’Épreuve Villa Complexe (ADR-053
     ifcApi.CloseModel(modelId);
   });
 
-  it('T-QUALIF-IFC-EXPORT-FILES : Écrit les fichiers vitrines villa-complexe.ifc et villa-complexe.json dans examples/', () => {
+  it('T-QUALIF-IFC-EXPORT-FILES : Valide l’écriture sur disque et la cohérence binaire du modèle sérialisé', () => {
     const ifcContent = exportToIfc(villaState, {
       projectName: 'Villa Contemporaine R+1 - Modèle Étalon',
       author: 'Mini-BIM Qualification Architecture',
@@ -155,21 +156,18 @@ describe('Qualification IFC4 Réelle - Banc d’Épreuve Villa Complexe (ADR-053
       filename: 'villa-complexe.ifc',
     });
 
-    const examplesDir = path.resolve(process.cwd(), '../../examples');
-    // Si process.cwd() est dans packages/core, ../../examples remonte à la racine
-    const targetDir = fs.existsSync(examplesDir)
-      ? examplesDir
-      : path.resolve(process.cwd(), 'examples');
+    const tmpDir = os.tmpdir();
+    const ifcPath = path.join(tmpDir, 'villa-complexe-test.ifc');
+    fs.writeFileSync(ifcPath, ifcContent, 'utf-8');
+    expect(fs.existsSync(ifcPath)).toBe(true);
+    expect(fs.statSync(ifcPath).size).toBeGreaterThan(5000);
 
-    if (fs.existsSync(targetDir)) {
-      const ifcPath = path.join(targetDir, 'villa-complexe.ifc');
-      fs.writeFileSync(ifcPath, ifcContent, 'utf-8');
-      expect(fs.existsSync(ifcPath)).toBe(true);
-      expect(fs.statSync(ifcPath).size).toBeGreaterThan(5000);
+    const jsonPath = path.join(tmpDir, 'villa-complexe-test.json');
+    fs.writeFileSync(jsonPath, JSON.stringify(villaState, null, 2), 'utf-8');
+    expect(fs.existsSync(jsonPath)).toBe(true);
 
-      const jsonPath = path.join(targetDir, 'villa-complexe.json');
-      fs.writeFileSync(jsonPath, JSON.stringify(villaState, null, 2), 'utf-8');
-      expect(fs.existsSync(jsonPath)).toBe(true);
-    }
+    // Nettoyage
+    fs.unlinkSync(ifcPath);
+    fs.unlinkSync(jsonPath);
   });
 });
