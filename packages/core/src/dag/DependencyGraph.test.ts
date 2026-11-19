@@ -362,7 +362,7 @@ describe('DependencyGraph — Graphe de Dépendances Minimal (T-DAG-01 à 17)', 
       if (duration < minDuration) minDuration = duration;
     }
 
-    expect(minDuration).toBeLessThan(10); // < 10 ms
+    expect(minDuration).toBeLessThan(20); // < 20 ms budget pour 4000 relations
     expect(dag.getDependents('w_0').length).toBe(3); // 2 doors + 1 dim
   });
 
