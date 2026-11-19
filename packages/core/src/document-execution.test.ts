@@ -2,11 +2,13 @@ import { describe, it, expect, vi } from 'vitest';
 import { BimDocument } from './document.js';
 import {
   AddWallCommand,
+  UpdateWallCommand,
   DeleteWallCommand,
   AddDoorCommand,
   UpdateWallTypeCommand,
   AddDimensionCommand,
   AddRoomCommand,
+  AddComponentCommand,
   Command,
 } from './commands.js';
 import { DependencyGraph } from './dag/DependencyGraph.js';
@@ -288,5 +290,55 @@ describe('Intégration BimDocument.execute() + DAG Minimal (T-EXEC-01 à 07)', (
 
     // Retourne le couple [doorId, hostWallId] nécessaire pour la régénération du solide percé
     expect(resDoor.changed).toEqual(['d_v2', 'w_v2'].sort());
+  });
+
+  it('T-EXEC-08: Modification d’un mur hôte invalide et propage les composants hébergés via le DAG', () => {
+    const doc = BimDocument.createDefaultProject();
+    const levelId = Object.keys(doc.getState().levels)[0]!;
+    const typeId = Object.keys(doc.getState().wallTypes)[0]!;
+    const wallId = 'w_host_comp';
+    const compId = 'comp_hosted_1';
+
+    doc.execute(
+      new AddWallCommand({
+        id: wallId,
+        category: 'wall',
+        typeId,
+        levelId,
+        start: vec2(0, 0),
+        end: vec2(5000, 0),
+      }),
+    );
+
+    doc.execute(
+      new AddComponentCommand({
+        id: compId,
+        category: 'component',
+        typeId: 'ct_sliding_door',
+        levelId,
+        placement: { x: 2500, y: 0, hostWallId: wallId },
+        widthOverride: 2000,
+      }),
+    );
+
+    // 1. getDependents(wallId) retrouve bien le composant hébergé
+    const dag = DependencyGraph.build(doc.getState());
+    expect(dag.getDependents(wallId)).toContain(compId);
+
+    // 2. Écouteur abonné pour vérifier la notification réactive
+    let notifiedChanged: readonly ElementId[] = [];
+    doc.subscribe((changed) => {
+      notifiedChanged = changed;
+    });
+
+    // Modification du mur hôte
+    const res = doc.execute(new UpdateWallCommand(wallId, { end: { x: 6000, y: 0 } }));
+
+    // 3. CommandResult.changed inclut le mur ET son composant hébergé via le DAG
+    expect(res.changed).toContain(wallId);
+    expect(res.changed).toContain(compId);
+
+    // 4. Les écouteurs réactifs reçoivent compId dans lastChangedIds
+    expect(notifiedChanged).toContain(compId);
   });
 });
