@@ -379,9 +379,35 @@ flowchart LR
   - GUIDs IFC4 100% déterministes garantissant la reproductibilité octet par octet des exports STEP.
 - **Lot 4 — Maintenabilité & Industrialisation (P2) [LIVRÉ] :**
   - Élimination intégrale des 72 avertissements `@typescript-eslint/no-non-null-assertion` (0 warning sur tout le monorepo).
-  - Optimisation de la persistance automatique (`autoSave.ts`) par déduplication du payload IndexedDB.
+  - Optimisation de la persistance automatique (`autoSave.ts`) par déduplication du payload IndexedDB et rétro-compatibilité prouvée (`T-AUTOSAVE-11`, `T-AUTOSAVE-12`).
   - Chunking modulaire Vite (`three` et `react-vendor` isolés, évitant le bundle monolithique de 2.4 Mo).
-  - Validation complète des 4 quality gates (0 error, 0 warning, 0 any, 100% tests verts).
+  - Re-maillage incrémental 3D certifié et benchmarké (`T-VIEW3D-INCREMENTAL`, `T-BENCHMARK-VIEW3D` à 20x moins d'appels).
+  - Unicité et conformité buildingSMART des GUIDs IFC4 validées (`T-IFC-GUID-UNICITY-AND-PURITY`).
+  - Validation complète des 4 quality gates : 0 error, 0 warning, 0 any, 1 028 tests passants (100% verts sur 97 suites).
+
+---
+
+### Phase 8.6 — Qualification Technique et Stabilisation du Moteur BIM (En cours)
+
+- **Objectif :** Geler les nouvelles fonctionnalités métier pour qualifier rigoureusement le socle avant d'engager le MEP (Phase 9), sans sur-ingénierie et en ciblant les points névralgiques du moteur.
+- **Chantiers cibles :**
+  - **8.6.0 — Socle de référence & Intégrité CI Verbatim :**
+    - Décompte officiel certifié à 1 028 tests Vitest.
+    - Script `build` séquentiel (`packages/*` puis `apps/*`) garantissant l'intégrité en clone vierge.
+    - Confirmation de la licence MIT et mise à jour du rapport de clôture.
+  - **8.6.1 — Découpage modulaire maîtrisé & Décision de collision :**
+    - Scission ordonnée des fichiers monolithiques : `rules.ts`, `commands.ts`, `PropertyInspector.tsx`.
+    - Tranchage explicite de la collision mur $\to$ composant : émission en violation de sévérité `'warning'` (non-bloquante pour la transaction).
+  - **8.6.2 — Propagation des composants hébergés dans le DAG :**
+    - Qualification de `getDependents(wallId)` pour les composants hébergés (`placement.hostWallId`).
+    - Invalidation réactive et recalcul lors de la mutation d'un mur hôte.
+  - **8.6.3 — Banc de performance synthétique (Mesure pure) :**
+    - Mesure sans sur-optimisation des temps de transaction et de re-maillage sur 100 et 1 000 murs.
+  - **8.6.4 — Qualification IFC4 externe :**
+    - Export autonome du modèle STEP IFC4 de la Villa Complexe pour inspection visuelle dans un viewer externe (That Open Viewer / BlenderBIM / WebIFC).
+  - **8.6.6 — Bâtiment étalon R+1 & Smoke test navigateur réel (Playwright) :**
+    - Modèle de référence R+1 complet (2D, 3D, métrés, IFC, undo/redo).
+    - Smoke test Playwright headless vérifiant le montage du double viewport WebGL/Canvas sans erreur console.
 
 ---
 
