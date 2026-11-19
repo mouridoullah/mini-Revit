@@ -306,7 +306,8 @@ export function drawWall(
   const screenPoints = vertices.map((v) => transform.worldToScreen(v));
   if (screenPoints.length < 3) return;
 
-  const first = screenPoints[0]!;
+  const first = screenPoints[0];
+  if (!first) return;
 
   ctx.save();
 
@@ -314,8 +315,10 @@ export function drawWall(
   ctx.beginPath();
   ctx.moveTo(first.x, first.y);
   for (let i = 1; i < screenPoints.length; i++) {
-    const pt = screenPoints[i]!;
-    ctx.lineTo(pt.x, pt.y);
+    const pt = screenPoints[i];
+    if (pt) {
+      ctx.lineTo(pt.x, pt.y);
+    }
   }
   ctx.closePath();
 
@@ -754,17 +757,23 @@ export function drawPreview(
       ctx.strokeStyle = '#2563eb';
       ctx.lineWidth = 2;
       ctx.fillStyle = 'rgba(37, 99, 235, 0.15)';
-      const p0 = transform.worldToScreen(preview.points[0]!);
-      ctx.moveTo(p0.x, p0.y);
-      for (let i = 1; i < preview.points.length; i++) {
-        const pi = transform.worldToScreen(preview.points[i]!);
-        ctx.lineTo(pi.x, pi.y);
+      const firstPt = preview.points[0];
+      if (firstPt) {
+        const p0 = transform.worldToScreen(firstPt);
+        ctx.moveTo(p0.x, p0.y);
+        for (let i = 1; i < preview.points.length; i++) {
+          const pt = preview.points[i];
+          if (pt) {
+            const pi = transform.worldToScreen(pt);
+            ctx.lineTo(pi.x, pi.y);
+          }
+        }
+        if (preview.points.length >= 3) {
+          ctx.closePath();
+          ctx.fill();
+        }
+        ctx.stroke();
       }
-      if (preview.points.length >= 3) {
-        ctx.closePath();
-        ctx.fill();
-      }
-      ctx.stroke();
 
       // Pastilles indicatrices aux sommets
       ctx.fillStyle = '#2563eb';
@@ -1210,7 +1219,8 @@ export function drawSlab(
   ctx.beginPath();
   const screenOuter = slab.boundary.map((p) => transform.worldToScreen(p));
   for (let i = 0; i < screenOuter.length; i++) {
-    const pt = screenOuter[i]!;
+    const pt = screenOuter[i];
+    if (!pt) continue;
     if (i === 0) ctx.moveTo(pt.x, pt.y);
     else ctx.lineTo(pt.x, pt.y);
   }
@@ -1219,7 +1229,8 @@ export function drawSlab(
   for (const hole of allHoles) {
     const screenHole = hole.map((p) => transform.worldToScreen(p));
     for (let i = 0; i < screenHole.length; i++) {
-      const pt = screenHole[i]!;
+      const pt = screenHole[i];
+      if (!pt) continue;
       if (i === 0) ctx.moveTo(pt.x, pt.y);
       else ctx.lineTo(pt.x, pt.y);
     }
@@ -1264,7 +1275,8 @@ export function drawSlab(
   // 4. Contour périphérique de la dalle
   ctx.beginPath();
   for (let i = 0; i < screenOuter.length; i++) {
-    const pt = screenOuter[i]!;
+    const pt = screenOuter[i];
+    if (!pt) continue;
     if (i === 0) ctx.moveTo(pt.x, pt.y);
     else ctx.lineTo(pt.x, pt.y);
   }
@@ -1278,7 +1290,8 @@ export function drawSlab(
     const screenHole = hole.map((p) => transform.worldToScreen(p));
     ctx.beginPath();
     for (let i = 0; i < screenHole.length; i++) {
-      const pt = screenHole[i]!;
+      const pt = screenHole[i];
+      if (!pt) continue;
       if (i === 0) ctx.moveTo(pt.x, pt.y);
       else ctx.lineTo(pt.x, pt.y);
     }

@@ -135,8 +135,15 @@ export function computeEffectiveSlabPolygon(
     );
   }
 
-  const poly = validPolys[0]!;
-  const rawOuter = toVec2List(poly[0]!);
+  const poly = validPolys[0];
+  const firstRing = poly?.[0];
+  if (!poly || !firstRing) {
+    throw new SlabGeometryError(
+      'SLAB_EMPTY',
+      'La dalle a une surface effective nulle ou négative après découpe des trémies.',
+    );
+  }
+  const rawOuter = toVec2List(firstRing);
   const outer = [...rawOuter];
   // Normalisation CCW (sens trigonométrique positif)
   if (signedArea(outer) < 0) {
@@ -145,7 +152,9 @@ export function computeEffectiveSlabPolygon(
 
   const effectiveHoles: Vec2[][] = [];
   for (let i = 1; i < poly.length; i++) {
-    const rawHole = toVec2List(poly[i]!);
+    const holeRing = poly[i];
+    if (!holeRing) continue;
+    const rawHole = toVec2List(holeRing);
     // Ignorer les micro-trous numériques < 1 mm²
     if (Math.abs(signedArea(rawHole)) > 1.0) {
       const hole = [...rawHole];

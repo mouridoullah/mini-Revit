@@ -171,9 +171,11 @@ export function triangulatePolygonWithHoles(
 
   const flatCoords = new Float64Array(allVertices.length * 2);
   for (let i = 0; i < allVertices.length; i++) {
-    const v = allVertices[i]!;
-    flatCoords[i * 2] = v.x;
-    flatCoords[i * 2 + 1] = v.y;
+    const v = allVertices[i];
+    if (v) {
+      flatCoords[i * 2] = v.x;
+      flatCoords[i * 2 + 1] = v.y;
+    }
   }
 
   const rawIndices = earcut(flatCoords, holeIndices.length > 0 ? holeIndices : undefined, 2);

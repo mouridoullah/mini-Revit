@@ -278,7 +278,8 @@ export class MoveWallCommand implements Command {
       ];
 
       while (queue.length > 0) {
-        const task = queue.shift()!;
+        const task = queue.shift();
+        if (!task) break;
         const levelWalls = Object.values(draft.walls).filter(
           (w) => w.levelId === task.movedWall.levelId,
         );

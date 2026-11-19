@@ -19,9 +19,11 @@ function signedArea(pts: readonly Vec2[]): number {
   if (n < 3) return 0;
   let sum = 0;
   for (let i = 0; i < n; i++) {
-    const p1 = pts[i]!;
-    const p2 = pts[(i + 1) % n]!;
-    sum += p1.x * p2.y - p2.x * p1.y;
+    const p1 = pts[i];
+    const p2 = pts[(i + 1) % n];
+    if (p1 && p2) {
+      sum += p1.x * p2.y - p2.x * p1.y;
+    }
   }
   return sum / 2;
 }
@@ -102,7 +104,8 @@ export class SlabTool implements Tool {
       }
 
       // En cours de tracé : vérifier si clic sur le premier point (fermeture)
-      const firstPoint = this.state.points[0]!;
+      const firstPoint = this.state.points[0];
+      if (!firstPoint) return { kind: 'noop' };
       const snapToleranceWorld = 12 / ctx.transform.scale;
       const distToFirst = Math.hypot(snappedWorld.x - firstPoint.x, snappedWorld.y - firstPoint.y);
 
@@ -111,7 +114,8 @@ export class SlabTool implements Tool {
       }
 
       // Sinon, ajouter le nouveau point s'il n'est pas confondu avec le précédent
-      const lastPoint = this.state.points[this.state.points.length - 1]!;
+      const lastPoint = this.state.points[this.state.points.length - 1];
+      if (!lastPoint) return { kind: 'noop' };
       const distToLast = Math.hypot(snappedWorld.x - lastPoint.x, snappedWorld.y - lastPoint.y);
       if (distToLast > 1) {
         const nextPoints = [...this.state.points, snappedWorld];
@@ -193,8 +197,10 @@ export class SlabTool implements Tool {
 
     // 3. Aimantation angulaire si Shift est activé et qu'on a déjà un point d'ancrage
     if (shift && this.state.kind === 'drawing' && this.state.points.length > 0) {
-      const anchor = this.state.points[this.state.points.length - 1]!;
-      pt = snapAngle45(anchor, pt);
+      const anchor = this.state.points[this.state.points.length - 1];
+      if (anchor) {
+        pt = snapAngle45(anchor, pt);
+      }
     }
 
     return pt;

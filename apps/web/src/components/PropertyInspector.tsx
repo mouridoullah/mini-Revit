@@ -626,8 +626,8 @@ export function PropertyInspector({
     }
 
     // 3. Porte
-    if (state.doors?.[id]) {
-      const door = state.doors[id]!;
+    const door = state.doors?.[id];
+    if (door) {
       return (
         <div data-testid="inspector-door-panel">
           <div
@@ -737,8 +737,8 @@ export function PropertyInspector({
     }
 
     // 4. Fenêtre
-    if (state.windows?.[id]) {
-      const window = state.windows[id]!;
+    const window = state.windows?.[id];
+    if (window) {
       return (
         <div data-testid="inspector-window-panel">
           <div
@@ -804,8 +804,8 @@ export function PropertyInspector({
     }
 
     // 5. Niveau
-    if (state.levels[id]) {
-      const level = state.levels[id]!;
+    const level = state.levels[id];
+    if (level) {
       const sortedLevels = getSortedLevels(state.levels);
       const levelIndex = sortedLevels.findIndex((l) => l.id === level.id);
       const storyH = getLevelStoryHeight(state, level.id);
@@ -859,8 +859,8 @@ export function PropertyInspector({
     }
 
     // 6. Escalier droit paramétrique (ADR-048)
-    if (state.stairs?.[id]) {
-      const stair = state.stairs[id]!;
+    const stair = state.stairs?.[id];
+    if (stair) {
       const currentStairType = state.stairTypes?.[stair.stairTypeId];
       const bottomLevel = state.levels[stair.bottomLevelId];
       const topLevel = state.levels[stair.topLevelId];

@@ -634,7 +634,8 @@ export function createSlabMesh(
   // 1. Face Supérieure (+Z)
   const topStartV = vOffset;
   for (let i = 0; i < numFaceVerts; i++) {
-    const v = vertices[i]!;
+    const v = vertices[i];
+    if (!v) continue;
     const idx = (topStartV + i) * 3;
     positions[idx] = v.x;
     positions[idx + 1] = v.y;
@@ -650,13 +651,17 @@ export function createSlabMesh(
   vOffset += numFaceVerts;
 
   for (let i = 0; i < topIndices.length; i++) {
-    indices[iOffset++] = topStartV + topIndices[i]!;
+    const tIdx = topIndices[i];
+    if (tIdx !== undefined) {
+      indices[iOffset++] = topStartV + tIdx;
+    }
   }
 
   // 2. Face Inférieure (-Z)
   const bottomStartV = vOffset;
   for (let i = 0; i < numFaceVerts; i++) {
-    const v = vertices[i]!;
+    const v = vertices[i];
+    if (!v) continue;
     const idx = (bottomStartV + i) * 3;
     positions[idx] = v.x;
     positions[idx + 1] = v.y;
@@ -673,17 +678,23 @@ export function createSlabMesh(
 
   // Inversion de l'ordre d'enroulement pour orienter la normale vers le bas (-Z)
   for (let i = 0; i < topIndices.length; i += 3) {
-    indices[iOffset++] = bottomStartV + topIndices[i]!;
-    indices[iOffset++] = bottomStartV + topIndices[i + 2]!;
-    indices[iOffset++] = bottomStartV + topIndices[i + 1]!;
+    const i0 = topIndices[i];
+    const i1 = topIndices[i + 1];
+    const i2 = topIndices[i + 2];
+    if (i0 !== undefined && i1 !== undefined && i2 !== undefined) {
+      indices[iOffset++] = bottomStartV + i0;
+      indices[iOffset++] = bottomStartV + i2;
+      indices[iOffset++] = bottomStartV + i1;
+    }
   }
 
   // Fonction helper pour construire les flancs verticaux d'un anneau
   const addFlanks = (ring: readonly Vec2[]) => {
     const n = ring.length;
     for (let i = 0; i < n; i++) {
-      const pA = ring[i]!;
-      const pB = ring[(i + 1) % n]!;
+      const pA = ring[i];
+      const pB = ring[(i + 1) % n];
+      if (!pA || !pB) continue;
 
       const dx = pB.x - pA.x;
       const dy = pB.y - pA.y;
@@ -702,7 +713,8 @@ export function createSlabMesh(
       ];
 
       for (let k = 0; k < 4; k++) {
-        const pt = pts[k]!;
+        const pt = pts[k];
+        if (!pt) continue;
         const idx = (baseV + k) * 3;
         positions[idx] = pt.x;
         positions[idx + 1] = pt.y;
@@ -840,7 +852,8 @@ export function createStairMesh(
     const baseV = vOffset;
     const pts = [p0, p1, p2, p3];
     for (let k = 0; k < 4; k++) {
-      const pt = pts[k]!;
+      const pt = pts[k];
+      if (!pt) continue;
       const idx = (baseV + k) * 3;
       positions[idx] = pt.x;
       positions[idx + 1] = pt.y;
@@ -949,7 +962,8 @@ export function createStairMesh(
   // 5a. Flanc droit (+n)
   const rightStartV = vOffset;
   for (let i = 0; i < flankVerts.length; i++) {
-    const fv = flankVerts[i]!;
+    const fv = flankVerts[i];
+    if (!fv) continue;
     const s = fv.x;
     const z = fv.y;
     const wx = stair.start.x + ux * s + nx * halfW;
@@ -970,13 +984,15 @@ export function createStairMesh(
   vOffset += flankVerts.length;
 
   for (let i = 0; i < flankIndices.length; i += 3) {
-    const i0 = flankIndices[i]!;
-    const i1 = flankIndices[i + 1]!;
-    const i2 = flankIndices[i + 2]!;
+    const i0 = flankIndices[i];
+    const i1 = flankIndices[i + 1];
+    const i2 = flankIndices[i + 2];
+    if (i0 === undefined || i1 === undefined || i2 === undefined) continue;
 
-    const v0 = flankVerts[i0]!;
-    const v1 = flankVerts[i1]!;
-    const v2 = flankVerts[i2]!;
+    const v0 = flankVerts[i0];
+    const v1 = flankVerts[i1];
+    const v2 = flankVerts[i2];
+    if (!v0 || !v1 || !v2) continue;
 
     // Dans le repère 3D (u, n, z) avec Z-up et normale extérieure +n :
     // (u x z) = -n. Donc pour pointer vers +n, l'ordre des sommets dans le plan (s, z) doit être CW (crossSZ < 0).
@@ -995,7 +1011,8 @@ export function createStairMesh(
   // 5b. Flanc gauche (-n)
   const leftStartV = vOffset;
   for (let i = 0; i < flankVerts.length; i++) {
-    const fv = flankVerts[i]!;
+    const fv = flankVerts[i];
+    if (!fv) continue;
     const s = fv.x;
     const z = fv.y;
     const wx = stair.start.x + ux * s - nx * halfW;
@@ -1016,13 +1033,15 @@ export function createStairMesh(
   vOffset += flankVerts.length;
 
   for (let i = 0; i < flankIndices.length; i += 3) {
-    const i0 = flankIndices[i]!;
-    const i1 = flankIndices[i + 1]!;
-    const i2 = flankIndices[i + 2]!;
+    const i0 = flankIndices[i];
+    const i1 = flankIndices[i + 1];
+    const i2 = flankIndices[i + 2];
+    if (i0 === undefined || i1 === undefined || i2 === undefined) continue;
 
-    const v0 = flankVerts[i0]!;
-    const v1 = flankVerts[i1]!;
-    const v2 = flankVerts[i2]!;
+    const v0 = flankVerts[i0];
+    const v1 = flankVerts[i1];
+    const v2 = flankVerts[i2];
+    if (!v0 || !v1 || !v2) continue;
 
     const crossSZ = (v1.x - v0.x) * (v2.y - v0.y) - (v1.y - v0.y) * (v2.x - v0.x);
     // Normale opposée (-n) : orienter vers l'extérieur gauche (crossSZ > 0)

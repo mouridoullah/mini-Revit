@@ -26,7 +26,12 @@ export function getLevelStoryHeight(
   if (idx === -1 || idx >= sorted.length - 1) {
     return undefined;
   }
-  return sorted[idx + 1]!.elevation - sorted[idx]!.elevation;
+  const current = sorted[idx];
+  const next = sorted[idx + 1];
+  if (!current || !next) {
+    return undefined;
+  }
+  return next.elevation - current.elevation;
 }
 
 /**
@@ -46,12 +51,14 @@ export function setStoryHeight(
 ): CommandResult | UpdateLevelCommand {
   const state = docOrState instanceof BimDocument ? docOrState.getState() : docOrState;
   const sorted = getSortedLevels(state.levels);
+  const currentLevel = sorted[levelIndex];
+  const nextLevel = sorted[levelIndex + 1];
 
-  if (levelIndex < 0 || levelIndex >= sorted.length - 1) {
+  if (levelIndex < 0 || !currentLevel || !nextLevel) {
     throw new BimValidationError(
       'LEVEL_INDEX_OUT_OF_BOUNDS',
       `Cannot set story height for level index ${levelIndex}: no superior level exists (total levels: ${sorted.length}).`,
-      { offendingIds: sorted[levelIndex] ? [sorted[levelIndex]!.id] : [] },
+      { offendingIds: currentLevel ? [currentLevel.id] : [] },
     );
   }
 
@@ -59,12 +66,10 @@ export function setStoryHeight(
     throw new BimValidationError(
       'INVALID_STORY_HEIGHT',
       `Story height must be a positive finite number (got ${height} mm).`,
-      { offendingIds: [sorted[levelIndex]!.id, sorted[levelIndex + 1]!.id] },
+      { offendingIds: [currentLevel.id, nextLevel.id] },
     );
   }
 
-  const currentLevel = sorted[levelIndex]!;
-  const nextLevel = sorted[levelIndex + 1]!;
   const newElevation = currentLevel.elevation + height;
   const cmd = new UpdateLevelCommand(nextLevel.id, { elevation: newElevation });
 

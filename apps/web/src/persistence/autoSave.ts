@@ -7,7 +7,7 @@ export const AUTOSAVE_KEY = 'current_project';
 export interface AutoSaveRecord {
   readonly id: string;
   readonly state: BimState;
-  readonly json: string;
+  readonly json?: string;
   readonly timestamp: number;
   readonly schemaVersion: number;
 }
@@ -65,12 +65,10 @@ export async function saveToIndexedDB(
       const store = tx.objectStore(AUTOSAVE_STORE_NAME);
 
       const state: BimState = 'getState' in docOrState ? docOrState.getState() : docOrState;
-      const json: string = 'toJSON' in docOrState ? docOrState.toJSON(false) : JSON.stringify(state);
 
       const record: AutoSaveRecord = {
         id: AUTOSAVE_KEY,
         state,
-        json,
         timestamp: Date.now(),
         schemaVersion: state.schemaVersion ?? 2,
       };
@@ -127,6 +125,7 @@ export async function loadFromIndexedDB(
           return;
         }
 
+        const jsonStr = record.json ?? JSON.stringify(record.state);
         // Protection contre un enregistrement JSON corrompu
         try {
           if (record.json) {
@@ -134,7 +133,7 @@ export async function loadFromIndexedDB(
           }
           resolve({
             state: record.state,
-            json: record.json,
+            json: jsonStr,
             timestamp: record.timestamp,
           });
         } catch {
