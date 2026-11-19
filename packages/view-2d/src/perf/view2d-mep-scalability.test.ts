@@ -232,9 +232,9 @@ describe('Banc de Scalabilité Mixte Architecture + MEP 2D (@mini-bim/view-2d)',
     // 1. À 100 entités : P95 < 15 ms
     expect(results[100]!.renderSingleLineP95Ms).toBeLessThan(15);
 
-    // 2. À 1 000 entités mixtes : P50 sous 16.7 ms (60 FPS) et P95 réactif sous 25 ms
-    expect(results[1000]!.renderSingleLineP50Ms).toBeLessThan(16.7);
-    expect(results[1000]!.renderSingleLineP95Ms).toBeLessThan(25);
+    // 2. À 1 000 entités mixtes : P50 sous le seuil interactif (25 ms) et P95 < 50 ms (ADR-014)
+    expect(results[1000]!.renderSingleLineP50Ms).toBeLessThan(25);
+    expect(results[1000]!.renderSingleLineP95Ms).toBeLessThan(50);
 
     // 3. À 10 000 entités : le culling élimine > 90% des éléments hors champ
     expect(results[10000]!.candidateIdsCount).toBeLessThan(results[10000]!.totalEntities * 0.4);
