@@ -10,6 +10,7 @@ import {
   MepNetworkGraph,
   createPipe,
   createDuct,
+  createCableTray,
   createMepFitting,
   createMepEquipment,
   createMepSystem,
@@ -19,6 +20,7 @@ import {
   AddPipeCommand,
   DeletePipeCommand,
   AddDuctCommand,
+  AddCableTrayCommand,
   AddMepEquipmentCommand,
   DeleteMepEquipmentCommand,
   AddMepFittingCommand,
@@ -1029,6 +1031,332 @@ describe('Phase 9.2 — Noyau MEP & Modèle Topologique des Réseaux Techniques'
       expect(() => doc.execute(new UpdateMepElementCommand('invalid_id', {}))).toThrow(
         'MEP Element "invalid_id" not found.',
       );
+    });
+  });
+
+  // ==========================================================================
+  // 9.3.1 — Matrice Complète CRUD MEP (5 catégories × Add, Update, Delete, Undo/Redo)
+  // ==========================================================================
+  describe('9.3.1 — Matrice Complète CRUD MEP (5 catégories × Add, Update, Delete, Undo/Redo)', () => {
+    it('1. Pipe : Add, Update, Delete, Undo/Redo avec préservation bit-à-bit', () => {
+      const { doc, levelId } = setupDoc();
+      const p = createPipe({
+        levelId,
+        start: point3D(0, 0, 500),
+        end: point3D(1500, 0, 500),
+        diameter: 28,
+        systemType: 'domestic_cold_water',
+      });
+
+      // Add
+      doc.execute(new AddPipeCommand(p));
+      expect(doc.getState().pipes?.[p.id]).toBeDefined();
+      expect(doc.getState().pipes?.[p.id]?.diameter).toBe(28);
+
+      // Update
+      doc.execute(new UpdateMepElementCommand(p.id, { diameter: 42, material: 'Cuivre' }));
+      expect(doc.getState().pipes?.[p.id]?.diameter).toBe(42);
+      expect(doc.getState().pipes?.[p.id]?.material).toBe('Cuivre');
+
+      // Delete
+      doc.execute(new DeleteMepElementCommand(p.id));
+      expect(doc.getState().pipes?.[p.id]).toBeUndefined();
+
+      // Undo Delete
+      doc.undo();
+      expect(doc.getState().pipes?.[p.id]).toBeDefined();
+      expect(doc.getState().pipes?.[p.id]?.diameter).toBe(42);
+
+      // Undo Update
+      doc.undo();
+      expect(doc.getState().pipes?.[p.id]?.diameter).toBe(28);
+
+      // Redo Update & Delete
+      doc.redo();
+      expect(doc.getState().pipes?.[p.id]?.diameter).toBe(42);
+      doc.redo();
+      expect(doc.getState().pipes?.[p.id]).toBeUndefined();
+    });
+
+    it('2. Duct : Add, Update, Delete, Undo/Redo avec préservation bit-à-bit', () => {
+      const { doc, levelId } = setupDoc();
+      const d = createDuct({
+        levelId,
+        start: point3D(0, 0, 2600),
+        end: point3D(2500, 0, 2600),
+        shape: 'rectangular',
+        width: 300,
+        height: 200,
+        systemType: 'supply_air',
+      });
+
+      // Add
+      doc.execute(new AddDuctCommand(d));
+      expect(doc.getState().ducts?.[d.id]).toBeDefined();
+      expect(doc.getState().ducts?.[d.id]?.width).toBe(300);
+
+      // Update
+      doc.execute(new UpdateMepElementCommand(d.id, { width: 500, height: 300 }));
+      expect(doc.getState().ducts?.[d.id]?.width).toBe(500);
+      expect(doc.getState().ducts?.[d.id]?.height).toBe(300);
+
+      // Delete
+      doc.execute(new DeleteMepElementCommand(d.id));
+      expect(doc.getState().ducts?.[d.id]).toBeUndefined();
+
+      // Undo Delete
+      doc.undo();
+      expect(doc.getState().ducts?.[d.id]?.width).toBe(500);
+
+      // Undo Update
+      doc.undo();
+      expect(doc.getState().ducts?.[d.id]?.width).toBe(300);
+    });
+
+    it('3. CableTray : Add, Update, Delete, Undo/Redo avec préservation bit-à-bit', () => {
+      const { doc, levelId } = setupDoc();
+      const tray = createCableTray({
+        levelId,
+        start: point3D(0, 500, 2800),
+        end: point3D(3000, 500, 2800),
+        width: 150,
+        height: 50,
+        systemType: 'power',
+      });
+
+      // Add
+      doc.execute(new AddCableTrayCommand(tray));
+      expect(doc.getState().cableTrays?.[tray.id]).toBeDefined();
+      expect(getMepElementKind(doc.getState(), tray.id)).toBe('cableTray');
+
+      // Update
+      doc.execute(new UpdateMepElementCommand(tray.id, { width: 300, height: 60 }));
+      expect(doc.getState().cableTrays?.[tray.id]?.width).toBe(300);
+      expect(doc.getState().cableTrays?.[tray.id]?.height).toBe(60);
+
+      // Delete
+      doc.execute(new DeleteMepElementCommand(tray.id));
+      expect(doc.getState().cableTrays?.[tray.id]).toBeUndefined();
+
+      // Undo Delete
+      doc.undo();
+      expect(doc.getState().cableTrays?.[tray.id]?.width).toBe(300);
+
+      // Undo Update
+      doc.undo();
+      expect(doc.getState().cableTrays?.[tray.id]?.width).toBe(150);
+    });
+
+    it('4. Fitting : Add, Update, Delete, Undo/Redo avec préservation bit-à-bit', () => {
+      const { doc, levelId } = setupDoc();
+      const pCenter = point3D(1000, 0, 500);
+      const port0 = createPort({
+        elementId: 'fit_temp',
+        position: point3D(900, 0, 500),
+        direction: vector3D(-1, 0, 0),
+        domain: 'plumbing',
+        systemType: 'domestic_cold_water',
+        shape: 'round',
+        diameter: 32,
+      });
+      const port1 = createPort({
+        elementId: 'fit_temp',
+        position: point3D(1000, 100, 500),
+        direction: vector3D(0, 1, 0),
+        domain: 'plumbing',
+        systemType: 'domestic_cold_water',
+        shape: 'round',
+        diameter: 32,
+      });
+
+      const fitting = createMepFitting({
+        levelId,
+        fittingType: 'elbow',
+        domain: 'plumbing',
+        systemType: 'domestic_cold_water',
+        position: pCenter,
+        ports: [port0, port1],
+        name: 'Coude EF 90°',
+      });
+
+      // Add
+      doc.execute(new AddMepFittingCommand(fitting));
+      expect(doc.getState().mepFittings?.[fitting.id]).toBeDefined();
+      expect(getMepElementKind(doc.getState(), fitting.id)).toBe('mepFitting');
+
+      // Update
+      doc.execute(new UpdateMepElementCommand(fitting.id, { name: 'Coude Renforcé' }));
+      expect(doc.getState().mepFittings?.[fitting.id]?.name).toBe('Coude Renforcé');
+
+      // Delete
+      doc.execute(new DeleteMepElementCommand(fitting.id));
+      expect(doc.getState().mepFittings?.[fitting.id]).toBeUndefined();
+
+      // Undo Delete & Update
+      doc.undo();
+      expect(doc.getState().mepFittings?.[fitting.id]?.name).toBe('Coude Renforcé');
+      doc.undo();
+      expect(doc.getState().mepFittings?.[fitting.id]?.name).toBe('Coude EF 90°');
+    });
+
+    it('5. Equipment : Add, Update, Delete, Undo/Redo avec préservation bit-à-bit', () => {
+      const { doc, levelId } = setupDoc();
+      const eqPort = createPort({
+        elementId: 'boiler_temp',
+        position: point3D(2000, 1000, 800),
+        direction: vector3D(0, -1, 0),
+        domain: 'hydronic',
+        systemType: 'hydronic_supply',
+        shape: 'round',
+        diameter: 40,
+      });
+
+      const eq = createMepEquipment({
+        levelId,
+        family: 'boiler',
+        position: point3D(2000, 1000, 0),
+        rotation: 0,
+        width: 600,
+        depth: 450,
+        height: 900,
+        ports: [eqPort],
+        name: 'Chaudière Murale',
+      });
+
+      // Add
+      doc.execute(new AddMepEquipmentCommand(eq));
+      expect(doc.getState().mepEquipments?.[eq.id]).toBeDefined();
+      expect(getMepElementKind(doc.getState(), eq.id)).toBe('mepEquipment');
+
+      // Update
+      doc.execute(new UpdateMepElementCommand(eq.id, { width: 700, rotation: Math.PI / 2 }));
+      expect(doc.getState().mepEquipments?.[eq.id]?.width).toBe(700);
+      expect(doc.getState().mepEquipments?.[eq.id]?.rotation).toBeCloseTo(Math.PI / 2);
+
+      // Delete
+      doc.execute(new DeleteMepElementCommand(eq.id));
+      expect(doc.getState().mepEquipments?.[eq.id]).toBeUndefined();
+
+      // Undo Delete & Update
+      doc.undo();
+      expect(doc.getState().mepEquipments?.[eq.id]?.width).toBe(700);
+      doc.undo();
+      expect(doc.getState().mepEquipments?.[eq.id]?.width).toBe(600);
+    });
+
+    it('6. Intégrité topologique : DeleteMepElementCommand purge les connecteurs sans orphelins, et Undo restaure le graphe', () => {
+      const { doc, levelId } = setupDoc();
+
+      // Équipement chaudière -> Tuyau 1 -> Té -> Tuyau 2
+      const portBoilerOut = createPort({
+        elementId: 'boiler_node',
+        position: point3D(0, 0, 1000),
+        direction: vector3D(1, 0, 0),
+        domain: 'hydronic',
+        systemType: 'hydronic_supply',
+        shape: 'round',
+        diameter: 32,
+      });
+      const boiler = createMepEquipment({
+        levelId,
+        family: 'boiler',
+        position: point3D(-300, 0, 500),
+        width: 600,
+        depth: 400,
+        height: 1000,
+        ports: [portBoilerOut],
+      });
+
+      const pipe1 = createPipe({
+        levelId,
+        start: point3D(0, 0, 1000),
+        end: point3D(1000, 0, 1000),
+        diameter: 32,
+        domain: 'hydronic',
+        systemType: 'hydronic_supply',
+      });
+
+      const teePort0 = createPort({
+        elementId: 'tee_node',
+        position: point3D(1000, 0, 1000),
+        direction: vector3D(-1, 0, 0),
+        domain: 'hydronic',
+        systemType: 'hydronic_supply',
+        shape: 'round',
+        diameter: 32,
+      });
+      const teePort1 = createPort({
+        elementId: 'tee_node',
+        position: point3D(1200, 0, 1000),
+        direction: vector3D(1, 0, 0),
+        domain: 'hydronic',
+        systemType: 'hydronic_supply',
+        shape: 'round',
+        diameter: 32,
+      });
+      const teePort2 = createPort({
+        elementId: 'tee_node',
+        position: point3D(1100, 100, 1000),
+        direction: vector3D(0, 1, 0),
+        domain: 'hydronic',
+        systemType: 'hydronic_supply',
+        shape: 'round',
+        diameter: 32,
+      });
+      const tee = createMepFitting({
+        levelId,
+        fittingType: 'tee',
+        domain: 'hydronic',
+        systemType: 'hydronic_supply',
+        position: point3D(1100, 0, 1000),
+        ports: [teePort0, teePort1, teePort2],
+      });
+
+      doc.execute(new AddMepEquipmentCommand(boiler));
+      doc.execute(new AddPipeCommand(pipe1));
+      doc.execute(new AddMepFittingCommand(tee));
+
+      // Connexion 1 : Chaudière -> Pipe1
+      const conn1: Connector = {
+        id: generateId(),
+        category: 'mepConnector',
+        portAId: boiler.ports[0]!.id,
+        portBId: pipe1.ports[0]!.id,
+      };
+      // Connexion 2 : Pipe1 -> Té (port 0)
+      const conn2: Connector = {
+        id: generateId(),
+        category: 'mepConnector',
+        portAId: pipe1.ports[1]!.id,
+        portBId: tee.ports[0]!.id,
+      };
+
+      doc.execute(new ConnectPortsCommand(conn1));
+      doc.execute(new ConnectPortsCommand(conn2));
+
+      expect(Object.keys(doc.getState().mepConnectors ?? {}).length).toBe(2);
+
+      let graph = MepNetworkGraph.build(doc.getState());
+      expect([...graph.getConnectedElements(pipe1.id)].sort()).toEqual([boiler.id, tee.id].sort());
+
+      // Suppression de Pipe1 via DeleteMepElementCommand
+      doc.execute(new DeleteMepElementCommand(pipe1.id));
+      expect(doc.getState().pipes?.[pipe1.id]).toBeUndefined();
+
+      // Les DEUX connecteurs incidents (conn1 et conn2) doivent être automatiquement purgés !
+      expect(Object.keys(doc.getState().mepConnectors ?? {}).length).toBe(0);
+
+      graph = MepNetworkGraph.build(doc.getState());
+      expect(graph.getConnectedElements(boiler.id)).toEqual([]);
+      expect(graph.getConnectedElements(tee.id)).toEqual([]);
+
+      // Undo : Pipe1 ET les deux connecteurs doivent être fidèlement restaurés
+      doc.undo();
+      expect(doc.getState().pipes?.[pipe1.id]).toBeDefined();
+      expect(Object.keys(doc.getState().mepConnectors ?? {}).length).toBe(2);
+
+      graph = MepNetworkGraph.build(doc.getState());
+      expect([...graph.getConnectedElements(pipe1.id)].sort()).toEqual([boiler.id, tee.id].sort());
     });
   });
 });

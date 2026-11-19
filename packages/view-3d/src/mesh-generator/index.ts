@@ -5,3 +5,5 @@ export * from './rooms.js';
 export * from './slabs.js';
 export * from './stairs.js';
 export * from './roofs.js';
+export * from './mep.js';
+

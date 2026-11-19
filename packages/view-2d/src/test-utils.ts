@@ -300,6 +300,7 @@ export function createBenchmarkCanvas(
     stroke: () => {},
     fill: () => {},
     fillRect: () => {},
+    strokeRect: () => {},
     clearRect: () => {},
     clip: () => {},
     rect: () => {},
