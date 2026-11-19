@@ -26,6 +26,8 @@ export interface WallMetrics {
     readonly doorIds: ElementId[];
     readonly windowIds: ElementId[];
     readonly totalOpeningAreaMm2: number;
+    readonly doorAreaMm2: number;
+    readonly windowAreaMm2: number;
   };
 }
 
@@ -69,7 +71,8 @@ export function computeWallMetrics(
   const hosted = openings.filter((op) => op.hostWallId === wall.id);
   const doorIds: ElementId[] = [];
   const windowIds: ElementId[] = [];
-  let totalOpeningAreaMm2 = 0;
+  let doorAreaMm2 = 0;
+  let windowAreaMm2 = 0;
 
   for (const op of hosted) {
     if (op.category === 'door') {
@@ -77,16 +80,17 @@ export function computeWallMetrics(
       const dt = stateOrTypes?.doorTypes?.[op.doorTypeId];
       const w = dt?.width ?? 0;
       const h = dt?.height ?? 0;
-      totalOpeningAreaMm2 += w * h;
+      doorAreaMm2 += w * h;
     } else if (op.category === 'window') {
       windowIds.push(op.id);
       const wt = stateOrTypes?.windowTypes?.[op.windowTypeId];
       const w = wt?.width ?? 0;
       const h = wt?.height ?? 0;
-      totalOpeningAreaMm2 += w * h;
+      windowAreaMm2 += w * h;
     }
   }
 
+  const totalOpeningAreaMm2 = doorAreaMm2 + windowAreaMm2;
   const netAreaMm2 = Math.max(0, grossAreaMm2 - totalOpeningAreaMm2);
   const volumeMm3 = netAreaMm2 * wallType.thickness;
 
@@ -100,6 +104,8 @@ export function computeWallMetrics(
       doorIds: doorIds.sort(),
       windowIds: windowIds.sort(),
       totalOpeningAreaMm2,
+      doorAreaMm2,
+      windowAreaMm2,
     },
   };
 }
@@ -156,6 +162,8 @@ export interface LevelMetrics {
     readonly wallVolumeM3: number;
     readonly doorCount: number;
     readonly windowCount: number;
+    readonly doorAreaM2?: number;
+    readonly windowAreaM2?: number;
     readonly roomAreaM2: number;
   };
 }
@@ -180,6 +188,8 @@ export function computeLevelMetrics(state: BimState, levelId: ElementId): LevelM
   let totalWallVolumeMm3 = 0;
   let doorCount = 0;
   let windowCount = 0;
+  let totalDoorAreaMm2 = 0;
+  let totalWindowAreaMm2 = 0;
 
   for (const wall of wallsOnLevel) {
     const wallType = state.wallTypes[wall.typeId];
@@ -193,6 +203,8 @@ export function computeLevelMetrics(state: BimState, levelId: ElementId): LevelM
     totalWallVolumeMm3 += m.volumeMm3;
     doorCount += m.openings.doorIds.length;
     windowCount += m.openings.windowIds.length;
+    totalDoorAreaMm2 += m.openings.doorAreaMm2;
+    totalWindowAreaMm2 += m.openings.windowAreaMm2;
   }
 
   // 2. Détection des pièces du niveau
@@ -264,6 +276,8 @@ export function computeLevelMetrics(state: BimState, levelId: ElementId): LevelM
       wallVolumeM3: Number((totalWallVolumeMm3 / 1e9).toFixed(3)),
       doorCount,
       windowCount,
+      doorAreaM2: Number((totalDoorAreaMm2 / 1e6).toFixed(3)),
+      windowAreaM2: Number((totalWindowAreaMm2 / 1e6).toFixed(3)),
       roomAreaM2: Number((totalRoomAreaMm2 / 1e6).toFixed(3)),
     },
   };

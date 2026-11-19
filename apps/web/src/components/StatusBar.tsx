@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useBimDocument } from '../hooks/useBimDocument.js';
 import { type ToolKind } from '../tools/types.js';
 import { detectRooms } from '@mini-bim/core';
@@ -33,8 +34,14 @@ export function StatusBar({
   const activeLevel =
     (activeLevelId && state.levels[activeLevelId]?.name) || 'Aucun niveau';
 
-  const detectedRooms = activeLevelId ? detectRooms(state, activeLevelId) : [];
-  const totalRoomAreaM2 = (detectedRooms.reduce((acc, r) => acc + r.areaMm2, 0) / 1e6).toFixed(2);
+  const detectedRooms = useMemo(
+    () => (activeLevelId ? detectRooms(state, activeLevelId) : []),
+    [state, activeLevelId],
+  );
+  const totalRoomAreaM2 = useMemo(
+    () => (detectedRooms.reduce((acc, r) => acc + r.areaMm2, 0) / 1e6).toFixed(2),
+    [detectedRooms],
+  );
 
   let toolMessage = 'Outil : Sélectionner (S)';
   if (activeToolKind === 'wall') {

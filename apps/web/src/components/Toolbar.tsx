@@ -56,6 +56,9 @@ export function Toolbar({
       if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') {
         return;
       }
+      if (e.ctrlKey || e.metaKey || e.altKey) {
+        return;
+      }
       if (e.key === 's' || e.key === 'S') {
         onSelectTool('select');
       } else if (e.key === 'w' || e.key === 'W') {

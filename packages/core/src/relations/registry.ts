@@ -117,4 +117,10 @@ export const RELATIONS_REGISTRY: readonly RelationDef[] = [
     targetCategory: 'level',
     onDelete: 'restrict',
   },
+  {
+    sourceCategory: 'component',
+    field: 'placement.hostWallId',
+    targetCategory: 'wall',
+    onDelete: 'detach',
+  },
 ] as const;

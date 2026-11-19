@@ -157,6 +157,8 @@ describe('Composant <MetricsPanel /> (Tableau de Métrés & Surfaces)', () => {
             doorIds: ['d1'],
             windowIds: ['win1'],
             totalOpeningAreaMm2: 3570000,
+            doorAreaMm2: 1890000,
+            windowAreaMm2: 1680000,
           },
         },
       ],
@@ -190,7 +192,9 @@ describe('Composant <MetricsPanel /> (Tableau de Métrés & Surfaces)', () => {
     expect(csv).toContain('Murs,Surface nette totale,13.230,m²');
     expect(csv).toContain('Murs,Volume total,2.646,m³');
     expect(csv).toContain('Portes,Nombre total,1,u');
+    expect(csv).toContain('Portes,Surface totale,1.89,m²');
     expect(csv).toContain('Fenêtres,Nombre total,1,u');
+    expect(csv).toContain('Fenêtres,Surface totale,1.68,m²');
     expect(csv).toContain('Pièces,Surface utile totale,10.640,m²');
     expect(csv).toContain('Pièces,Séjour (Surface),10.64,m²');
     expect(csv).toContain('Pièces,Séjour (Périmètre),13.20,m');

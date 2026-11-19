@@ -1,47 +1,9 @@
 import type { BimState, ElementId, Wall } from '../types.js';
 import { BimValidationError } from '../rules.js';
-import type { RelationDef, EntityCategory } from '../relations/types.js';
+import type { RelationDef } from '../relations/types.js';
 import { RELATIONS_REGISTRY } from '../relations/registry.js';
 import { isWallCoveredByRoof } from '../roofs/top-profile.js';
-
-function getEntitiesForCategory(
-  state: BimState,
-  category: EntityCategory,
-): Record<string, Record<string, unknown>> {
-  const dict: unknown = (() => {
-    switch (category) {
-      case 'wall':
-        return state.walls ?? {};
-      case 'door':
-        return state.doors ?? {};
-      case 'window':
-        return state.windows ?? {};
-      case 'dimension':
-        return state.dimensions ?? {};
-      case 'room':
-        return state.rooms ?? {};
-      case 'wallType':
-        return state.wallTypes ?? {};
-      case 'level':
-        return state.levels ?? {};
-      case 'slab':
-        return state.slabs ?? {};
-      case 'doorType':
-        return state.doorTypes ?? {};
-      case 'windowType':
-        return state.windowTypes ?? {};
-      case 'slabType':
-        return state.slabTypes ?? {};
-      case 'stair':
-        return state.stairs ?? {};
-      case 'stairType':
-        return state.stairTypes ?? {};
-      default:
-        return {};
-    }
-  })();
-  return dict as Record<string, Record<string, unknown>>;
-}
+import { getEntitiesForCategory, getEntityFieldValue } from '../relations/cascade.js';
 
 /**
  * Graphe de dépendances dirigé acyclique (DAG minimal) pour la propagation d'invalidation.
@@ -362,6 +324,19 @@ export class DependencyGraph {
           if (ro.roofId) graph.addEdge(ro.roofId, ro.id);
         }
       }
+
+      const components = state.components;
+      if (components) {
+        for (const id in components) {
+          const comp = components[id];
+          if (!comp) continue;
+          if (comp.typeId) graph.addEdge(comp.typeId, comp.id);
+          if (comp.levelId) graph.addEdge(comp.levelId, comp.id);
+          if (comp.placement?.hostWallId) {
+            graph.addEdge(comp.placement.hostWallId, comp.id);
+          }
+        }
+      }
     } else {
       // Fallback générique multi-pass pour registres personnalisés
       for (const rel of registry) {
@@ -373,20 +348,19 @@ export class DependencyGraph {
           const entity = sourceEntities[sourceId];
           if (!entity) continue;
 
+          const val = getEntityFieldValue(entity, field);
           if (isArr) {
-            const arr = entity[field];
-            if (Array.isArray(arr)) {
-              for (let i = 0; i < arr.length; i++) {
-                const targetId = arr[i];
+            if (Array.isArray(val)) {
+              for (let i = 0; i < val.length; i++) {
+                const targetId = val[i];
                 if (targetId && typeof targetId === 'string') {
                   graph.addEdge(targetId, sourceId);
                 }
               }
             }
           } else {
-            const targetId = entity[field];
-            if (targetId && typeof targetId === 'string') {
-              graph.addEdge(targetId, sourceId);
+            if (val && typeof val === 'string') {
+              graph.addEdge(val, sourceId);
             }
           }
         }

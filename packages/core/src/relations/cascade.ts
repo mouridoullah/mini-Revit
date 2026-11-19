@@ -3,7 +3,7 @@ import { BimValidationError } from '../rules.js';
 import type { RelationDef, EntityCategory } from './types.js';
 import { RELATIONS_REGISTRY } from './registry.js';
 
-function getEntitiesForCategory(
+export function getEntitiesForCategory(
   state: BimState,
   category: EntityCategory,
 ): Record<string, Record<string, unknown>> {
@@ -52,6 +52,17 @@ function getEntitiesForCategory(
   return dict as Record<string, Record<string, unknown>>;
 }
 
+export function getEntityFieldValue(entity: Record<string, unknown>, field: string): unknown {
+  if (!field.includes('.')) return entity[field];
+  const parts = field.split('.');
+  let curr: unknown = entity;
+  for (const part of parts) {
+    if (!curr || typeof curr !== 'object') return undefined;
+    curr = (curr as Record<string, unknown>)[part];
+  }
+  return curr;
+}
+
 export interface CascadeResult {
   readonly cascadeDeletes: readonly ElementId[];
   readonly restrictViolations: readonly ElementId[];
@@ -89,13 +100,13 @@ export function resolveCascadeDeletions(
         if (!entity) continue;
 
         let referencesTarget = false;
+        const val = getEntityFieldValue(entity, rel.field);
         if (rel.isArray) {
-          const arr = entity[rel.field];
-          if (Array.isArray(arr) && arr.includes(currentId)) {
+          if (Array.isArray(val) && val.includes(currentId)) {
             referencesTarget = true;
           }
         } else {
-          if (entity[rel.field] === currentId) {
+          if (val === currentId) {
             referencesTarget = true;
           }
         }
