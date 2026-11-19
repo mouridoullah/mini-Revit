@@ -2368,4 +2368,34 @@ Par ailleurs, `renderer.ts` (~1 946 lignes) et `mesh-generator.ts` (~1 568 ligne
    - Mouvements caméra fluides : Pan P50 à 8,10 ms, Zoom P50 à 7,07 ms, Level Switch à 7,13 ms.
    - Scalabilité à 10 000 entités : 98,3% des éléments hors champ éliminés, requête spatiale en 0,50 ms.
 
+---
+
+## ADR-058 : Routage Géométrique Déterministe 3D et Insertion Paramétrique des Raccords MEP
+
+### Contexte
+
+Dans le cadre de la Sous-phase 9.3.3 (Réseaux Techniques MEP), après la mise en place du modèle topologique (`MepNetworkGraph`, ADR-056) et du pipeline graphique 2D/3D avec inspection (Sous-phases 9.3.1 et 9.3.2), Mini-BIM requiert un moteur de routage automatique pour relier deux ports ou tronçons du réseau sans recourir à un algorithme A* ou à des voxels.
+
+### Décisions Clés
+
+1. **D1 — Solveur de Routage Déterministe en Temps Constant $\mathcal{O}(1)$ (`routing.ts`) :**
+   - Module pur fonctionnel sans dépendance DOM/React/Three.js (ADR-009).
+   - Prise en charge des configurations canoniques : direct (avec transition auto si diamètres inégaux), coude orthogonal en L (90° et 45°), baïonnette en Z (déport double coude) et colonne montante/descendante ($\Delta Z$).
+   - Garde-fou géométrique : rejet strict des segments < 50 mm (`MIN_SEGMENT_LENGTH_MM`).
+
+2. **D2 — Commandes Transactionnelles Atomiques sous Immer (`commands.ts`) :**
+   - `RouteMepPathCommand` : instanciation réversible en un bloc de tous les segments, coudes, réductions et connecteurs.
+   - `InsertTeeBranchCommand` : découpe atomique du segment hôte en deux sous-segments, insertion du raccord Té à 3 ports, re-câblage des connecteurs incidents et raccordement de la branche secondaire sans orphelins sur Undo/Redo.
+   - `ConnectWithTransitionCommand` : raccordement réducteur entre ports de calibres différents.
+
+3. **D3 — Re-maillage 3D Incrémental Isolé du Réseau MEP (`Viewport3D.tsx`) :**
+   - Mutation d'un élément MEP invalide uniquement son cluster connecté via `state.mepConnectors`.
+   - Zéro re-maillage des murs, ouvertures, dalles ou toitures de l'architecture.
+
+4. **D4 — Interaction et Ergonomie CAD (`MepTool.ts` & `MepRibbon.tsx`) :**
+   - Accrochage magnétique hybride (ports ADR-047 et corps de tronçon hôte).
+   - Polyline de prévisualisation avec waypoints et badges de coudes intermédiaires.
+   - Inversion de l'orientation du coude via la touche `Tab` ou `Espace`.
+   - Sélecteur d'angle préférentiel 90° / 45° dans le ruban contextuel.
+
 

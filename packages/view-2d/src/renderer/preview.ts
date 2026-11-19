@@ -207,7 +207,39 @@ export function drawPreview(
     const dy = preview.end.y - preview.start.y;
     const len = Math.hypot(dx, dy);
 
-    if (len > 1e-3) {
+    if (preview.waypoints && preview.waypoints.length > 2) {
+      const sPts = preview.waypoints.map((wp) => transform.worldToScreen(wp));
+      const firstPt = sPts[0];
+      if (firstPt) {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2.5;
+        ctx.setLineDash([6, 3]);
+        ctx.beginPath();
+        ctx.moveTo(firstPt.x, firstPt.y);
+        for (let i = 1; i < sPts.length; i++) {
+          const pt = sPts[i];
+          if (pt) {
+            ctx.lineTo(pt.x, pt.y);
+          }
+        }
+        ctx.stroke();
+
+        // Coudes intermédiaires (Waypoints tournants)
+        for (let i = 1; i < sPts.length - 1; i++) {
+          const pt = sPts[i];
+          if (pt) {
+            ctx.fillStyle = '#ffffff';
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.setLineDash([]);
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, 5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+          }
+        }
+      }
+    } else if (len > 1e-3) {
       if (isDoubleLine) {
         const widthMm = preview.width ?? preview.diameter ?? 100;
         const halfW = widthMm / 2;

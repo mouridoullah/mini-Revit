@@ -165,6 +165,8 @@ export interface MepToolConfig {
   readonly height?: number;
   readonly elevationOffsetMm?: number;
   readonly displayMode?: 'single-line' | 'double-line';
+  readonly anglePreference?: 90 | 45 | undefined;
+  readonly flipOrientation?: boolean | undefined;
 }
 
 /**
@@ -189,7 +191,20 @@ export interface SnappedPortTarget {
 }
 
 /**
- * États possibles de la machine à états MepTool (Sous-phase 9.3.2).
+ * Information sur un tronçon hôte snappé magnétiquement sur son corps pour piquage en Té (Sous-phase 9.3.3).
+ */
+export interface SnappedSegmentBodyTarget {
+  readonly segmentId: string;
+  readonly point: { readonly x: number; readonly y: number; readonly z: number };
+  readonly category: 'pipe' | 'duct' | 'cableTray';
+  readonly diameter?: number | undefined;
+  readonly width?: number | undefined;
+  readonly height?: number | undefined;
+  readonly validForTee: boolean;
+}
+
+/**
+ * États possibles de la machine à états MepTool (Sous-phase 9.3.2 / 9.3.3).
  */
 export type MepToolState =
   | { readonly kind: 'idle' }
@@ -197,6 +212,7 @@ export type MepToolState =
       readonly kind: 'awaiting-start';
       readonly config: MepToolConfig;
       readonly snappedPort?: SnappedPortTarget | null;
+      readonly snappedSegmentBody?: SnappedSegmentBodyTarget | null;
     }
   | {
       readonly kind: 'drawing';
@@ -205,6 +221,8 @@ export type MepToolState =
       readonly currentWorld: Vec2;
       readonly startPort?: SnappedPortTarget | null;
       readonly snappedEndPort?: SnappedPortTarget | null;
+      readonly snappedSegmentBody?: SnappedSegmentBodyTarget | null;
+      readonly flipOrientation?: boolean | undefined;
     }
   | {
       readonly kind: 'committed';

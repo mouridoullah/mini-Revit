@@ -75,6 +75,8 @@ export interface CreatePipeOptions {
   readonly material?: string | undefined;
   readonly slope?: number | undefined;
   readonly name?: string | undefined;
+  readonly port0Id?: ElementId | undefined;
+  readonly port1Id?: ElementId | undefined;
 }
 
 export function createPipe(opts: CreatePipeOptions): Pipe {
@@ -88,6 +90,7 @@ export function createPipe(opts: CreatePipeOptions): Pipe {
   const port1Direction = directionBetweenPoints(opts.start, opts.end);
 
   const port0 = createPort({
+    id: opts.port0Id,
     elementId: pipeId,
     position: opts.start,
     direction: port0Direction,
@@ -100,6 +103,7 @@ export function createPipe(opts: CreatePipeOptions): Pipe {
   });
 
   const port1 = createPort({
+    id: opts.port1Id,
     elementId: pipeId,
     position: opts.end,
     direction: port1Direction,
@@ -140,6 +144,8 @@ export interface CreateDuctOptions {
   readonly systemType?: HvacSystemType | undefined;
   readonly insulationThickness?: number | undefined;
   readonly name?: string | undefined;
+  readonly port0Id?: ElementId | undefined;
+  readonly port1Id?: ElementId | undefined;
 }
 
 export function createDuct(opts: CreateDuctOptions): Duct {
@@ -150,6 +156,7 @@ export function createDuct(opts: CreateDuctOptions): Duct {
   const port1Direction = directionBetweenPoints(opts.start, opts.end);
 
   const port0 = createPort({
+    id: opts.port0Id,
     elementId: ductId,
     position: opts.start,
     direction: port0Direction,
@@ -164,6 +171,7 @@ export function createDuct(opts: CreateDuctOptions): Duct {
   });
 
   const port1 = createPort({
+    id: opts.port1Id,
     elementId: ductId,
     position: opts.end,
     direction: port1Direction,
@@ -204,6 +212,8 @@ export interface CreateCableTrayOptions {
   readonly height: number;
   readonly systemType?: ElectricalSystemType | undefined;
   readonly name?: string | undefined;
+  readonly port0Id?: ElementId | undefined;
+  readonly port1Id?: ElementId | undefined;
 }
 
 export function createCableTray(opts: CreateCableTrayOptions): CableTray {
@@ -214,6 +224,7 @@ export function createCableTray(opts: CreateCableTrayOptions): CableTray {
   const port1Direction = directionBetweenPoints(opts.start, opts.end);
 
   const port0 = createPort({
+    id: opts.port0Id,
     elementId: trayId,
     position: opts.start,
     direction: port0Direction,
@@ -227,6 +238,7 @@ export function createCableTray(opts: CreateCableTrayOptions): CableTray {
   });
 
   const port1 = createPort({
+    id: opts.port1Id,
     elementId: trayId,
     position: opts.end,
     direction: port1Direction,

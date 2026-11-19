@@ -670,6 +670,7 @@ export type PreviewShape =
         readonly pos: Vec2;
         readonly compatible: boolean;
       } | null;
+      readonly waypoints?: readonly Vec2[] | undefined;
     };
 
 /**

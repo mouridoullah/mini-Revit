@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { BimDocument } from '@mini-bim/core';
+import { BimDocument, RouteMepPathCommand, InsertTeeBranchCommand } from '@mini-bim/core';
 import { Transform2D } from '@mini-bim/view-2d';
 import { MepTool, CreateMepSegmentCommand } from './MepTool.js';
 import { type ToolContext } from './types.js';
@@ -336,5 +336,113 @@ describe('MepTool (apps/web/src/tools/MepTool.ts — Sous-phase 9.3.2)', () => {
     doc.redo();
     expect(Object.keys(doc.getState().pipes ?? {})).toHaveLength(2);
     expect(Object.keys(doc.getState().mepConnectors ?? {})).toHaveLength(1);
+  });
+
+  it('calcule un tracé en L avec coude à 90° et émet un RouteMepPathCommand', () => {
+    // 1. Clic départ à monde (0, 0) -> écran (400, 300)
+    tool.handle({ type: 'pointerdown', screen: { x: 400, y: 300 }, button: 0, shift: false, alt: false }, ctx);
+
+    // 2. Déplacement vers monde (1000, 1000) -> écran (500, 200)
+    const outMove = tool.handle({ type: 'pointermove', screen: { x: 500, y: 200 }, shift: false, alt: false }, ctx);
+    expect(outMove.kind).toBe('preview');
+    if (outMove.kind === 'preview' && outMove.preview?.kind === 'mep') {
+      expect(outMove.preview.waypoints).toBeDefined();
+      expect(outMove.preview.waypoints?.length).toBe(3); // Start, Elbow waypoint, End
+    }
+
+    // 3. Clic arrivée à (500, 200)
+    const outCommit = tool.handle({ type: 'pointerdown', screen: { x: 500, y: 200 }, button: 0, shift: false, alt: false }, ctx);
+    expect(outCommit.kind).toBe('command');
+    if (outCommit.kind === 'command') {
+      expect(outCommit.command).toBeInstanceOf(RouteMepPathCommand);
+      doc.execute(outCommit.command);
+
+      // 2 segments + 1 coude + 2 connecteurs
+      expect(Object.keys(doc.getState().pipes ?? {})).toHaveLength(2);
+      expect(Object.keys(doc.getState().mepFittings ?? {})).toHaveLength(1);
+      const fitting = Object.values(doc.getState().mepFittings ?? {})[0];
+      expect(fitting?.fittingType).toBe('elbow');
+      expect(Object.keys(doc.getState().mepConnectors ?? {})).toHaveLength(2);
+    }
+  });
+
+  it('permet d’inverser l’orientation du coude via la touche Tab pendant le dessin', () => {
+    tool.handle({ type: 'pointerdown', screen: { x: 400, y: 300 }, button: 0, shift: false, alt: false }, ctx);
+    const outMove1 = tool.handle({ type: 'pointermove', screen: { x: 500, y: 200 }, shift: false, alt: false }, ctx);
+    let waypoint1: { x: number; y: number } | undefined;
+    if (outMove1.kind === 'preview' && outMove1.preview?.kind === 'mep') {
+      waypoint1 = outMove1.preview.waypoints?.[1];
+    }
+    expect(waypoint1).toBeDefined();
+
+    // Appui sur Tab pour inverser
+    const outTab = tool.handle({ type: 'keydown', key: 'Tab' }, ctx);
+    expect(outTab.kind).toBe('preview');
+    let waypoint2: { x: number; y: number } | undefined;
+    if (outTab.kind === 'preview' && outTab.preview?.kind === 'mep') {
+      waypoint2 = outTab.preview.waypoints?.[1];
+    }
+    expect(waypoint2).toBeDefined();
+    // Le point intermédiaire du coude est différent après bascule
+    expect(waypoint2?.x).not.toBe(waypoint1?.x);
+    expect(waypoint2?.y).not.toBe(waypoint1?.y);
+  });
+
+  it('détecte le corps d’un segment hôte et insère un piquage en Té atomique via InsertTeeBranchCommand', () => {
+    // 1. Créer un tuyau hôte de (0, 0) à (3000, 0) -> écran (400, 300) à (700, 300)
+    tool.handle({ type: 'pointerdown', screen: { x: 400, y: 300 }, button: 0, shift: false, alt: false }, ctx);
+    const outHost = tool.handle({ type: 'pointerdown', screen: { x: 700, y: 300 }, button: 0, shift: false, alt: false }, ctx);
+    if (outHost.kind === 'command') doc.execute(outHost.command);
+
+    const hostPipes = Object.values(doc.getState().pipes ?? {});
+    expect(hostPipes).toHaveLength(1);
+    const hostId = hostPipes[0]!.id;
+
+    // 2. Survoler le milieu du tuyau à monde (1500, 0) -> écran (550, 300)
+    const outHoverBody = tool.handle({ type: 'pointermove', screen: { x: 550, y: 300 }, shift: false, alt: false }, ctx);
+    expect(outHoverBody.kind).toBe('preview');
+    const state = tool.getState();
+    expect(state.kind).toBe('awaiting-start');
+    if (state.kind === 'awaiting-start') {
+      expect(state.snappedSegmentBody).toBeDefined();
+      expect(state.snappedSegmentBody?.segmentId).toBe(hostId);
+      expect(state.snappedSegmentBody?.validForTee).toBe(true);
+      expect(state.snappedSegmentBody?.point.x).toBeCloseTo(1500, 0);
+    }
+
+    // 3. Clic départ sur le corps du segment hôte
+    tool.handle({ type: 'pointerdown', screen: { x: 550, y: 300 }, button: 0, shift: false, alt: false }, ctx);
+    expect(tool.getState().kind).toBe('drawing');
+
+    // 4. Clic arrivée à monde (1500, 1000) -> écran (550, 200)
+    const outBranch = tool.handle({ type: 'pointerdown', screen: { x: 550, y: 200 }, button: 0, shift: false, alt: false }, ctx);
+    expect(outBranch.kind).toBe('command');
+    if (outBranch.kind === 'command') {
+      expect(outBranch.command).toBeInstanceOf(InsertTeeBranchCommand);
+      doc.execute(outBranch.command);
+
+      // L'hôte a été découpé en 2 sous-segments + 1 segment de branchement = 3 tuyaux
+      expect(Object.keys(doc.getState().pipes ?? {})).toHaveLength(3);
+      // 1 raccord Té à 3 ports
+      const fittings = Object.values(doc.getState().mepFittings ?? {});
+      expect(fittings).toHaveLength(1);
+      const tee = fittings[0];
+      expect(tee?.fittingType).toBe('tee');
+      expect(tee?.ports).toHaveLength(3);
+      // 3 connecteurs reliant les 3 ports du té aux 3 tuyaux
+      expect(Object.keys(doc.getState().mepConnectors ?? {})).toHaveLength(3);
+
+      // 5. Undo restaure l'hôte intact et supprime le té et tous ses connecteurs
+      doc.undo();
+      expect(Object.keys(doc.getState().pipes ?? {})).toHaveLength(1);
+      expect(Object.keys(doc.getState().mepFittings ?? {})).toHaveLength(0);
+      expect(Object.keys(doc.getState().mepConnectors ?? {})).toHaveLength(0);
+
+      // 6. Redo réapplique la dérivation en Té
+      doc.redo();
+      expect(Object.keys(doc.getState().pipes ?? {})).toHaveLength(3);
+      expect(Object.keys(doc.getState().mepFittings ?? {})).toHaveLength(1);
+      expect(Object.keys(doc.getState().mepConnectors ?? {})).toHaveLength(3);
+    }
   });
 });

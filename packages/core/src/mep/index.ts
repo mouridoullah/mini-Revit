@@ -12,3 +12,4 @@ export * from './catalog.js';
 export * from './graph.js';
 export * from './rules.js';
 export * from './commands.js';
+export * from './routing.js';
