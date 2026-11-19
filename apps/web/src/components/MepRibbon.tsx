@@ -256,6 +256,48 @@ export function MepRibbon({
           {displayMode === 'single-line' ? 'Unifilaire' : 'Bifilaire'}
         </button>
       </div>
+
+      {/* 5. Routage auto : Angle préférentiel & inversion */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <span style={{ fontWeight: 600, color: '#94a3b8' }}>Angle :</span>
+        <button
+          type="button"
+          data-testid="mep-angle-90"
+          onClick={() => onChangeConfig({ anglePreference: 90 })}
+          style={{
+            padding: '3px 8px',
+            backgroundColor: (config.anglePreference ?? 90) === 90 ? '#3b82f6' : '#334155',
+            color: '#f8fafc',
+            border: (config.anglePreference ?? 90) === 90 ? '1px solid #60a5fa' : '1px solid transparent',
+            borderRadius: '4px',
+            fontSize: '11px',
+            cursor: 'pointer',
+            fontWeight: (config.anglePreference ?? 90) === 90 ? 600 : 400,
+          }}
+        >
+          90°
+        </button>
+        <button
+          type="button"
+          data-testid="mep-angle-45"
+          onClick={() => onChangeConfig({ anglePreference: 45 })}
+          style={{
+            padding: '3px 8px',
+            backgroundColor: config.anglePreference === 45 ? '#3b82f6' : '#334155',
+            color: '#f8fafc',
+            border: config.anglePreference === 45 ? '1px solid #60a5fa' : '1px solid transparent',
+            borderRadius: '4px',
+            fontSize: '11px',
+            cursor: 'pointer',
+            fontWeight: config.anglePreference === 45 ? 600 : 400,
+          }}
+        >
+          45°
+        </button>
+        <span style={{ color: '#64748b', fontSize: '10px', marginLeft: '4px' }}>
+          (Tab : inverser coude)
+        </span>
+      </div>
     </div>
   );
 }

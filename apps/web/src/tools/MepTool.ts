@@ -14,6 +14,7 @@ import {
   type MepToolState,
   type MepToolConfig,
   type SnappedPortTarget,
+  type SnappedSegmentBodyTarget,
 } from './types.js';
 import {
   type Vec2,
@@ -22,6 +23,7 @@ import {
 
 const vec2 = (x: number, y: number): Vec2 => ({ x, y });
 import {
+  BimDocument,
   createPipe,
   createDuct,
   createCableTray,
@@ -29,16 +31,24 @@ import {
   AddDuctCommand,
   AddCableTrayCommand,
   ConnectPortsCommand,
+  RouteMepPathCommand,
+  InsertTeeBranchCommand,
+  solveMepRoute,
   generateId,
   type Command,
   type BimState,
   type ElementId,
+  type Port,
   type PlumbingSystemType,
   type HvacSystemType,
   type ElectricalSystemType,
   type HydronicSystemType,
+  type RouteRequest,
+  type RouteEndpoint,
+  type MepDomain,
+  type MepSystemType,
 } from '@mini-bim/core';
-import { evaluateMepPortSnap } from './mepSnap.js';
+import { evaluateMepPortSnap, evaluateMepSegmentBodySnap } from './mepSnap.js';
 import { snapAngle45 } from './snap.js';
 
 export const DEFAULT_MEP_CONFIG: MepToolConfig = Object.freeze({
@@ -86,12 +96,16 @@ export class MepTool implements Tool {
   public readonly kind = 'mep' as const;
   private state: MepToolState = { kind: 'idle' };
   private activeConfig: MepToolConfig = DEFAULT_MEP_CONFIG;
+  private flipOrientation: boolean = false;
 
   public setConfig(config: Partial<MepToolConfig>): void {
     this.activeConfig = {
       ...this.activeConfig,
       ...config,
     };
+    if (config.flipOrientation !== undefined) {
+      this.flipOrientation = config.flipOrientation;
+    }
   }
 
   public getConfig(): MepToolConfig {
@@ -105,39 +119,75 @@ export class MepTool implements Tool {
   public handle(event: ToolEvent, ctx: ToolContext): ToolOutput {
     const config = ctx.mepConfig ?? this.activeConfig;
 
-    // 1. Annulation via la touche Escape ou réinitialisation
-    if (event.type === 'keydown' && event.key === 'Escape') {
-      this.reset();
-      return { kind: 'preview', preview: null };
+    // 1. Touche Escape ou raccourci clavier
+    if (event.type === 'keydown') {
+      if (event.key === 'Escape') {
+        this.reset();
+        return { kind: 'preview', preview: null };
+      }
+      if (this.state.kind === 'drawing' && (event.key === 'Tab' || event.key === ' ')) {
+        this.flipOrientation = !this.flipOrientation;
+        this.state = {
+          ...this.state,
+          flipOrientation: this.flipOrientation,
+        };
+        const preview = this.computeDrawingPreview(
+          this.state.startWorld,
+          this.state.currentWorld,
+          config,
+          ctx,
+          this.state.startPort,
+          this.state.snappedEndPort,
+          this.state.snappedSegmentBody,
+        );
+        return { kind: 'preview', preview };
+      }
     }
 
     // 2. Machine à états
     switch (this.state.kind) {
       case 'idle': {
         if (event.type === 'pointermove') {
-          const snapped = evaluateMepPortSnap({
+          const snappedPort = evaluateMepPortSnap({
             screenPos: event.screen,
             transform: ctx.transform,
             doc: ctx.doc,
             config,
             activeLevelId: ctx.activeLevelId,
           });
+
+          const snappedBody = !snappedPort?.compatible
+            ? evaluateMepSegmentBodySnap({
+                screenPos: event.screen,
+                transform: ctx.transform,
+                doc: ctx.doc,
+                config,
+                activeLevelId: ctx.activeLevelId,
+              })
+            : null;
 
           this.state = {
             kind: 'awaiting-start',
             config,
-            snappedPort: snapped,
+            snappedPort,
+            snappedSegmentBody: snappedBody,
           };
 
-          if (snapped) {
+          if (snappedPort) {
             return {
               kind: 'preview',
-              preview: this.createPortHoverPreview(snapped, ctx),
+              preview: this.createPortHoverPreview(snappedPort, ctx),
+            };
+          }
+          if (snappedBody) {
+            return {
+              kind: 'preview',
+              preview: this.createBodyHoverPreview(snappedBody, config),
             };
           }
           return { kind: 'preview', preview: null };
         } else if (event.type === 'pointerdown' && event.button === 0) {
-          const snapped = evaluateMepPortSnap({
+          const snappedPort = evaluateMepPortSnap({
             screenPos: event.screen,
             transform: ctx.transform,
             doc: ctx.doc,
@@ -145,22 +195,44 @@ export class MepTool implements Tool {
             activeLevelId: ctx.activeLevelId,
           });
 
-          const startWorld = snapped
-            ? vec2(snapped.port.position.x, snapped.port.position.y)
-            : ctx.transform.screenToWorld(event.screen);
+          const snappedBody = !snappedPort?.compatible
+            ? evaluateMepSegmentBodySnap({
+                screenPos: event.screen,
+                transform: ctx.transform,
+                doc: ctx.doc,
+                config,
+                activeLevelId: ctx.activeLevelId,
+              })
+            : null;
+
+          let startWorld: Vec2;
+          let startPort: SnappedPortTarget | null = null;
+          let startSegmentBody: SnappedSegmentBodyTarget | null = null;
+
+          if (snappedPort?.compatible) {
+            startWorld = vec2(snappedPort.port.position.x, snappedPort.port.position.y);
+            startPort = snappedPort;
+          } else if (snappedBody?.validForTee) {
+            startWorld = vec2(snappedBody.point.x, snappedBody.point.y);
+            startSegmentBody = snappedBody;
+          } else {
+            startWorld = ctx.transform.screenToWorld(event.screen);
+          }
 
           this.state = {
             kind: 'drawing',
             config,
             startWorld,
             currentWorld: startWorld,
-            startPort: snapped?.compatible ? snapped : null,
+            startPort,
             snappedEndPort: null,
+            snappedSegmentBody: startSegmentBody,
+            flipOrientation: this.flipOrientation,
           };
 
           return {
             kind: 'preview',
-            preview: this.createMepPreview(startWorld, startWorld, config, null),
+            preview: this.createMepPreview(startWorld, startWorld, config, null, [startWorld]),
           };
         }
         return { kind: 'noop' };
@@ -168,7 +240,7 @@ export class MepTool implements Tool {
 
       case 'awaiting-start': {
         if (event.type === 'pointermove') {
-          const snapped = evaluateMepPortSnap({
+          const snappedPort = evaluateMepPortSnap({
             screenPos: event.screen,
             transform: ctx.transform,
             doc: ctx.doc,
@@ -176,16 +248,33 @@ export class MepTool implements Tool {
             activeLevelId: ctx.activeLevelId,
           });
 
+          const snappedBody = !snappedPort?.compatible
+            ? evaluateMepSegmentBodySnap({
+                screenPos: event.screen,
+                transform: ctx.transform,
+                doc: ctx.doc,
+                config,
+                activeLevelId: ctx.activeLevelId,
+              })
+            : null;
+
           this.state = {
             kind: 'awaiting-start',
             config,
-            snappedPort: snapped,
+            snappedPort,
+            snappedSegmentBody: snappedBody,
           };
 
-          if (snapped) {
+          if (snappedPort) {
             return {
               kind: 'preview',
-              preview: this.createPortHoverPreview(snapped, ctx),
+              preview: this.createPortHoverPreview(snappedPort, ctx),
+            };
+          }
+          if (snappedBody) {
+            return {
+              kind: 'preview',
+              preview: this.createBodyHoverPreview(snappedBody, config),
             };
           }
           return { kind: 'preview', preview: null };
@@ -197,7 +286,7 @@ export class MepTool implements Tool {
             return { kind: 'preview', preview: null };
           }
 
-          const snapped = evaluateMepPortSnap({
+          const snappedPort = evaluateMepPortSnap({
             screenPos: event.screen,
             transform: ctx.transform,
             doc: ctx.doc,
@@ -205,29 +294,51 @@ export class MepTool implements Tool {
             activeLevelId: ctx.activeLevelId,
           });
 
-          const startWorld = snapped
-            ? vec2(snapped.port.position.x, snapped.port.position.y)
-            : ctx.transform.screenToWorld(event.screen);
+          const snappedBody = !snappedPort?.compatible
+            ? evaluateMepSegmentBodySnap({
+                screenPos: event.screen,
+                transform: ctx.transform,
+                doc: ctx.doc,
+                config,
+                activeLevelId: ctx.activeLevelId,
+              })
+            : null;
+
+          let startWorld: Vec2;
+          let startPort: SnappedPortTarget | null = null;
+          let startSegmentBody: SnappedSegmentBodyTarget | null = null;
+
+          if (snappedPort?.compatible) {
+            startWorld = vec2(snappedPort.port.position.x, snappedPort.port.position.y);
+            startPort = snappedPort;
+          } else if (snappedBody?.validForTee) {
+            startWorld = vec2(snappedBody.point.x, snappedBody.point.y);
+            startSegmentBody = snappedBody;
+          } else {
+            startWorld = ctx.transform.screenToWorld(event.screen);
+          }
 
           this.state = {
             kind: 'drawing',
             config,
             startWorld,
             currentWorld: startWorld,
-            startPort: snapped?.compatible ? snapped : null,
+            startPort,
             snappedEndPort: null,
+            snappedSegmentBody: startSegmentBody,
+            flipOrientation: this.flipOrientation,
           };
 
           return {
             kind: 'preview',
-            preview: this.createMepPreview(startWorld, startWorld, config, null),
+            preview: this.createMepPreview(startWorld, startWorld, config, null, [startWorld]),
           };
         }
         return { kind: 'noop' };
       }
 
       case 'drawing': {
-        const { startWorld, startPort } = this.state;
+        const { startWorld, startPort, snappedSegmentBody: startSegmentBody } = this.state;
 
         if (event.type === 'pointermove') {
           let currentWorld = ctx.transform.screenToWorld(event.screen);
@@ -247,7 +358,6 @@ export class MepTool implements Tool {
             currentStartWorld: startWorld,
           });
 
-          // Si le port cible est le même que le port de départ, on l'ignore
           const effectiveSnappedEnd =
             snappedEnd && startPort && snappedEnd.port.id === startPort.port.id
               ? null
@@ -261,11 +371,22 @@ export class MepTool implements Tool {
             ...this.state,
             currentWorld,
             snappedEndPort: effectiveSnappedEnd,
+            flipOrientation: this.flipOrientation,
           };
+
+          const preview = this.computeDrawingPreview(
+            startWorld,
+            currentWorld,
+            config,
+            ctx,
+            startPort,
+            effectiveSnappedEnd,
+            startSegmentBody,
+          );
 
           return {
             kind: 'preview',
-            preview: this.createMepPreview(startWorld, currentWorld, config, effectiveSnappedEnd),
+            preview,
           };
         }
 
@@ -306,13 +427,75 @@ export class MepTool implements Tool {
             return { kind: 'preview', preview: null };
           }
 
-          // Création transactionnelle du segment et raccordement éventuel
-          const command = this.buildCreationCommand(startWorld, finalWorld, ctx, startPort, effectiveSnappedEnd);
+          let command: Command;
+
+          if (startSegmentBody) {
+            // Création atomique d'un piquage en Té
+            command = new InsertTeeBranchCommand({
+              hostSegmentId: startSegmentBody.segmentId,
+              splitPoint: startSegmentBody.point,
+              branchData: {
+                endPoint: {
+                  x: finalWorld.x,
+                  y: finalWorld.y,
+                  z: startSegmentBody.point.z,
+                },
+                ...(config.diameter !== undefined ? { diameter: config.diameter } : {}),
+                ...(config.width !== undefined ? { width: config.width } : {}),
+                ...(config.height !== undefined ? { height: config.height } : {}),
+              },
+            });
+          } else {
+            const level = ctx.doc.getState().levels[ctx.activeLevelId];
+            const baseZ = (level ? level.elevation : 0) + (config.elevationOffsetMm ?? 2500);
+            const startZ = startPort?.compatible ? startPort.port.position.z : baseZ;
+            const endZ = effectiveSnappedEnd?.compatible ? effectiveSnappedEnd.port.position.z : baseZ;
+
+            const startEp = resolveRouteEndpoint(
+              ctx.doc,
+              startPort,
+              { x: startWorld.x, y: startWorld.y, z: startZ },
+              config,
+            );
+
+            const endEp = resolveRouteEndpoint(
+              ctx.doc,
+              effectiveSnappedEnd,
+              { x: finalWorld.x, y: finalWorld.y, z: endZ },
+              config,
+            );
+
+            const req: RouteRequest = {
+              start: startEp,
+              end: endEp,
+              category: config.category,
+              domain: (config.domain ?? 'plumbing') as MepDomain,
+              systemType: (config.systemType ?? 'domestic_cold_water') as MepSystemType,
+              systemId: config.systemId,
+              levelId: ctx.activeLevelId,
+              ...(config.shape ? { shape: config.shape } : {}),
+              ...(config.diameter !== undefined ? { diameter: config.diameter } : {}),
+              ...(config.width !== undefined ? { width: config.width } : {}),
+              ...(config.height !== undefined ? { height: config.height } : {}),
+              constraints: {
+                anglePreference: config.anglePreference ?? 90,
+                flipOrientation: this.flipOrientation,
+              },
+            };
+
+            const plan = solveMepRoute(req);
+            if (plan.diagnostics.status === 'valid' && (plan.fittings.length > 0 || plan.segments.length > 1)) {
+              command = new RouteMepPathCommand(plan);
+            } else {
+              command = this.buildCreationCommand(startWorld, finalWorld, ctx, startPort, effectiveSnappedEnd);
+            }
+          }
 
           this.state = {
             kind: 'awaiting-start',
             config,
             snappedPort: null,
+            snappedSegmentBody: null,
           };
 
           return {
@@ -331,7 +514,67 @@ export class MepTool implements Tool {
   }
 
   public reset(): void {
+    this.flipOrientation = false;
     this.state = { kind: 'idle' };
+  }
+
+  private computeDrawingPreview(
+    startWorld: Vec2,
+    currentWorld: Vec2,
+    config: MepToolConfig,
+    ctx: ToolContext,
+    startPort: SnappedPortTarget | null | undefined,
+    snappedEnd: SnappedPortTarget | null | undefined,
+    startSegmentBody: SnappedSegmentBodyTarget | null | undefined,
+  ): PreviewShape {
+    if (startSegmentBody) {
+      return this.createMepPreview(startWorld, currentWorld, config, null, [startWorld, currentWorld]);
+    }
+
+    const level = ctx.doc.getState().levels[ctx.activeLevelId];
+    const baseZ = (level ? level.elevation : 0) + (config.elevationOffsetMm ?? 2500);
+    const startZ = startPort?.compatible ? startPort.port.position.z : baseZ;
+    const endZ = snappedEnd?.compatible ? snappedEnd.port.position.z : baseZ;
+
+    const startEp = resolveRouteEndpoint(
+      ctx.doc,
+      startPort,
+      { x: startWorld.x, y: startWorld.y, z: startZ },
+      config,
+    );
+
+    const endEp = resolveRouteEndpoint(
+      ctx.doc,
+      snappedEnd,
+      { x: currentWorld.x, y: currentWorld.y, z: endZ },
+      config,
+    );
+
+    const req: RouteRequest = {
+      start: startEp,
+      end: endEp,
+      category: config.category,
+      domain: (config.domain ?? 'plumbing') as MepDomain,
+      systemType: (config.systemType ?? 'domestic_cold_water') as MepSystemType,
+      systemId: config.systemId,
+      levelId: ctx.activeLevelId,
+      ...(config.shape ? { shape: config.shape } : {}),
+      ...(config.diameter !== undefined ? { diameter: config.diameter } : {}),
+      ...(config.width !== undefined ? { width: config.width } : {}),
+      ...(config.height !== undefined ? { height: config.height } : {}),
+      constraints: {
+        anglePreference: config.anglePreference ?? 90,
+        flipOrientation: this.flipOrientation,
+      },
+    };
+
+    const plan = solveMepRoute(req);
+    const waypoints: Vec2[] =
+      plan.diagnostics.status === 'valid' && plan.waypoints.length > 0
+        ? plan.waypoints.map((w) => vec2(w.point.x, w.point.y))
+        : [startWorld, currentWorld];
+
+    return this.createMepPreview(startWorld, currentWorld, config, snappedEnd ?? null, waypoints);
   }
 
   private createMepPreview(
@@ -339,11 +582,13 @@ export class MepTool implements Tool {
     end: Vec2,
     config: MepToolConfig,
     snappedPort: SnappedPortTarget | null,
+    waypoints?: readonly Vec2[],
   ): PreviewShape {
     return {
       kind: 'mep',
       start,
       end,
+      ...(waypoints && waypoints.length > 0 ? { waypoints } : {}),
       category: config.category,
       shape: config.shape ?? (config.category === 'pipe' ? 'round' : 'rectangular'),
       diameter: config.diameter ?? 50,
@@ -370,6 +615,20 @@ export class MepTool implements Tool {
       snappedPort: {
         pos,
         compatible: snapped.compatible,
+      },
+    };
+  }
+
+  private createBodyHoverPreview(bodySnap: SnappedSegmentBodyTarget, config: MepToolConfig): PreviewShape {
+    const pos = vec2(bodySnap.point.x, bodySnap.point.y);
+    return {
+      kind: 'mep',
+      start: pos,
+      end: pos,
+      category: config.category,
+      snappedPort: {
+        pos,
+        compatible: bodySnap.validForTee,
       },
     };
   }
@@ -541,4 +800,32 @@ export class MepTool implements Tool {
       }
     }
   }
+}
+
+function resolveRouteEndpoint(
+  doc: BimDocument,
+  snap: SnappedPortTarget | null | undefined,
+  defaultPos: { x: number; y: number; z: number },
+  config: MepToolConfig,
+): RouteEndpoint {
+  if (snap?.compatible) {
+    const state = doc.getState();
+    const elem =
+      state.pipes?.[snap.elementId] ??
+      state.ducts?.[snap.elementId] ??
+      state.cableTrays?.[snap.elementId] ??
+      state.mepFittings?.[snap.elementId] ??
+      state.mepEquipments?.[snap.elementId];
+    const realPort = elem?.ports?.find((p: Port) => p.id === snap.port.id);
+    if (realPort) {
+      return { kind: 'port', port: realPort };
+    }
+  }
+  return {
+    kind: 'point',
+    point: defaultPos,
+    ...(config.diameter !== undefined ? { diameter: config.diameter } : {}),
+    ...(config.width !== undefined ? { width: config.width } : {}),
+    ...(config.height !== undefined ? { height: config.height } : {}),
+  };
 }

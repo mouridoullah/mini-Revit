@@ -114,4 +114,38 @@ test.describe('Mini-BIM E2E Smoke Tests (Playwright Real Browser)', () => {
 
     expect(consoleErrors).toEqual([]);
   });
+
+  test('modélise un tracé coudé en L avec raccord paramétrique et bascule d’angle', async ({ page }) => {
+    const consoleErrors: string[] = [];
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') consoleErrors.push(msg.text());
+    });
+    page.on('pageerror', (err) => {
+      consoleErrors.push(err.message);
+    });
+
+    await page.goto('/');
+
+    // 1. Activer l'outil MEP
+    const mepToolBtn = page.locator('button[data-testid="tool-mep-btn"]');
+    await mepToolBtn.click();
+
+    // 2. Vérifier la présence des boutons d'angle 90° et 45°
+    const angle90Btn = page.locator('[data-testid="mep-angle-90"]');
+    const angle45Btn = page.locator('[data-testid="mep-angle-45"]');
+    await expect(angle90Btn).toBeVisible();
+    await expect(angle45Btn).toBeVisible();
+
+    // 3. Dessiner un tracé coudé en L sur le canvas 2D
+    const canvas2D = page.locator('canvas[data-testid="viewport-2d-canvas"]');
+    await canvas2D.click({ position: { x: 100, y: 100 } });
+    await canvas2D.hover({ position: { x: 220, y: 180 } });
+    await canvas2D.click({ position: { x: 220, y: 180 } });
+
+    // 4. Vérifier que le canvas 3D reste impeccable sans erreur
+    const canvas3D = page.locator('canvas[data-testid="viewport-3d-canvas"]');
+    await expect(canvas3D).toBeVisible();
+
+    expect(consoleErrors).toEqual([]);
+  });
 });

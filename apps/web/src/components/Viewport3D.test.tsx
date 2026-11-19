@@ -1,7 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, fireEvent, act } from '@testing-library/react';
 import * as Scene3DModule from '@mini-bim/view-3d';
-import { BimDocument, Commands } from '@mini-bim/core';
+import {
+  BimDocument,
+  Commands,
+  point3D,
+  vector3D,
+  createPipe,
+  createMepFitting,
+  createPort,
+  AddPipeCommand,
+  AddMepFittingCommand,
+  ConnectPortsCommand,
+  UpdateMepElementCommand,
+} from '@mini-bim/core';
 import { createDemoDocument } from '../demo/demoDocument.js';
 import { BimDocumentProvider } from '../context/BimDocumentContext.js';
 import { Viewport3D } from './Viewport3D.js';
@@ -453,5 +465,106 @@ describe('Viewport3D React Wrapper (apps/web)', () => {
     expect(speedupFactor).toBe(20);
 
     createWallMeshWithOpeningsSpy.mockRestore();
+  });
+
+  it('T-MEP-REMESHDUTY : la modification d’un tronçon MEP propage la salissure à son raccord incident sans re-mailler les murs', () => {
+    const doc = BimDocument.createDefaultProject();
+    const levelId = Object.keys(doc.getState().levels)[0]!;
+
+    // 1. Ajouter un mur architectural
+    const typeId = Object.keys(doc.getState().wallTypes)[0]!;
+    doc.execute(
+      new Commands.AddWallCommand({
+        id: 'wall_arch_1',
+        category: 'wall',
+        typeId,
+        levelId,
+        start: { x: 0, y: 0 },
+        end: { x: 3000, y: 0 },
+      }),
+    );
+
+    // 2. Ajouter une chaîne pipe1 -> elbow
+    const pipe1 = createPipe({
+      id: 'pipe_1',
+      levelId,
+      start: point3D(0, 1000, 500),
+      end: point3D(1000, 1000, 500),
+      diameter: 32,
+    });
+    doc.execute(new AddPipeCommand(pipe1));
+
+    const elbowPort0 = createPort({
+      elementId: 'elbow_1',
+      position: point3D(1000, 1000, 500),
+      direction: vector3D(-1, 0, 0),
+      domain: 'plumbing',
+      systemType: 'domestic_cold_water',
+      shape: 'round',
+      diameter: 32,
+    });
+    const elbowPort1 = createPort({
+      elementId: 'elbow_1',
+      position: point3D(1000, 1000, 500),
+      direction: vector3D(0, 1, 0),
+      domain: 'plumbing',
+      systemType: 'domestic_cold_water',
+      shape: 'round',
+      diameter: 32,
+    });
+    const elbow = createMepFitting({
+      id: 'elbow_1',
+      levelId,
+      fittingType: 'elbow',
+      domain: 'plumbing',
+      systemType: 'domestic_cold_water',
+      position: point3D(1000, 1000, 500),
+      ports: [elbowPort0, elbowPort1],
+    });
+    doc.execute(new AddMepFittingCommand(elbow));
+
+    // Connecter pipe1 (port 1) à elbow (port 0)
+    doc.execute(
+      new ConnectPortsCommand({
+        id: 'conn_1',
+        category: 'mepConnector',
+        portAId: pipe1.ports[1]!.id,
+        portBId: elbowPort0.id,
+      }),
+    );
+
+    const createWallMeshWithOpeningsSpy = vi.spyOn(Scene3DModule, 'createWallMeshWithOpenings');
+    const updateMepMeshSpy = vi.spyOn(Scene3DModule.Scene3D.prototype, 'updateMepMesh');
+
+    const { rerender } = render(
+      <BimDocumentProvider initialDoc={doc}>
+        <Viewport3D />
+      </BimDocumentProvider>,
+    );
+
+    createWallMeshWithOpeningsSpy.mockClear();
+    updateMepMeshSpy.mockClear();
+
+    // Modifier le diamètre de pipe1
+    act(() => {
+      doc.execute(new UpdateMepElementCommand('pipe_1', { diameter: 40 }));
+    });
+
+    rerender(
+      <BimDocumentProvider initialDoc={doc}>
+        <Viewport3D />
+      </BimDocumentProvider>,
+    );
+
+    // ZERO mur architectural re-maillé !
+    expect(createWallMeshWithOpeningsSpy).toHaveBeenCalledTimes(0);
+
+    // updateMepMesh a été appelé pour pipe_1 et pour son voisin incident elbow_1
+    const updatedMepIds = updateMepMeshSpy.mock.calls.map((c) => c[0]);
+    expect(updatedMepIds).toContain('pipe_1');
+    expect(updatedMepIds).toContain('elbow_1');
+
+    createWallMeshWithOpeningsSpy.mockRestore();
+    updateMepMeshSpy.mockRestore();
   });
 });
