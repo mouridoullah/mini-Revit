@@ -192,3 +192,14 @@ export {
   createComplexVillaState,
   createComplexVillaDocument,
 } from './fixtures/complex-villa.js';
+export {
+  generateSyntheticBimModel,
+  type SyntheticModelConfig,
+  type SyntheticModelBreakdown,
+  type SyntheticModelResult,
+} from './perf/synthetic-generator.js';
+export {
+  runBenchmark,
+  type BenchmarkMetrics,
+  type BenchmarkOptions,
+} from './perf/stats.js';

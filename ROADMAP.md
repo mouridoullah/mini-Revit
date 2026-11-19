@@ -424,10 +424,13 @@ flowchart LR
 
 - **Objectif :** Atteindre la maturité d'une suite BIM pluridisciplinaire avec réseaux fluides/aérauliques et interopérabilité bidirectionnelle complète, découpée en 5 sous-phases étanches.
 - **Sous-phases :**
-  - **9.1 Banc de Performance Synthétique & Scalabilité (1 000 et 10 000 Murs) :**
-    - Générateur de scènes synthétiques massives (1 000 et 10 000 murs avec ouvertures, dalles et cotes).
-    - Benchmarking du DAG de dépendances, de l'index spatial (QuadTree), et du framerate de rendu 2D/3D ($> 30\text{ FPS}$ via `InstancedMesh` Three.js).
-    - Validation de la complexité mémoire $\mathcal{O}(N)$ et des temps de réaction UI ($< 16\text{ ms}$).
+  - **9.1 Banc de Performance Synthétique & Scalabilité (100, 1 000 et 10 000 Entités) [LIVRÉ & QUALIFIÉ] :**
+    - Générateur de scènes synthétiques déterministe (`synthetic-generator.ts`) produisant exactement $N \in \{100, 1\,000, 10\,000\}$ entités BIM cohérentes (murs, ouvertures, dalles, toitures, escaliers, composants, cotations, pièces) sans chevauchement.
+    - Module statistique déterministe (`stats.ts`) mesurant médiane ($P_{50}$) et 95e percentile ($P_{95}$) après échauffement V8.
+    - Benchmarking complet du DAG (30 ms pour 10k nœuds, 4 ms cycle check), de la validation différentielle (616 ms à 10k), des transactions et Undo/Redo (13 ms à 10k), de la résolution géométrique et du maillage 3D (45 ms pour 4 000 murs).
+    - Mesures d'empreinte mémoire V8 : +5,57 Mo statique pour 10 000 entités (~557 octets/entité), cycle de vie mémoire maîtrisé sous 20 mutations transactionnelles (206 Mo max, 161 Mo après Undo).
+    - Diagnostic factuel des goulots d'étranglement (P0 : collision mur $\to$ composant sans index spatial dans `checkWallViolations`, résolution géométrique $O(W^2)$ dans `resolveWallGeometry` ; P1 : double reconstruction DAG par transaction, rendu 2D Canvas sans filtrage de niveau ni culling).
+    - Rapport officiel produit dans `docs/perf/PHASE_9_1_SCALABILITY_REPORT.md` (1 045 tests passants, 0 erreur TS, 0 warning ESLint).
   - **9.2 Noyau MEP & Modèle Topologique des Réseaux Techniques (`@mini-bim/core`) :**
     - Modèle de données MEP (gaines aérauliques `Duct`, tuyauteries `Pipe`, chemins de câbles `CableTray`).
     - Connecteurs et ports (`Port`, `Connector`) avec typage de fluide (air soufflé/repris, eau mitigée, évacuation EU/EV).
