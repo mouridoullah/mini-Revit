@@ -431,10 +431,14 @@ flowchart LR
     - Mesures d'empreinte mémoire V8 : +5,57 Mo statique pour 10 000 entités (~557 octets/entité), cycle de vie mémoire maîtrisé sous 20 mutations transactionnelles (206 Mo max, 161 Mo après Undo).
     - Diagnostic factuel des goulots d'étranglement (P0 : collision mur $\to$ composant sans index spatial dans `checkWallViolations`, résolution géométrique $O(W^2)$ dans `resolveWallGeometry` ; P1 : double reconstruction DAG par transaction, rendu 2D Canvas sans filtrage de niveau ni culling).
     - Rapport officiel produit dans `docs/perf/PHASE_9_1_SCALABILITY_REPORT.md` (1 045 tests passants, 0 erreur TS, 0 warning ESLint).
-  - **9.2 Noyau MEP & Modèle Topologique des Réseaux Techniques (`@mini-bim/core`) :**
-    - Modèle de données MEP (gaines aérauliques `Duct`, tuyauteries `Pipe`, chemins de câbles `CableTray`).
-    - Connecteurs et ports (`Port`, `Connector`) avec typage de fluide (air soufflé/repris, eau mitigée, évacuation EU/EV).
-    - Graphe de flux orienté, continuités de réseaux et calcul de propagation (dimensionnement automatique et pertes de charge à titre indicatif / expérimental).
+  - **9.2 Noyau MEP & Modèle Topologique des Réseaux Techniques (`@mini-bim/core`) [LIVRÉ & QUALIFIÉ] :**
+    - Modèle de données sémantique MEP (`Pipe`, `Duct`, `CableTray`, `MepFitting`, `MepEquipment`, `MepSystem`, `Port`, `Connector`) conforme à l'ADR-009 et l'ADR-056.
+    - Découplage strict des deux graphes : `DependencyGraph` (DAG d'invalidation) 100% acyclique, et `MepNetworkGraph` (graphe physique de réseaux) autorisant les réseaux linéaires, ramifiés, les sous-réseaux disjoints et les boucles fermées cycliques (`hasLoops()`).
+    - Contrat formel de `Port` (position 3D, normale unitaire sortante, forme, dimensions, domaine, type de fluide, sens de flux) et tolérances centralisées (`MEP_TOLERANCES`).
+    - 12 commandes transactionnelles réversibles avec cascade de suppression automatique des connecteurs incidents et nettoyage des affectations de systèmes.
+    - Validation différentielle `validateDirty` en complexité locale stricte $\mathcal{O}(1)$ sans boucle quadratique globale.
+    - Suite de 16 tests de qualification (`mep.test.ts`) couvrant les 15 cas contractuels et un benchmark synthétique de 100 à 10 000 connexions.
+    - Métriques officielles : 1 061 tests passants (100% verts sur 101 suites), 0 erreur TS strict, 0 warning ESLint, E2E Playwright validé.
   - **9.3 Rendu 2D/3D & Outils Interactifs MEP (`apps/web`, `view-2d`, `view-3d`) :**
     - Tracé interactif de gaines et conduites avec routage automatique des coudes (45°/90°) et tés.
     - Rendu 2D symbolique unifilaire et bifilaire.

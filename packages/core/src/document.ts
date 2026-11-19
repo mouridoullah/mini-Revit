@@ -58,6 +58,13 @@ export class BimDocument {
       roofOpenings: {},
       componentTypes: {},
       components: {},
+      pipes: {},
+      ducts: {},
+      cableTrays: {},
+      mepFittings: {},
+      mepEquipments: {},
+      mepSystems: {},
+      mepConnectors: {},
     };
   }
 
@@ -159,6 +166,13 @@ export class BimDocument {
       roofs: {},
       roofOpenings: {},
       components: {},
+      pipes: {},
+      ducts: {},
+      cableTrays: {},
+      mepFittings: {},
+      mepEquipments: {},
+      mepSystems: {},
+      mepConnectors: {},
     };
 
     return new BimDocument(state);

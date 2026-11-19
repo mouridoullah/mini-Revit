@@ -123,4 +123,72 @@ export const RELATIONS_REGISTRY: readonly RelationDef[] = [
     targetCategory: 'wall',
     onDelete: 'detach',
   },
+  // 10. Entités MEP rattachées à leur niveau altimétrique (Restrict, Phase 9.2)
+  {
+    sourceCategory: 'pipe',
+    field: 'levelId',
+    targetCategory: 'level',
+    onDelete: 'restrict',
+  },
+  {
+    sourceCategory: 'duct',
+    field: 'levelId',
+    targetCategory: 'level',
+    onDelete: 'restrict',
+  },
+  {
+    sourceCategory: 'cableTray',
+    field: 'levelId',
+    targetCategory: 'level',
+    onDelete: 'restrict',
+  },
+  {
+    sourceCategory: 'mepFitting',
+    field: 'levelId',
+    targetCategory: 'level',
+    onDelete: 'restrict',
+  },
+  {
+    sourceCategory: 'mepEquipment',
+    field: 'levelId',
+    targetCategory: 'level',
+    onDelete: 'restrict',
+  },
+  // 11. Entités MEP rattachées à un système technique (Detach, Phase 9.2)
+  {
+    sourceCategory: 'pipe',
+    field: 'systemId',
+    targetCategory: 'mepSystem',
+    onDelete: 'detach',
+  },
+  {
+    sourceCategory: 'duct',
+    field: 'systemId',
+    targetCategory: 'mepSystem',
+    onDelete: 'detach',
+  },
+  {
+    sourceCategory: 'cableTray',
+    field: 'systemId',
+    targetCategory: 'mepSystem',
+    onDelete: 'detach',
+  },
+  {
+    sourceCategory: 'mepFitting',
+    field: 'systemId',
+    targetCategory: 'mepSystem',
+    onDelete: 'detach',
+  },
+  {
+    sourceCategory: 'mepEquipment',
+    field: 'systemId',
+    targetCategory: 'mepSystem',
+    onDelete: 'detach',
+  },
+  {
+    sourceCategory: 'mepConnector',
+    field: 'systemId',
+    targetCategory: 'mepSystem',
+    onDelete: 'detach',
+  },
 ] as const;

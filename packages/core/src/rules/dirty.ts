@@ -22,6 +22,15 @@ import {
   checkComponentCollisions,
   checkComponentTypeViolations,
 } from './components.js';
+import {
+  checkPipeViolations,
+  checkDuctViolations,
+  checkCableTrayViolations,
+  checkMepFittingViolations,
+  checkMepEquipmentViolations,
+  checkMepSystemViolations,
+  checkConnectorViolations,
+} from '../mep/rules.js';
 
 // ---------------------------------------------------------------------------
 // Validation Différentielle Post-Condition (Phase 6.0b / ADR-041 §6)
@@ -96,6 +105,35 @@ export const CATEGORY_VALIDATORS: readonly ((
   (id, state) => {
     const compt = state.componentTypes?.[id];
     return compt ? checkComponentTypeViolations(compt) : [];
+  },
+  // Validations différentielles MEP O(1) (Phase 9.2 / ADR-056)
+  (id, state) => {
+    const p = state.pipes?.[id];
+    return p ? checkPipeViolations(p, state) : [];
+  },
+  (id, state) => {
+    const d = state.ducts?.[id];
+    return d ? checkDuctViolations(d, state) : [];
+  },
+  (id, state) => {
+    const ct = state.cableTrays?.[id];
+    return ct ? checkCableTrayViolations(ct, state) : [];
+  },
+  (id, state) => {
+    const f = state.mepFittings?.[id];
+    return f ? checkMepFittingViolations(f, state) : [];
+  },
+  (id, state) => {
+    const eq = state.mepEquipments?.[id];
+    return eq ? checkMepEquipmentViolations(eq, state) : [];
+  },
+  (id, state) => {
+    const sys = state.mepSystems?.[id];
+    return sys ? checkMepSystemViolations(sys) : [];
+  },
+  (id, state) => {
+    const conn = state.mepConnectors?.[id];
+    return conn ? checkConnectorViolations(conn, state) : [];
   },
 ];
 

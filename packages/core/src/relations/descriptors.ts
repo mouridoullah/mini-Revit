@@ -26,6 +26,13 @@ export const ENTITY_CATEGORY_DESCRIPTORS: readonly CategoryDescriptor[] = [
   { category: 'roofOpening', stateField: 'roofOpenings', label: 'Trémie de toiture' },
   { category: 'component', stateField: 'components', label: 'Composant' },
   { category: 'componentType', stateField: 'componentTypes', label: 'Type de composant' },
+  { category: 'pipe', stateField: 'pipes', label: 'Tuyauterie' },
+  { category: 'duct', stateField: 'ducts', label: 'Gaine aéraulique' },
+  { category: 'cableTray', stateField: 'cableTrays', label: 'Chemin de câbles' },
+  { category: 'mepFitting', stateField: 'mepFittings', label: 'Raccord MEP' },
+  { category: 'mepEquipment', stateField: 'mepEquipments', label: 'Équipement MEP' },
+  { category: 'mepSystem', stateField: 'mepSystems', label: 'Système MEP' },
+  { category: 'mepConnector', stateField: 'mepConnectors', label: 'Connexion MEP' },
 ] as const;
 
 const DESCRIPTOR_BY_CATEGORY: ReadonlyMap<EntityCategory, CategoryDescriptor> = new Map(

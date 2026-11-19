@@ -1,5 +1,24 @@
 import { type Vec2 } from '@mini-bim/geometry';
 import { type Patch } from 'immer';
+import type {
+  Pipe,
+  Duct,
+  CableTray,
+  MepFitting,
+  MepEquipment,
+  MepSystem,
+  Connector,
+} from './mep/types.js';
+
+export type {
+  Pipe,
+  Duct,
+  CableTray,
+  MepFitting,
+  MepEquipment,
+  MepSystem,
+  Connector,
+};
 
 /**
  * Identifiant unique universel pour tout élément architectural ou de métadonnée.
@@ -444,6 +463,13 @@ export interface BimState {
   readonly roofs?: Record<ElementId, Roof>;
   readonly roofOpenings?: Record<ElementId, RoofOpening>;
   readonly components?: Record<ElementId, Component>;
+  readonly pipes?: Record<ElementId, Pipe>;
+  readonly ducts?: Record<ElementId, Duct>;
+  readonly cableTrays?: Record<ElementId, CableTray>;
+  readonly mepFittings?: Record<ElementId, MepFitting>;
+  readonly mepEquipments?: Record<ElementId, MepEquipment>;
+  readonly mepSystems?: Record<ElementId, MepSystem>;
+  readonly mepConnectors?: Record<ElementId, Connector>;
 }
 
 /**

@@ -22,12 +22,19 @@ describe('RELATIONS_REGISTRY — Intégrité Référentielle Déclarative (T-REG
     'room',
     'component',
     'componentType',
+    'pipe',
+    'duct',
+    'cableTray',
+    'mepFitting',
+    'mepEquipment',
+    'mepSystem',
+    'mepConnector',
   ]);
 
   const VALID_ACTIONS: Set<CascadeAction> = new Set(['cascade', 'restrict', 'detach']);
 
-  it('T-REG-01: Registry contient exactement les 18 relations déclarées (Phase 8 + Lot 1)', () => {
-    expect(RELATIONS_REGISTRY.length).toBe(18);
+  it('T-REG-01: Registry contient exactement les 29 relations déclarées (Phase 8 + Lot 1 + Phase 9.2 MEP)', () => {
+    expect(RELATIONS_REGISTRY.length).toBe(29);
     const wallHostedCompRel = RELATIONS_REGISTRY.find(
       (r) => r.sourceCategory === 'component' && r.field === 'placement.hostWallId',
     );
