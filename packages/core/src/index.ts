@@ -203,3 +203,4 @@ export {
   type BenchmarkMetrics,
   type BenchmarkOptions,
 } from './perf/stats.js';
+export * from './mep/index.js';

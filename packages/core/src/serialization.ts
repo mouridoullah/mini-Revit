@@ -651,5 +651,118 @@ export function fromJSON(jsonString: string): BimState {
     }
   }
 
+  // 19. Validation des Entités et Réseaux MEP si présents (Phase 9.2 / ADR-056)
+  if (state.pipes && typeof state.pipes === 'object' && !Array.isArray(state.pipes)) {
+    for (const [id, p] of Object.entries(state.pipes)) {
+      if (
+        !p ||
+        typeof p !== 'object' ||
+        p.id !== id ||
+        p.category !== 'pipe' ||
+        typeof p.levelId !== 'string' ||
+        !p.start ||
+        !Number.isFinite(p.start.x) ||
+        !p.end ||
+        !Number.isFinite(p.end.x) ||
+        !Number.isFinite(p.diameter) ||
+        p.diameter <= 0
+      ) {
+        throw new BimValidationError('MALFORMED_PIPE', `Malformed pipe entry at "${id}".`);
+      }
+    }
+  }
+
+  if (state.ducts && typeof state.ducts === 'object' && !Array.isArray(state.ducts)) {
+    for (const [id, d] of Object.entries(state.ducts)) {
+      if (
+        !d ||
+        typeof d !== 'object' ||
+        d.id !== id ||
+        d.category !== 'duct' ||
+        typeof d.levelId !== 'string' ||
+        !d.start ||
+        !d.end
+      ) {
+        throw new BimValidationError('MALFORMED_DUCT', `Malformed duct entry at "${id}".`);
+      }
+    }
+  }
+
+  if (state.cableTrays && typeof state.cableTrays === 'object' && !Array.isArray(state.cableTrays)) {
+    for (const [id, ct] of Object.entries(state.cableTrays)) {
+      if (
+        !ct ||
+        typeof ct !== 'object' ||
+        ct.id !== id ||
+        ct.category !== 'cableTray' ||
+        typeof ct.levelId !== 'string' ||
+        !ct.start ||
+        !ct.end
+      ) {
+        throw new BimValidationError('MALFORMED_CABLE_TRAY', `Malformed cable tray entry at "${id}".`);
+      }
+    }
+  }
+
+  if (state.mepFittings && typeof state.mepFittings === 'object' && !Array.isArray(state.mepFittings)) {
+    for (const [id, f] of Object.entries(state.mepFittings)) {
+      if (
+        !f ||
+        typeof f !== 'object' ||
+        f.id !== id ||
+        f.category !== 'mepFitting' ||
+        typeof f.levelId !== 'string' ||
+        !f.position
+      ) {
+        throw new BimValidationError('MALFORMED_MEP_FITTING', `Malformed mep fitting entry at "${id}".`);
+      }
+    }
+  }
+
+  if (state.mepEquipments && typeof state.mepEquipments === 'object' && !Array.isArray(state.mepEquipments)) {
+    for (const [id, eq] of Object.entries(state.mepEquipments)) {
+      if (
+        !eq ||
+        typeof eq !== 'object' ||
+        eq.id !== id ||
+        eq.category !== 'mepEquipment' ||
+        typeof eq.levelId !== 'string' ||
+        !eq.position
+      ) {
+        throw new BimValidationError('MALFORMED_MEP_EQUIPMENT', `Malformed mep equipment entry at "${id}".`);
+      }
+    }
+  }
+
+  if (state.mepSystems && typeof state.mepSystems === 'object' && !Array.isArray(state.mepSystems)) {
+    for (const [id, sys] of Object.entries(state.mepSystems)) {
+      if (
+        !sys ||
+        typeof sys !== 'object' ||
+        sys.id !== id ||
+        sys.category !== 'mepSystem' ||
+        typeof sys.name !== 'string' ||
+        !Array.isArray(sys.elementIds)
+      ) {
+        throw new BimValidationError('MALFORMED_MEP_SYSTEM', `Malformed mep system entry at "${id}".`);
+      }
+    }
+  }
+
+  if (state.mepConnectors && typeof state.mepConnectors === 'object' && !Array.isArray(state.mepConnectors)) {
+    for (const [id, c] of Object.entries(state.mepConnectors)) {
+      if (
+        !c ||
+        typeof c !== 'object' ||
+        c.id !== id ||
+        c.category !== 'mepConnector' ||
+        typeof c.portAId !== 'string' ||
+        typeof c.portBId !== 'string'
+      ) {
+        throw new BimValidationError('MALFORMED_MEP_CONNECTOR', `Malformed mep connector entry at "${id}".`);
+      }
+    }
+  }
+
   return state;
 }

@@ -302,14 +302,27 @@ classDiagram
     - `volumeM3: number` (Volume net calculé avec la hauteur sous plafond).
 - **Invariants :** Si les murs bougent, l'identité (`id`, `name`, `number`) est préservée tant que le `seedPoint` reste à l'intérieur du polygone reconstruit. Si la pièce n'est plus fermée (« fuite »), son statut passe à `unclosed` et la surface devient indéterminée.
 
+### 3.11 Entités et Réseaux Techniques MEP (Phase 9.2 / ADR-009 / ADR-056)
+
+- **`Pipe` (Tuyauterie) :** Segment linéaire de transport de liquide sous pression ou gravitaire (diamètre nominal, matériau, pente, 2 ports d'extrémité).
+- **`Duct` (Gaine aéraulique) :** Conduit rectiligne d'air (section circulaire ou rectangulaire, isolation, 2 ports d'extrémité).
+- **`CableTray` (Chemin de câbles) :** Support physique de distribution électrique et courants faibles (largeur, hauteur de rive, 2 ports).
+- **`MepFitting` (Raccord) :** Élément de jonction topologique (`elbow`, `tee`, `cross`, `transition`, `cap`).
+- **`MepEquipment` (Équipement technique) :** Appareil technique raccordé (`boiler`, `heat_pump`, `water_heater`, `pump`, `ahu`, `fan`, `radiator`, `valve`, `meter`, `electrical_panel`).
+- **`MepSystem` (Système technique) :** Regroupement sémantique d'éléments sous une même fonction fluide ou électrique.
+- **`Port` (Point de raccordement) :** Propriété d'un équipement ou conduit (position 3D, normale sortante unitaire, forme, dimensions, domaine, fluide, sens de flux).
+- **`Connector` (Liaison effective) :** Relation topologique unissant deux ports physiques distincts et compatibles (`portAId`, `portBId`, `systemId`).
+
 ---
 
 ## 4. Relations et Règles de Cascade
 
 | Action                       | Cible      | Effet en Cascade                                                                                                                                                                                    |
 | :--------------------------- | :--------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Suppression**              | `Level`    | Supprime ou détache tous les murs, dalles et pièces associés (avec invite de confirmation).                                                                                                         |
+| **Suppression**              | `Level`    | Supprime ou détache tous les murs, dalles, pièces et éléments MEP rattachés (avec invite de confirmation).                                                                                           |
 | **Déplacement altimétrique** | `Level`    | Déplace la coordonnée $Z$ de tous les éléments rattachés. Les hauteurs de murs contraints entre deux niveaux sont recalculées.                                                                      |
-| **Suppression**              | `Wall`     | 1. Supprime toutes les `Door` et `Window` hébergées.<br>2. Invalide les jonctions avec les murs connectés.<br>3. Déclenche le recalcul des pièces adjacentes.                                       |
+| **Suppression**              | `Wall`     | 1. Supprime toutes les `Door` et `Window` hébergées.<br>2. Détache les composants adossés (`hostWallId`).<br>3. Invalide les jonctions avec les murs connectés.<br>4. Déclenche le recalcul des pièces adjacentes. |
 | **Déplacement**              | `Wall`     | 1. Met à jour les coordonnées spatiales des portes et fenêtres hébergées.<br>2. Recalcule les onglets d'extrémité des murs voisins.<br>3. Recalcule le contour et la surface des pièces délimitées. |
 | **Modification Type**        | `WallType` | Tous les murs instanciant ce type héritent immédiatement de la nouvelle épaisseur et des couches sans modifier leur axe.                                                                            |
+| **Suppression**              | Élément MEP (`Pipe`, `Duct`, etc.) | Détache et supprime immédiatement tous les connecteurs incidents (`mepConnectors`) et purge les références dans les systèmes techniques rattachés (`mepSystems`).                                |
+| **Suppression**              | `MepSystem` | Dégage le champ `systemId` de tous les éléments du système sans les supprimer (`detach`).                                                                                                            |

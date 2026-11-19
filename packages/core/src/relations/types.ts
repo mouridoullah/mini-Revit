@@ -18,7 +18,14 @@ export type EntityCategory =
   | 'roofType'
   | 'component'
   | 'componentType'
-  | 'room';
+  | 'room'
+  | 'pipe'
+  | 'duct'
+  | 'cableTray'
+  | 'mepFitting'
+  | 'mepEquipment'
+  | 'mepSystem'
+  | 'mepConnector';
 
 export interface RelationDef {
   readonly sourceCategory: EntityCategory;

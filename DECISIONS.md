@@ -64,6 +64,7 @@
 | **ADR-053** | Toitures (Plat & 2 Pans), Biseautage des Murs sous Toiture via topProfile et Trémies de Toit   | **Accepté**  | 15/11/2026 |
 | **ADR-054** | Composants Architecturaux, Mobilier Paramétrique & Interopérabilité IFC4 (Phase 8)             | **Accepté**  | 18/11/2026 |
 | **ADR-055** | Modularisation du Noyau, Propagation DAG des Composants Hébergés et Qualification Système       | **Accepté**  | 19/11/2026 |
+| **ADR-056** | Modèle Sémantique MEP et Graphe Topologique de Réseau Découplé (Phase 9.2)                     | **Accepté**  | 19/11/2026 |
 
 ---
 
@@ -2302,6 +2303,39 @@ Mini-BIM supportait les éléments structurels du gros œuvre (murs, ouvertures,
    - Mesures certifiées sur 1 000 murs : DAG en < 2 ms, transaction complète en 12,5 ms.
    - Export STEP ISO 10303-21 autonome validé par le parseur C++/WASM `web-ifc`.
    - Smoke tests Playwright E2E sur bundle de production Vite (`vite preview`).
+
+---
+
+## ADR-056 : Modèle Sémantique MEP et Graphe Topologique de Réseau Découplé
+
+### Contexte
+
+À l'issue de la Phase 9.1 (métrologie de scalabilité empirique sur 100, 1 000 et 10 000 entités), la Phase 9.2 engage le noyau MEP (génie climatique, plomberie et courants techniques).
+Deux exigences clés ont été identifiées :
+1. Isolation stricte selon l'ADR-009, sans couplage prématuré aux moteurs de rendu 2D/3D ni au routage.
+2. Divergence fondamentale entre le `DependencyGraph` du BIM (DAG orienté acyclique strict) et les réseaux hydrauliques réels qui comportent naturellement des boucles fermées (aller/retour chauffage, boucles de recyclage ECS).
+
+### Décisions Clés
+
+1. **D1 — Découplage Structurel des Deux Graphes :**
+   - `DependencyGraph` : DAG strict réservé à l'invalidation sémantique (`levelId -> mepElement`, `mepSystemId -> mepElement`). Aucune arête physique de fluide n'y est insérée pour préserver l'acyclicité.
+   - `MepNetworkGraph` : Graphe topologique physique indépendant autorisant les réseaux linéaires, ramifiés, les sous-réseaux disjoints et les **boucles fermées** (`hasLoops()`).
+
+2. **D2 — Modèle Sémantique Typé & Ports :**
+   - Entités créées : `Pipe`, `Duct`, `CableTray`, `MepFitting`, `MepEquipment`, `MepSystem`, `Port`, `Connector`.
+   - Typage strict des domaines (`plumbing`, `hvac`, `hydronic`, `electrical`) et des fluides sans chaînes libres.
+   - Contrat formel de `Port` (position 3D, normale extérieure unitaire, dimensions, domaine, type de fluide, forme de section).
+
+3. **D3 — Tolérances Numériques Centralisées (`MEP_TOLERANCES`) :**
+   - Tolérances explicites : `POSITION_MM = 1.0`, `ANGLE_RAD = 0.05` (~2.86° anti-parallèle), `DIMENSION_MM = 0.5`.
+
+4. **D4 — Commandes Transactionnelles & Cascade de Suppression :**
+   - 12 commandes transactionnelles réversibles sous `produceWithPatches` Immer.
+   - La suppression d'un élément détache automatiquement tous ses connecteurs incidents et purge ses références système. L'opération `undo()` restaure fidèlement le réseau complet.
+
+5. **D5 — Performance & Complexité $\mathcal{O}(1)$ :**
+   - Validations différentielles `validateDirty` en coût local strict $\mathcal{O}(1)$ sans boucle quadratique $\mathcal{O}(N^2)$ globale.
+   - Qualification formelle sur 10 000 connexions avec parcours BFS en < 20 ms.
 
 
 

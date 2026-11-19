@@ -340,6 +340,62 @@ export class DependencyGraph {
           }
         }
       }
+
+      // Dépendances structurelles MEP (Phase 9.2 / ADR-056) :
+      // Niveau -> Élément MEP, Système MEP -> Élément MEP.
+      // STRICTEMENT AUCUNE arête physique de connexion entre ports pour garantir l'acyclicité du DAG.
+      if (state.pipes) {
+        for (const id in state.pipes) {
+          const p = state.pipes[id];
+          if (!p) continue;
+          if (p.levelId) graph.addEdge(p.levelId, p.id);
+          if (p.systemId) graph.addEdge(p.systemId, p.id);
+        }
+      }
+
+      if (state.ducts) {
+        for (const id in state.ducts) {
+          const d = state.ducts[id];
+          if (!d) continue;
+          if (d.levelId) graph.addEdge(d.levelId, d.id);
+          if (d.systemId) graph.addEdge(d.systemId, d.id);
+        }
+      }
+
+      if (state.cableTrays) {
+        for (const id in state.cableTrays) {
+          const ct = state.cableTrays[id];
+          if (!ct) continue;
+          if (ct.levelId) graph.addEdge(ct.levelId, ct.id);
+          if (ct.systemId) graph.addEdge(ct.systemId, ct.id);
+        }
+      }
+
+      if (state.mepFittings) {
+        for (const id in state.mepFittings) {
+          const f = state.mepFittings[id];
+          if (!f) continue;
+          if (f.levelId) graph.addEdge(f.levelId, f.id);
+          if (f.systemId) graph.addEdge(f.systemId, f.id);
+        }
+      }
+
+      if (state.mepEquipments) {
+        for (const id in state.mepEquipments) {
+          const eq = state.mepEquipments[id];
+          if (!eq) continue;
+          if (eq.levelId) graph.addEdge(eq.levelId, eq.id);
+          if (eq.systemId) graph.addEdge(eq.systemId, eq.id);
+        }
+      }
+
+      if (state.mepConnectors) {
+        for (const id in state.mepConnectors) {
+          const c = state.mepConnectors[id];
+          if (!c) continue;
+          if (c.systemId) graph.addEdge(c.systemId, c.id);
+        }
+      }
     } else {
       // Fallback générique multi-pass pour registres personnalisés
       for (const rel of registry) {
