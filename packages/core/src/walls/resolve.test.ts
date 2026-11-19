@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { vec2 } from '@mini-bim/geometry';
 import { resolveWallGeometry } from './resolve.js';
+import { computeWallSlabPenetration } from '../walls.js';
 import type { BimState, Wall, WallType, Level, Slab, SlabType, Door, Window, DoorType, WindowType } from '../types.js';
 
 describe('resolveWallGeometry (core/walls/resolve.ts) — Source unique de vérité', () => {
@@ -266,5 +267,98 @@ describe('resolveWallGeometry (core/walls/resolve.ts) — Source unique de véri
     const resolved = resolveWallGeometry(wall, minimalState);
     expect(resolved.height).toBe(2800);
     expect(resolved.openings).toEqual([]);
+  });
+
+  describe('computeWallSlabPenetration (sans faux positifs horizontaux)', () => {
+    const slabType: SlabType = {
+      id: 'st_200',
+      name: 'Dalle 200mm',
+      thickness: 200,
+    };
+
+    const slabR1: Slab = {
+      id: 'slab_r1',
+      category: 'slab',
+      levelId: level1.id,
+      slabTypeId: slabType.id,
+      boundary: [vec2(0, 0), vec2(5000, 0), vec2(5000, 5000), vec2(0, 5000)],
+      holes: [],
+      openings: [],
+    };
+
+    it('T-PEN-01 : Mur distant horizontalement de la dalle -> 0 mm de pénétration', () => {
+      const stateWithSlab: BimState = {
+        schemaVersion: 2,
+        levels: { [level0.id]: level0, [level1.id]: level1 },
+        wallTypes: { [wallType.id]: wallType },
+        slabTypes: { [slabType.id]: slabType },
+        slabs: { [slabR1.id]: slabR1 },
+        walls: {},
+      } as unknown as BimState;
+
+      // Mur situé en x = 10000..14000 (hors de l'emprise x = 0..5000 de la dalle)
+      const distantWall: Wall = {
+        id: 'w_distant',
+        category: 'wall',
+        levelId: level0.id,
+        typeId: wallType.id,
+        start: vec2(10000, 0),
+        end: vec2(14000, 0),
+        heightOverride: 3200, // Ztop = 3200 > Zinf(slab) = 2800
+      };
+
+      const penetration = computeWallSlabPenetration(distantWall, stateWithSlab);
+      expect(penetration).toBe(0);
+    });
+
+    it('T-PEN-02 : Mur sous la dalle avec dépassement altimétrique -> pénétration exacte calculée', () => {
+      const stateWithSlab: BimState = {
+        schemaVersion: 2,
+        levels: { [level0.id]: level0, [level1.id]: level1 },
+        wallTypes: { [wallType.id]: wallType },
+        slabTypes: { [slabType.id]: slabType },
+        slabs: { [slabR1.id]: slabR1 },
+        walls: {},
+      } as unknown as BimState;
+
+      // Mur situé sous la dalle (x = 1000..3000, y = 2000)
+      // Level 1 elevation = 3000, slab thickness = 200 -> zInf = 2800
+      // Mur heightOverride = 3000 -> zTop = 3000 -> pénétration = 3000 - 2800 = 200 mm
+      const coveredWall: Wall = {
+        id: 'w_covered',
+        category: 'wall',
+        levelId: level0.id,
+        typeId: wallType.id,
+        start: vec2(1000, 2000),
+        end: vec2(3000, 2000),
+        heightOverride: 3000,
+      };
+
+      const penetration = computeWallSlabPenetration(coveredWall, stateWithSlab);
+      expect(penetration).toBe(200);
+    });
+
+    it('T-PEN-03 : Mur sans heightOverride (auto) -> 0 mm de pénétration', () => {
+      const stateWithSlab: BimState = {
+        schemaVersion: 2,
+        levels: { [level0.id]: level0, [level1.id]: level1 },
+        wallTypes: { [wallType.id]: wallType },
+        slabTypes: { [slabType.id]: slabType },
+        slabs: { [slabR1.id]: slabR1 },
+        walls: {},
+      } as unknown as BimState;
+
+      const autoWall: Wall = {
+        id: 'w_auto',
+        category: 'wall',
+        levelId: level0.id,
+        typeId: wallType.id,
+        start: vec2(1000, 2000),
+        end: vec2(3000, 2000),
+      };
+
+      const penetration = computeWallSlabPenetration(autoWall, stateWithSlab);
+      expect(penetration).toBe(0);
+    });
   });
 });

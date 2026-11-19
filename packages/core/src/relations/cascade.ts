@@ -2,54 +2,16 @@ import type { BimState, ElementId } from '../types.js';
 import { BimValidationError } from '../rules.js';
 import type { RelationDef, EntityCategory } from './types.js';
 import { RELATIONS_REGISTRY } from './registry.js';
+import { getCategoryDescriptor } from './descriptors.js';
 
 export function getEntitiesForCategory(
   state: BimState,
   category: EntityCategory,
 ): Record<string, Record<string, unknown>> {
-  const dict: unknown = (() => {
-    switch (category) {
-      case 'wall':
-        return state.walls ?? {};
-      case 'door':
-        return state.doors ?? {};
-      case 'window':
-        return state.windows ?? {};
-      case 'dimension':
-        return state.dimensions ?? {};
-      case 'room':
-        return state.rooms ?? {};
-      case 'wallType':
-        return state.wallTypes ?? {};
-      case 'level':
-        return state.levels ?? {};
-      case 'slab':
-        return state.slabs ?? {};
-      case 'doorType':
-        return state.doorTypes ?? {};
-      case 'windowType':
-        return state.windowTypes ?? {};
-      case 'slabType':
-        return state.slabTypes ?? {};
-      case 'stair':
-        return state.stairs ?? {};
-      case 'stairType':
-        return state.stairTypes ?? {};
-      case 'roof':
-        return state.roofs ?? {};
-      case 'roofType':
-        return state.roofTypes ?? {};
-      case 'roofOpening':
-        return state.roofOpenings ?? {};
-      case 'component':
-        return state.components ?? {};
-      case 'componentType':
-        return state.componentTypes ?? {};
-      default:
-        return {};
-    }
-  })();
-  return dict as Record<string, Record<string, unknown>>;
+  const desc = getCategoryDescriptor(category);
+  if (!desc) return {};
+  const collection = state[desc.stateField];
+  return (collection ?? {}) as unknown as Record<string, Record<string, unknown>>;
 }
 
 export function getEntityFieldValue(entity: Record<string, unknown>, field: string): unknown {
