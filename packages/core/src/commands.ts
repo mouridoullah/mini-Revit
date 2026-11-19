@@ -728,18 +728,16 @@ export class AddDoorCommand implements Command {
     }
     let resolvedDoor = this.door;
     if (!resolvedDoor.doorTypeId) {
-      const rawW = (this.door as unknown as { width?: number }).width ?? 900;
-      const rawH = (this.door as unknown as { height?: number }).height ?? 2100;
-      const typeKey = `door-type-${rawW}x${rawH}`;
+      const typeKey = 'door-type-900x2100';
       if (!draft.doorTypes) {
         (draft as { doorTypes: Record<ElementId, DoorType> }).doorTypes = {};
       }
       if (!draft.doorTypes[typeKey]) {
         draft.doorTypes[typeKey] = {
           id: typeKey,
-          name: `Porte ${rawW}×${rawH} mm`,
-          width: rawW,
-          height: rawH,
+          name: 'Porte 900×2100 mm',
+          width: 900,
+          height: 2100,
         };
       }
       resolvedDoor = {
@@ -747,16 +745,14 @@ export class AddDoorCommand implements Command {
         doorTypeId: typeKey,
       };
     } else if (!draft.doorTypes?.[resolvedDoor.doorTypeId]) {
-      const rawW = (this.door as unknown as { width?: number }).width ?? 900;
-      const rawH = (this.door as unknown as { height?: number }).height ?? 2100;
       if (!draft.doorTypes) {
         (draft as { doorTypes: Record<ElementId, DoorType> }).doorTypes = {};
       }
       draft.doorTypes[resolvedDoor.doorTypeId] = {
         id: resolvedDoor.doorTypeId,
-        name: `Porte ${rawW}×${rawH} mm`,
-        width: rawW,
-        height: rawH,
+        name: 'Porte 900×2100 mm',
+        width: 900,
+        height: 2100,
       };
     }
     validateDoor(resolvedDoor, draft as BimState);
@@ -785,19 +781,17 @@ export class AddWindowCommand implements Command {
     }
     let resolvedWindow = this.window;
     if (!resolvedWindow.windowTypeId) {
-      const rawW = (this.window as unknown as { width?: number }).width ?? 1200;
-      const rawH = (this.window as unknown as { height?: number }).height ?? 1400;
       const rawSill = this.window.sillHeight ?? 900;
-      const typeKey = `window-type-${rawW}x${rawH}-s${rawSill}`;
+      const typeKey = `window-type-1200x1400-s${rawSill}`;
       if (!draft.windowTypes) {
         (draft as { windowTypes: Record<ElementId, WindowType> }).windowTypes = {};
       }
       if (!draft.windowTypes[typeKey]) {
         draft.windowTypes[typeKey] = {
           id: typeKey,
-          name: `Fenêtre ${rawW}×${rawH} mm`,
-          width: rawW,
-          height: rawH,
+          name: 'Fenêtre 1200×1400 mm',
+          width: 1200,
+          height: 1400,
           defaultSillHeight: rawSill,
         };
       }
@@ -806,17 +800,15 @@ export class AddWindowCommand implements Command {
         windowTypeId: typeKey,
       };
     } else if (!draft.windowTypes?.[resolvedWindow.windowTypeId]) {
-      const rawW = (this.window as unknown as { width?: number }).width ?? 1200;
-      const rawH = (this.window as unknown as { height?: number }).height ?? 1400;
       const rawSill = this.window.sillHeight ?? 900;
       if (!draft.windowTypes) {
         (draft as { windowTypes: Record<ElementId, WindowType> }).windowTypes = {};
       }
       draft.windowTypes[resolvedWindow.windowTypeId] = {
         id: resolvedWindow.windowTypeId,
-        name: `Fenêtre ${rawW}×${rawH} mm`,
-        width: rawW,
-        height: rawH,
+        name: 'Fenêtre 1200×1400 mm',
+        width: 1200,
+        height: 1400,
         defaultSillHeight: rawSill,
       };
     }
@@ -863,8 +855,8 @@ export class UpdateDoorCommand implements Command {
         );
       }
       const curType = targetDoorTypeId ? draft.doorTypes?.[targetDoorTypeId] : undefined;
-      const curW = curType?.width ?? (existing as unknown as { width?: number }).width ?? 900;
-      const curH = curType?.height ?? (existing as unknown as { height?: number }).height ?? 2100;
+      const curW = curType?.width ?? 900;
+      const curH = curType?.height ?? 2100;
       const newW = rawPatch.width ?? curW;
       const newH = rawPatch.height ?? curH;
 
@@ -944,8 +936,8 @@ export class UpdateWindowCommand implements Command {
         );
       }
       const curType = targetWindowTypeId ? draft.windowTypes?.[targetWindowTypeId] : undefined;
-      const curW = curType?.width ?? (existing as unknown as { width?: number }).width ?? 1200;
-      const curH = curType?.height ?? (existing as unknown as { height?: number }).height ?? 1400;
+      const curW = curType?.width ?? 1200;
+      const curH = curType?.height ?? 1400;
       const newW = rawPatch.width ?? curW;
       const newH = rawPatch.height ?? curH;
 
@@ -2021,6 +2013,7 @@ export class UpdateComponentCommand implements Command {
 
 export class DeleteComponentCommand implements Command {
   public readonly name = 'DeleteComponent';
+  private hostWallId: ElementId = '';
 
   public constructor(public readonly componentId: ElementId) {}
 
@@ -2032,12 +2025,15 @@ export class DeleteComponentCommand implements Command {
         `Cannot delete component: ID "${this.componentId}" not found.`,
       );
     }
+    if (existing.placement?.hostWallId) {
+      this.hostWallId = existing.placement.hostWallId;
+    }
     if (draft.components) {
       Reflect.deleteProperty(draft.components, this.componentId);
     }
   }
 
   public getChangedIds(): readonly ElementId[] {
-    return [this.componentId];
+    return [this.componentId, ...(this.hostWallId ? [this.hostWallId] : [])];
   }
 }

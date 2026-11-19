@@ -28,7 +28,7 @@ export interface Viewport3DProps {
  * Règle d'or 2 : Aucun import direct de @mini-bim/geometry (passe par view-3d).
  */
 export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = {}) {
-  const { state } = useBimDocument();
+  const { state, lastChangedIds } = useBimDocument();
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sceneRef = useRef<Scene3D | null>(null);
@@ -95,6 +95,69 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
       }
     }
 
+    // Calcul différentiel du dirty set incrémental (ADR-019 / Audit P1.6)
+    const isIncremental = lastChangedIds !== undefined && renderedElementIdsRef.current.size > 0;
+    const dirtyElementIds = new Set<string>();
+
+    if (isIncremental) {
+      for (const id of lastChangedIds) {
+        dirtyElementIds.add(id);
+        const wall = state.walls[id];
+        if (wall) {
+          // Voisins topologiques du mur modifié sur le même niveau
+          for (const otherWall of Object.values(state.walls)) {
+            if (otherWall.levelId === wall.levelId && otherWall.id !== wall.id) {
+              if (
+                Math.hypot(otherWall.start.x - wall.start.x, otherWall.start.y - wall.start.y) < 50 ||
+                Math.hypot(otherWall.start.x - wall.end.x, otherWall.start.y - wall.end.y) < 50 ||
+                Math.hypot(otherWall.end.x - wall.start.x, otherWall.end.y - wall.end.y) < 50 ||
+                Math.hypot(otherWall.end.x - wall.end.x, otherWall.end.y - wall.end.y) < 50
+              ) {
+                dirtyElementIds.add(otherWall.id);
+              }
+            }
+          }
+        }
+        const door = doors[id];
+        if (door) dirtyElementIds.add(door.hostWallId);
+        const win = windows[id];
+        if (win) dirtyElementIds.add(win.hostWallId);
+        const comp = components[id];
+        if (comp?.placement?.hostWallId) dirtyElementIds.add(comp.placement.hostWallId);
+
+        // Si un niveau a été modifié, tous ses éléments sont sales
+        if (state.levels[id]) {
+          for (const w of Object.values(state.walls)) if (w.levelId === id) dirtyElementIds.add(w.id);
+          for (const s of Object.values(slabs)) if (s.levelId === id) dirtyElementIds.add(s.id);
+          for (const st of Object.values(stairs)) if (st.bottomLevelId === id || st.topLevelId === id) dirtyElementIds.add(st.id);
+          for (const r of Object.values(roofs)) if (r.levelId === id) dirtyElementIds.add(r.id);
+          for (const c of Object.values(components)) if (c.levelId === id) dirtyElementIds.add(c.id);
+        }
+        // Si un type est modifié, toutes ses instances sont sales
+        if (state.wallTypes[id]) {
+          for (const w of Object.values(state.walls)) if (w.typeId === id) dirtyElementIds.add(w.id);
+        }
+        if (state.slabTypes?.[id]) {
+          for (const s of Object.values(slabs)) if (s.slabTypeId === id) dirtyElementIds.add(s.id);
+        }
+        if (state.doorTypes?.[id]) {
+          for (const d of Object.values(doors)) if (d.doorTypeId === id) dirtyElementIds.add(d.id);
+        }
+        if (state.windowTypes?.[id]) {
+          for (const w of Object.values(windows)) if (w.windowTypeId === id) dirtyElementIds.add(w.id);
+        }
+        if (state.stairTypes?.[id]) {
+          for (const st of Object.values(stairs)) if (st.stairTypeId === id) dirtyElementIds.add(st.id);
+        }
+        if (state.roofTypes?.[id]) {
+          for (const r of Object.values(roofs)) if (r.roofTypeId === id) dirtyElementIds.add(r.id);
+        }
+        if (state.componentTypes?.[id]) {
+          for (const c of Object.values(components)) if (c.typeId === id) dirtyElementIds.add(c.id);
+        }
+      }
+    }
+
     // 2. Résolution des jonctions de murs par niveau (L, T, X) pour maillage net sans superposition
     const wallsByLevel = new Map<string, (typeof state.walls)[string][]>();
     for (const wall of Object.values(state.walls)) {
@@ -105,6 +168,9 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
 
     const resolvedPolygonsByWallId = new Map<string, readonly { readonly x: number; readonly y: number }[]>();
     for (const [, levelWalls] of wallsByLevel) {
+      if (isIncremental && !levelWalls.some((w) => dirtyElementIds.has(w.id))) {
+        continue;
+      }
       const wallInputs: WallInput[] = [];
       for (const w of levelWalls) {
         const wt = state.wallTypes[w.typeId];
@@ -134,6 +200,7 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
 
     // 2b. Mise à jour ou ajout des murs percés de leurs ouvertures
     for (const wall of Object.values(state.walls)) {
+      if (isIncremental && !dirtyElementIds.has(wall.id)) continue;
       const wallType = state.wallTypes[wall.typeId];
       if (!wallType) continue;
 
@@ -167,6 +234,7 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
     // 3. Placeholders 3D des portes (boîte bois)
     const doorMat = doorMaterialRef.current ?? undefined;
     for (const door of Object.values(doors)) {
+      if (isIncremental && !dirtyElementIds.has(door.id) && !dirtyElementIds.has(door.hostWallId)) continue;
       const hostWall = state.walls[door.hostWallId];
       if (!hostWall) continue;
       const resolvedHost = resolveWallGeometry(hostWall, state);
@@ -193,6 +261,7 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
     // 4. Placeholders 3D des fenêtres (boîte vitrée translucide)
     const winMat = windowMaterialRef.current ?? undefined;
     for (const win of Object.values(windows)) {
+      if (isIncremental && !dirtyElementIds.has(win.id) && !dirtyElementIds.has(win.hostWallId)) continue;
       const hostWall = state.walls[win.hostWallId];
       if (!hostWall) continue;
       const resolvedHost = resolveWallGeometry(hostWall, state);
@@ -218,6 +287,7 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
 
     // 5. Placeholders et maillages 3D des dalles structurelles (avec trémies)
     for (const slab of Object.values(slabs)) {
+      if (isIncremental && !dirtyElementIds.has(slab.id)) continue;
       const slabType = state.slabTypes?.[slab.slabTypeId];
       if (!slabType) continue;
 
@@ -255,6 +325,7 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
 
     // 6. Maillages 3D des escaliers paramétriques (maillage crénelé ADR-048 D4)
     for (const stair of Object.values(stairs)) {
+      if (isIncremental && !dirtyElementIds.has(stair.id)) continue;
       const stairType = state.stairTypes?.[stair.stairTypeId];
       const bottomLevel = state.levels[stair.bottomLevelId];
       const topLevel = state.levels[stair.topLevelId];
@@ -280,6 +351,7 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
 
     // 7. Maillages 3D des toitures (plates et 2 pans, ADR-053)
     for (const roof of Object.values(roofs)) {
+      if (isIncremental && !dirtyElementIds.has(roof.id)) continue;
       const roofType = state.roofTypes?.[roof.roofTypeId];
       if (!roofType) continue;
 
@@ -316,6 +388,7 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
 
     // 8. Maillages 3D des composants architecturaux et mobilier (Phase 8)
     for (const comp of Object.values(components)) {
+      if (isIncremental && !dirtyElementIds.has(comp.id)) continue;
       const compType = state.componentTypes?.[comp.typeId];
       if (!compType) continue;
 
@@ -337,7 +410,7 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
     } else {
       scene.render();
     }
-  }, [state]);
+  }, [state, lastChangedIds]);
 
   // Synchronisation de la surbrillance (partagée 2D ↔ 3D)
   useEffect(() => {

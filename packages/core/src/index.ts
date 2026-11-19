@@ -168,6 +168,7 @@ export { exportToIfc, type IfcExportOptions } from './ifc/generator.js';
 export {
   computeWallEffectiveHeight,
   computeWallVerticalBounds,
+  computeWallSlabPenetration,
   type ComputeWallEffectiveHeightOptions,
   type WallEffectiveHeightResult,
 } from './walls.js';
@@ -180,6 +181,11 @@ export {
 } from './walls/resolve.js';
 export { DependencyGraph } from './dag/DependencyGraph.js';
 export { RELATIONS_REGISTRY } from './relations/registry.js';
+export {
+  ENTITY_CATEGORY_DESCRIPTORS,
+  getCategoryDescriptor,
+  type CategoryDescriptor,
+} from './relations/descriptors.js';
 export { resolveCascadeDeletions, type CascadeResult } from './relations/cascade.js';
 export type { RelationDef, CascadeAction, EntityCategory } from './relations/types.js';
 export {

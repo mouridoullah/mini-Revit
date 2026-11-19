@@ -173,6 +173,51 @@ export function computeWallEffectiveHeight(
   return computeWallVerticalBounds(wall, state, options).heightEff;
 }
 
+/**
+ * Calcule la pénétration physique (en mm) d'un mur dans les dalles d'étages supérieurs.
+ * Ne détecte de collision que si le mur est effectivement couvert ou intersecté en 2D
+ * par l'emprise solide de la dalle, évitant ainsi tout faux positif horizontal.
+ */
+export function computeWallSlabPenetration(wall: Wall, state: BimState): number {
+  if (wall.heightOverride === undefined) {
+    return 0;
+  }
+
+  const curLevel = state.levels[wall.levelId];
+  const zBase = (curLevel?.elevation ?? 0) + (wall.baseOffset ?? 0);
+  const zTop = zBase + wall.heightOverride;
+
+  let maxPenetrationMm = 0;
+
+  for (const sl of Object.values(state.slabs ?? {})) {
+    const slLevel = state.levels[sl.levelId];
+    if (slLevel && slLevel.elevation > (curLevel?.elevation ?? 0)) {
+      const slType = state.slabTypes?.[sl.slabTypeId];
+      if (slType) {
+        let effectivePolygon;
+        try {
+          effectivePolygon = computeEffectiveSlabPolygon({
+            boundary: sl.boundary,
+            holes: sl.holes,
+            openings: sl.openings,
+          });
+        } catch {
+          continue;
+        }
+
+        if (isWallCoveredBySlab(wall, effectivePolygon)) {
+          const zInf = slLevel.elevation + (sl.baseOffset ?? 0) - slType.thickness;
+          if (zTop > zInf) {
+            maxPenetrationMm = Math.max(maxPenetrationMm, zTop - zInf);
+          }
+        }
+      }
+    }
+  }
+
+  return maxPenetrationMm;
+}
+
 export {
   resolveWallGeometry,
   type ResolvedWall,

@@ -44,6 +44,9 @@ export interface RuleViolation {
   readonly code: string;
   readonly message: string;
   readonly offendingIds: readonly ElementId[];
+  readonly severity?: 'warning' | 'error';
+  readonly measurement?: number;
+  readonly threshold?: number;
 }
 
 /**
@@ -136,8 +139,8 @@ export function checkOpeningsWithCandidate(
     for (const d of Object.values(state.doors)) {
       if (d.hostWallId === wall.id && d.id !== candidateId) {
         const dType = d.doorTypeId ? state.doorTypes?.[d.doorTypeId] : undefined;
-        const width = dType?.width ?? (d as unknown as { width?: number }).width ?? 900;
-        const height = dType?.height ?? (d as unknown as { height?: number }).height ?? 2100;
+        const width = dType?.width ?? 900;
+        const height = dType?.height ?? 2100;
         allOpeningsOnHost.push({
           id: d.id,
           hostWallId: d.hostWallId,
@@ -156,8 +159,8 @@ export function checkOpeningsWithCandidate(
     for (const w of Object.values(state.windows)) {
       if (w.hostWallId === wall.id && w.id !== candidateId) {
         const winType = w.windowTypeId ? state.windowTypes?.[w.windowTypeId] : undefined;
-        const width = winType?.width ?? (w as unknown as { width?: number }).width ?? 1200;
-        const height = winType?.height ?? (w as unknown as { height?: number }).height ?? 1400;
+        const width = winType?.width ?? 1200;
+        const height = winType?.height ?? 1400;
         allOpeningsOnHost.push({
           id: w.id,
           hostWallId: w.hostWallId,
@@ -385,8 +388,8 @@ export function checkDoorViolations(door: Door, state: BimState): RuleViolation[
   }
 
   const doorType = door.doorTypeId ? state.doorTypes?.[door.doorTypeId] : undefined;
-  const doorWidth = doorType?.width ?? (door as unknown as { width?: number }).width ?? NaN;
-  const doorHeight = doorType?.height ?? (door as unknown as { height?: number }).height ?? NaN;
+  const doorWidth = doorType?.width ?? NaN;
+  const doorHeight = doorType?.height ?? NaN;
 
   // 3. Validation dimensionnelle
   if (
@@ -507,8 +510,8 @@ export function checkWindowViolations(window: Window, state: BimState): RuleViol
   }
 
   const winType = window.windowTypeId ? state.windowTypes?.[window.windowTypeId] : undefined;
-  const winWidth = winType?.width ?? (window as unknown as { width?: number }).width ?? NaN;
-  const winHeight = winType?.height ?? (window as unknown as { height?: number }).height ?? NaN;
+  const winWidth = winType?.width ?? NaN;
+  const winHeight = winType?.height ?? NaN;
 
   // 3. Validation dimensionnelle
   if (
@@ -2002,6 +2005,76 @@ export function canDeleteLevel(
 // Validation Différentielle Post-Condition (Phase 6.0b / ADR-041 §6)
 // ---------------------------------------------------------------------------
 
+const CATEGORY_VALIDATORS: readonly ((
+  id: ElementId,
+  state: BimState,
+) => readonly RuleViolation[])[] = [
+  (id, state) => {
+    const wall = state.walls[id];
+    return wall ? [...checkWallViolations(wall, state), ...checkOpeningsOnWall(wall, state)] : [];
+  },
+  (id, state) => {
+    const door = state.doors?.[id];
+    return door ? checkDoorViolations(door, state) : [];
+  },
+  (id, state) => {
+    const win = state.windows?.[id];
+    return win ? checkWindowViolations(win, state) : [];
+  },
+  (id, state) => {
+    const lvl = state.levels[id];
+    return lvl ? checkLevelViolations(lvl, state) : [];
+  },
+  (id, state) => {
+    const wt = state.wallTypes[id];
+    return wt ? checkWallTypeViolations(wt) : [];
+  },
+  (id, state) => {
+    const rm = state.rooms?.[id];
+    return rm ? checkRoomViolations(rm, state) : [];
+  },
+  (id, state) => {
+    const dim = state.dimensions?.[id];
+    return dim ? checkDimensionViolations(dim, state) : [];
+  },
+  (id, state) => {
+    const sl = state.slabs?.[id];
+    return sl ? checkSlabViolations(sl, state) : [];
+  },
+  (id, state) => {
+    const slt = state.slabTypes?.[id];
+    return slt ? checkSlabTypeViolations(slt) : [];
+  },
+  (id, state) => {
+    const st = state.stairs?.[id];
+    return st ? checkStairViolations(st, state) : [];
+  },
+  (id, state) => {
+    const stt = state.stairTypes?.[id];
+    return stt ? checkStairTypeViolations(stt) : [];
+  },
+  (id, state) => {
+    const rf = state.roofs?.[id];
+    return rf ? checkRoofViolations(rf, state) : [];
+  },
+  (id, state) => {
+    const rft = state.roofTypes?.[id];
+    return rft ? checkRoofTypeViolations(rft) : [];
+  },
+  (id, state) => {
+    const ro = state.roofOpenings?.[id];
+    return ro ? checkRoofOpeningViolations(ro, state) : [];
+  },
+  (id, state) => {
+    const comp = state.components?.[id];
+    return comp ? checkComponentViolations(comp, state) : [];
+  },
+  (id, state) => {
+    const compt = state.componentTypes?.[id];
+    return compt ? checkComponentTypeViolations(compt) : [];
+  },
+];
+
 /**
  * Collecte exhaustivement toutes les violations de règles métier pour les entités du dirty set.
  */
@@ -2023,133 +2096,8 @@ export function collectViolationsForDirty(
 
   const uniqueDirty = Array.from(new Set(dirtyIds));
   for (const id of uniqueDirty) {
-    // 1. Murs
-    const wall = state.walls[id];
-    if (wall) {
-      for (const v of checkWallViolations(wall, state)) {
-        pushViolation(v);
-      }
-      for (const v of checkOpeningsOnWall(wall, state)) {
-        pushViolation(v);
-      }
-    }
-
-    // 2. Portes
-    const door = state.doors?.[id];
-    if (door) {
-      for (const v of checkDoorViolations(door, state)) {
-        pushViolation(v);
-      }
-    }
-
-    // 3. Fenêtres
-    const window = state.windows?.[id];
-    if (window) {
-      for (const v of checkWindowViolations(window, state)) {
-        pushViolation(v);
-      }
-    }
-
-    // 4. Niveaux
-    const level = state.levels[id];
-    if (level) {
-      for (const v of checkLevelViolations(level, state)) {
-        pushViolation(v);
-      }
-    }
-
-    // 5. Types de murs
-    const wallType = state.wallTypes[id];
-    if (wallType) {
-      for (const v of checkWallTypeViolations(wallType)) {
-        pushViolation(v);
-      }
-    }
-
-    // 6. Pièces (Rooms)
-    const room = state.rooms?.[id];
-    if (room) {
-      for (const v of checkRoomViolations(room, state)) {
-        pushViolation(v);
-      }
-    }
-
-    // 7. Cotations (Dimensions)
-    const dimension = state.dimensions?.[id];
-    if (dimension) {
-      for (const v of checkDimensionViolations(dimension, state)) {
-        pushViolation(v);
-      }
-    }
-
-    // 8. Dalles (Slabs)
-    const slab = state.slabs?.[id];
-    if (slab) {
-      for (const v of checkSlabViolations(slab, state)) {
-        pushViolation(v);
-      }
-    }
-
-    // 9. Types de dalles (SlabTypes)
-    const slabType = state.slabTypes?.[id];
-    if (slabType) {
-      for (const v of checkSlabTypeViolations(slabType)) {
-        pushViolation(v);
-      }
-    }
-
-    // 10. Escaliers (Stairs)
-    const stair = state.stairs?.[id];
-    if (stair) {
-      for (const v of checkStairViolations(stair, state)) {
-        pushViolation(v);
-      }
-    }
-
-    // 11. Types d'escaliers (StairTypes)
-    const stairType = state.stairTypes?.[id];
-    if (stairType) {
-      for (const v of checkStairTypeViolations(stairType)) {
-        pushViolation(v);
-      }
-    }
-
-    // 12. Toitures (Roofs)
-    const roof = state.roofs?.[id];
-    if (roof) {
-      for (const v of checkRoofViolations(roof, state)) {
-        pushViolation(v);
-      }
-    }
-
-    // 13. Types de toitures (RoofTypes)
-    const roofType = state.roofTypes?.[id];
-    if (roofType) {
-      for (const v of checkRoofTypeViolations(roofType)) {
-        pushViolation(v);
-      }
-    }
-
-    // 14. Trémies de toitures (RoofOpenings)
-    const roofOpening = state.roofOpenings?.[id];
-    if (roofOpening) {
-      for (const v of checkRoofOpeningViolations(roofOpening, state)) {
-        pushViolation(v);
-      }
-    }
-
-    // 15. Composants (Components)
-    const component = state.components?.[id];
-    if (component) {
-      for (const v of checkComponentViolations(component, state)) {
-        pushViolation(v);
-      }
-    }
-
-    // 16. Types de composants (ComponentTypes)
-    const componentType = state.componentTypes?.[id];
-    if (componentType) {
-      for (const v of checkComponentTypeViolations(componentType)) {
+    for (const validator of CATEGORY_VALIDATORS) {
+      for (const v of validator(id, state)) {
         pushViolation(v);
       }
     }
@@ -2180,17 +2128,36 @@ export function validateDirty(
   }
 
   const prevViolations = collectViolationsForDirty(previousState, dirtyIds);
-  const prevKeys = new Set<string>();
+  const prevByKey = new Map<string, RuleViolation>();
   for (const v of prevViolations) {
     const sortedIds = [...v.offendingIds].sort().join(',');
-    prevKeys.add(`${v.code}:${sortedIds}:${v.message}`);
+    prevByKey.set(`${v.code}:${sortedIds}`, v);
   }
 
-  // Trouver la première violation introduite ou aggravée (non strictement identique à previousState)
+  // Trouver la première violation introduite ou aggravée
   for (const v of draftViolations) {
     const sortedIds = [...v.offendingIds].sort().join(',');
-    const key = `${v.code}:${sortedIds}:${v.message}`;
-    if (!prevKeys.has(key)) {
+    const key = `${v.code}:${sortedIds}`;
+    const prev = prevByKey.get(key);
+
+    if (!prev) {
+      // Nouvelle violation introduite par la transaction
+      throw new BimValidationError(v.code, v.message, { offendingIds: v.offendingIds });
+    }
+
+    // Violation existante : vérifier si elle est aggravée numériquement
+    if (
+      v.measurement !== undefined &&
+      v.threshold !== undefined &&
+      prev.measurement !== undefined &&
+      prev.threshold !== undefined
+    ) {
+      const draftDelta = Math.abs(v.measurement - v.threshold);
+      const prevDelta = Math.abs(prev.measurement - prev.threshold);
+      if (draftDelta > prevDelta + 1e-4) {
+        throw new BimValidationError(v.code, v.message, { offendingIds: v.offendingIds });
+      }
+    } else if (v.message !== prev.message) {
       throw new BimValidationError(v.code, v.message, { offendingIds: v.offendingIds });
     }
   }

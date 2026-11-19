@@ -9,6 +9,7 @@ import { createDemoDocument } from '../demo/demoDocument.js';
 export interface BimDocumentContextValue {
   readonly doc: BimDocument;
   readonly state: BimState;
+  readonly lastChangedIds?: readonly string[] | undefined;
   readonly execute: (cmd: Command) => CommandResult;
   readonly undo: () => boolean;
   readonly redo: () => boolean;
@@ -31,12 +32,15 @@ export interface BimDocumentProviderProps {
 export function BimDocumentProvider({ initialDoc, children }: BimDocumentProviderProps) {
   const [doc, setDoc] = useState<BimDocument>(() => initialDoc ?? createDemoDocument());
   const [state, setState] = useState<BimState>(() => doc.getState());
+  const [lastChangedIds, setLastChangedIds] = useState<readonly string[] | undefined>(undefined);
 
   useEffect(() => {
     setState(doc.getState());
+    setLastChangedIds(undefined);
     // Abonnement aux modifications transactionnelles du document
-    const unsubscribe = doc.subscribe(() => {
+    const unsubscribe = doc.subscribe((changed) => {
       setState(doc.getState());
+      setLastChangedIds(changed);
     });
     return unsubscribe;
   }, [doc]);
@@ -49,12 +53,14 @@ export function BimDocumentProvider({ initialDoc, children }: BimDocumentProvide
   const setDocument = useCallback((newDoc: BimDocument): void => {
     setDoc(newDoc);
     setState(newDoc.getState());
+    setLastChangedIds(undefined);
   }, []);
 
   const value: BimDocumentContextValue = useMemo(
     () => ({
       doc,
       state,
+      lastChangedIds,
       execute,
       undo,
       redo,
@@ -62,7 +68,7 @@ export function BimDocumentProvider({ initialDoc, children }: BimDocumentProvide
       canRedo,
       setDocument,
     }),
-    [doc, state, execute, undo, redo, canUndo, canRedo, setDocument],
+    [doc, state, lastChangedIds, execute, undo, redo, canUndo, canRedo, setDocument],
   );
 
   return <BimDocumentContext.Provider value={value}>{children}</BimDocumentContext.Provider>;

@@ -3,6 +3,7 @@ import {
   Commands,
   type BimDocument,
   computeWallEffectiveHeight,
+  computeWallSlabPenetration,
   computeStairGeometry,
   getLevelStoryHeight,
   getSortedLevels,
@@ -301,26 +302,8 @@ export function PropertyInspector({
       const effectiveH = computeWallEffectiveHeight(wall, state);
       const wallType = state.wallTypes[wall.typeId];
 
-      // Calcul de pénétration de dalle si mode Fixe
-      let penetrationMm = 0;
-      if (!isAuto && wall.heightOverride !== undefined) {
-        const curLevel = state.levels[wall.levelId];
-        const zBase = (curLevel?.elevation ?? 0) + (wall.baseOffset ?? 0);
-        const zTop = zBase + wall.heightOverride;
-
-        for (const sl of Object.values(state.slabs ?? {})) {
-          const slLevel = state.levels[sl.levelId];
-          if (slLevel && slLevel.elevation > (curLevel?.elevation ?? 0)) {
-            const slType = state.slabTypes?.[sl.slabTypeId];
-            if (slType) {
-              const zInf = slLevel.elevation + (sl.baseOffset ?? 0) - slType.thickness;
-              if (zTop > zInf) {
-                penetrationMm = Math.max(penetrationMm, zTop - zInf);
-              }
-            }
-          }
-        }
-      }
+      // Calcul de pénétration de dalle si mode Fixe (sans faux positif horizontal)
+      const penetrationMm = computeWallSlabPenetration(wall, state);
 
       return (
         <div data-testid="inspector-wall-panel">
