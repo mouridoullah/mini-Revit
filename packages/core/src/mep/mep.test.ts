@@ -3,7 +3,6 @@ import {
   BimDocument,
   generateId,
   toJSON,
-  fromJSON,
   DependencyGraph,
   runBenchmark,
 } from '../index.js';
@@ -11,7 +10,6 @@ import {
   MepNetworkGraph,
   createPipe,
   createDuct,
-  createCableTray,
   createMepFitting,
   createMepEquipment,
   createMepSystem,
@@ -27,9 +25,7 @@ import {
   CreateMepSystemCommand,
   AssignToMepSystemCommand,
   ConnectPortsCommand,
-  DisconnectPortsCommand,
   type Connector,
-  type Port,
 } from './index.js';
 
 describe('Phase 9.2 — Noyau MEP & Modèle Topologique des Réseaux Techniques', () => {
