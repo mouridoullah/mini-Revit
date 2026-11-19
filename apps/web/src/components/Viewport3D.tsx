@@ -35,6 +35,7 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
   const renderedElementIdsRef = useRef<Set<string>>(new Set());
   const doorMaterialRef = useRef<ReturnType<typeof createDoorPlaceholderMaterial> | null>(null);
   const windowMaterialRef = useRef<ReturnType<typeof createWindowPlaceholderMaterial> | null>(null);
+  const selectionRef = useRef<readonly string[] | undefined>(selection);
 
   // Instanciation impérative unique
   useEffect(() => {
@@ -330,15 +331,17 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
     renderedElementIdsRef.current = currentElementIds;
 
     // Ré-appliquer la surbrillance sur les maillages recréés/mis à jour
-    if (selection && selection.length > 0) {
-      scene.setHighlight(selection);
+    const currentSelection = selectionRef.current;
+    if (currentSelection && currentSelection.length > 0) {
+      scene.setHighlight(currentSelection);
     } else {
       scene.render();
     }
-  }, [state, selection]);
+  }, [state]);
 
   // Synchronisation de la surbrillance (partagée 2D ↔ 3D)
   useEffect(() => {
+    selectionRef.current = selection;
     if (sceneRef.current) {
       sceneRef.current.setHighlight(selection ?? []);
     }

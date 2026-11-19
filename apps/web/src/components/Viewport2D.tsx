@@ -248,6 +248,7 @@ export function Viewport2D({
         activeLevelId,
         activeWallTypeId,
         activeSlabTypeId,
+        activeComponentTypeId: activeComponentTypeIdProp,
         underlayLevelId: underlayLevelIdProp ?? null,
         snapToUnderlay: snapToUnderlayProp,
       };
@@ -325,7 +326,17 @@ export function Viewport2D({
       viewRef.current?.setPreview(null);
       onDrawingLengthChange?.(null);
     };
-  }, [tool, doc, onDrawingLengthChange, onSelectionChanged, activeLevelIdProp]);
+  }, [
+    tool,
+    doc,
+    onDrawingLengthChange,
+    onSelectionChanged,
+    onErrorChange,
+    activeLevelIdProp,
+    activeComponentTypeIdProp,
+    underlayLevelIdProp,
+    snapToUnderlayProp,
+  ]);
 
   return (
     <div

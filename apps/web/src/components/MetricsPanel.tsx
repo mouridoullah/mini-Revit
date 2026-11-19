@@ -25,13 +25,19 @@ export function generateMetricsCsv(metrics: LevelMetrics, _levelName: string): s
   lines.push(`Portes,Nombre total,${metrics.totals.doorCount},u`);
   let totalDoorAreaMm2 = 0;
   for (const w of metrics.walls) {
-    totalDoorAreaMm2 += w.openings.doorIds.length > 0 ? w.grossAreaMm2 - w.netAreaMm2 : 0;
+    totalDoorAreaMm2 += w.openings.doorAreaMm2 ?? 0;
   }
   const totalDoorAreaM2 = Number((totalDoorAreaMm2 / 1e6).toFixed(3));
   lines.push(`Portes,Surface totale,${totalDoorAreaM2},m²`);
 
   // 3. Fenêtres
   lines.push(`Fenêtres,Nombre total,${metrics.totals.windowCount},u`);
+  let totalWindowAreaMm2 = 0;
+  for (const w of metrics.walls) {
+    totalWindowAreaMm2 += w.openings.windowAreaMm2 ?? 0;
+  }
+  const totalWindowAreaM2 = Number((totalWindowAreaMm2 / 1e6).toFixed(3));
+  lines.push(`Fenêtres,Surface totale,${totalWindowAreaM2},m²`);
 
   // 4. Pièces
   lines.push(`Pièces,Surface utile totale,${metrics.totals.roomAreaM2.toFixed(3)},m²`);

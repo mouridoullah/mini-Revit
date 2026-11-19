@@ -16,6 +16,8 @@ coverage/
 .DS_Store
 Thumbs.db
 source-dump.txt
+source-*.txt
+maison-contemporaine-r1.json
 
 # IDE
 .vscode/

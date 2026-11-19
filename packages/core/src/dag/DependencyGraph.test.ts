@@ -735,4 +735,64 @@ describe('DependencyGraph — Graphe de Dépendances Minimal (T-DAG-01 à 17)', 
     expect(depsB).not.toContain('w_outside');
     expect(depsB).not.toContain('w_level');
   });
+
+  // G. Composants (Audit P0.2)
+  it('T-DAG-26: intègre les composants dans le DAG (typeId -> comp, levelId -> comp, hostWallId -> comp)', () => {
+    const wallId = 'w_host';
+    const compId = 'comp_wc_1';
+    const typeId = 'ct_toilet_wall_hung';
+    const levelId = 'lvl_0';
+
+    const state = createMockState({
+      levels: {
+        [levelId]: { id: levelId, name: 'RDC', elevation: 0, height: 3000 },
+      },
+      componentTypes: {
+        [typeId]: {
+          id: typeId,
+          category: 'componentType',
+          name: 'WC',
+          family: 'sanitary',
+          subType: 'toilet',
+          width: 360,
+          depth: 540,
+          height: 400,
+        },
+      },
+      walls: {
+        [wallId]: {
+          id: wallId,
+          category: 'wall',
+          typeId: 'wt_default',
+          levelId,
+          start: { x: 0, y: 0 },
+          end: { x: 5000, y: 0 },
+        },
+      },
+      components: {
+        [compId]: {
+          id: compId,
+          category: 'component',
+          typeId,
+          levelId,
+          placement: { x: 2000, y: 0, hostWallId: wallId },
+        },
+      },
+    });
+
+    const dag = DependencyGraph.build(state);
+
+    // 1. typeId -> compId
+    expect(dag.getDependents(typeId)).toContain(compId);
+    // 2. levelId -> compId
+    expect(dag.getDependents(levelId)).toContain(compId);
+    // 3. hostWallId -> compId
+    expect(dag.getDependents(wallId)).toContain(compId);
+
+    // Dépendances de compId
+    const dependencies = dag.getDependencies(compId);
+    expect(dependencies).toContain(typeId);
+    expect(dependencies).toContain(levelId);
+    expect(dependencies).toContain(wallId);
+  });
 });

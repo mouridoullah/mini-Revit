@@ -26,8 +26,14 @@ describe('RELATIONS_REGISTRY — Intégrité Référentielle Déclarative (T-REG
 
   const VALID_ACTIONS: Set<CascadeAction> = new Set(['cascade', 'restrict', 'detach']);
 
-  it('T-REG-01: Registry contient exactement les 17 relations déclarées (Phase 8)', () => {
-    expect(RELATIONS_REGISTRY.length).toBe(17);
+  it('T-REG-01: Registry contient exactement les 18 relations déclarées (Phase 8 + Lot 1)', () => {
+    expect(RELATIONS_REGISTRY.length).toBe(18);
+    const wallHostedCompRel = RELATIONS_REGISTRY.find(
+      (r) => r.sourceCategory === 'component' && r.field === 'placement.hostWallId',
+    );
+    expect(wallHostedCompRel).toBeDefined();
+    expect(wallHostedCompRel?.targetCategory).toBe('wall');
+    expect(wallHostedCompRel?.onDelete).toBe('detach');
   });
 
   it('T-REG-02: Tous les sourceCategory sont des catégories existantes', () => {
