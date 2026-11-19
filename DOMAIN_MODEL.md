@@ -285,7 +285,7 @@ classDiagram
   - `placement: ComponentPlacement` ($x, y$, rotation, élévation, mur hôte optionnel).
   - `dimensions?: ComponentDimensionsOverride` (Surcharges dimensionnelles d'occurrence).
 
-### 3.10 `Room` (Pièce / Espace Dérivé)
+### 3.12 `Room` (Pièce / Espace Dérivé)
 
 - **Raison d'être :** Entité spatiale calculée représentant un volume intérieur délimité par des murs (séjour, chambre, cuisine).
 - **Propriétés :**
@@ -302,16 +302,34 @@ classDiagram
     - `volumeM3: number` (Volume net calculé avec la hauteur sous plafond).
 - **Invariants :** Si les murs bougent, l'identité (`id`, `name`, `number`) est préservée tant que le `seedPoint` reste à l'intérieur du polygone reconstruit. Si la pièce n'est plus fermée (« fuite »), son statut passe à `unclosed` et la surface devient indéterminée.
 
-### 3.11 Entités et Réseaux Techniques MEP (Phase 9.2 / ADR-009 / ADR-056)
+### 3.13 Entités et Réseaux Techniques MEP (Phase 9.2 / ADR-009 / ADR-056)
 
-- **`Pipe` (Tuyauterie) :** Segment linéaire de transport de liquide sous pression ou gravitaire (diamètre nominal, matériau, pente, 2 ports d'extrémité).
-- **`Duct` (Gaine aéraulique) :** Conduit rectiligne d'air (section circulaire ou rectangulaire, isolation, 2 ports d'extrémité).
-- **`CableTray` (Chemin de câbles) :** Support physique de distribution électrique et courants faibles (largeur, hauteur de rive, 2 ports).
+#### A. Taxonomie des Domaines : Fluides vs Électrique
+Le noyau MEP distingue strictement les réseaux de **transport de matière/thermodynamique** (fluides) des réseaux de **support physique et distribution électrique** :
+1. **Domaines Fluides (`plumbing` & `hvac`) :**
+   - **Plomberie sanitaire & génie climatique liquide (`Pipe`) :** Canalisations fermées sous pression ou gravitaires véhiculant des liquides (eau potable, ECS, eaux usées, eau de chauffage, eau glacée). Caractérisées par un diamètre nominal, une pente d'écoulement, une rugosité et une compatibilité de fluide.
+   - **Génie climatique et ventilation aéraulique (`Duct`) :** Gaines rectilignes d'air (section circulaire ou rectangulaire, isolation thermique/acoustique) guidant un flux gazeux (air neuf, air repris, air vicié).
+   - Les fluides obéissent aux lois de conservation de masse, de débit volumique et de pertes de charge.
+2. **Domaine Électrique (`electrical`) :**
+   - **Cheminement physique (`CableTray`) :** Contrairement aux tuyaux et gaines qui confinent un fluide continu, les chemins de câbles sont des réceptacles physiques ouverts assurant le guidage mécanique, la protection et le support des conducteurs de puissance (courants forts BT/HT) et de signaux (courants faibles, RJ45, fibre optique).
+   - Ils n'assurent aucun confinement de fluide mais portent des contraintes d'occupation surfacique, de rayon de courbure et d'équipotentialité.
+
+#### B. Typologie des Éléments du Modèle MEP
+- **`Pipe` (Tuyauterie) :** Segment linéaire de fluide liquide (diamètre nominal, matériau, pente, 2 ports axiaux).
+- **`Duct` (Gaine aéraulique) :** Conduit rectiligne d'air (section circulaire ou rectangulaire, isolation, 2 ports axiaux).
+- **`CableTray` (Chemin de câbles) :** Support physique de câblage (largeur, hauteur de rive, 2 ports axiaux).
 - **`MepFitting` (Raccord) :** Élément de jonction topologique (`elbow`, `tee`, `cross`, `transition`, `cap`).
 - **`MepEquipment` (Équipement technique) :** Appareil technique raccordé (`boiler`, `heat_pump`, `water_heater`, `pump`, `ahu`, `fan`, `radiator`, `valve`, `meter`, `electrical_panel`).
-- **`MepSystem` (Système technique) :** Regroupement sémantique d'éléments sous une même fonction fluide ou électrique.
-- **`Port` (Point de raccordement) :** Propriété d'un équipement ou conduit (position 3D, normale sortante unitaire, forme, dimensions, domaine, fluide, sens de flux).
-- **`Connector` (Liaison effective) :** Relation topologique unissant deux ports physiques distincts et compatibles (`portAId`, `portBId`, `systemId`).
+- **`MepSystem` (Système technique) :** Regroupement sémantique d'éléments sous une même fonction logique ou fluide.
+- **`Port` (Point de raccordement) :** Propriété géométrique et fonctionnelle d'un élément (position 3D, normale sortante unitaire, forme, dimensions, domaine, fluide, sens de flux).
+- **`Connector` (Liaison physique effective) :** Relation topologique unissant deux ports physiques distincts et compatibles (`portAId`, `portBId`, `systemId`).
+
+#### C. Commandes d'Édition et de Suppression CRUD MEP
+Chaque catégorie d'élément dispose de ses commandes réversibles dédiées (`AddPipe`, `UpdatePipe`, `DeletePipe`, `AddDuct`, `UpdateDuct`, `DeleteDuct`, `AddCableTray`, `UpdateCableTray`, `DeleteCableTray`, `AddMepFitting`, `UpdateMepFitting`, `DeleteMepFitting`, `AddMepEquipment`, `UpdateMepEquipment`, `DeleteMepEquipment`, `DeleteMepSystem`).
+De plus, deux façades polymorphiques sont disponibles pour l'interface utilisateur et les inspecteurs génériques :
+- `UpdateMepElementCommand(elementId, patch)` : met à jour n'importe quel élément MEP quel que soit son type de collection.
+- `DeleteMepElementCommand(elementId)` : supprime l'élément cible, détache en cascade ses connecteurs incidents et assainit les systèmes techniques rattachés.
+
 
 ---
 
