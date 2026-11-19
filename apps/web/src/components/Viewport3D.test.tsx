@@ -363,4 +363,95 @@ describe('Viewport3D React Wrapper (apps/web)', () => {
 
     createWallMeshWithOpeningsSpy.mockRestore();
   });
+
+  it('T-VIEW3D-INCREMENTAL : ne reconstruit que le mur modifié et ses voisins topologiques lors d’un UpdateWallCommand', () => {
+    const doc = createDemoDocument();
+    const createWallMeshWithOpeningsSpy = vi.spyOn(Scene3DModule, 'createWallMeshWithOpenings');
+    const updateMeshBatchSpy = vi.spyOn(Scene3DModule.Scene3D.prototype, 'updateMeshBatch');
+
+    const { rerender } = render(
+      <BimDocumentProvider initialDoc={doc}>
+        <Viewport3D />
+      </BimDocumentProvider>,
+    );
+
+    // Initial mount : 4 murs construits
+    expect(createWallMeshWithOpeningsSpy).toHaveBeenCalledTimes(4);
+    createWallMeshWithOpeningsSpy.mockClear();
+    updateMeshBatchSpy.mockClear();
+
+    // Mutation ciblée sur wall_south
+    act(() => {
+      doc.execute(new Commands.UpdateWallCommand('wall_south', { thickness: 250 }));
+    });
+
+    rerender(
+      <BimDocumentProvider initialDoc={doc}>
+        <Viewport3D />
+      </BimDocumentProvider>,
+    );
+
+    // Vérification de la propagation incrémentale
+    const rebuiltWallIds = createWallMeshWithOpeningsSpy.mock.calls.map((c) => c[0].wall.id);
+    expect(rebuiltWallIds).toContain('wall_south');
+    // wall_north n'est pas connecté à wall_south et ne doit PAS être re-maillé
+    expect(rebuiltWallIds).not.toContain('wall_north');
+
+    createWallMeshWithOpeningsSpy.mockRestore();
+    updateMeshBatchSpy.mockRestore();
+  });
+
+  it('T-BENCHMARK-VIEW3D : Mesure concrète du gain algorithmique O(k) vs O(N) sur un projet multi-murs', () => {
+    const doc = BimDocument.createDefaultProject();
+    const levelId = Object.keys(doc.getState().levels)[0]!;
+    const typeId = Object.keys(doc.getState().wallTypes)[0]!;
+
+    // Construire 20 murs isolés
+    const wallCount = 20;
+    for (let i = 0; i < wallCount; i++) {
+      doc.execute(
+        new Commands.AddWallCommand({
+          id: `bench_wall_${i}`,
+          category: 'wall',
+          typeId,
+          levelId,
+          start: { x: i * 2000, y: 0 },
+          end: { x: i * 2000 + 1500, y: 0 },
+        }),
+      );
+    }
+
+    const createWallMeshWithOpeningsSpy = vi.spyOn(Scene3DModule, 'createWallMeshWithOpenings');
+
+    const { rerender } = render(
+      <BimDocumentProvider initialDoc={doc}>
+        <Viewport3D />
+      </BimDocumentProvider>,
+    );
+
+    // Initial : 20 murs construits
+    expect(createWallMeshWithOpeningsSpy).toHaveBeenCalledTimes(wallCount);
+    createWallMeshWithOpeningsSpy.mockClear();
+
+    // Modification d'un seul mur (bench_wall_5)
+    act(() => {
+      doc.execute(new Commands.UpdateWallCommand('bench_wall_5', { thickness: 300 }));
+    });
+
+    rerender(
+      <BimDocumentProvider initialDoc={doc}>
+        <Viewport3D />
+      </BimDocumentProvider>,
+    );
+
+    // En re-maillage incrémental : EXACTEMENT 1 seul mur re-maillé sur 20 !
+    const incrementalCallCount = createWallMeshWithOpeningsSpy.mock.calls.length;
+    expect(incrementalCallCount).toBe(1);
+
+    // Gain d'appels = 20x moins de maillages générés
+    const speedupFactor = wallCount / incrementalCallCount;
+    expect(speedupFactor).toBe(20);
+
+    createWallMeshWithOpeningsSpy.mockRestore();
+  });
 });

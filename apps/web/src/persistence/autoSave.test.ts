@@ -258,4 +258,75 @@ describe('S2-8 : Persistance & Sauvegarde Automatique IndexedDB (apps/web/src/pe
 
     manager.destroy();
   });
+
+  it('T-AUTOSAVE-11 : Rétro-compatibilité avec un ancien enregistrement IndexedDB contenant { state, json }', async () => {
+    const doc = BimDocument.createDefaultProject();
+    const state = doc.getState();
+
+    // Insertion directe d'un enregistrement legacy (avec state ET json)
+    const db = await new Promise<IDBDatabase>((resolve, reject) => {
+      const req = (mockIDB as unknown as IDBFactory).open('mini_bim_autosave', 1);
+      req.onupgradeneeded = () => {
+        req.result.createObjectStore('projects', { keyPath: 'id' });
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+
+    const tx = db.transaction('projects', 'readwrite');
+    const store = tx.objectStore('projects');
+    const legacyRecord = {
+      id: 'current_project',
+      state,
+      json: JSON.stringify(state),
+      timestamp: 1700000000000,
+      schemaVersion: 2,
+    };
+    store.put(legacyRecord);
+
+    await new Promise<void>((resolve) => {
+      tx.oncomplete = () => {
+        db.close();
+        resolve();
+      };
+    });
+
+    // Chargement par loadFromIndexedDB
+    const loaded = await loadFromIndexedDB(mockIDB as unknown as IDBFactory);
+    expect(loaded).not.toBeNull();
+    expect(loaded?.state.schemaVersion).toBe(2);
+    expect(loaded?.json).toBe(legacyRecord.json);
+    expect(loaded?.timestamp).toBe(1700000000000);
+  });
+
+  it('T-AUTOSAVE-12 : Optimisation Lot 4 — saveToIndexedDB ne duplique plus le champ json dans le record', async () => {
+    const doc = BimDocument.createDefaultProject();
+    await saveToIndexedDB(doc, mockIDB as unknown as IDBFactory);
+
+    const db = await new Promise<IDBDatabase>((resolve, reject) => {
+      const req = (mockIDB as unknown as IDBFactory).open('mini_bim_autosave', 1);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+
+    const tx = db.transaction('projects', 'readonly');
+    const store = tx.objectStore('projects');
+    const rawRecord = await new Promise<Record<string, unknown>>((resolve) => {
+      const req = store.get('current_project');
+      req.onsuccess = () => {
+        db.close();
+        resolve(req.result as Record<string, unknown>);
+      };
+    });
+
+    expect(rawRecord.id).toBe('current_project');
+    expect(rawRecord.state).toBeDefined();
+    // Le champ json est omis du record IndexedDB pour éliminer la duplication
+    expect(rawRecord.json).toBeUndefined();
+
+    // Et loadFromIndexedDB le reconstruit dynamiquement
+    const loaded = await loadFromIndexedDB(mockIDB as unknown as IDBFactory);
+    expect(loaded?.json).toBeDefined();
+    expect(JSON.parse(loaded?.json ?? '{}').schemaVersion).toBe(2);
+  });
 });

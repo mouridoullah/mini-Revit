@@ -1026,4 +1026,28 @@ describe('Générateur IFC4 ISO 10303-21 (packages/core/ifc)', () => {
     expect(export1).toBe(export2);
     expect(export1.length).toBeGreaterThan(0);
   });
+
+  it('T-IFC-GUID-UNICITY-AND-PURITY : Unicité absolue sur 1 000 éléments, 0 collision et conformité buildingSMART', () => {
+    const guids = new Set<string>();
+    const count = 1000;
+
+    for (let i = 0; i < count; i++) {
+      const guid = createIfcGuid(`element_instance_${i}`);
+      // 1. Longueur stricte de 22 caractères
+      expect(guid).toHaveLength(22);
+      // 2. Premier caractère dans [0..3] (compression de 128 bits en Base64 64-chars)
+      expect(['0', '1', '2', '3']).toContain(guid[0]);
+      // 3. Alphabet buildingSMART valide (0-9, A-Z, a-z, _, $)
+      expect(/^[0-9A-Za-z_$]{22}$/.test(guid)).toBe(true);
+      guids.add(guid);
+    }
+
+    // 4. Strictement aucune collision sur 1 000 éléments
+    expect(guids.size).toBe(count);
+
+    // 5. Invariance et idempotence : ré-exécuter sur le même seed redonne le même GUID
+    for (let i = 0; i < 50; i++) {
+      expect(createIfcGuid(`element_instance_${i}`)).toBe(createIfcGuid(`element_instance_${i}`));
+    }
+  });
 });
