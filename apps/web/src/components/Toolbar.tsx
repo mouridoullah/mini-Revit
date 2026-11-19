@@ -79,6 +79,8 @@ export function Toolbar({
         onSelectTool('roof');
       } else if (e.key === 'c' || e.key === 'C') {
         onSelectTool('component');
+      } else if (e.key === 'p' || e.key === 'P') {
+        onSelectTool('mep');
       }
     };
 
@@ -242,6 +244,24 @@ export function Toolbar({
             }}
           >
             Composant (C)
+          </button>
+          <button
+            type="button"
+            data-testid="tool-mep-btn"
+            onClick={() => onSelectTool('mep')}
+            style={{
+              padding: '6px 12px',
+              fontSize: '12px',
+              fontWeight: activeToolKind === 'mep' ? 600 : 400,
+              borderRadius: '4px',
+              backgroundColor: activeToolKind === 'mep' ? '#0284c7' : '#374151',
+              color: activeToolKind === 'mep' ? '#ffffff' : '#d1d5db',
+              border: activeToolKind === 'mep' ? '1px solid #38bdf8' : '1px solid #4b5563',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease-in-out',
+            }}
+          >
+            Réseaux MEP (P)
           </button>
           <button
             type="button"

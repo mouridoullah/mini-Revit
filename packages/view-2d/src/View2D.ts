@@ -216,6 +216,23 @@ export class View2D {
     return this.roofs;
   }
 
+  public setConfig(config: Partial<View2DRenderConfig>): void {
+    this.config = {
+      ...this.config,
+      ...config,
+      mep: { ...this.config.mep, ...config.mep },
+    };
+    this.render();
+  }
+
+  public setMepRenderConfig(mepConfig: Partial<import('./types.js').MepRenderConfig>): void {
+    this.config = {
+      ...this.config,
+      mep: { ...this.config.mep, ...mepConfig },
+    };
+    this.render();
+  }
+
   public getSelectedIds(): readonly string[] {
     return Array.from(this.selectedIds);
   }

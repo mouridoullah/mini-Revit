@@ -14,7 +14,8 @@ export type ToolKind =
   | 'slab'
   | 'stair'
   | 'roof'
-  | 'component';
+  | 'component'
+  | 'mep';
 
 /**
  * États possibles de la machine à états SelectTool.
@@ -151,6 +152,66 @@ export type ComponentToolState =
     };
 
 /**
+ * Configuration de traçage et modélisation MEP (Phase 9.3.2).
+ */
+export interface MepToolConfig {
+  readonly category: 'pipe' | 'duct' | 'cableTray';
+  readonly shape?: 'round' | 'rectangular';
+  readonly domain?: 'plumbing' | 'hvac' | 'hydronic' | 'electrical';
+  readonly systemType?: string;
+  readonly systemId?: string;
+  readonly diameter?: number;
+  readonly width?: number;
+  readonly height?: number;
+  readonly elevationOffsetMm?: number;
+  readonly displayMode?: 'single-line' | 'double-line';
+}
+
+/**
+ * Information sur un port snappé magnétiquement lors du tracé.
+ */
+export interface SnappedPortTarget {
+  readonly port: {
+    readonly id: string;
+    readonly elementId?: string | undefined;
+    readonly position: { readonly x: number; readonly y: number; readonly z: number };
+    readonly direction?: { readonly x: number; readonly y: number; readonly z: number } | undefined;
+    readonly domain?: string | undefined;
+    readonly systemType?: string | undefined;
+    readonly shape?: string | undefined;
+    readonly diameter?: number | undefined;
+    readonly width?: number | undefined;
+    readonly height?: number | undefined;
+  };
+  readonly elementId: string;
+  readonly compatible: boolean;
+  readonly reason?: string | undefined;
+}
+
+/**
+ * États possibles de la machine à états MepTool (Sous-phase 9.3.2).
+ */
+export type MepToolState =
+  | { readonly kind: 'idle' }
+  | {
+      readonly kind: 'awaiting-start';
+      readonly config: MepToolConfig;
+      readonly snappedPort?: SnappedPortTarget | null;
+    }
+  | {
+      readonly kind: 'drawing';
+      readonly config: MepToolConfig;
+      readonly startWorld: Vec2;
+      readonly currentWorld: Vec2;
+      readonly startPort?: SnappedPortTarget | null;
+      readonly snappedEndPort?: SnappedPortTarget | null;
+    }
+  | {
+      readonly kind: 'committed';
+      readonly elementId: string;
+    };
+
+/**
  * Paramètres par défaut configurables pour l'insertion de portes.
  */
 export interface DoorDefaults {
@@ -226,6 +287,7 @@ export interface ToolContext {
   readonly doorDefaults?: DoorDefaults;
   readonly windowDefaults?: WindowDefaults;
   readonly activeComponentTypeId?: string | undefined;
+  readonly mepConfig?: MepToolConfig | undefined;
 }
 
 /**
@@ -243,7 +305,8 @@ export interface Tool {
     | SlabToolState
     | StairToolState
     | RoofToolState
-    | ComponentToolState;
+    | ComponentToolState
+    | MepToolState;
   handle(event: ToolEvent, ctx: ToolContext): ToolOutput;
   reset(): void;
 }

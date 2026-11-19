@@ -6,10 +6,13 @@ import { StatusBar } from './components/StatusBar.js';
 import { MetricsPanel } from './components/MetricsPanel.js';
 import { PropertyInspector } from './components/PropertyInspector.js';
 import { ComponentRibbon } from './components/ComponentRibbon.js';
+import { MepRibbon } from './components/MepRibbon.js';
 import { Viewport2D } from './components/Viewport2D.js';
 import { Viewport3D } from './components/Viewport3D.js';
 import { useActiveTool } from './tools/useActiveTool.js';
 import { ComponentTool } from './tools/ComponentTool.js';
+import { MepTool, DEFAULT_MEP_CONFIG } from './tools/MepTool.js';
+import { type MepToolConfig } from './tools/types.js';
 import { exportToFile, importFromFile } from './persistence/jsonIO.js';
 import {
   AutoSaveManager,
@@ -37,6 +40,8 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
     () => Object.keys(doc.getState().levels)[0] ?? '',
   );
   const [activeComponentTypeId, setActiveComponentTypeId] = useState<string>('ct_toilet_wall_hung');
+  const [mepConfig, setMepConfig] = useState<MepToolConfig>(DEFAULT_MEP_CONFIG);
+  const [mepDisplayMode, setMepDisplayMode] = useState<'single-line' | 'double-line'>('single-line');
   const [underlayEnabled, setUnderlayEnabled] = useState(true);
   const [isInspectorCollapsed, setIsInspectorCollapsed] = useState(false);
 
@@ -328,6 +333,24 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
         />
       )}
 
+      {/* Bandeau d'options contextuel pour la modélisation MEP (Sous-phase 9.3.2) */}
+      {activeToolKind === 'mep' && (
+        <MepRibbon
+          config={mepConfig}
+          onChangeConfig={(patch) => {
+            setMepConfig((prev) => {
+              const next = { ...prev, ...patch };
+              if (activeTool instanceof MepTool) {
+                activeTool.setConfig(next);
+              }
+              return next;
+            });
+          }}
+          displayMode={mepDisplayMode}
+          onToggleDisplayMode={setMepDisplayMode}
+        />
+      )}
+
       {/* Bannière de notification d'information (ex. restauration automatique) */}
       {infoMessage && (
         <aside
@@ -439,6 +462,8 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
               underlayLevelId={underlayLevelId}
               snapToUnderlay={underlayEnabled}
               activeComponentTypeId={activeComponentTypeId}
+              mepConfig={mepConfig}
+              mepDisplayMode={mepDisplayMode}
             />
           </section>
 

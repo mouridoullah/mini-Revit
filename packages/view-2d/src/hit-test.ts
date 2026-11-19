@@ -292,3 +292,197 @@ export function findComponentAtScreen(
 
   return null;
 }
+
+/**
+ * Résultat de détection d'un élément de réseau technique MEP sous le curseur.
+ */
+export interface HitMepElementResult {
+  readonly id: string;
+  readonly category: 'pipe' | 'duct' | 'cableTray' | 'mepFitting' | 'mepEquipment';
+}
+
+/**
+ * Recherche si un élément MEP (tuyau, gaine, chemin de câbles, raccord, équipement)
+ * est cliqué à l'écran.
+ */
+export function findMepElementAtScreen(
+  screenPos: Vec2,
+  transform: Transform2D,
+  doc: DocumentFor2D,
+  options?: HitTestOptions,
+): HitMepElementResult | null {
+  const hitTolerancePx = options?.hitTolerancePx ?? 8;
+  const activeLevelId = options?.activeLevelId ?? null;
+
+  const worldPos = transform.screenToWorld(screenPos);
+  const toleranceMm = transform.screenDistanceToWorld(hitTolerancePx);
+  const state = doc.getState();
+
+  // 1. Équipements techniques (boîtes orientées au premier plan)
+  const equipments = state.mepEquipments ? Object.values(state.mepEquipments) : [];
+  for (let i = equipments.length - 1; i >= 0; i--) {
+    const eq = equipments[i];
+    if (!eq) continue;
+    if (activeLevelId && eq.levelId !== activeLevelId) continue;
+
+    const dx = worldPos.x - eq.position.x;
+    const dy = worldPos.y - eq.position.y;
+    const rot = eq.rotation ?? 0;
+    const cos = Math.cos(-rot);
+    const sin = Math.sin(-rot);
+    const u = dx * cos - dy * sin;
+    const v = dx * sin + dy * cos;
+    const halfW = eq.width / 2;
+    const halfD = eq.depth / 2;
+
+    if (Math.abs(u) <= halfW + toleranceMm && Math.abs(v) <= halfD + toleranceMm) {
+      return { id: eq.id, category: 'mepEquipment' };
+    }
+  }
+
+  // 2. Raccords techniques (coudes, tés, etc.)
+  const fittings = state.mepFittings ? Object.values(state.mepFittings) : [];
+  for (let i = fittings.length - 1; i >= 0; i--) {
+    const ft = fittings[i];
+    if (!ft) continue;
+    if (activeLevelId && ft.levelId !== activeLevelId) continue;
+
+    const dist = Math.hypot(worldPos.x - ft.position.x, worldPos.y - ft.position.y);
+    const radius = 100 + toleranceMm;
+    if (dist <= radius) {
+      return { id: ft.id, category: 'mepFitting' };
+    }
+  }
+
+  // 3. Gaines aérauliques
+  const ducts = state.ducts ? Object.values(state.ducts) : [];
+  for (let i = ducts.length - 1; i >= 0; i--) {
+    const duct = ducts[i];
+    if (!duct) continue;
+    if (activeLevelId && duct.levelId !== activeLevelId) continue;
+
+    const dist = distancePointToSegment(worldPos, {
+      start: { x: duct.start.x, y: duct.start.y },
+      end: { x: duct.end.x, y: duct.end.y },
+    });
+    const halfW = (duct.width ?? duct.diameter ?? 200) / 2;
+    if (dist <= halfW + toleranceMm) {
+      return { id: duct.id, category: 'duct' };
+    }
+  }
+
+  // 4. Chemins de câbles
+  const cableTrays = state.cableTrays ? Object.values(state.cableTrays) : [];
+  for (let i = cableTrays.length - 1; i >= 0; i--) {
+    const ct = cableTrays[i];
+    if (!ct) continue;
+    if (activeLevelId && ct.levelId !== activeLevelId) continue;
+
+    const dist = distancePointToSegment(worldPos, {
+      start: { x: ct.start.x, y: ct.start.y },
+      end: { x: ct.end.x, y: ct.end.y },
+    });
+    const halfW = ct.width / 2;
+    if (dist <= halfW + toleranceMm) {
+      return { id: ct.id, category: 'cableTray' };
+    }
+  }
+
+  // 5. Tuyauteries
+  const pipes = state.pipes ? Object.values(state.pipes) : [];
+  for (let i = pipes.length - 1; i >= 0; i--) {
+    const pipe = pipes[i];
+    if (!pipe) continue;
+    if (activeLevelId && pipe.levelId !== activeLevelId) continue;
+
+    const dist = distancePointToSegment(worldPos, {
+      start: { x: pipe.start.x, y: pipe.start.y },
+      end: { x: pipe.end.x, y: pipe.end.y },
+    });
+    const halfD = (pipe.diameter ?? 50) / 2;
+    if (dist <= halfD + toleranceMm) {
+      return { id: pipe.id, category: 'pipe' };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Résultat de détection d'un port MEP sous le curseur.
+ */
+export interface HitMepPortResult {
+  readonly port: import('./types.js').PortFor2D;
+  readonly elementId: string;
+  readonly screenPos: Vec2;
+  readonly distanceScreenPx: number;
+}
+
+/**
+ * Détecte le port MEP ouvert le plus proche sous le curseur selon l'ADR-047.
+ * Tolérance en pixels écran (12 à 16 px) convertie en monde avec plafond maximal.
+ */
+export function findMepPortAtScreen(
+  screenPos: Vec2,
+  transform: Transform2D,
+  doc: DocumentFor2D,
+  options?: {
+    readonly hitTolerancePx?: number;
+    readonly maxToleranceMm?: number;
+    readonly activeLevelId?: string | null;
+  },
+): HitMepPortResult | null {
+  const hitTolerancePx = options?.hitTolerancePx ?? 14;
+  const maxToleranceMm = options?.maxToleranceMm ?? 300;
+  const activeLevelId = options?.activeLevelId ?? null;
+
+  const toleranceMm = Math.min(
+    transform.screenDistanceToWorld(hitTolerancePx),
+    maxToleranceMm,
+  );
+  const worldPos = transform.screenToWorld(screenPos);
+  const state = doc.getState();
+
+  let closest: HitMepPortResult | null = null;
+  let minScreenDistSq = hitTolerancePx * hitTolerancePx;
+
+  const mepElements: Array<{ id: string; levelId?: string | undefined; ports?: readonly import('./types.js').PortFor2D[] | undefined }> = [
+    ...Object.values(state.pipes ?? {}),
+    ...Object.values(state.ducts ?? {}),
+    ...Object.values(state.cableTrays ?? {}),
+    ...Object.values(state.mepFittings ?? {}),
+    ...Object.values(state.mepEquipments ?? {}),
+  ];
+
+  for (const elem of mepElements) {
+    if (!elem) continue;
+    if (activeLevelId && elem.levelId && elem.levelId !== activeLevelId) continue;
+    if (!elem.ports || elem.ports.length === 0) continue;
+
+    for (const port of elem.ports) {
+      const portWorld: Vec2 = { x: port.position.x, y: port.position.y };
+      const dxMm = portWorld.x - worldPos.x;
+      const dyMm = portWorld.y - worldPos.y;
+      const distMmSq = dxMm * dxMm + dyMm * dyMm;
+
+      if (distMmSq <= toleranceMm * toleranceMm) {
+        const portScreen = transform.worldToScreen(portWorld);
+        const dxPx = portScreen.x - screenPos.x;
+        const dyPx = portScreen.y - screenPos.y;
+        const distPxSq = dxPx * dxPx + dyPx * dyPx;
+
+        if (distPxSq < minScreenDistSq) {
+          minScreenDistSq = distPxSq;
+          closest = {
+            port,
+            elementId: elem.id,
+            screenPos: portScreen,
+            distanceScreenPx: Math.sqrt(distPxSq),
+          };
+        }
+      }
+    }
+  }
+
+  return closest;
+}

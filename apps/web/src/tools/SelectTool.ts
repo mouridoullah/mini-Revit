@@ -1,4 +1,4 @@
-import { findWallAtScreen, findComponentAtScreen } from '@mini-bim/view-2d';
+import { findWallAtScreen, findComponentAtScreen, findMepElementAtScreen } from '@mini-bim/view-2d';
 import {
   type Tool,
   type ToolEvent,
@@ -8,11 +8,11 @@ import {
 } from './types.js';
 
 /**
- * Outil interactif de sélection d'éléments architecturaux.
+ * Outil interactif de sélection d'éléments architecturaux et réseaux techniques MEP.
  *
  * Machine à états pure :
  * - idle : en attente d'interaction.
- * - selected : un élément (composant, mur) a été sélectionné par clic.
+ * - selected : un élément (MEP, composant, mur) a été sélectionné par clic.
  *
  * Ne dépend ni de React, ni de Three.js, ni du DOM.
  */
@@ -31,7 +31,17 @@ export class SelectTool implements Tool {
         return { kind: 'noop' };
       }
 
-      // 1. Priorité aux composants d'aménagement (dessus d'abord)
+      // 1. Priorité aux réseaux techniques MEP (tuyaux, gaines, chemins de câbles, raccords, équipements)
+      const hitMep = findMepElementAtScreen(event.screen, ctx.transform, ctx.doc, {
+        activeLevelId: ctx.activeLevelId,
+      });
+
+      if (hitMep) {
+        this.state = { kind: 'selected', wallId: hitMep.id };
+        return { kind: 'selectionChanged', ids: [hitMep.id] };
+      }
+
+      // 2. Priorité aux composants d'aménagement (dessus d'abord)
       const hitComponentId = findComponentAtScreen(event.screen, ctx.transform, ctx.doc, {
         activeLevelId: ctx.activeLevelId,
       });
@@ -41,7 +51,7 @@ export class SelectTool implements Tool {
         return { kind: 'selectionChanged', ids: [hitComponentId] };
       }
 
-      // 2. Murs architecturaux
+      // 3. Murs architecturaux
       const hitWallId = findWallAtScreen(event.screen, ctx.transform, ctx.doc, {
         activeLevelId: ctx.activeLevelId,
       });

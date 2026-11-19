@@ -197,6 +197,110 @@ export function drawPreview(
         ctx.stroke();
       }
     }
+  } else if (preview.kind === 'mep') {
+    const sStart = transform.worldToScreen(preview.start);
+    const sEnd = transform.worldToScreen(preview.end);
+    const color = preview.color ?? '#2563eb';
+    const isDoubleLine = preview.mode === 'double-line';
+
+    const dx = preview.end.x - preview.start.x;
+    const dy = preview.end.y - preview.start.y;
+    const len = Math.hypot(dx, dy);
+
+    if (len > 1e-3) {
+      if (isDoubleLine) {
+        const widthMm = preview.width ?? preview.diameter ?? 100;
+        const halfW = widthMm / 2;
+        const ux = -dy / len;
+        const uy = dx / len;
+
+        const p1 = transform.worldToScreen({ x: preview.start.x + ux * halfW, y: preview.start.y + uy * halfW });
+        const p2 = transform.worldToScreen({ x: preview.end.x + ux * halfW, y: preview.end.y + uy * halfW });
+        const p3 = transform.worldToScreen({ x: preview.end.x - ux * halfW, y: preview.end.y - uy * halfW });
+        const p4 = transform.worldToScreen({ x: preview.start.x - ux * halfW, y: preview.start.y - uy * halfW });
+
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.lineTo(p3.x, p3.y);
+        ctx.lineTo(p4.x, p4.y);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 4]);
+        ctx.stroke();
+
+        // Axe central
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1;
+        ctx.setLineDash([2, 4]);
+        ctx.beginPath();
+        ctx.moveTo(sStart.x, sStart.y);
+        ctx.lineTo(sEnd.x, sEnd.y);
+        ctx.stroke();
+      } else {
+        // Mode unifilaire
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2.5;
+        ctx.setLineDash([6, 3]);
+        ctx.beginPath();
+        ctx.moveTo(sStart.x, sStart.y);
+        ctx.lineTo(sEnd.x, sEnd.y);
+        ctx.stroke();
+      }
+    }
+
+    // Extrémité de départ
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(sStart.x, sStart.y, 3.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Extrémité courante
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(sEnd.x, sEnd.y, 3.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Indicateur de port snappé
+    if (preview.snappedPort) {
+      const snapScreen = transform.worldToScreen(preview.snappedPort.pos);
+      const isCompat = preview.snappedPort.compatible;
+      const haloColor = isCompat ? '#22c55e' : '#ef4444'; // Vert si compatible, rouge si incompatible
+
+      ctx.save();
+      // Halo
+      ctx.strokeStyle = haloColor;
+      ctx.lineWidth = 2.5;
+      ctx.setLineDash([]);
+      ctx.fillStyle = isCompat ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)';
+      ctx.beginPath();
+      ctx.arc(snapScreen.x, snapScreen.y, 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Point central
+      ctx.fillStyle = haloColor;
+      ctx.beginPath();
+      ctx.arc(snapScreen.x, snapScreen.y, 4, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Croix rouge en cas d'incompatibilité
+      if (!isCompat) {
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(snapScreen.x - 3, snapScreen.y - 3);
+        ctx.lineTo(snapScreen.x + 3, snapScreen.y + 3);
+        ctx.moveTo(snapScreen.x + 3, snapScreen.y - 3);
+        ctx.lineTo(snapScreen.x - 3, snapScreen.y + 3);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
   }
   ctx.restore();
 }

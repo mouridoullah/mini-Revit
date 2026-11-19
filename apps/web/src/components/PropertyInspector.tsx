@@ -9,6 +9,7 @@ import {
   StairInspector,
   RoofInspector,
   ComponentInspector,
+  MepInspector,
 } from './inspector/index.js';
 
 export interface PropertyInspectorProps {
@@ -176,6 +177,17 @@ export function PropertyInspector({
     const comp = state.components?.[id];
     if (comp) {
       return <ComponentInspector comp={comp} state={state} onExecute={execute} />;
+    }
+
+    // 9. Réseaux techniques MEP (Tuyauteries, Gaines, Chemins de câbles, Raccords, Équipements)
+    const isMep =
+      Boolean(state.pipes?.[id]) ||
+      Boolean(state.ducts?.[id]) ||
+      Boolean(state.cableTrays?.[id]) ||
+      Boolean(state.mepFittings?.[id]) ||
+      Boolean(state.mepEquipments?.[id]);
+    if (isMep) {
+      return <MepInspector elementId={id} state={state} onExecute={execute} />;
     }
 
     return <div style={{ color: '#9ca3af', fontSize: '12px' }}>Élément sélectionné : {id}</div>;
