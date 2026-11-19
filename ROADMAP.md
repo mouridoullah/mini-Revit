@@ -377,10 +377,11 @@ flowchart LR
   - Fichiers `README.md` et `LICENSE`.
   - Resynchronisation des spécifications `DOMAIN_MODEL.md`, `PERSISTENCE_SPEC.md`, `DECISIONS.md` (ADR-054), `ROADMAP.md`.
   - GUIDs IFC4 100% déterministes garantissant la reproductibilité octet par octet des exports STEP.
-- **Lot 4 — Maintenabilité & Industrialisation (P2) [PROCHAIN LIVRABLE] :**
-  - Élimination des assertions non-nulles (`@typescript-eslint/no-non-null-assertion`).
-  - Optimisation de la persistance automatique (`autoSave.ts`).
-  - Découpage des gros modules et chunking Three.js sous Vite.
+- **Lot 4 — Maintenabilité & Industrialisation (P2) [LIVRÉ] :**
+  - Élimination intégrale des 72 avertissements `@typescript-eslint/no-non-null-assertion` (0 warning sur tout le monorepo).
+  - Optimisation de la persistance automatique (`autoSave.ts`) par déduplication du payload IndexedDB.
+  - Chunking modulaire Vite (`three` et `react-vendor` isolés, évitant le bundle monolithique de 2.4 Mo).
+  - Validation complète des 4 quality gates (0 error, 0 warning, 0 any, 100% tests verts).
 
 ---
 
