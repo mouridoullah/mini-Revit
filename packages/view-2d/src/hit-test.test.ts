@@ -7,6 +7,8 @@ import {
   hitTestWall,
   findWallAtScreen,
   findOpeningAtScreen,
+  findMepElementAtScreen,
+  findMepPortAtScreen,
 } from './hit-test.js';
 
 describe('Hit-Test Découplé (hit-test.ts)', () => {
@@ -186,5 +188,150 @@ describe('Hit-Test Découplé (hit-test.ts)', () => {
     // Clic au-delà de la tolérance sur le bord (495 + 10 = 505 px) -> hors ouverture
     const beyondTolHit = findOpeningAtScreen(vec2(505, 300), transform, doc, { hitTolerancePx: 6 });
     expect(beyondTolHit).toBeNull();
+  });
+
+  it('findMepElementAtScreen détecte précisément tuyaux, gaines, chemins de câbles et équipements', () => {
+    const doc = new BimDocument();
+    doc.execute({
+      name: 'InitLevel',
+      apply: (draft) => {
+        (draft as any).levels = {
+          lvl_rdc: { id: 'lvl_rdc', name: 'RDC', elevation: 0 },
+        };
+      },
+      getChangedIds: () => ['lvl_rdc'],
+    });
+
+    const transform = new Transform2D({
+      viewportWidth: 800,
+      viewportHeight: 600,
+      scale: 0.05, // 1 px = 20 mm
+      origin: vec2(0, 0),
+    });
+
+    doc.execute({
+      name: 'AddPipe',
+      apply: (draft) => {
+        (draft as any).pipes = {
+          p1: {
+            id: 'p1',
+            category: 'pipe',
+            levelId: 'lvl_rdc',
+            start: { x: 0, y: 1000, z: 2500 },
+            end: { x: 3000, y: 1000, z: 2500 },
+            diameter: 100,
+            ports: [
+              {
+                id: 'port_p1_start',
+                elementId: 'p1',
+                position: { x: 0, y: 1000, z: 2500 },
+                direction: { x: -1, y: 0, z: 0 },
+                domain: 'plumbing',
+                systemType: 'domestic_cold_water',
+                shape: 'round',
+                diameter: 100,
+              },
+              {
+                id: 'port_p1_end',
+                elementId: 'p1',
+                position: { x: 3000, y: 1000, z: 2500 },
+                direction: { x: 1, y: 0, z: 0 },
+                domain: 'plumbing',
+                systemType: 'domestic_cold_water',
+                shape: 'round',
+                diameter: 100,
+              },
+            ],
+          },
+        };
+      },
+      getChangedIds: () => ['p1'],
+    });
+
+    // Clic sur l'axe du tuyau : monde (1500, 1000)
+    const screenCenter = transform.worldToScreen(vec2(1500, 1000));
+    const pipeHit = findMepElementAtScreen(screenCenter, transform, doc);
+    expect(pipeHit).toEqual({ id: 'p1', category: 'pipe' });
+
+    // Clic légèrement à côté (Y écran + 2 px -> delta 40 mm, dans le rayon de 50 mm)
+    const pipeNearHit = findMepElementAtScreen(vec2(screenCenter.x, screenCenter.y + 2), transform, doc);
+    expect(pipeNearHit).toEqual({ id: 'p1', category: 'pipe' });
+
+    // Clic hors du tuyau (Y écran - 20 px -> delta 400 mm)
+    const pipeFarHit = findMepElementAtScreen(vec2(screenCenter.x, screenCenter.y - 20), transform, doc);
+    expect(pipeFarHit).toBeNull();
+  });
+
+  it('findMepPortAtScreen détecte le port magnétique le plus proche selon l’ADR-047', () => {
+    const doc = new BimDocument();
+    doc.execute({
+      name: 'InitLevel',
+      apply: (draft) => {
+        (draft as any).levels = {
+          lvl_rdc: { id: 'lvl_rdc', name: 'RDC', elevation: 0 },
+        };
+      },
+      getChangedIds: () => ['lvl_rdc'],
+    });
+
+    const transform = new Transform2D({
+      viewportWidth: 800,
+      viewportHeight: 600,
+      scale: 0.05, // 1 px = 20 mm
+      origin: vec2(0, 0),
+    });
+
+    doc.execute({
+      name: 'AddPipe',
+      apply: (draft) => {
+        (draft as any).pipes = {
+          p1: {
+            id: 'p1',
+            category: 'pipe',
+            levelId: 'lvl_rdc',
+            start: { x: 0, y: 1000, z: 2500 },
+            end: { x: 3000, y: 1000, z: 2500 },
+            diameter: 100,
+            ports: [
+              {
+                id: 'port_p1_start',
+                elementId: 'p1',
+                position: { x: 0, y: 1000, z: 2500 },
+                direction: { x: -1, y: 0, z: 0 },
+                domain: 'plumbing',
+                systemType: 'domestic_cold_water',
+                shape: 'round',
+                diameter: 100,
+              },
+              {
+                id: 'port_p1_end',
+                elementId: 'p1',
+                position: { x: 3000, y: 1000, z: 2500 },
+                direction: { x: 1, y: 0, z: 0 },
+                domain: 'plumbing',
+                systemType: 'domestic_cold_water',
+                shape: 'round',
+                diameter: 100,
+              },
+            ],
+          },
+        };
+      },
+      getChangedIds: () => ['p1'],
+    });
+
+    // Port à (3000, 1000)
+    const portScreen = transform.worldToScreen(vec2(3000, 1000));
+
+    // Clic à 8 pixels écran du port -> dans la tolérance de 14 px
+    const portHit = findMepPortAtScreen(vec2(portScreen.x + 8, portScreen.y), transform, doc, { hitTolerancePx: 14 });
+    expect(portHit).not.toBeNull();
+    expect(portHit?.port.id).toBe('port_p1_end');
+    expect(portHit?.elementId).toBe('p1');
+    expect(portHit?.distanceScreenPx).toBeCloseTo(8, 1);
+
+    // Clic à 20 pixels écran du port -> hors de la tolérance de 14 px
+    const portMiss = findMepPortAtScreen(vec2(portScreen.x + 20, portScreen.y), transform, doc, { hitTolerancePx: 14 });
+    expect(portMiss).toBeNull();
   });
 });

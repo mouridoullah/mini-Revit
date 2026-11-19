@@ -3,7 +3,7 @@ import { type BimDocument, type BimState, detectRooms, diagnoseRoomLeaks } from 
 import { View2D, type DetectedRoomFor2D } from '@mini-bim/view-2d';
 import { useBimDocument } from '../hooks/useBimDocument.js';
 import { useResizeObserver } from '../hooks/useResizeObserver.js';
-import { type Tool, type ToolContext, type ToolEvent } from '../tools/types.js';
+import { type Tool, type ToolContext, type ToolEvent, type MepToolConfig } from '../tools/types.js';
 import { convertPointerEvent, convertKeyEvent } from '../tools/toolGlue.js';
 
 function resolveActiveLevelId(state: BimState, propId?: string | null): string {
@@ -23,6 +23,8 @@ export interface Viewport2DProps {
   readonly underlayLevelId?: string | null;
   readonly snapToUnderlay?: boolean;
   readonly activeComponentTypeId?: string;
+  readonly mepConfig?: MepToolConfig;
+  readonly mepDisplayMode?: 'single-line' | 'double-line';
 }
 
 /**
@@ -40,6 +42,8 @@ export function Viewport2D({
   underlayLevelId: underlayLevelIdProp,
   snapToUnderlay: snapToUnderlayProp = true,
   activeComponentTypeId: activeComponentTypeIdProp,
+  mepConfig: mepConfigProp,
+  mepDisplayMode: mepDisplayModeProp,
 }: Viewport2DProps = {}) {
   const { doc, state } = useBimDocument();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -109,6 +113,13 @@ export function Viewport2D({
       viewRef.current.invalidateUnderlayCache();
     }
   }, [underlayLevelIdProp]);
+
+  // Synchronisation du mode d'affichage MEP (unifilaire vs bifilaire)
+  useEffect(() => {
+    if (viewRef.current && mepDisplayModeProp) {
+      viewRef.current.setMepRenderConfig({ mode: mepDisplayModeProp });
+    }
+  }, [mepDisplayModeProp]);
 
   // Invalidation réactive de l'underlay cache sur doc.subscribe (S1-2)
   useEffect(() => {
@@ -199,6 +210,7 @@ export function Viewport2D({
         activeComponentTypeId: activeComponentTypeIdProp,
         underlayLevelId: underlayLevelIdProp ?? null,
         snapToUnderlay: snapToUnderlayProp,
+        mepConfig: mepConfigProp,
       };
 
       const output = tool.handle(toolEvent, ctx);
@@ -214,7 +226,7 @@ export function Viewport2D({
         onDrawingLengthChange?.(null);
       } else if (output.kind === 'preview') {
         view.setPreview(output.preview);
-        if (output.preview && output.preview.kind === 'line') {
+        if (output.preview && (output.preview.kind === 'line' || output.preview.kind === 'mep')) {
           const dx = output.preview.end.x - output.preview.start.x;
           const dy = output.preview.end.y - output.preview.start.y;
           onDrawingLengthChange?.(Math.hypot(dx, dy));

@@ -654,6 +654,22 @@ export type PreviewShape =
         | { readonly start: Vec2; readonly end: Vec2 }
         | readonly [Vec2, Vec2]
         | undefined;
+    }
+  | {
+      readonly kind: 'mep';
+      readonly start: Vec2;
+      readonly end: Vec2;
+      readonly category: 'pipe' | 'duct' | 'cableTray';
+      readonly shape?: 'round' | 'rectangular';
+      readonly diameter?: number;
+      readonly width?: number;
+      readonly height?: number;
+      readonly color?: string;
+      readonly mode?: 'single-line' | 'double-line';
+      readonly snappedPort?: {
+        readonly pos: Vec2;
+        readonly compatible: boolean;
+      } | null;
     };
 
 /**

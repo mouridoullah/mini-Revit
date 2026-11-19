@@ -72,6 +72,9 @@ export function StatusBar({
   } else if (activeToolKind === 'component') {
     toolMessage =
       'Outil : Composant (C) — Survoler et cliquer pour implanter (Espace = pivoter 90°, Échap = annuler)';
+  } else if (activeToolKind === 'mep') {
+    toolMessage =
+      'Outil : Réseau MEP (P) — Cliquer pour démarrer le tracé, cliquer pour valider (Échap = annuler)';
   }
 
   return (

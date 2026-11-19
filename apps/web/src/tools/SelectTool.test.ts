@@ -208,4 +208,61 @@ describe('SelectTool (Machine à états pure sans DOM)', () => {
       wallId: 'comp_select_test',
     });
   });
+
+  it('pointerdown sur un élément MEP (tuyau) le sélectionne en priorité et émet selectionChanged', () => {
+    doc.execute(
+      new Commands.AddPipeCommand({
+        id: 'pipe_select_test',
+        category: 'pipe',
+        levelId: ctx.activeLevelId,
+        start: { x: 500, y: 500, z: 2500 },
+        end: { x: 2500, y: 500, z: 2500 },
+        diameter: 100,
+        ports: [
+          {
+            id: 'port_pipe_start',
+            elementId: 'pipe_select_test',
+            position: { x: 500, y: 500, z: 2500 },
+            direction: { x: -1, y: 0, z: 0 },
+            domain: 'plumbing',
+            systemType: 'domestic_cold_water',
+            shape: 'round',
+            diameter: 100,
+          },
+          {
+            id: 'port_pipe_end',
+            elementId: 'pipe_select_test',
+            position: { x: 2500, y: 500, z: 2500 },
+            direction: { x: 1, y: 0, z: 0 },
+            domain: 'plumbing',
+            systemType: 'domestic_cold_water',
+            shape: 'round',
+            diameter: 100,
+          },
+        ],
+      }),
+    );
+
+    // Clic sur le milieu du tuyau : monde (1500, 500)
+    const screenPos = transform.worldToScreen({ x: 1500, y: 500 });
+    const output = selectTool.handle(
+      {
+        type: 'pointerdown',
+        screen: screenPos,
+        button: 0,
+        shift: false,
+        alt: false,
+      },
+      ctx,
+    );
+
+    expect(output).toEqual({
+      kind: 'selectionChanged',
+      ids: ['pipe_select_test'],
+    });
+    expect(selectTool.getState()).toEqual({
+      kind: 'selected',
+      wallId: 'pipe_select_test',
+    });
+  });
 });

@@ -55,8 +55,12 @@ export {
   findWallAtScreen,
   findOpeningAtScreen,
   findComponentAtScreen,
+  findMepElementAtScreen,
+  findMepPortAtScreen,
   type HitTestOptions,
   type HitOpeningResult,
+  type HitMepElementResult,
+  type HitMepPortResult,
 } from './hit-test.js';
 export {
   drawComponentSymbol,

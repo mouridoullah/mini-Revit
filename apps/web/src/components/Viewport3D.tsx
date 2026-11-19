@@ -10,6 +10,12 @@ import {
   createRoofMesh,
   createComponentMesh,
   solveWallJunctions,
+  generatePipeMesh,
+  generateDuctMesh,
+  generateCableTrayMesh,
+  generateFittingMesh,
+  generateEquipmentMesh,
+  getMepSystemColor,
   type WallInput,
   type OpeningGeometryParams,
 } from '@mini-bim/view-3d';
@@ -77,6 +83,11 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
     const stairs = state.stairs ?? {};
     const roofs = state.roofs ?? {};
     const components = state.components ?? {};
+    const pipes = state.pipes ?? {};
+    const ducts = state.ducts ?? {};
+    const cableTrays = state.cableTrays ?? {};
+    const mepFittings = state.mepFittings ?? {};
+    const mepEquipments = state.mepEquipments ?? {};
 
     const currentElementIds = new Set([
       ...Object.keys(state.walls),
@@ -86,6 +97,11 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
       ...Object.keys(stairs),
       ...Object.keys(roofs),
       ...Object.keys(components),
+      ...Object.keys(pipes),
+      ...Object.keys(ducts),
+      ...Object.keys(cableTrays),
+      ...Object.keys(mepFittings),
+      ...Object.keys(mepEquipments),
     ]);
 
     // 1. Suppression des maillages d'éléments supprimés (murs ou ouvertures en cascade)
@@ -132,6 +148,17 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
           for (const st of Object.values(stairs)) if (st.bottomLevelId === id || st.topLevelId === id) dirtyElementIds.add(st.id);
           for (const r of Object.values(roofs)) if (r.levelId === id) dirtyElementIds.add(r.id);
           for (const c of Object.values(components)) if (c.levelId === id) dirtyElementIds.add(c.id);
+          for (const p of Object.values(pipes)) if (p.levelId === id) dirtyElementIds.add(p.id);
+          for (const d of Object.values(ducts)) if (d.levelId === id) dirtyElementIds.add(d.id);
+          for (const ct of Object.values(cableTrays)) if (ct.levelId === id) dirtyElementIds.add(ct.id);
+          for (const ft of Object.values(mepFittings)) if (ft.levelId === id) dirtyElementIds.add(ft.id);
+          for (const eq of Object.values(mepEquipments)) if (eq.levelId === id) dirtyElementIds.add(eq.id);
+        }
+        // Si un système MEP est modifié, tous ses éléments sont sales
+        if (state.mepSystems?.[id]) {
+          for (const elId of state.mepSystems[id]?.elementIds ?? []) {
+            dirtyElementIds.add(elId);
+          }
         }
         // Si un type est modifié, toutes ses instances sont sales
         if (state.wallTypes[id]) {
@@ -399,6 +426,55 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
       if (compMesh) {
         scene.updateComponentMesh(comp.id, compMesh, compType.family);
       }
+    }
+
+    // 9. Maillages 3D des réseaux techniques MEP (Sous-phase 9.3.2)
+    for (const pipe of Object.values(pipes)) {
+      if (isIncremental && !dirtyElementIds.has(pipe.id)) continue;
+      const meshData = generatePipeMesh(pipe);
+      const sys = pipe.systemId ? state.mepSystems?.[pipe.systemId] : undefined;
+      const systemType = sys?.systemType ?? pipe.ports[0]?.systemType;
+      const domain = sys?.domain ?? pipe.ports[0]?.domain ?? 'plumbing';
+      const color = getMepSystemColor(systemType, domain);
+      scene.updateMepMesh(pipe.id, meshData, color);
+    }
+
+    for (const duct of Object.values(ducts)) {
+      if (isIncremental && !dirtyElementIds.has(duct.id)) continue;
+      const meshData = generateDuctMesh(duct);
+      const sys = duct.systemId ? state.mepSystems?.[duct.systemId] : undefined;
+      const systemType = sys?.systemType ?? duct.ports[0]?.systemType;
+      const color = getMepSystemColor(systemType, 'hvac');
+      scene.updateMepMesh(duct.id, meshData, color);
+    }
+
+    for (const ct of Object.values(cableTrays)) {
+      if (isIncremental && !dirtyElementIds.has(ct.id)) continue;
+      const meshData = generateCableTrayMesh(ct);
+      const sys = ct.systemId ? state.mepSystems?.[ct.systemId] : undefined;
+      const systemType = sys?.systemType ?? ct.ports[0]?.systemType;
+      const color = getMepSystemColor(systemType, 'electrical');
+      scene.updateMepMesh(ct.id, meshData, color);
+    }
+
+    for (const ft of Object.values(mepFittings)) {
+      if (isIncremental && !dirtyElementIds.has(ft.id)) continue;
+      const meshData = generateFittingMesh(ft);
+      const sys = ft.systemId ? state.mepSystems?.[ft.systemId] : undefined;
+      const systemType = sys?.systemType ?? ft.ports[0]?.systemType;
+      const domain = sys?.domain ?? ft.ports[0]?.domain ?? 'plumbing';
+      const color = getMepSystemColor(systemType, domain);
+      scene.updateMepMesh(ft.id, meshData, color);
+    }
+
+    for (const eq of Object.values(mepEquipments)) {
+      if (isIncremental && !dirtyElementIds.has(eq.id)) continue;
+      const meshData = generateEquipmentMesh(eq);
+      const sys = eq.systemId ? state.mepSystems?.[eq.systemId] : undefined;
+      const systemType = sys?.systemType ?? eq.ports[0]?.systemType;
+      const domain = sys?.domain ?? eq.ports[0]?.domain ?? 'plumbing';
+      const color = getMepSystemColor(systemType, domain);
+      scene.updateMepMesh(eq.id, meshData, color);
     }
 
     renderedElementIdsRef.current = currentElementIds;
