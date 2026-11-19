@@ -4,6 +4,7 @@ import { Transform2D } from './transform.js';
 import { renderPlanView, DEFAULT_VIEW2D_RENDER_CONFIG } from './renderer.js';
 import { findWallAtScreen, findComponentAtScreen } from './hit-test.js';
 import { UnderlayCache, type UnderlayInput } from './underlay/UnderlayCache.js';
+import { buildSpatialIndex, type SpatialGrid2D } from './spatial/index.js';
 import {
   type View2DOptions,
   type View2DRenderConfig,
@@ -50,6 +51,8 @@ export class View2D {
   private readonly underlayCache: UnderlayCache = new UnderlayCache();
   private preview: PreviewShape | null = null;
   private readonly enableInternalSelection: boolean;
+  private spatialIndex: SpatialGrid2D | null = null;
+  private spatialIndexDirty: boolean = true;
 
   // Gestion de l'interaction pointeur
   private isPanning: boolean = false;
@@ -120,7 +123,16 @@ export class View2D {
 
   public setDocument(doc: DocumentFor2D | null): void {
     this.doc = doc;
+    this.spatialIndexDirty = true;
     this.render();
+  }
+
+  public invalidateSpatialIndex(): void {
+    this.spatialIndexDirty = true;
+  }
+
+  public getSpatialIndex(): SpatialGrid2D | null {
+    return this.spatialIndex;
   }
 
   /**
@@ -144,6 +156,7 @@ export class View2D {
    */
   public setRooms(rooms: readonly DetectedRoomFor2D[]): void {
     this.rooms = [...rooms];
+    this.spatialIndexDirty = true;
     this.render();
   }
 
@@ -175,6 +188,7 @@ export class View2D {
    */
   public setDimensions(dimensions: readonly DimensionFor2D[]): void {
     this.dimensions = [...dimensions];
+    this.spatialIndexDirty = true;
     this.render();
   }
 
@@ -184,6 +198,7 @@ export class View2D {
 
   public setSlabs(slabs: readonly SlabFor2D[]): void {
     this.slabs = Array.from(slabs);
+    this.spatialIndexDirty = true;
     this.render();
   }
 
@@ -193,6 +208,7 @@ export class View2D {
 
   public setRoofs(roofs: readonly RoofFor2D[]): void {
     this.roofs = Array.from(roofs);
+    this.spatialIndexDirty = true;
     this.render();
   }
 
@@ -392,6 +408,13 @@ export class View2D {
       underlayPath = this.underlayCache.getOrCompile(underlayInput);
     }
 
+    if (this.spatialIndexDirty || !this.spatialIndex) {
+      this.spatialIndex = effectiveDoc
+        ? buildSpatialIndex(effectiveDoc, { rooms: this.rooms })
+        : null;
+      this.spatialIndexDirty = false;
+    }
+
     renderPlanView(
       this.ctx,
       this.transform,
@@ -407,6 +430,7 @@ export class View2D {
       underlayPath,
       this.roofs.length > 0 ? this.roofs : undefined,
       this.roomDiagnostics.length > 0 ? this.roomDiagnostics : undefined,
+      { enableCulling: true, spatialIndex: this.spatialIndex ?? undefined },
     );
   }
 

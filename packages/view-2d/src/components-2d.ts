@@ -465,8 +465,12 @@ export function drawComponents(
   selectedIds: ReadonlySet<string>,
   config: ComponentRenderConfig = DEFAULT_COMPONENT_RENDER_CONFIG,
   levelFilter?: string | null,
+  visibleComponentIds?: ReadonlySet<string> | null,
 ): void {
   for (const comp of Object.values(components)) {
+    if (visibleComponentIds && !visibleComponentIds.has(comp.id)) {
+      continue;
+    }
     if (levelFilter && comp.levelId !== levelFilter) {
       continue;
     }

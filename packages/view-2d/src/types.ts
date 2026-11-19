@@ -264,6 +264,7 @@ export interface DocumentFor2D {
     readonly roofOpenings?: Record<string, RoofOpeningFor2D> | undefined;
     readonly components?: Record<string, ComponentFor2D> | undefined;
     readonly componentTypes?: Record<string, ComponentTypeFor2D> | undefined;
+    readonly levels?: Record<string, { readonly id: string; readonly name: string; readonly elevation: number; readonly height?: number | undefined }> | undefined;
   };
 }
 
@@ -279,6 +280,7 @@ export interface DetectedRoomFor2D {
   readonly perimeterMm?: number | undefined;
   readonly seed: Vec2;
   readonly color?: string | undefined;
+  readonly levelId?: string | undefined;
 }
 
 /**
