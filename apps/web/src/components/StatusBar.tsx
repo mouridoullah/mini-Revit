@@ -76,6 +76,7 @@ export function StatusBar({
 
   return (
     <footer
+      data-testid="status-bar"
       style={{
         display: 'flex',
         alignItems: 'center',

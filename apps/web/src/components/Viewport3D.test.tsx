@@ -382,7 +382,7 @@ describe('Viewport3D React Wrapper (apps/web)', () => {
 
     // Mutation ciblée sur wall_south
     act(() => {
-      doc.execute(new Commands.UpdateWallCommand('wall_south', { thickness: 250 }));
+      doc.execute(new Commands.UpdateWallCommand('wall_south', { heightOverride: 3200 }));
     });
 
     rerender(
@@ -435,7 +435,7 @@ describe('Viewport3D React Wrapper (apps/web)', () => {
 
     // Modification d'un seul mur (bench_wall_5)
     act(() => {
-      doc.execute(new Commands.UpdateWallCommand('bench_wall_5', { thickness: 300 }));
+      doc.execute(new Commands.UpdateWallCommand('bench_wall_5', { heightOverride: 3500 }));
     });
 
     rerender(

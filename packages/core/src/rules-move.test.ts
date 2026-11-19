@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { BimDocument } from './document.js';
-import { AddWallCommand, MoveWallCommand, AddDoorCommand } from './commands.js';
-import { BimValidationError } from './rules.js';
+import { AddWallCommand, MoveWallCommand, AddDoorCommand, AddComponentCommand } from './commands.js';
+import { BimValidationError, collectViolationsForDirty } from './rules.js';
 
 function createBaseDoc(): { doc: BimDocument; levelId: string; typeId: string } {
   const doc = BimDocument.createDefaultProject();
@@ -159,5 +159,44 @@ describe('Phase 6.0c — MoveWall Rules & Differential validateDirty Tests', () 
     expect(() => doc.execute(new MoveWallCommand('w_base', { x: 0, y: 150 }))).toThrowError(
       BimValidationError,
     );
+  });
+
+  // T-RULES-MOVE-06 : Déplacement d'un mur sur un composant libre génère un avertissement de collision non-bloquant
+  it('T-RULES-MOVE-06 : Déplacement d’un mur sur un meuble libre émet COMPONENT_COLLISION avec severity warning sans bloquer', () => {
+    const { doc, levelId, typeId } = createBaseDoc();
+    const wallId = 'w_moving';
+    const compId = 'comp_furniture';
+
+    doc.execute(
+      new AddWallCommand({
+        id: wallId,
+        category: 'wall',
+        typeId,
+        levelId,
+        start: { x: 0, y: 0 },
+        end: { x: 4000, y: 0 },
+      }),
+    );
+
+    doc.execute(
+      new AddComponentCommand({
+        id: compId,
+        category: 'component',
+        typeId: 'ct_dining_table',
+        levelId,
+        placement: { x: 2000, y: 1500 }, // Initialement à 1500 mm du mur
+      }),
+    );
+
+    // Déplacer le mur vers y = 1500 pour entrer en collision directe avec la table
+    expect(() => doc.execute(new MoveWallCommand(wallId, { x: 0, y: 1500 }))).not.toThrow();
+
+    // Vérifier que collectViolationsForDirty signale bien la collision en sévérité warning
+    const violations = collectViolationsForDirty(doc.getState(), [wallId, compId]);
+    const collision = violations.find((v) => v.code === 'COMPONENT_COLLISION');
+    expect(collision).toBeDefined();
+    expect(collision?.severity).toBe('warning');
+    expect(collision?.offendingIds).toContain(wallId);
+    expect(collision?.offendingIds).toContain(compId);
   });
 });
