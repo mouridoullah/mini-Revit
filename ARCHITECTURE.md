@@ -210,9 +210,10 @@ Pour préserver l'intégrité du logiciel sur le long terme, les frontières sui
 
 1. **Règle d'or absolue :**  
    `@mini-bim/geometry` et `@mini-bim/core` ne doivent **jamais** importer `react`, `react-dom`, `three`, ou une quelconque référence à `window` / `document`.
-2. **Direction des flux :**  
-   Les dépendances vont exclusivement de l'extérieur vers l'intérieur :
-   $$\text{UI / React} \longrightarrow \text{App} \longrightarrow \text{Core} \longrightarrow \text{Geometry}$$
+2. **Direction des flux (ADR-052) :**  
+   Les dépendances vont de l'extérieur vers l'intérieur :
+   $$\text{apps/web} \longrightarrow \text{view-2d / view-3d} \longrightarrow \text{core} \longrightarrow \text{geometry}$$
+   Conformément à ADR-052, `@mini-bim/view-2d` importe des fonctions pures de dérivation géométrique depuis `@mini-bim/core` (`resolveWallGeometry`, `computeStairGeometry`, etc.) sans jamais dépendre de l'état mutable ni du bus de commandes.
 3. **Immuabilité de l'API publique :**  
    Toute interaction entre l'interface et le modèle passe par des commandes sérialisables. L'UI ne mute jamais directement une propriété d'une entité du document.
 

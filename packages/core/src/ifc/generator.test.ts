@@ -1018,4 +1018,12 @@ describe('Générateur IFC4 ISO 10303-21 (packages/core/ifc)', () => {
     const isExternalMatches = ifcContent.match(/IFCPROPERTYSINGLEVALUE\('IsExternal'/g) ?? [];
     expect(isExternalMatches.length).toBe(2);
   });
+
+  it('T-IFC-DETERMINISM : Deux exports consécutifs du même projet produisent des fichiers STEP strictement identiques au bit près', () => {
+    const export1 = exportToIfc(sampleState);
+    const export2 = exportToIfc(sampleState);
+
+    expect(export1).toBe(export2);
+    expect(export1.length).toBeGreaterThan(0);
+  });
 });

@@ -172,12 +172,19 @@ export interface BimState {
   readonly slabTypes: Record<ElementId, SlabType>;
   readonly doorTypes: Record<ElementId, DoorType>;
   readonly windowTypes: Record<ElementId, WindowType>;
+  readonly stairTypes: Record<ElementId, StairType>;
+  readonly roofTypes: Record<ElementId, RoofType>;
+  readonly componentTypes: Record<ElementId, ComponentType>;
   readonly walls: Record<ElementId, Wall>;
   readonly slabs: Record<ElementId, Slab>;
   readonly doors: Record<ElementId, Door>;
   readonly windows: Record<ElementId, Window>;
   readonly rooms: Record<ElementId, Room>;
   readonly dimensions: Record<ElementId, Dimension>;
+  readonly stairs: Record<ElementId, Stair>;
+  readonly roofs: Record<ElementId, Roof>;
+  readonly roofOpenings: Record<ElementId, RoofOpening>;
+  readonly components: Record<ElementId, Component>;
 }
 ```
 

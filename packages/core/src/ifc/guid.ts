@@ -25,12 +25,62 @@ for (let i = 0; i < 64; i++) {
 }
 
 /**
- * Génère un GUID IFC officiel conforme buildingSMART (22 caractères).
- * @param customBytes Octets 128-bit optionnels pour tests déterministes.
+ * Calcule un hachage 128-bit déterministe à partir d'une chaîne arbitraire.
  */
-export function createIfcGuid(customBytes?: Uint8Array): string {
-  const bytes = customBytes ? new Uint8Array(customBytes) : new Uint8Array(16);
-  if (!customBytes) {
+export function hashStringTo16Bytes(str: string): Uint8Array {
+  let h1 = 0x811c9dc5;
+  let h2 = 0x01000193;
+  let h3 = 0x41c64e6d;
+  let h4 = 0x9e3779b9;
+
+  for (let i = 0; i < str.length; i++) {
+    const code = str.charCodeAt(i);
+    h1 = Math.imul(h1 ^ code, 0x5bd1e995);
+    h2 = Math.imul(h2 ^ (code >> 8), 0x27d4eb2f);
+    h3 = Math.imul(h3 ^ code, 0x165667b1);
+    h4 = Math.imul(h4 ^ (code + i), 0xd6e8feb8);
+  }
+
+  h1 ^= h1 >>> 16;
+  h1 = Math.imul(h1, 0x85ebca6b);
+  h1 ^= h1 >>> 13;
+
+  h2 ^= h2 >>> 16;
+  h2 = Math.imul(h2, 0xc2b2ae35);
+  h2 ^= h2 >>> 13;
+
+  h3 ^= h3 >>> 16;
+  h3 = Math.imul(h3, 0x7feb352d);
+  h3 ^= h3 >>> 13;
+
+  h4 ^= h4 >>> 16;
+  h4 = Math.imul(h4, 0x846ca68b);
+  h4 ^= h4 >>> 13;
+
+  const bytes = new Uint8Array(16);
+  const view = new DataView(bytes.buffer);
+  view.setUint32(0, h1 >>> 0, false);
+  view.setUint32(4, h2 >>> 0, false);
+  view.setUint32(8, h3 >>> 0, false);
+  view.setUint32(12, h4 >>> 0, false);
+  return bytes;
+}
+
+/**
+ * Génère un GUID IFC officiel conforme buildingSMART (22 caractères).
+ * Si une chaîne de graine (seed) est fournie, la génération est 100% déterministe
+ * et préserve la reproductibilité octet par octet des exports IFC.
+ *
+ * @param source Graine textuelle (ex: identifiant ULID d'élément) ou octets 128-bit.
+ */
+export function createIfcGuid(source?: string | Uint8Array): string {
+  let bytes: Uint8Array;
+  if (typeof source === 'string') {
+    bytes = hashStringTo16Bytes(source);
+  } else if (source instanceof Uint8Array) {
+    bytes = new Uint8Array(source);
+  } else {
+    bytes = new Uint8Array(16);
     if (typeof globalThis !== 'undefined' && globalThis.crypto?.getRandomValues) {
       globalThis.crypto.getRandomValues(bytes);
     } else {

@@ -207,70 +207,83 @@ classDiagram
 ### 3.6 `Wall` (Mur Paramétrique)
 
 - **Raison d'être :** Élément architectural linéaire vertical délimitant l'espace et portant les ouvertures.
-- **Propriétés :**
+- **Propriétés (Schéma v2 / ADR-045 / ADR-053) :**
   - `id: string` (ULID).
   - `category: 'wall'`.
   - `typeId: string` (Référence vers `WallType`).
   - `levelId: string` (Niveau de base).
   - `start: Vec2` (Point de départ $[x, y]$ en mm).
   - `end: Vec2` (Point d'arrivée $[x, y]$ en mm).
-  - `height: number` (Hauteur en mm, ex: 2800).
-  - `baseOffset: number` (Décalage vertical par rapport au niveau, ex: 0).
-  - `topLevelId?: string` (Niveau supérieur pour contrainte d'attache automatique).
-  - `topOffset?: number` (Décalage par rapport au niveau supérieur).
-  - `locationLine: 'center' | 'exterior' | 'interior'` (Ligne de repère de justification de l'axe).
+  - `baseOffset?: number` (Décalage vertical par rapport au niveau, ex: 0).
+  - `heightOverride?: number` (Hauteur fixe explicite en mm, court-circuitant la contrainte supérieure).
+  - `topConstraint?: WallTopConstraint` (Contrainte vers un niveau ou une toiture sous-jacente).
+  - `isExternal?: boolean` (Surcharge d'appartenance à l'enveloppe extérieure, sinon héritée du type).
+  - `loadBearing?: boolean` (Surcharge de fonction porteuse, sinon héritée du type).
 - **Invariants :**
-  - Longueur $\text{dist}(start, end) \ge \text{MIN\_WALL\_LENGTH}$ (50 mm). Les murs de longueur nulle sont interdits.
-  - Hauteur $height > 0$.
+  - Longueur $\text{dist}(start, end) > 0$.
+  - Hauteur effective $\ge 0$.
 
-### 3.7 `Opening`, `Door` & `Window` (Ouvertures Hébergées)
+### 3.7 `Door` & `Window` (Ouvertures Hébergées — Schéma v2)
 
-- **Raison d'être :** Éléments fonctionnels de passage ou de lumière qui percent obligatoirement un mur porteur.
-- **Propriétés de `Opening` (Abstraite) :**
+- **Raison d'être :** Éléments fonctionnels de passage ou de lumière perçant un mur hôte.
+- **Propriétés communes (`OpeningBase`) :**
   - `id: string` (ULID).
   - `hostWallId: string` (Référence obligatoire vers le mur hôte).
-  - `offsetAlong: number` (Abscisse curviligne en mm le long de l'axe du mur hôte).
-  - `sillHeight: number` (Hauteur d'allège par rapport à la base du mur ; 0 pour une porte standard).
-  - `width: number` (Largeur de découpe en mm).
-  - `height: number` (Hauteur de découpe en mm).
-- **Propriétés spécifiques de `Door` :**
-  - `flipHand: boolean` (Inversion gauche/droite du vantail).
-  - `flipFacing: boolean` (Inversion intérieur/extérieur).
+  - `offsetAlong: number` (Distance le long de l'axe du mur hôte depuis `wall.start`).
+- **Propriétés spécifiques de `Door` (Schéma v2 / ADR-042) :**
+  - `category: 'door'`.
+  - `doorTypeId: string` (Référence vers `DoorType` portant `width` et `height`).
+  - `swing: { side: 'left' | 'right', direction: 'in' | 'out' }` (Orientation normalisée du battement).
+- **Propriétés spécifiques de `Window` (Schéma v2 / ADR-042) :**
+  - `category: 'window'`.
+  - `windowTypeId: string` (Référence vers `WindowType` portant `width`, `height`, `defaultSillHeight`).
+  - `sillHeight: number` (Hauteur d'allège propre à l'instance).
 - **Invariants :**
-  - L'ouverture doit être géométriquement contenue dans le mur hôte :  
-    $$\text{offsetAlong} \ge \text{CLEARANCE\_MARGIN}$$  
-    $$\text{offsetAlong} + \text{width} \le \text{hostWall.length} - \text{CLEARANCE\_MARGIN}$$  
-    $$\text{sillHeight} + \text{height} \le \text{hostWall.height}$$
-  - Deux ouvertures hébergées par le même mur ne peuvent pas se chevaucher horizontalement ($\text{Interval}_1 \cap \text{Interval}_2 = \emptyset$).
-  - La suppression du mur hôte entraîne en cascade la suppression de toutes ses ouvertures hébergées.
+  - L'ouverture doit être géométriquement contenue dans le mur hôte sans dépasser de ses extrémités ni de sa hauteur libre locale.
+  - Deux ouvertures sur le même mur ne peuvent se chevaucher horizontalement ($\text{distance} \ge \text{MIN\_OPENING\_CLEARANCE} = 50\text{ mm}$).
 
-### 3.8 `Slab` (Dalle / Plancher)
+### 3.8 `Slab` (Dalle Structurelle — Schéma v2)
 
-- **Raison d'être :** Surface horizontale structurelle fermant les niveaux par le bas ou créant les étages intermédiaires.
 - **Propriétés :**
   - `id: string` (ULID).
   - `category: 'slab'`.
   - `levelId: string`.
-  - `typeId: string`.
-  - `boundary: Vec2[]` (Contour extérieur fermé CCW).
-  - `holes: Vec2[][]` (Contours intérieurs fermés CW pour trémies d'escalier ou gaines).
-  - `thickness: number` (Épaisseur en mm, orientée vers le bas par rapport à l'élévation du niveau).
-  - `baseOffset: number`.
-- **Invariants :** Le contour extérieur doit être simple (sans auto-intersection) et non dégénéré ($\text{Aire} > 0,1 \text{ m}^2$). Les trous doivent être strictement inclus dans le contour extérieur.
+  - `slabTypeId: string`.
+  - `boundary: Vec2[]` (Contour extérieur fermé).
+  - `holes: Vec2[][]` (Contours intérieurs fermés pour trémies ou gaines).
+  - `openings?: SlabOpening[]` (Réservations associées).
+  - `baseOffset?: number`.
 
-### 3.9 `Roof` (Toiture)
+### 3.9 `Stair` (Escalier Paramétrique — ADR-048)
 
-- **Raison d'être :** Clôture supérieure du bâtiment assurant la protection aux intempéries.
-- **Propriétés (MVP : Toit plat ou 2 pans) :**
+- **Propriétés :**
+  - `id: string` (ULID).
+  - `category: 'stair'`.
+  - `stairTypeId: string`.
+  - `bottomLevelId: string`.
+  - `topLevelId: string`.
+  - `start: Vec2`.
+  - `end: Vec2`.
+
+### 3.10 `Roof` (Toiture — ADR-053)
+
+- **Propriétés :**
   - `id: string` (ULID).
   - `category: 'roof'`.
+  - `roofTypeId: string`.
   - `levelId: string`.
-  - `footprint: Vec2[]` (Emprise au sol polygonale).
-  - `roofType: 'flat' | 'gable'` (Toit plat ou toit à deux pans).
-  - `slopeDeg: number` (Pente en degrés, ex: 35°).
-  - `overhang: number` (Débord de toit en mm, ex: 300).
-  - `ridgeAxisAngleDeg: number` (Orientation de l'axe de faîtage pour le toit à deux pans).
-- **Invariants :** Pente comprise entre $0^\circ$ (plat) et $60^\circ$.
+  - `boundary: Vec2[]` (Polygone fermé d'emprise).
+  - `gableEdgeIndex?: number` (Indice de l'arête de référence pour toiture à 2 pans).
+
+### 3.11 `Component` (Composants & Mobilier — Phase 8)
+
+- **Propriétés :**
+  - `id: string` (ULID).
+  - `category: 'component'`.
+  - `typeId: string` (Référence vers `ComponentType`).
+  - `levelId: string`.
+  - `placement: ComponentPlacement` ($x, y$, rotation, élévation, mur hôte optionnel).
+  - `dimensions?: ComponentDimensionsOverride` (Surcharges dimensionnelles d'occurrence).
 
 ### 3.10 `Room` (Pièce / Espace Dérivé)
 

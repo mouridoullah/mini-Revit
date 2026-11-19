@@ -22,6 +22,7 @@ export interface IfcExportOptions {
   readonly author?: string;
   readonly organization?: string;
   readonly filename?: string;
+  readonly timestamp?: number;
 }
 
 /**
@@ -74,8 +75,8 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
   const author = escapeIfcString(options.author || 'Mini-BIM Architect');
   const org = escapeIfcString(options.organization || 'Mini-BIM Team');
   const filename = escapeIfcString(options.filename || 'export.ifc');
-  const now = new Date().toISOString();
-  const timestamp = Math.floor(Date.now() / 1000);
+  const timestamp = options.timestamp !== undefined ? options.timestamp : 1700000000;
+  const now = new Date(timestamp * 1000).toISOString();
 
   // -------------------------------------------------------------------------
   // Entités génériques et contexte
@@ -110,29 +111,29 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
   );
 
   // Projet racine
-  const projectGuid = createIfcGuid();
+  const projectGuid = createIfcGuid(`project:${projectName}`);
   const project = writer.add(
     `IFCPROJECT('${projectGuid}',#${ownerHistory},'${projectName}',$,$,$,$,(#${geomContext}),#${unitAssignment})`,
   );
 
   // Site
   const sitePlacement = writer.add(`IFCLOCALPLACEMENT($,#${placementWorld3D})`);
-  const siteGuid = createIfcGuid();
+  const siteGuid = createIfcGuid(`site:${projectName}`);
   const site = writer.add(
     `IFCSITE('${siteGuid}',#${ownerHistory},'Default Site',$,$,#${sitePlacement},$,$,.ELEMENT.,$,$,$,$,$)`,
   );
   writer.add(
-    `IFCRELAGGREGATES('${createIfcGuid()}',#${ownerHistory},'ProjectSite',$,#${project},(#${site}))`,
+    `IFCRELAGGREGATES('${createIfcGuid(`rel:project:site:${projectName}`)}',#${ownerHistory},'ProjectSite',$,#${project},(#${site}))`,
   );
 
   // Bâtiment
   const bldgPlacement = writer.add(`IFCLOCALPLACEMENT(#${sitePlacement},#${placementWorld3D})`);
-  const bldgGuid = createIfcGuid();
+  const bldgGuid = createIfcGuid(`building:${projectName}`);
   const building = writer.add(
     `IFCBUILDING('${bldgGuid}',#${ownerHistory},'Main Building',$,$,#${bldgPlacement},$,$,.ELEMENT.,$,$,$)`,
   );
   writer.add(
-    `IFCRELAGGREGATES('${createIfcGuid()}',#${ownerHistory},'SiteBuilding',$,#${site},(#${building}))`,
+    `IFCRELAGGREGATES('${createIfcGuid(`rel:site:building:${projectName}`)}',#${ownerHistory},'SiteBuilding',$,#${site},(#${building}))`,
   );
 
   // -------------------------------------------------------------------------
@@ -151,7 +152,7 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
     const storeyPlacement = writer.add(
       `IFCLOCALPLACEMENT(#${bldgPlacement},#${placementStorey3D})`,
     );
-    const storeyGuid = createIfcGuid();
+    const storeyGuid = createIfcGuid(`storey:${lvl.id}`);
     const storey = writer.add(
       `IFCBUILDINGSTOREY('${storeyGuid}',#${ownerHistory},'${escapeIfcString(lvl.name)}',$,$,#${storeyPlacement},$,$,.ELEMENT.,${lvl.elevation.toFixed(2)})`,
     );
@@ -163,7 +164,7 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
   if (storeyIds.length > 0) {
     const storeysRefs = storeyIds.map((id) => `#${id}`).join(',');
     writer.add(
-      `IFCRELAGGREGATES('${createIfcGuid()}',#${ownerHistory},'BuildingStoreys',$,#${building},(${storeysRefs}))`,
+      `IFCRELAGGREGATES('${createIfcGuid(`rel:building:storeys:${projectName}`)}',#${ownerHistory},'BuildingStoreys',$,#${building},(${storeysRefs}))`,
     );
   }
 
@@ -284,7 +285,7 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
     );
     const prodShape = writer.add(`IFCPRODUCTDEFINITIONSHAPE($,$,(#${shapeRep}))`);
 
-    const wallGuid = createIfcGuid();
+    const wallGuid = createIfcGuid(`wall:${wall.id}`);
     const ifcWall = writer.add(
       `IFCWALL('${wallGuid}',#${ownerHistory},'${escapeIfcString(wall.id)}',$,'Wall',#${wallPlacement},#${prodShape},$,$)`,
     );
@@ -318,10 +319,10 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
       `IFCQUANTITYVOLUME('NetVolume','Net volume of the wall',$,${netVolumeM3.toFixed(3)})`,
     );
     const wallQuantities = writer.add(
-      `IFCELEMENTQUANTITY('${createIfcGuid()}',#${ownerHistory},'BaseQuantities',$,'Qto_WallBaseQuantities',(#${qLength},#${qWidth},#${qHeight},#${qGrossArea},#${qNetArea},#${qGrossVol},#${qNetVol}))`,
+      `IFCELEMENTQUANTITY('${createIfcGuid(`wall-qto:${wall.id}`)}',#${ownerHistory},'BaseQuantities',$,'Qto_WallBaseQuantities',(#${qLength},#${qWidth},#${qHeight},#${qGrossArea},#${qNetArea},#${qGrossVol},#${qNetVol}))`,
     );
     writer.add(
-      `IFCRELDEFINESBYPROPERTIES('${createIfcGuid()}',#${ownerHistory},$,$,(#${ifcWall}),#${wallQuantities})`,
+      `IFCRELDEFINESBYPROPERTIES('${createIfcGuid(`wall-rel-qto:${wall.id}`)}',#${ownerHistory},$,$,(#${ifcWall}),#${wallQuantities})`,
     );
 
     // Propriétés standardisées (Pset_WallCommon)
@@ -349,10 +350,10 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
     }
 
     const wallPset = writer.add(
-      `IFCPROPERTYSET('${createIfcGuid()}',#${ownerHistory},'Pset_WallCommon',$,(#${wallCommonPropIds.join(',#')}))`,
+      `IFCPROPERTYSET('${createIfcGuid(`wall-pset:${wall.id}`)}',#${ownerHistory},'Pset_WallCommon',$,(#${wallCommonPropIds.join(',#')}))`,
     );
     writer.add(
-      `IFCRELDEFINESBYPROPERTIES('${createIfcGuid()}',#${ownerHistory},$,$,(#${ifcWall}),#${wallPset})`,
+      `IFCRELDEFINESBYPROPERTIES('${createIfcGuid(`wall-rel-pset:${wall.id}`)}',#${ownerHistory},$,$,(#${ifcWall}),#${wallPset})`,
     );
 
     wallMap.set(wallId, {
@@ -428,28 +429,28 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
     );
     const opProdShape = writer.add(`IFCPRODUCTDEFINITIONSHAPE($,$,(#${opShapeRep}))`);
 
-    const openingGuid = createIfcGuid();
+    const openingGuid = createIfcGuid(`opening:${item.id}`);
     const ifcOpening = writer.add(
       `IFCOPENINGELEMENT('${openingGuid}',#${ownerHistory},'Opening_${escapeIfcString(item.id)}',$,$,#${opPlacement},#${opProdShape},$,.OPENING.)`,
     );
 
     // Liaison Mur -> Réservation (IfcRelVoidsElement)
     writer.add(
-      `IFCRELVOIDSELEMENT('${createIfcGuid()}',#${ownerHistory},$,$,#${hostInfo.id},#${ifcOpening})`,
+      `IFCRELVOIDSELEMENT('${createIfcGuid(`rel-voids:${hostInfo.id}:${item.id}`)}',#${ownerHistory},$,$,#${hostInfo.id},#${ifcOpening})`,
     );
 
     // Élément menuiserie : IfcDoor ou IfcWindow
     let fillingElementId: number;
     if (op.kind === 'door') {
       const door = item as Door;
-      const doorGuid = createIfcGuid();
+      const doorGuid = createIfcGuid(`door:${door.id}`);
       const opType = door.swing.side === 'left' ? '.SINGLE_SWING_LEFT.' : '.SINGLE_SWING_RIGHT.';
       fillingElementId = writer.add(
         `IFCDOOR('${doorGuid}',#${ownerHistory},'${escapeIfcString(door.id)}',$,'Door',#${opPlacement},#${opProdShape},$,${opHeight.toFixed(2)},${opWidth.toFixed(2)},.DOOR.,${opType},$)`,
       );
     } else {
       const win = item as Window;
-      const winGuid = createIfcGuid();
+      const winGuid = createIfcGuid(`win:${win.id}`);
       fillingElementId = writer.add(
         `IFCWINDOW('${winGuid}',#${ownerHistory},'${escapeIfcString(win.id)}',$,'Window',#${opPlacement},#${opProdShape},$,${opHeight.toFixed(2)},${opWidth.toFixed(2)},.WINDOW.,$,$)`,
       );
@@ -457,7 +458,7 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
 
     // Liaison Réservation -> Menuiserie (IfcRelFillsElement)
     writer.add(
-      `IFCRELFILLSELEMENT('${createIfcGuid()}',#${ownerHistory},$,$,#${ifcOpening},#${fillingElementId})`,
+      `IFCRELFILLSELEMENT('${createIfcGuid(`rel-fills:${item.id}`)}',#${ownerHistory},$,$,#${ifcOpening},#${fillingElementId})`,
     );
 
     // Quantités de base normalisées (Qto_DoorBaseQuantities / Qto_WindowBaseQuantities)
@@ -473,10 +474,10 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
     );
     const qtoName = op.kind === 'door' ? 'Qto_DoorBaseQuantities' : 'Qto_WindowBaseQuantities';
     const opQuantities = writer.add(
-      `IFCELEMENTQUANTITY('${createIfcGuid()}',#${ownerHistory},'BaseQuantities',$,'${qtoName}',(#${qOpW},#${qOpH},#${qOpArea}))`,
+      `IFCELEMENTQUANTITY('${createIfcGuid(`op-qto:${item.id}`)}',#${ownerHistory},'BaseQuantities',$,'${qtoName}',(#${qOpW},#${qOpH},#${qOpArea}))`,
     );
     writer.add(
-      `IFCRELDEFINESBYPROPERTIES('${createIfcGuid()}',#${ownerHistory},$,$,(#${fillingElementId}),#${opQuantities})`,
+      `IFCRELDEFINESBYPROPERTIES('${createIfcGuid(`op-rel-qto:${item.id}`)}',#${ownerHistory},$,$,(#${fillingElementId}),#${opQuantities})`,
     );
   }
 
@@ -552,7 +553,7 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
       );
       const slabProdShape = writer.add(`IFCPRODUCTDEFINITIONSHAPE($,$,(#${slabShapeRep}))`);
 
-      const slabGuid = createIfcGuid();
+      const slabGuid = createIfcGuid(`slab:${slab.id}`);
       const ifcSlab = writer.add(
         `IFCSLAB('${slabGuid}',#${ownerHistory},'${escapeIfcString(slab.name || slab.id)}',$,'Slab',#${slabPlacement},#${slabProdShape},$,.FLOOR.)`,
       );
@@ -578,10 +579,10 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
         `IFCQUANTITYVOLUME('GrossVolume','Gross volume of the slab',$,${grossVolumeM3.toFixed(3)})`,
       );
       const slabQuantities = writer.add(
-        `IFCELEMENTQUANTITY('${createIfcGuid()}',#${ownerHistory},'BaseQuantities',$,'Qto_SlabBaseQuantities',(#${qSlabGrossArea},#${qSlabNetArea},#${qSlabGrossVol}))`,
+        `IFCELEMENTQUANTITY('${createIfcGuid(`slab-qto:${slab.id}`)}',#${ownerHistory},'BaseQuantities',$,'Qto_SlabBaseQuantities',(#${qSlabGrossArea},#${qSlabNetArea},#${qSlabGrossVol}))`,
       );
       writer.add(
-        `IFCRELDEFINESBYPROPERTIES('${createIfcGuid()}',#${ownerHistory},$,$,(#${ifcSlab}),#${slabQuantities})`,
+        `IFCRELDEFINESBYPROPERTIES('${createIfcGuid(`slab-rel-qto:${slab.id}`)}',#${ownerHistory},$,$,(#${ifcSlab}),#${slabQuantities})`,
       );
 
       // Rattachement au niveau (IfcRelContainedInSpatialStructure)
@@ -644,18 +645,18 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
       const flightPlacement = writer.add(
         `IFCLOCALPLACEMENT(#${stairPlacement},#${placementWorld3D})`,
       );
-      const flightGuid = createIfcGuid();
+      const flightGuid = createIfcGuid(`flight:${stair.id}`);
       const ifcStairFlight = writer.add(
         `IFCSTAIRFLIGHT('${flightGuid}',#${ownerHistory},'${escapeIfcString((stair.name || stair.id) + ' Volée')}',$,'Flight',#${flightPlacement},#${flightProdShape},$,${geom.numberOfSteps},${geom.numberOfSteps},${geom.stepHeight.toFixed(2)},${geom.stepDepth.toFixed(2)},.STRAIGHT.)`,
       );
 
-      const stairGuid = createIfcGuid();
+      const stairGuid = createIfcGuid(`stair:${stair.id}`);
       const ifcStair = writer.add(
         `IFCSTAIR('${stairGuid}',#${ownerHistory},'${escapeIfcString(stair.name || stair.id)}',$,'Stair',#${stairPlacement},$,$,.STRAIGHT_RUN_STAIR.)`,
       );
 
       // Relation d'agrégation IfcRelAggregates entre IfcStair et IfcStairFlight
-      const relGuid = createIfcGuid();
+      const relGuid = createIfcGuid(`rel-stair-flight:${stair.id}`);
       writer.add(
         `IFCRELAGGREGATES('${relGuid}',#${ownerHistory},'StairFlightAggregation',$,#${ifcStair},(#${ifcStairFlight}))`,
       );
@@ -727,7 +728,7 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
         const slabPlacement = writer.add(
           `IFCLOCALPLACEMENT(#${roofPlacement},#${placementWorld3D})`,
         );
-        const slabGuid = createIfcGuid();
+        const slabGuid = createIfcGuid(`roof-slab:${roof.id}:${sIdx}`);
         const slabName = `${roof.name || roof.id} Versant ${sIdx + 1}`;
         const ifcSlab = writer.add(
           `IFCSLAB('${slabGuid}',#${ownerHistory},'${escapeIfcString(slabName)}',$,'RoofSlab',#${slabPlacement},#${slopeProdShape},$,.ROOF.)`,
@@ -736,7 +737,7 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
       }
 
       // Entité IfcRoof
-      const roofGuid = createIfcGuid();
+      const roofGuid = createIfcGuid(`roof:${roof.id}`);
       const predefinedType = isGable ? '.GABLE_ROOF.' : '.FLAT_ROOF.';
       const ifcRoof = writer.add(
         `IFCROOF('${roofGuid}',#${ownerHistory},'${escapeIfcString(roof.name || roof.id)}',$,'Roof',#${roofPlacement},$,$,${predefinedType})`,
@@ -744,7 +745,7 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
 
       // Agrégation IfcRelAggregates
       if (aggregatedSlabIds.length > 0) {
-        const relGuid = createIfcGuid();
+        const relGuid = createIfcGuid(`rel-roof-slabs:${roof.id}`);
         writer.add(
           `IFCRELAGGREGATES('${relGuid}',#${ownerHistory},'RoofSlabAggregation',$,#${ifcRoof},(${aggregatedSlabIds.map((id) => `#${id}`).join(',')}))`,
         );
@@ -825,7 +826,7 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
         );
         const spaceProdShape = writer.add(`IFCPRODUCTDEFINITIONSHAPE($,$,(#${spaceShapeRep}))`);
 
-        const spaceGuid = createIfcGuid();
+        const spaceGuid = createIfcGuid(`space:${room.id}`);
         const ifcSpace = writer.add(
           `IFCSPACE('${spaceGuid}',#${ownerHistory},'${escapeIfcString(room.name)}',$,$,#${storeyInfo.placementId},#${spaceProdShape},$,.INTERNAL.,.ELEMENT.,$)`,
         );
@@ -840,10 +841,10 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
           `IFCQUANTITYVOLUME('NetVolume','Net volume',$,${volumeM3.toFixed(3)})`,
         );
         const elementQuantity = writer.add(
-          `IFCELEMENTQUANTITY('${createIfcGuid()}',#${ownerHistory},'BaseQuantities',$,'Qto_SpaceBaseQuantities',(#${qArea},#${qVolume}))`,
+          `IFCELEMENTQUANTITY('${createIfcGuid(`space-qto:${room.id}`)}',#${ownerHistory},'BaseQuantities',$,'Qto_SpaceBaseQuantities',(#${qArea},#${qVolume}))`,
         );
         writer.add(
-          `IFCRELDEFINESBYPROPERTIES('${createIfcGuid()}',#${ownerHistory},$,$,(#${ifcSpace}),#${elementQuantity})`,
+          `IFCRELDEFINESBYPROPERTIES('${createIfcGuid(`space-rel-qto:${room.id}`)}',#${ownerHistory},$,$,(#${ifcSpace}),#${elementQuantity})`,
         );
 
         // Rattachement au niveau
@@ -866,7 +867,7 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
       const type = state.componentTypes?.[comp.typeId];
       if (!type || typeIfcMap.has(type.id)) continue;
 
-      const typeGuid = createIfcGuid();
+      const typeGuid = createIfcGuid(`type:${type.id}`);
       const typeName = escapeIfcString(type.name);
       const entity = type.ifcEntity || (type.family === 'sanitary' ? 'IfcSanitaryTerminal' : 'IfcFurniture');
 
@@ -960,7 +961,7 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
       );
       const prodShape = writer.add(`IFCPRODUCTDEFINITIONSHAPE($,$,(#${shapeRep}))`);
 
-      const compGuid = createIfcGuid();
+      const compGuid = createIfcGuid(`comp:${comp.id}`);
       const compName = escapeIfcString(comp.name || type.name);
       const typeName = escapeIfcString(type.name);
 
@@ -1046,17 +1047,17 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
           );
           const opProdShape = writer.add(`IFCPRODUCTDEFINITIONSHAPE($,$,(#${opShapeRep}))`);
 
-          const openingGuid = createIfcGuid();
+          const openingGuid = createIfcGuid(`comp-opening:${comp.id}`);
           const ifcOpening = writer.add(
             `IFCOPENINGELEMENT('${openingGuid}',#${ownerHistory},'Opening_${escapeIfcString(comp.id)}',$,$,#${opPlacement},#${opProdShape},$,.OPENING.)`,
           );
 
           // Chaîne buildingSMART : IfcWall -> IfcRelVoidsElement -> IfcOpeningElement -> IfcRelFillsElement -> IfcDoor/IfcWindow
           writer.add(
-            `IFCRELVOIDSELEMENT('${createIfcGuid()}',#${ownerHistory},$,$,#${hostInfo.id},#${ifcOpening})`,
+            `IFCRELVOIDSELEMENT('${createIfcGuid(`comp-rel-voids:${hostInfo.id}:${comp.id}`)}',#${ownerHistory},$,$,#${hostInfo.id},#${ifcOpening})`,
           );
           writer.add(
-            `IFCRELFILLSELEMENT('${createIfcGuid()}',#${ownerHistory},$,$,#${ifcOpening},#${ifcElemId})`,
+            `IFCRELFILLSELEMENT('${createIfcGuid(`comp-rel-fills:${comp.id}`)}',#${ownerHistory},$,$,#${ifcOpening},#${ifcElemId})`,
           );
         }
       }
@@ -1070,11 +1071,11 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
     }
 
     // 3. Liaison Type <-> Occurrences (IfcRelDefinesByType)
-    for (const [, { typeId, occurrences }] of typeIfcMap) {
+    for (const [tId, { typeId, occurrences }] of typeIfcMap) {
       if (occurrences.length > 0) {
         const refs = occurrences.map((id) => `#${id}`).join(',');
         writer.add(
-          `IFCRELDEFINESBYTYPE('${createIfcGuid()}',#${ownerHistory},$,$,(${refs}),#${typeId})`,
+          `IFCRELDEFINESBYTYPE('${createIfcGuid(`rel-defines-by-type:${tId}`)}',#${ownerHistory},$,$,(${refs}),#${typeId})`,
         );
       }
     }
@@ -1090,7 +1091,7 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
 
     const refs = elemIds.map((id) => `#${id}`).join(',');
     writer.add(
-      `IFCRELCONTAINEDINSPATIALSTRUCTURE('${createIfcGuid()}',#${ownerHistory},'StoreyElements',$,(${refs}),#${storeyInfo.id})`,
+      `IFCRELCONTAINEDINSPATIALSTRUCTURE('${createIfcGuid(`rel-contained:${lvlId}`)}',#${ownerHistory},'StoreyElements',$,(${refs}),#${storeyInfo.id})`,
     );
   }
 

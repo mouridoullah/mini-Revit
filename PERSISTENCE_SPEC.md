@@ -1,9 +1,9 @@
 # SPÉCIFICATION TECHNIQUE DE PERSISTANCE ET FORMAT DE DONNÉES (PERSISTENCE_SPEC)
 
-**Projet :** Mini-BIM (Solo Architecture Guide)  
-**Version du format :** Schema Version 1 (v1)  
-**Date d'homologation :** 14 novembre 2026  
-**Statut :** Spécification de Référence — Phase 2.4
+**Projet :** Mini-BIM (`mini-Revit`)  
+**Version du format :** Schema Version 2 (v2)  
+**Date d'homologation :** Novembre 2026  
+**Statut :** Spécification de Référence — Schéma v2 Consolidé (ADR-042, ADR-051)
 
 ---
 
@@ -13,50 +13,49 @@ La persistance de Mini-BIM repose sur une séparation stricte entre **l'état ar
 
 ### Principes Directeurs Fondamentaux :
 
-1. **Source de Vérité Unique et Pure :** Seules les données architecturales conceptuelles (niveaux, types de murs, instances de murs et leurs connexions sémantiques) sont sérialisées.
-2. **Zéro Donnée Géométrique Dérivée :** Aucun maillage 3D, liste de sommets/faces, coordonnées de texture, ou primitives Canvas 2D ne sont stockés dans le fichier de projet. Toutes les géométries sont recalculées à la demande par le moteur lors du chargement.
+1. **Source de Vérité Unique et Pure :** Seules les données architecturales conceptuelles sont sérialisées.
+2. **Zéro Donnée Géométrique Dérivée :** Aucun maillage 3D, liste de sommets/faces, coordonnées de texture, ou primitives Canvas 2D ne sont stockés. Toutes les géométries sont recalculées à la demande par les moteurs de rendu.
 3. **Déterminisme et Égalité Bit-à-Bit (Round-Trip Idempotence) :** L'export d'un document suivi de son import immédiat et ré-export produit une chaîne JSON strictement identique caractère par caractère (`doc.toJSON(true) === importedDoc.toJSON(true)`).
-4. **Validation Stricte et Isolation des Pannes :** Tout fichier malformé ou incohérent est rejeté dès la phase de parsing avec une exception typée `BimValidationError`, préservant intact le projet en cours de modification dans l'application.
+4. **Migration ascendante transparente :** Tout fichier de schéma v1 est automatiquement migré en mémoire vers le schéma v2 via `migrateV1ToV2` (ADR-042).
+5. **Sauvegarde automatique locale :** Gestionnaire `AutoSaveManager` persistant l'état dans IndexedDB (`mini-bim-autosave`) avec détection de salissure (ADR-051).
 
 ---
 
-## 2. Structure du Schéma JSON (BimState v1)
+## 2. Structure du Schéma JSON (BimState v2)
 
 Le fichier projet (extension recommandée `.mbim.json` ou `.json`) est encodé en UTF-8 et structuré comme suit :
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "units": "mm",
-  "levels": {
-    "01JB0000000000000000000001": {
-      "id": "01JB0000000000000000000001",
-      "name": "Niveau 0 (RDC)",
-      "elevation": 0
-    }
-  },
-  "wallTypes": {
-    "01JB0000000000000000000002": {
-      "id": "01JB0000000000000000000002",
-      "name": "Générique - 200mm",
-      "thickness": 200,
-      "height": 2800
-    }
-  },
-  "walls": {
-    "01JB0000000000000000000003": {
-      "id": "01JB0000000000000000000003",
-      "category": "wall",
-      "typeId": "01JB0000000000000000000002",
-      "levelId": "01JB0000000000000000000001",
-      "start": { "x": 0, "y": 0 },
-      "end": { "x": 6000, "y": 0 }
-    }
-  }
+  "levels": { ... },
+  "wallTypes": { ... },
+  "slabTypes": { ... },
+  "doorTypes": { ... },
+  "windowTypes": { ... },
+  "stairTypes": { ... },
+  "roofTypes": { ... },
+  "componentTypes": { ... },
+  "walls": { ... },
+  "slabs": { ... },
+  "doors": { ... },
+  "windows": { ... },
+  "rooms": { ... },
+  "dimensions": { ... },
+  "stairs": { ... },
+  "roofs": { ... },
+  "roofOpenings": { ... },
+  "components": { ... }
 }
 ```
 
-### Spécification des Champs :
+### 2.1 Migration v1 vers v2 (`migrateV1ToV2`)
+Lorsqu'un payload contenant `"schemaVersion": 1` est détecté par `BimDocument.fromJSON` :
+- Les dimensions des portes et fenêtres (anciennement stockées directement sur l'occurrence) sont extraites pour synthétiser des `DoorType` et `WindowType` dédupliqués.
+- Les orientations d'ouverture `flipHand`/`flipFacing` sont converties en `swing: { side, direction }`.
+- Les collections v2 manquantes (`slabs`, `stairs`, `roofs`, `components`, etc.) sont initialisées à `{}`.
+- Le document résultant est estampillé `"schemaVersion": 2`.
 
 | Champ           | Type                       | Contraintes & Règles de Validation                                                                                        |
 | --------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
