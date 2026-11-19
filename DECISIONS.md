@@ -62,6 +62,8 @@
 | **ADR-051** | Persistance Locale Automatique via IndexedDB & Sécurisation de Session (S2-8)                  | **Accepté**  | 15/11/2026 |
 | **ADR-052** | Dépendance Contrôlée de view-2d vers core pour Fonctions Pures (Amendement ADR-021 & ADR-029)  | **Accepté**  | 15/11/2026 |
 | **ADR-053** | Toitures (Plat & 2 Pans), Biseautage des Murs sous Toiture via topProfile et Trémies de Toit   | **Accepté**  | 15/11/2026 |
+| **ADR-054** | Composants Architecturaux, Mobilier Paramétrique & Interopérabilité IFC4 (Phase 8)             | **Accepté**  | 18/11/2026 |
+| **ADR-055** | Modularisation du Noyau, Propagation DAG des Composants Hébergés et Qualification Système       | **Accepté**  | 19/11/2026 |
 
 ---
 
@@ -2264,6 +2266,43 @@ Mini-BIM supportait les éléments structurels du gros œuvre (murs, ouvertures,
 4. **D4 — Moteur de Collision & Dégagements Fonctionnels (SAT 2D + Altimétrie) :**
    - Séparation stricte entre collision physique (matière solide) et violation de dégagement (zones fonctionnelles d'usage).
    - Détection via Théorème des Axes Séparateurs (SAT 2D) combiné à l'intervalle altimétrique $[z_{\text{inf}}, z_{\text{sup}}]$.
+
+---
+
+## ADR-055 : Modularisation du Noyau, Propagation DAG des Composants Hébergés et Qualification Système
+
+### Statut
+
+**Accepté** (Phase 8.6 — 19 novembre 2026)
+
+### Contexte & Problématique
+
+À l'issue de la Phase 8 et des chantiers de consolidation 1 à 4, le moteur nécessitait une consolidation technique majeure avant la Phase 9 (MEP) :
+1. Éliminer la dette de maintenabilité des trois monolithes (> 1 500 à 2 150 lignes).
+2. Valider formellement la réactivité du DAG pour les composants hébergés (`placement.hostWallId`) et trancher la sévérité de collision mur $\to$ composant.
+3. Mesurer les performances transactionnelles réelles sur 1 000 éléments et intégrer des tests E2E sur navigateur réel.
+
+### Décisions Clés
+
+1. **D1 — Découpage Modulaire Zéro Rupture :**
+   - Scission de `packages/core/src/rules.ts` en `packages/core/src/rules/` (12 modules de domaine).
+   - Scission de `packages/core/src/commands.ts` en `packages/core/src/commands/` (10 modules de domaine).
+   - Scission de `apps/web/src/components/PropertyInspector.tsx` en `apps/web/src/components/inspector/` (10 composants).
+   - Maintien rigoureux de façades de ré-export 100% rétrocompatibles (`export * from './rules/index.js'`, etc.).
+
+2. **D2 — Propagation DAG des Composants Hébergés :**
+   - Enregistrement de `component -> hostWallId` dans le DAG.
+   - Toute modification du mur hôte (`UpdateWallCommand`, `MoveWallCommand`) invalide et notifie les composants dépendants via `CommandResult.changed` et `lastChangedIds` (`T-EXEC-08`).
+
+3. **D3 — Tranchage Collision Mur $\to$ Composant : Sévérité `warning` :**
+   - `COMPONENT_COLLISION` est classé en `severity: 'warning'`.
+   - `validateDirty` ne bloque pas la transaction pour les avertissements (`T-RULES-MOVE-06`), préservant la fluidité de conception architecturale sans masquer les conflits aux outils d'audit.
+
+4. **D4 — Banc de Performance Synthétique & Qualification Externe :**
+   - Mesures certifiées sur 1 000 murs : DAG en < 2 ms, transaction complète en 12,5 ms.
+   - Export STEP ISO 10303-21 autonome validé par le parseur C++/WASM `web-ifc`.
+   - Smoke tests Playwright E2E sur bundle de production Vite (`vite preview`).
+
 
 
 

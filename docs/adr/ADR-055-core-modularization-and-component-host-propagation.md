@@ -1,4 +1,4 @@
-# ADR-054 : Modularisation du Noyau, Propagation DAG des Composants Hébergés et Qualification Système
+# ADR-055 : Modularisation du Noyau, Propagation DAG des Composants Hébergés et Qualification Système
 
 - **Statut :** Accepté
 - **Date :** 2026-11-19

@@ -416,7 +416,7 @@ flowchart LR
   - **Playwright :** **2/2 tests passants** sur Chromium headless en conditions de production réelles.
   - **TypeScript strict :** **0 erreur** (`typecheck`).
   - **ESLint :** **0 erreur, 0 warning** (`eslint .`).
-  - **ADR-054 :** Formellement rédigé et consigné dans `docs/adr/ADR-054-core-modularization-and-component-host-propagation.md`.
+  - **ADR-055 :** Formellement rédigé et consigné dans `docs/adr/ADR-055-core-modularization-and-component-host-propagation.md`.
 
 ---
 
