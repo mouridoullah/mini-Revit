@@ -264,8 +264,132 @@ export interface DocumentFor2D {
     readonly roofOpenings?: Record<string, RoofOpeningFor2D> | undefined;
     readonly components?: Record<string, ComponentFor2D> | undefined;
     readonly componentTypes?: Record<string, ComponentTypeFor2D> | undefined;
+    readonly pipes?: Record<string, PipeFor2D> | undefined;
+    readonly ducts?: Record<string, DuctFor2D> | undefined;
+    readonly cableTrays?: Record<string, CableTrayFor2D> | undefined;
+    readonly mepFittings?: Record<string, MepFittingFor2D> | undefined;
+    readonly mepEquipments?: Record<string, MepEquipmentFor2D> | undefined;
+    readonly mepConnectors?: Record<string, ConnectorFor2D> | undefined;
+    readonly mepSystems?: Record<string, MepSystemFor2D> | undefined;
     readonly levels?: Record<string, { readonly id: string; readonly name: string; readonly elevation: number; readonly height?: number | undefined }> | undefined;
   };
+}
+
+// ============================================================================
+// Types Neutres MEP 2D (ADR-009 / Phase 9.3.1)
+// ============================================================================
+
+export interface Point3DFor2D {
+  readonly x: number;
+  readonly y: number;
+  readonly z: number;
+}
+
+export interface PortFor2D {
+  readonly id: string;
+  readonly elementId: string;
+  readonly position: Point3DFor2D;
+  readonly direction: Point3DFor2D;
+  readonly domain?: string | undefined;
+  readonly systemType?: string | undefined;
+  readonly shape?: 'round' | 'rectangular' | undefined;
+  readonly diameter?: number | undefined;
+  readonly width?: number | undefined;
+  readonly height?: number | undefined;
+}
+
+export interface ConnectorFor2D {
+  readonly id: string;
+  readonly portAId: string;
+  readonly portBId: string;
+  readonly systemId?: string | undefined;
+}
+
+export interface MepSystemFor2D {
+  readonly id: string;
+  readonly name: string;
+  readonly domain?: string | undefined;
+  readonly systemType?: string | undefined;
+  readonly elementIds: readonly string[];
+  readonly color?: string | undefined;
+}
+
+export interface PipeFor2D {
+  readonly id: string;
+  readonly category?: 'pipe' | undefined;
+  readonly levelId?: string | undefined;
+  readonly systemId?: string | undefined;
+  readonly start: Point3DFor2D;
+  readonly end: Point3DFor2D;
+  readonly diameter: number;
+  readonly ports?: readonly PortFor2D[] | undefined;
+  readonly name?: string | undefined;
+}
+
+export interface DuctFor2D {
+  readonly id: string;
+  readonly category?: 'duct' | undefined;
+  readonly levelId?: string | undefined;
+  readonly systemId?: string | undefined;
+  readonly start: Point3DFor2D;
+  readonly end: Point3DFor2D;
+  readonly shape: 'round' | 'rectangular';
+  readonly diameter?: number | undefined;
+  readonly width?: number | undefined;
+  readonly height?: number | undefined;
+  readonly ports?: readonly PortFor2D[] | undefined;
+  readonly name?: string | undefined;
+}
+
+export interface CableTrayFor2D {
+  readonly id: string;
+  readonly category?: 'cableTray' | undefined;
+  readonly levelId?: string | undefined;
+  readonly systemId?: string | undefined;
+  readonly start: Point3DFor2D;
+  readonly end: Point3DFor2D;
+  readonly width: number;
+  readonly height: number;
+  readonly ports?: readonly PortFor2D[] | undefined;
+  readonly name?: string | undefined;
+}
+
+export interface MepFittingFor2D {
+  readonly id: string;
+  readonly category?: 'mepFitting' | undefined;
+  readonly levelId?: string | undefined;
+  readonly systemId?: string | undefined;
+  readonly fittingType: 'elbow' | 'tee' | 'cross' | 'transition' | 'cap';
+  readonly position: Point3DFor2D;
+  readonly ports: readonly PortFor2D[];
+  readonly name?: string | undefined;
+}
+
+export interface MepEquipmentFor2D {
+  readonly id: string;
+  readonly category?: 'mepEquipment' | undefined;
+  readonly levelId?: string | undefined;
+  readonly systemId?: string | undefined;
+  readonly family?: string | undefined;
+  readonly position: Point3DFor2D;
+  readonly rotation?: number | undefined;
+  readonly width: number;
+  readonly depth: number;
+  readonly height: number;
+  readonly ports?: readonly PortFor2D[] | undefined;
+  readonly name?: string | undefined;
+}
+
+export interface MepRenderConfig {
+  readonly mode?: 'single-line' | 'double-line' | undefined;
+  readonly defaultColor?: string | undefined;
+  readonly systemColors?: Record<string, string> | undefined;
+  readonly lineWidth?: number | undefined;
+  readonly centerlineDash?: readonly number[] | undefined;
+  readonly selectedStrokeColor?: string | undefined;
+  readonly selectedStrokeWidth?: number | undefined;
+  readonly showOpenPortMarkers?: boolean | undefined;
+  readonly openPortMarkerRadius?: number | undefined;
 }
 
 /**
@@ -491,6 +615,8 @@ export interface View2DRenderConfig {
   readonly dimension?: DimensionRenderConfig;
   /** Configuration de rendu des composants d'aménagement et mobilier */
   readonly component?: ComponentRenderConfig;
+  /** Configuration de rendu des réseaux et équipements MEP */
+  readonly mep?: MepRenderConfig;
 }
 
 /**

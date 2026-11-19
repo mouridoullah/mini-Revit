@@ -10,6 +10,11 @@ import {
   getComponentAABB,
   getDimensionAABB,
   getRoomAABB,
+  getPipeAABB,
+  getDuctAABB,
+  getCableTrayAABB,
+  getFittingAABB,
+  getEquipmentAABB,
 } from './culling.js';
 
 export interface BuildSpatialIndexOptions extends SpatialGridOptions {
@@ -118,6 +123,66 @@ export function extractSpatialItems(
         category: 'room',
         aabb: getRoomAABB(room),
         levelId: room.levelId ?? null,
+      });
+    }
+  }
+
+  // 8. Réseaux MEP : Tuyauteries (Pipes)
+  if (state.pipes) {
+    for (const pipe of Object.values(state.pipes)) {
+      items.push({
+        id: pipe.id,
+        category: 'pipe',
+        aabb: getPipeAABB(pipe),
+        levelId: pipe.levelId ?? null,
+      });
+    }
+  }
+
+  // 9. Réseaux MEP : Gaines (Ducts)
+  if (state.ducts) {
+    for (const duct of Object.values(state.ducts)) {
+      items.push({
+        id: duct.id,
+        category: 'duct',
+        aabb: getDuctAABB(duct),
+        levelId: duct.levelId ?? null,
+      });
+    }
+  }
+
+  // 10. Réseaux MEP : Chemins de câbles (CableTrays)
+  if (state.cableTrays) {
+    for (const tray of Object.values(state.cableTrays)) {
+      items.push({
+        id: tray.id,
+        category: 'cableTray',
+        aabb: getCableTrayAABB(tray),
+        levelId: tray.levelId ?? null,
+      });
+    }
+  }
+
+  // 11. Réseaux MEP : Raccords (Fittings)
+  if (state.mepFittings) {
+    for (const fitting of Object.values(state.mepFittings)) {
+      items.push({
+        id: fitting.id,
+        category: 'mepFitting',
+        aabb: getFittingAABB(fitting),
+        levelId: fitting.levelId ?? null,
+      });
+    }
+  }
+
+  // 12. Réseaux MEP : Équipements (Equipments)
+  if (state.mepEquipments) {
+    for (const eq of Object.values(state.mepEquipments)) {
+      items.push({
+        id: eq.id,
+        category: 'mepEquipment',
+        aabb: getEquipmentAABB(eq),
+        levelId: eq.levelId ?? null,
       });
     }
   }

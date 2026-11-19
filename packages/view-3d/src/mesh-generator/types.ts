@@ -100,3 +100,90 @@ export interface GableRoofTypeGeometryParams {
 }
 
 export type RoofTypeGeometryParams = FlatRoofTypeGeometryParams | GableRoofTypeGeometryParams;
+
+// ============================================================================
+// Types Géométriques MEP 3D (ADR-009 / Phase 9.3.1)
+// ============================================================================
+
+export interface Point3DParams {
+  readonly x: number;
+  readonly y: number;
+  readonly z: number;
+}
+
+export interface PipeGeometryParams {
+  readonly id: string;
+  readonly start: Point3DParams;
+  readonly end: Point3DParams;
+  readonly diameter: number;
+  readonly levelId?: string | undefined;
+  readonly systemId?: string | undefined;
+  readonly systemType?: string | undefined;
+  readonly domain?: string | undefined;
+  readonly color?: string | undefined;
+}
+
+export interface DuctGeometryParams {
+  readonly id: string;
+  readonly start: Point3DParams;
+  readonly end: Point3DParams;
+  readonly shape: 'round' | 'rectangular';
+  readonly diameter?: number | undefined;
+  readonly width?: number | undefined;
+  readonly height?: number | undefined;
+  readonly levelId?: string | undefined;
+  readonly systemId?: string | undefined;
+  readonly systemType?: string | undefined;
+  readonly domain?: string | undefined;
+  readonly color?: string | undefined;
+}
+
+export interface CableTrayGeometryParams {
+  readonly id: string;
+  readonly start: Point3DParams;
+  readonly end: Point3DParams;
+  readonly width: number;
+  readonly height: number;
+  readonly levelId?: string | undefined;
+  readonly systemId?: string | undefined;
+  readonly color?: string | undefined;
+}
+
+export interface MepPortGeometryParams {
+  readonly id: string;
+  readonly position: Point3DParams;
+  readonly direction: Point3DParams;
+  readonly shape?: 'round' | 'rectangular' | undefined;
+  readonly diameter?: number | undefined;
+  readonly width?: number | undefined;
+  readonly height?: number | undefined;
+  readonly systemType?: string | undefined;
+  readonly domain?: string | undefined;
+}
+
+export interface MepFittingGeometryParams {
+  readonly id: string;
+  readonly fittingType: 'elbow' | 'tee' | 'cross' | 'transition' | 'cap';
+  readonly position: Point3DParams;
+  readonly ports: readonly MepPortGeometryParams[];
+  readonly levelId?: string | undefined;
+  readonly systemId?: string | undefined;
+  readonly systemType?: string | undefined;
+  readonly domain?: string | undefined;
+  readonly color?: string | undefined;
+}
+
+export interface MepEquipmentGeometryParams {
+  readonly id: string;
+  readonly family?: string | undefined;
+  readonly position: Point3DParams;
+  readonly rotation?: number | undefined;
+  readonly width: number;
+  readonly depth: number;
+  readonly height: number;
+  readonly ports?: readonly MepPortGeometryParams[] | undefined;
+  readonly levelId?: string | undefined;
+  readonly systemId?: string | undefined;
+  readonly color?: string | undefined;
+}
+

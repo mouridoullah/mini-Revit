@@ -21,6 +21,7 @@ import {
   DEFAULT_UNDERLAY_RENDER_CONFIG,
   DEFAULT_ROOM_RENDER_CONFIG,
   DEFAULT_DIMENSION_RENDER_CONFIG,
+  DEFAULT_MEP_RENDER_CONFIG,
 } from './config.js';
 import { DEFAULT_COMPONENT_RENDER_CONFIG, drawComponents } from '../components-2d.js';
 import { clearCanvas, drawGrid } from './grid.js';
@@ -30,6 +31,7 @@ import { drawSlabs } from './slabs.js';
 import { drawUnderlay } from './underlay.js';
 import { drawStairs } from './stairs.js';
 import { drawRoofs } from './roofs.js';
+import { drawMepElements } from './mep.js';
 import { drawRooms, drawRoomDiagnostics } from './rooms.js';
 import { drawDimensions } from './dimensions.js';
 import { drawPreview } from './preview.js';
@@ -83,6 +85,7 @@ export function renderPlanView(
     room: { ...DEFAULT_ROOM_RENDER_CONFIG, ...config.room },
     dimension: { ...DEFAULT_DIMENSION_RENDER_CONFIG, ...config.dimension },
     component: { ...DEFAULT_COMPONENT_RENDER_CONFIG, ...config.component },
+    mep: { ...DEFAULT_MEP_RENDER_CONFIG, ...config.mep },
   };
 
   const state = doc.getState();
@@ -356,6 +359,35 @@ export function renderPlanView(
       state.doorTypes,
       state.windowTypes,
       visibleOpeningIds,
+    );
+  }
+
+  // 5c. Réseaux et équipements techniques MEP
+  if (
+    state.pipes ||
+    state.ducts ||
+    state.cableTrays ||
+    state.mepFittings ||
+    state.mepEquipments
+  ) {
+    drawMepElements(
+      ctx,
+      transform,
+      {
+        pipes: state.pipes,
+        ducts: state.ducts,
+        cableTrays: state.cableTrays,
+        mepFittings: state.mepFittings,
+        mepEquipments: state.mepEquipments,
+        mepConnectors: state.mepConnectors,
+        mepSystems: state.mepSystems,
+      },
+      mergedConfig.mep,
+      {
+        effectiveLevelId,
+        selectedIds,
+        spatialVisibleIds,
+      },
     );
   }
 

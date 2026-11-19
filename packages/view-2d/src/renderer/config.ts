@@ -8,6 +8,7 @@ import {
   type StairRenderConfig,
   type RoofRenderConfig,
   type UnderlayRenderConfig,
+  type MepRenderConfig,
 } from '../types.js';
 import { DEFAULT_COMPONENT_RENDER_CONFIG } from '../components-2d.js';
 
@@ -105,6 +106,17 @@ export const DEFAULT_ROOF_RENDER_CONFIG: RoofRenderConfig = Object.freeze({
   selectedStrokeWidth: 3,
 });
 
+export const DEFAULT_MEP_RENDER_CONFIG: MepRenderConfig = Object.freeze({
+  mode: 'single-line',
+  defaultColor: '#64748b',
+  lineWidth: 2,
+  centerlineDash: [4, 4],
+  selectedStrokeColor: '#2563eb',
+  selectedStrokeWidth: 3,
+  showOpenPortMarkers: true,
+  openPortMarkerRadius: 4,
+});
+
 /**
  * Configuration globale par défaut du rendu 2D.
  */
@@ -120,4 +132,5 @@ export const DEFAULT_VIEW2D_RENDER_CONFIG: View2DRenderConfig = Object.freeze({
   room: DEFAULT_ROOM_RENDER_CONFIG,
   dimension: DEFAULT_DIMENSION_RENDER_CONFIG,
   component: DEFAULT_COMPONENT_RENDER_CONFIG,
+  mep: DEFAULT_MEP_RENDER_CONFIG,
 });

@@ -17,6 +17,7 @@ export {
   createKitchenMaterial,
   createFurnitureMaterial,
   createGlazingMaterial,
+  createMepMaterial,
 } from './materials.js';
 export {
   createComponentMesh,
@@ -31,6 +32,14 @@ export {
   createSlabMesh,
   createStairMesh,
   createRoofMesh,
+  generatePipeMesh,
+  generateDuctMesh,
+  generateCableTrayMesh,
+  generateFittingMesh,
+  generateEquipmentMesh,
+  generateMepMeshes,
+  getMepSystemColor,
+  MEP_SYSTEM_COLORS,
   type WallGeometryParams,
   type WallTypeGeometryParams,
   type OpeningGeometryParams,
@@ -44,6 +53,13 @@ export {
   type RoofTypeGeometryParams,
   type FlatRoofTypeGeometryParams,
   type GableRoofTypeGeometryParams,
+  type Point3DParams,
+  type PipeGeometryParams,
+  type DuctGeometryParams,
+  type CableTrayGeometryParams,
+  type MepFittingGeometryParams,
+  type MepEquipmentGeometryParams,
+  type MepPortGeometryParams,
 } from './mesh-generator.js';
 export {
   computeWallFootprint2d,

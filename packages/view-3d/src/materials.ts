@@ -107,3 +107,18 @@ export function createGlazingMaterial(): THREE.MeshStandardMaterial {
     side: THREE.DoubleSide,
   });
 }
+
+/**
+ * Matériau standard pour les composants MEP (tuyaux, gaines, câbles, équipements).
+ */
+export function createMepMaterial(
+  hexColor: string | number = 0x64748b,
+): THREE.MeshStandardMaterial {
+  return new THREE.MeshStandardMaterial({
+    color: hexColor,
+    roughness: 0.35,
+    metalness: 0.25,
+    side: THREE.DoubleSide,
+  });
+}
+

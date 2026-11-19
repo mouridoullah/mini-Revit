@@ -10,6 +10,7 @@ import {
   createKitchenMaterial,
   createFurnitureMaterial,
   createGlazingMaterial,
+  createMepMaterial,
 } from './materials.js';
 
 export type ComponentMeshFamily = 'sanitary' | 'kitchen' | 'furniture' | 'glazing' | (string & {});
@@ -485,6 +486,55 @@ export class Scene3D {
 
   public removeComponentMesh(componentId: string): void {
     this.removeMesh(componentId);
+  }
+
+  /**
+   * Ajoute un élément de réseau MEP (tuyau, gaine, chemin de câbles, raccord, équipement) à la scène 3D.
+   */
+  public addMepMesh(
+    elementId: string,
+    rawMesh: RawMeshData,
+    colorOrMaterial?: string | number | THREE.Material,
+  ): THREE.Mesh {
+    let material: THREE.Material;
+    if (colorOrMaterial instanceof THREE.Material) {
+      material = colorOrMaterial;
+    } else {
+      const hex =
+        colorOrMaterial ??
+        (rawMesh.userData?.color as string | undefined) ??
+        '#64748b';
+      material = createMepMaterial(hex);
+    }
+
+    return this.addMesh(
+      {
+        ...rawMesh,
+        elementId,
+        userData: {
+          elementId,
+          category: 'mep',
+          ...(rawMesh.userData ?? {}),
+        },
+      },
+      material,
+    );
+  }
+
+  /**
+   * Met à jour un élément MEP dans la scène 3D (libère l'ancienne géométrie et remplace le mesh).
+   */
+  public updateMepMesh(
+    elementId: string,
+    rawMesh: RawMeshData,
+    colorOrMaterial?: string | number | THREE.Material,
+  ): THREE.Mesh {
+    this.removeMesh(elementId);
+    return this.addMepMesh(elementId, rawMesh, colorOrMaterial);
+  }
+
+  public removeMepMesh(elementId: string): void {
+    this.removeMesh(elementId);
   }
 
   /**
