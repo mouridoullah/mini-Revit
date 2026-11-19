@@ -682,3 +682,111 @@ export class DisconnectPortsCommand implements Command {
     return this.changedIds.length > 0 ? this.changedIds : [this.connectorId];
   }
 }
+
+// ============================================================================
+// 8. Commandes Polymorphiques d'Élément MEP (UI Inspector & Generic Tools)
+// ============================================================================
+
+export type MepElementKind = 'pipe' | 'duct' | 'cableTray' | 'mepFitting' | 'mepEquipment';
+
+export function getMepElementKind(state: BimState, id: ElementId): MepElementKind | null {
+  if (state.pipes?.[id]) return 'pipe';
+  if (state.ducts?.[id]) return 'duct';
+  if (state.cableTrays?.[id]) return 'cableTray';
+  if (state.mepFittings?.[id]) return 'mepFitting';
+  if (state.mepEquipments?.[id]) return 'mepEquipment';
+  return null;
+}
+
+/**
+ * Commande polymorphique permettant la suppression de n'importe quel élément technique MEP
+ * (tuyau, gaine, chemin de câbles, raccord, équipement) en purgeant automatiquement
+ * les connecteurs incidents et les références de systèmes.
+ */
+export class DeleteMepElementCommand implements Command {
+  public readonly name = 'DeleteMepElement';
+  private delegate: Command | null = null;
+
+  public constructor(public readonly elementId: ElementId) {}
+
+  public apply(draft: BimState): void {
+    const kind = getMepElementKind(draft, this.elementId);
+    if (!kind) {
+      throw new BimValidationError('ELEMENT_NOT_FOUND', `MEP Element "${this.elementId}" not found.`);
+    }
+
+    switch (kind) {
+      case 'pipe':
+        this.delegate = new DeletePipeCommand(this.elementId);
+        break;
+      case 'duct':
+        this.delegate = new DeleteDuctCommand(this.elementId);
+        break;
+      case 'cableTray':
+        this.delegate = new DeleteCableTrayCommand(this.elementId);
+        break;
+      case 'mepFitting':
+        this.delegate = new DeleteMepFittingCommand(this.elementId);
+        break;
+      case 'mepEquipment':
+        this.delegate = new DeleteMepEquipmentCommand(this.elementId);
+        break;
+    }
+
+    this.delegate.apply(draft);
+  }
+
+  public getChangedIds(): readonly ElementId[] {
+    return this.delegate ? this.delegate.getChangedIds() : [this.elementId];
+  }
+}
+
+/**
+ * Commande polymorphique permettant la mise à jour partielle des attributs d'un élément MEP.
+ */
+export class UpdateMepElementCommand implements Command {
+  public readonly name = 'UpdateMepElement';
+  private delegate: Command | null = null;
+
+  public constructor(
+    public readonly elementId: ElementId,
+    public readonly patch: Partial<Pipe | Duct | CableTray | MepFitting | MepEquipment>,
+  ) {}
+
+  public apply(draft: BimState): void {
+    const kind = getMepElementKind(draft, this.elementId);
+    if (!kind) {
+      throw new BimValidationError('ELEMENT_NOT_FOUND', `MEP Element "${this.elementId}" not found.`);
+    }
+
+    switch (kind) {
+      case 'pipe': {
+        this.delegate = new UpdatePipeCommand(this.elementId, this.patch as Partial<Pipe>);
+        break;
+      }
+      case 'duct': {
+        this.delegate = new UpdateDuctCommand(this.elementId, this.patch as Partial<Duct>);
+        break;
+      }
+      case 'cableTray': {
+        this.delegate = new UpdateCableTrayCommand(this.elementId, this.patch as Partial<CableTray>);
+        break;
+      }
+      case 'mepFitting': {
+        this.delegate = new UpdateMepFittingCommand(this.elementId, this.patch as Partial<MepFitting>);
+        break;
+      }
+      case 'mepEquipment': {
+        this.delegate = new UpdateMepEquipmentCommand(this.elementId, this.patch as Partial<MepEquipment>);
+        break;
+      }
+    }
+
+    this.delegate.apply(draft);
+  }
+
+  public getChangedIds(): readonly ElementId[] {
+    return this.delegate ? this.delegate.getChangedIds() : [this.elementId];
+  }
+}
+

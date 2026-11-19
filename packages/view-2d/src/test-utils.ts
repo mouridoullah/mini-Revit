@@ -270,3 +270,57 @@ export function createMockCanvas(
 
   return { canvas, mock };
 }
+
+/**
+ * Crée un mock Canvas ultra-léger et sans allocation d'historique d'appels,
+ * spécialement calibré pour les bancs de performance et micro-benchmarks haute fréquence.
+ */
+export function createBenchmarkCanvas(
+  width: number = 1920,
+  height: number = 1080,
+): {
+  readonly canvas: HTMLCanvasElement;
+  readonly ctx: CanvasRenderingContext2D;
+} {
+  const mockCtx = {
+    fillStyle: '#000000',
+    strokeStyle: '#000000',
+    lineWidth: 1,
+    globalAlpha: 1.0,
+    lineJoin: 'miter' as CanvasLineJoin,
+    font: '10px sans-serif',
+    textAlign: 'start' as CanvasTextAlign,
+    textBaseline: 'alphabetic' as CanvasTextBaseline,
+    save: () => {},
+    restore: () => {},
+    beginPath: () => {},
+    closePath: () => {},
+    moveTo: () => {},
+    lineTo: () => {},
+    stroke: () => {},
+    fill: () => {},
+    fillRect: () => {},
+    clearRect: () => {},
+    clip: () => {},
+    rect: () => {},
+    arc: () => {},
+    ellipse: () => {},
+    translate: () => {},
+    rotate: () => {},
+    scale: () => {},
+    fillText: () => {},
+    strokeText: () => {},
+    setLineDash: () => {},
+    getLineDash: () => [],
+    measureText: (_text: string) => ({ width: 10 } as TextMetrics),
+    canvas: { width, height } as HTMLCanvasElement,
+  } as unknown as CanvasRenderingContext2D;
+
+  const canvas = {
+    width,
+    height,
+    getContext: () => mockCtx,
+  } as unknown as HTMLCanvasElement;
+
+  return { canvas, ctx: mockCtx };
+}

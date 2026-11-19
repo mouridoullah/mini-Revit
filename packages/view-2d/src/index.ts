@@ -61,3 +61,5 @@ export {
   DEFAULT_COMPONENT_RENDER_CONFIG,
   type ComponentRenderConfig,
 } from './components-2d.js';
+export * from './spatial/index.js';
+

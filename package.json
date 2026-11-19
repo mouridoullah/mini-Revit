@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "pnpm --filter \"./packages/*\" run build && pnpm --filter \"./apps/*\" run build",
-    "test": "pnpm --filter \"./packages/*\" --filter \"./apps/*\" run test",
+    "test": "pnpm --workspace-concurrency=1 --filter \"./packages/*\" --filter \"./apps/*\" run test",
     "test:watch": "pnpm --filter \"./packages/*\" --filter \"./apps/*\" run test:watch",
     "test:e2e": "pnpm --filter @mini-bim/web run test:e2e",
     "typecheck": "pnpm --filter \"./packages/*\" --filter \"./apps/*\" run typecheck",

@@ -2337,10 +2337,35 @@ Deux exigences clés ont été identifiées :
    - Validations différentielles `validateDirty` en coût local strict $\mathcal{O}(1)$ sans boucle quadratique $\mathcal{O}(N^2)$ globale.
    - Qualification formelle sur 10 000 connexions avec parcours BFS en < 20 ms.
 
+---
 
+## ADR-057 : Indexation Spatiale 2D, Frustum Culling et Modularisation des Moteurs de Rendu
 
+### Contexte
 
+Lors du benchmark de la Phase 9.1 sur 1 000 entités réalistes (~400 murs, 200 ouvertures, mobilier, dalles, toitures, escaliers), le rendu 2D Canvas complet prenait **270 ms** (~3,7 FPS), dépassant largement le budget interactif de **16,67 ms** (60 FPS).
+Par ailleurs, `renderer.ts` (~1 946 lignes) et `mesh-generator.ts` (~1 568 lignes) dépassaient le seuil de maintenabilité de 1 500 lignes.
 
+### Décisions Clés
 
+1. **D1 — Modularisation en Sous-Modules de Domaine :**
+   - `packages/view-3d/src/mesh-generator/` découpé en 8 modules (`types`, `walls`, `openings`, `slabs`, `stairs`, `roofs`, `rooms`, `index`).
+   - `packages/view-2d/src/renderer/` découpé en 12 modules (`config`, `grid`, `walls`, `openings`, `slabs`, `stairs`, `roofs`, `rooms`, `dimensions`, `underlay`, `preview`, `plan-view`, `index`).
+   - Façades rétrocompatibles préservées dans `mesh-generator.ts` et `renderer.ts`.
+
+2. **D2 — Grille Spatiale Uniforme (`SpatialGrid2D`) :**
+   - Découpage du monde en cellules de 5 000 mm avec requêtes de fenêtre en $\mathcal{O}(c + m)$.
+   - Indexation automatique de toutes les catégories architecturales.
+   - Scan linéaire de référence `LinearSpatialIndex2D` pour étalonnage métrologique.
+
+3. **D3 — Frustum Culling AABB & Filtrage par Niveau :**
+   - Élimination des entités hors viewport avec marge de garde dynamique $\mathrm{marginMm} = \max(500, 50 / \mathrm{scale})$.
+   - Filtrage par niveau actif `effectiveLevelId` : seuls les murs visibles du niveau actif sont résolus par `solveWallJunctions`.
+   - Éléments traversants (`Stair`) visibles simultanément sur leur niveau de départ et d'arrivée via `levelIds`.
+
+4. **D4 — Validation Métrologique (60 FPS Garanti) :**
+   - Temps de rendu sur 1 000 entités réduit de **270 ms** à **11,63 ms (P95)** et **7,78 ms (P50)** (> 60 FPS certifié).
+   - Mouvements caméra fluides : Pan P50 à 8,10 ms, Zoom P50 à 7,07 ms, Level Switch à 7,13 ms.
+   - Scalabilité à 10 000 entités : 98,3% des éléments hors champ éliminés, requête spatiale en 0,50 ms.
 
 

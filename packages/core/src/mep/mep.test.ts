@@ -25,6 +25,9 @@ import {
   CreateMepSystemCommand,
   AssignToMepSystemCommand,
   ConnectPortsCommand,
+  DeleteMepElementCommand,
+  UpdateMepElementCommand,
+  getMepElementKind,
   type Connector,
 } from './index.js';
 
@@ -954,6 +957,78 @@ describe('Phase 9.2 — Noyau MEP & Modèle Topologique des Réseaux Techniques'
           expect(loopMetrics.p50Ms).toBeLessThan(150);
         }
       }
+    });
+  });
+
+  describe('9.2.5 — Commandes Polymorphiques CRUD MEP (DeleteMepElementCommand & UpdateMepElementCommand)', () => {
+    it('Supprime n\'importe quel élément MEP (Pipe, Duct, Equipment) et restaure sur undo', () => {
+      const { doc, levelId } = setupDoc();
+      const p1 = createPipe({
+        systemType: 'domestic_cold_water',
+        start: point3D(0, 0, 500),
+        end: point3D(2000, 0, 500),
+        diameter: 22,
+        levelId,
+      });
+      const d1 = createDuct({
+        systemType: 'supply_air',
+        start: point3D(0, 0, 2500),
+        end: point3D(3000, 0, 2500),
+        shape: 'rectangular',
+        width: 300,
+        height: 200,
+        levelId,
+      });
+
+      doc.execute(new AddPipeCommand(p1));
+      doc.execute(new AddDuctCommand(d1));
+
+      expect(getMepElementKind(doc.getState(), p1.id)).toBe('pipe');
+      expect(getMepElementKind(doc.getState(), d1.id)).toBe('duct');
+
+      // Suppression polymorphique du Pipe
+      doc.execute(new DeleteMepElementCommand(p1.id));
+      expect(doc.getState().pipes?.[p1.id]).toBeUndefined();
+
+      // Suppression polymorphique de la gaine
+      doc.execute(new DeleteMepElementCommand(d1.id));
+      expect(doc.getState().ducts?.[d1.id]).toBeUndefined();
+
+      // Undo de la gaine
+      doc.undo();
+      expect(doc.getState().ducts?.[d1.id]).toBeDefined();
+
+      // Undo du tuyau
+      doc.undo();
+      expect(doc.getState().pipes?.[p1.id]).toBeDefined();
+    });
+
+    it('Met à jour n\'importe quel élément MEP de manière polymorphique', () => {
+      const { doc, levelId } = setupDoc();
+      const p1 = createPipe({
+        systemType: 'domestic_cold_water',
+        start: point3D(0, 0, 500),
+        end: point3D(2000, 0, 500),
+        diameter: 22,
+        levelId,
+      });
+      doc.execute(new AddPipeCommand(p1));
+
+      doc.execute(new UpdateMepElementCommand(p1.id, { diameter: 40 }));
+      expect(doc.getState().pipes?.[p1.id]?.diameter).toBe(40);
+
+      doc.undo();
+      expect(doc.getState().pipes?.[p1.id]?.diameter).toBe(22);
+    });
+
+    it('Rejette la suppression ou mise à jour d\'un identifiant inexistant', () => {
+      const { doc } = setupDoc();
+      expect(() => doc.execute(new DeleteMepElementCommand('invalid_id'))).toThrow(
+        'MEP Element "invalid_id" not found.',
+      );
+      expect(() => doc.execute(new UpdateMepElementCommand('invalid_id', {}))).toThrow(
+        'MEP Element "invalid_id" not found.',
+      );
     });
   });
 });

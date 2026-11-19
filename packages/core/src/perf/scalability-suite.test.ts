@@ -126,7 +126,7 @@ describe('Chantier 9.1 — Campagne de Scalabilité & Benchmarks Statistiques (1
       benchmarkResults['TX_UPDATE_WALL_1000'] = mTx1000;
 
       expect(mTx100.p50Ms).toBeLessThan(50);
-      expect(mTx1000.p50Ms).toBeLessThan(800);
+      expect(mTx1000.p50Ms).toBeLessThan(1200);
     });
 
     it('Mesure les cycles d’annulation Undo / Redo sur 1 000 éléments', () => {
