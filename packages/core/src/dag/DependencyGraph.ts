@@ -80,7 +80,8 @@ export class DependencyGraph {
     }
 
     while (queue.length > 0) {
-      const current = queue.shift()!;
+      const current = queue.shift();
+      if (!current) break;
       const nextChildren = this.forward.get(current);
       if (nextChildren) {
         for (const child of nextChildren) {
@@ -134,7 +135,9 @@ export class DependencyGraph {
             const cycle: ElementId[] = [next, node];
             let curr = node;
             while (parentPath.has(curr) && parentPath.get(curr) !== next) {
-              curr = parentPath.get(curr)!;
+              const p = parentPath.get(curr);
+              if (!p) break;
+              curr = p;
               cycle.push(curr);
             }
             cycleNodes = Array.from(new Set(cycle)).sort();

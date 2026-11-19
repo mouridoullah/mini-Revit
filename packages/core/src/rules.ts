@@ -688,81 +688,60 @@ export function checkDimensionViolations(dim: Dimension, state: BimState): RuleV
 // Fonctions impératives publiques de validation (rétrocompatibilité stricte)
 // ---------------------------------------------------------------------------
 
+function assertNoViolations(violations: readonly RuleViolation[]): void {
+  const first = violations[0];
+  if (first) {
+    throw new BimValidationError(first.code, first.message, { offendingIds: first.offendingIds });
+  }
+}
+
 /**
  * Valide l'intégrité géométrique et référentielle d'un mur.
  */
 export function validateWall(wall: Wall, state: BimState): void {
-  const violations = checkWallViolations(wall, state);
-  if (violations.length > 0) {
-    const v = violations[0]!;
-    throw new BimValidationError(v.code, v.message, { offendingIds: v.offendingIds });
-  }
+  assertNoViolations(checkWallViolations(wall, state));
 }
 
 /**
  * Valide les paramètres d'un type de mur.
  */
 export function validateWallType(wallType: WallType): void {
-  const violations = checkWallTypeViolations(wallType);
-  if (violations.length > 0) {
-    const v = violations[0]!;
-    throw new BimValidationError(v.code, v.message, { offendingIds: v.offendingIds });
-  }
+  assertNoViolations(checkWallTypeViolations(wallType));
 }
 
 /**
  * Valide les paramètres d'un niveau architectural.
  */
 export function validateLevel(level: Level, state?: BimState): void {
-  const violations = checkLevelViolations(level, state);
-  if (violations.length > 0) {
-    const v = violations[0]!;
-    throw new BimValidationError(v.code, v.message, { offendingIds: v.offendingIds });
-  }
+  assertNoViolations(checkLevelViolations(level, state));
 }
 
 /**
  * Valide une porte hébergée par un mur linéaire.
  */
 export function validateDoor(door: Door, state: BimState): void {
-  const violations = checkDoorViolations(door, state);
-  if (violations.length > 0) {
-    const v = violations[0]!;
-    throw new BimValidationError(v.code, v.message, { offendingIds: v.offendingIds });
-  }
+  assertNoViolations(checkDoorViolations(door, state));
 }
 
 /**
  * Valide une fenêtre hébergée par un mur linéaire.
  */
 export function validateWindow(window: Window, state: BimState): void {
-  const violations = checkWindowViolations(window, state);
-  if (violations.length > 0) {
-    const v = violations[0]!;
-    throw new BimValidationError(v.code, v.message, { offendingIds: v.offendingIds });
-  }
+  assertNoViolations(checkWindowViolations(window, state));
 }
 
 /**
  * Valide l'intégrité métier et spatiale d'une pièce architecturale (Room).
  */
 export function validateRoom(room: Room, state: BimState): void {
-  const violations = checkRoomViolations(room, state);
-  if (violations.length > 0) {
-    const v = violations[0]!;
-    throw new BimValidationError(v.code, v.message, { offendingIds: v.offendingIds });
-  }
+  assertNoViolations(checkRoomViolations(room, state));
 }
 
 /**
  * Valide l'intégrité métier et référentielle d'une cotation 2D (Dimension).
  */
 export function validateDimension(dim: Dimension, state: BimState): void {
-  const violations = checkDimensionViolations(dim, state);
-  if (violations.length > 0) {
-    const v = violations[0]!;
-    throw new BimValidationError(v.code, v.message, { offendingIds: v.offendingIds });
-  }
+  assertNoViolations(checkDimensionViolations(dim, state));
 }
 
 /**
@@ -802,11 +781,7 @@ export function checkSlabTypeViolations(slabType: SlabType): RuleViolation[] {
 }
 
 export function validateSlabType(slabType: SlabType): void {
-  const violations = checkSlabTypeViolations(slabType);
-  if (violations.length > 0) {
-    const v = violations[0]!;
-    throw new BimValidationError(v.code, v.message, { offendingIds: v.offendingIds });
-  }
+  assertNoViolations(checkSlabTypeViolations(slabType));
 }
 
 /**
@@ -892,11 +867,7 @@ export function checkSlabViolations(slab: Slab, state: BimState): RuleViolation[
 }
 
 export function validateSlab(slab: Slab, state: BimState): void {
-  const violations = checkSlabViolations(slab, state);
-  if (violations.length > 0) {
-    const v = violations[0]!;
-    throw new BimValidationError(v.code, v.message, { offendingIds: v.offendingIds });
-  }
+  assertNoViolations(checkSlabViolations(slab, state));
 }
 
 /**
@@ -925,11 +896,7 @@ export function checkStairTypeViolations(stairType: StairType): RuleViolation[] 
 }
 
 export function validateStairType(stairType: StairType): void {
-  const violations = checkStairTypeViolations(stairType);
-  if (violations.length > 0) {
-    const v = violations[0]!;
-    throw new BimValidationError(v.code, v.message, { offendingIds: v.offendingIds });
-  }
+  assertNoViolations(checkStairTypeViolations(stairType));
 }
 
 /**
@@ -1019,11 +986,7 @@ export function checkStairViolations(stair: Stair, state: BimState): RuleViolati
 }
 
 export function validateStair(stair: Stair, state: BimState): void {
-  const violations = checkStairViolations(stair, state);
-  if (violations.length > 0) {
-    const v = violations[0]!;
-    throw new BimValidationError(v.code, v.message, { offendingIds: v.offendingIds });
-  }
+  assertNoViolations(checkStairViolations(stair, state));
 }
 
 /**
@@ -2123,8 +2086,11 @@ export function validateDirty(
 
   // Sans état précédent, toute violation sur le dirty set est fatale
   if (!previousState) {
-    const first = draftViolations[0]!;
-    throw new BimValidationError(first.code, first.message, { offendingIds: first.offendingIds });
+    const first = draftViolations[0];
+    if (first) {
+      throw new BimValidationError(first.code, first.message, { offendingIds: first.offendingIds });
+    }
+    return;
   }
 
   const prevViolations = collectViolationsForDirty(previousState, dirtyIds);

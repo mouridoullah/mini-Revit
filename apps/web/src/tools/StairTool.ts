@@ -177,13 +177,15 @@ export class StairTool implements Tool {
     const currentIdx = sortedLevels.findIndex((l) => l.id === bottomLevelId);
 
     let topLevelId: string;
-    if (currentIdx >= 0 && currentIdx + 1 < sortedLevels.length) {
-      topLevelId = sortedLevels[currentIdx + 1]!.id;
+    const nextLevel = currentIdx >= 0 ? sortedLevels[currentIdx + 1] : undefined;
+    if (nextLevel) {
+      topLevelId = nextLevel.id;
     } else if (sortedLevels.length > 1) {
       const higher = sortedLevels.find(
         (l) => l.elevation > (state.levels[bottomLevelId]?.elevation ?? 0),
       );
-      topLevelId = higher ? higher.id : sortedLevels[sortedLevels.length - 1]!.id;
+      const lastLevel = sortedLevels[sortedLevels.length - 1];
+      topLevelId = higher ? higher.id : (lastLevel?.id ?? bottomLevelId);
     } else {
       topLevelId = bottomLevelId;
     }

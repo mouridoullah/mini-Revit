@@ -94,7 +94,8 @@ export function computeWallVerticalBounds(
 
   // Priorité 2 : Contrainte supérieure de niveau
   if (wall.topConstraint?.levelId) {
-    const targetLevel = state.levels[wall.topConstraint.levelId];
+    const topLevelId = wall.topConstraint.levelId;
+    const targetLevel = state.levels[topLevelId];
 
     if (!currentLevel || !targetLevel) {
       return {
@@ -112,7 +113,7 @@ export function computeWallVerticalBounds(
     // Rechercher les dalles associées au niveau supérieur
     if (state.slabs) {
       const targetSlabs = Object.values(state.slabs).filter(
-        (sl) => sl.levelId === wall.topConstraint!.levelId,
+        (sl) => sl.levelId === topLevelId,
       );
 
       for (const slab of targetSlabs) {

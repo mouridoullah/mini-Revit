@@ -194,8 +194,8 @@ export function migrateSchemaV1toV2(v1State: V1BimState | BimState): BimState {
       if (effectiveHeightOverride === undefined && currentLevel && wallType) {
         // Chercher le niveau immédiatement supérieur
         const higherLevels = sortedLevels.filter((lvl) => lvl.elevation > currentLevel.elevation);
-        if (higherLevels.length > 0) {
-          const nextLevel = higherLevels[0]!;
+        const nextLevel = higherLevels[0];
+        if (nextLevel) {
           const gap = nextLevel.elevation - currentLevel.elevation;
           // Si l'écart altimétrique diffère de la hauteur nominale du type, figer la hauteur
           if (gap !== wallType.height) {

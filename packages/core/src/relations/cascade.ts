@@ -53,7 +53,8 @@ export function resolveCascadeDeletions(
   const queue: ElementId[] = [targetId];
 
   while (queue.length > 0) {
-    const currentId = queue.shift()!;
+    const currentId = queue.shift();
+    if (!currentId) break;
 
     for (const rel of registry) {
       const sourceEntities = getEntitiesForCategory(state, rel.sourceCategory);
