@@ -2234,6 +2234,38 @@ Le package `@mini-bim/view-3d` reste strictement découplé de `@mini-bim/core`.
 8. **D9 — Outil Interactif `RoofTool` & PropertyInspector :**
    - Workflow fluide de tracé, saisie du faîtage, et édition dynamique des propriétés.
 
+---
+
+## ADR-054 : Composants Architecturaux, Mobilier Paramétrique & Interopérabilité IFC4 (Phase 8)
+
+### Statut
+
+**Accepté** (Phase 8 — 18 novembre 2026)
+
+### Contexte & Problématique
+
+Mini-BIM supportait les éléments structurels du gros œuvre (murs, ouvertures, dalles, escaliers, toitures). Pour compléter la conception architecturale, le bâtiment doit intégrer le mobilier, les équipements sanitaires et les menuiseries spécifiques avec intégrité sémantique, classification buildingSMART IFC4 et détection spatiale des interférences.
+
+### Décisions Clés
+
+1. **D1 — Séparation ComponentType / Component :**
+   - `ComponentType` définit les dimensions par défaut, la famille (`furniture`, `sanitary`, `system`, `glazing`), le mapping IFC4 (`IfcFurniture`, `IfcSanitaryTerminal`, `IfcSystemFurnitureElement`, `IfcDoor`, `IfcWindow`), les zones de dégagement et la symbologie 2D/3D.
+   - `Component` porte l'occurrence physique avec placement ($x, y$, rotation, élévation, mur hôte éventuel) et surcharges dimensionnelles validées.
+
+2. **D2 — Classification & Hiérarchie IFC4 buildingSMART :**
+   - Remplacement de `IfcFurnishingElement` obsolète par `IfcFurniture` et `IfcFurnitureType`.
+   - Équipements sanitaires typés : `IfcSanitaryTerminal` / `IfcSanitaryTerminalType` avec énumérations normalisées (`TOILETPAN`, `WASHHANDBASIN`, `SHOWER`, `BATH`, `SINK`).
+   - Mobilier modulaire et cloisons mobiles : `IfcSystemFurnitureElement` / `IfcSystemFurnitureElementType`.
+   - Liaison d'occurrence à type via `IfcRelDefinesByType`.
+
+3. **D3 — Menuiseries Composants & Réservations Hôtes :**
+   - Les menuiseries placées via le catalogue de composants (baies vitrées, portes coulissantes) génèrent automatiquement leur réservation `IfcOpeningElement` perçant le mur hôte, liée par `IfcRelVoidsElement` et remplie par `IfcRelFillsElement`.
+
+4. **D4 — Moteur de Collision & Dégagements Fonctionnels (SAT 2D + Altimétrie) :**
+   - Séparation stricte entre collision physique (matière solide) et violation de dégagement (zones fonctionnelles d'usage).
+   - Détection via Théorème des Axes Séparateurs (SAT 2D) combiné à l'intervalle altimétrique $[z_{\text{inf}}, z_{\text{sup}}]$.
+
+
 
 
 

@@ -347,14 +347,40 @@ flowchart LR
 
 ---
 
-### Phase 8 — Objets, Mobilier & Bibliothèque de Composants (`Components`)
+### Phase 8 — Objets, Mobilier & Bibliothèque de Composants (`Components`) [LIVRÉ & CERTIFIÉ]
 
-- **Objectif :** Meubler et équiper les espaces pour valider l'habitabilité, l'accessibilité PMR et enrichir les rendus.
-- **Fonctionnalités :**
-  - **Catalogue d'Équipements (`ComponentType`, ADR-042) :** Sanitaires (WC, lavabo, douche, baignoire), Cuisine (évier, plaques, réfrigérateur), Mobilier (lit, table, chaises).
-  - **Outil d'Insertion (`ComponentTool`) :** Placement interactif par clic sur plan avec rotation à 90° par la touche `Espace`.
-  - **Représentation Hybride 2D/3D :** Symbole graphique vectoriel normalisé en plan 2D et maillage 3D basse consommation géométrique sous Three.js.
-  - **Cotations Altimétriques :** Symboles de niveau altimétrique normalisés (+0.00, +2.80) en plan et en coupe.
+- **Objectif :** Meubler et équiper les espaces pour valider l'habitabilité, l'accessibilité PMR et enrichir les rendus 2D et 3D.
+- **Jalons Livrés (Phases 8.1 à 8.5.1 / ADR-054) :**
+  - **Catalogue d'Équipements (`ComponentType`) :** 15 modèles intégrés répartis en 4 familles : Sanitaires (WC, lavabo, douche, baignoire, évier), Mobilier (chaise, table, bureau, lit), Cloisons & Systèmes modulaires (panneau modulaire, caisson de rangement), Menuiseries (baie vitrée coulissante, porte-fenêtre).
+  - **Classification IFC4 buildingSMART :** Mapping direct vers `IfcFurniture` / `IfcFurnitureType`, `IfcSanitaryTerminal` / `IfcSanitaryTerminalType`, `IfcSystemFurnitureElement`, `IfcDoor` et `IfcWindow` avec `IfcRelDefinesByType`.
+  - **Intégration Menuiseries aux Murs :** Génération automatique de la réservation `IfcOpeningElement` avec liaison `IfcRelVoidsElement` et remplissage `IfcRelFillsElement`.
+  - **Rendu 2D & 3D Dédié :** Symbologie vectorielle normalisée en Canvas 2D et maillages volumiques procéduraux optimisés sous Three.js avec détection interactive (picking).
+  - **Moteur de Collisions & Dégagements (SAT 2D + Altimétrie) :** Séparation stricte entre collision physique solide et non-respect des dégagements d'usage.
+
+---
+
+### Consolidation Globale & Durcissement Industriel (Lots 1 à 4) [EN COURS]
+
+- **Lot 1 — Correctifs Bloquants Immédiats (P0) [LIVRÉ] :**
+  - Réorganisation CI (`pnpm build` avant `pnpm typecheck`).
+  - Intégration des `components` dans le DAG et la cascade de relations (`component.placement.hostWallId`).
+  - Séparation des métriques CSV (portes vs fenêtres).
+  - Écouteurs de clavier immunisés contre les raccourcis système (`Ctrl`/`Meta`/`Alt`).
+  - Découplage de la sélection 3D (`selectionRef`) et mémoïsation du calcul des pièces dans la StatusBar.
+- **Lot 2 — Propagation Incrémentale & Unification (P1) [LIVRÉ] :**
+  - Re-maillage incrémental 3D par consommation différentielle de `lastChangedIds`.
+  - Descripteurs déclaratifs unifiés pour les 18 catégories (`ENTITY_CATEGORY_DESCRIPTORS`).
+  - Typage structuré des violations de règles (`severity`, `measurement`, `threshold`) et déduplication robuste.
+  - Calcul de pénétration mur/dalle pur et sans faux positifs horizontaux (`computeWallSlabPenetration`).
+  - Purge des reliques v1 et isolation de `MockPath2D`.
+- **Lot 3 — Documentation & OpenBIM (P1) [LIVRÉ] :**
+  - Fichiers `README.md` et `LICENSE`.
+  - Resynchronisation des spécifications `DOMAIN_MODEL.md`, `PERSISTENCE_SPEC.md`, `DECISIONS.md` (ADR-054), `ROADMAP.md`.
+  - GUIDs IFC4 100% déterministes garantissant la reproductibilité octet par octet des exports STEP.
+- **Lot 4 — Maintenabilité & Industrialisation (P2) [PROCHAIN LIVRABLE] :**
+  - Élimination des assertions non-nulles (`@typescript-eslint/no-non-null-assertion`).
+  - Optimisation de la persistance automatique (`autoSave.ts`).
+  - Découpage des gros modules et chunking Three.js sous Vite.
 
 ---
 
