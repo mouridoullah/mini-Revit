@@ -439,6 +439,14 @@ flowchart LR
     - Validation différentielle `validateDirty` en complexité locale stricte $\mathcal{O}(1)$ sans boucle quadratique globale.
     - Suite de 16 tests de qualification (`mep.test.ts`) couvrant les 15 cas contractuels et un benchmark synthétique de 100 à 10 000 connexions.
     - Métriques officielles : 1 061 tests passants (100% verts sur 101 suites), 0 erreur TS strict, 0 warning ESLint, E2E Playwright validé.
+  - **Préparation Technique & Prérequis de la Phase 9.3 [LIVRÉ & QUALIFIÉ] :**
+    - **Vérification & Complétude CRUD MEP :** Ajout des commandes polymorphiques `DeleteMepElementCommand` et `UpdateMepElementCommand` couvrant tous les éléments MEP (`Pipe`, `Duct`, `CableTray`, `Fitting`, `Equipment`) avec cascade de connecteurs et undo/redo bit-à-bit.
+    - **Clarification Taxonomique DOMAIN_MODEL.md :** Distinction fondamentale fluide sous pression / gravitaire (conduits fermés étanches) vs chemins de câbles électriques (chemins de câbles ouverts de guidage et support mécanique sans fluide).
+    - **Chantier C — Modularisation Générateur 3D (`mesh-generator.ts`) :** Découpage du fichier monolithe (~1 568 lignes) en sous-modules de domaine étanches sous `packages/view-3d/src/mesh-generator/` (`types`, `walls`, `openings`, `slabs`, `stairs`, `roofs`, `rooms`, `index`) avec façade 100% rétrocompatible (zéro fichier > 500 lignes).
+    - **Chantier B — Modularisation Renderer 2D (`renderer.ts`) :** Découpage du monolithe (~1 946 lignes) en sous-modules sous `packages/view-2d/src/renderer/` (`config`, `grid`, `walls`, `openings`, `slabs`, `stairs`, `roofs`, `rooms`, `dimensions`, `underlay`, `preview`, `plan-view`, `index`) avec façade 100% rétrocompatible.
+    - **Chantier A — Filtrage par Niveau & Frustum Culling 2D (`SpatialGrid2D`) :** Moteur d'indexation spatiale uniforme en grille 2D (`packages/view-2d/src/spatial/`), élimination des éléments hors écran avec marge de garde dynamique, filtrage par niveau et escaliers multi-niveaux.
+    - **Validation Métrologique 60 FPS :** Rendu 2D sur 1 000 entités réduit de **270 ms** à **11,63 ms (P95)** et **7,78 ms (P50)** (> 60 FPS garanti, 1,44× sous le budget de 16,67 ms).
+    - **Métriques Officielles :** **1 069 tests passants** (107 suites), 0 erreur TS, 0 warning ESLint, Playwright E2E 2/2 vert. Consigné dans `ADR-057`.
   - **9.3 Rendu 2D/3D & Outils Interactifs MEP (`apps/web`, `view-2d`, `view-3d`) :**
     - Tracé interactif de gaines et conduites avec routage automatique des coudes (45°/90°) et tés.
     - Rendu 2D symbolique unifilaire et bifilaire.
