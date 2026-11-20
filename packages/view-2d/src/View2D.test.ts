@@ -595,7 +595,7 @@ describe('View2D (View2D.ts)', () => {
       expect(strokeCalls.length).toBeGreaterThan(0);
 
       const fillTextCalls = mock.filterCalls('fillText');
-      expect(fillTextCalls.some((c) => String(c.args[0]).includes('⚠️ Fuite : 100 mm'))).toBe(true);
+      expect(fillTextCalls.some((c) => String(c.args[0]).includes('Fuite : 100 mm'))).toBe(true);
       expect(fillTextCalls.some((c) => String(c.args[0]).includes('Salon Ouvert (Non clos)'))).toBe(true);
 
       view.dispose();

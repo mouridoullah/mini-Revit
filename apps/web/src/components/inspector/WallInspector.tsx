@@ -146,7 +146,7 @@ export function WallInspector({ wall, state, onExecute }: WallInspectorProps) {
             border: '1px solid #d97706',
           }}
         >
-          ⚠️ Pénétration dans la dalle supérieure (+{Math.round(penetrationMm)} mm)
+          Pénétration dans la dalle supérieure (+{Math.round(penetrationMm)} mm)
         </div>
       )}
 

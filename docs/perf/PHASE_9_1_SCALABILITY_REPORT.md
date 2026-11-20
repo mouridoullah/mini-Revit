@@ -95,22 +95,22 @@ Chaque benchmark applique :
 
 Les mesures empiriques révèlent exactement les points de congestion qui séparent le prototype actuel d'un moteur de production à 10 000+ entités :
 
-### 🚨 Goulot P0 — La boucle d'interférence mur $\to$ composant sans index spatial dans `checkWallViolations`
+### Goulot P0 — La boucle d'interférence mur $\to$ composant sans index spatial dans `checkWallViolations`
 - **Symptôme mesuré :** `validateDirty` passe de **0,92 ms** (100 entités) à **27,11 ms** (1 000 entités) et **616,04 ms** (10 000 entités).
 - **Cause racine :** Lorsqu'un mur est marqué *dirty*, `checkWallViolations` itère sur tous les composants du niveau et invoque `checkComponentCollisions`, qui à son tour compare le composant à tous les murs et tous les composants via SAT 2D.
 - **Complexité :** $\mathcal{O}(C \cdot (C + W))$.
 - **Remède recommandé pour Phase 9.4 :** Index spatial 2D (QuadTree / BVH AABB) pour n'interroger que les composants et murs situés dans la bounding box élargie de l'entité modifiée.
 
-### 🚨 Goulot P0 — La résolution géométrique globale quadratique des murs dans `resolveWallGeometry`
+### Goulot P0 — La résolution géométrique globale quadratique des murs dans `resolveWallGeometry`
 - **Symptôme mesuré :** Résolution géométrique en **0,56 ms** à 40 murs, **55,10 ms** à 400 murs, et **6 708 ms** à 4 000 murs (facteur $\times 11\,979$).
 - **Cause racine :** La recherche des intersections et jonctions entre murs teste chaque mur contre tous les autres ($\mathcal{O}(W^2)$).
 - **Remède recommandé pour Phase 9.4 :** Grille spatiale ou R-Tree pour restreindre la détection de jonctions au voisinage immédiat des extrémités du mur.
 
-### ⚠️ Goulot P1 — La double reconstruction intégrale du DAG dans `BimDocument.execute`
+### Goulot P1 — La double reconstruction intégrale du DAG dans `BimDocument.execute`
 - **Symptôme mesuré :** `BimDocument.execute` appelle `buildDependencyGraph(this.state)` avant et après la mutation. Sur 10 000 entités, cela consomme $2 \times 30\text{ ms} = 60\text{ ms}$ de coût fixe par transaction, même pour une modification triviale.
 - **Remède recommandé pour Phase 9.4 :** Maintien incrémental du DAG (mise à jour locale des arêtes des nœuds modifiés).
 
-### ⚠️ Goulot P1 — Rendu Canvas 2D exhaustif sans filtrage de niveau ni frustum culling
+### Goulot P1 — Rendu Canvas 2D exhaustif sans filtrage de niveau ni frustum culling
 - **Symptôme mesuré :** Dessiner 1 000 entités en 2D Canvas prend **270 ms** (~3,7 FPS).
 - **Cause racine :** `Viewport2D` dessine la totalité des éléments du modèle sans filtrer par l'étage actif (`currentLevelId`) et sans clipping de vue.
 - **Remède recommandé pour Phase 9.3 / 9.4 :** Filtrage systématique par niveau actif et frustum culling des entités hors écran.

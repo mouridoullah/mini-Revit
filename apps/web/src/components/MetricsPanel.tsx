@@ -197,7 +197,7 @@ export function MetricsPanel({
             }}
           >
             <span>{isCollapsed ? '▶' : '▼'}</span>
-            <span>📊 Tableau de Métrés & Surfaces</span>
+            <span>Tableau de Métrés & Surfaces</span>
           </button>
 
           {!isCollapsed && levels.length > 1 && (
@@ -254,7 +254,7 @@ export function MetricsPanel({
               gap: '4px',
             }}
           >
-            📥 Exporter CSV
+            Exporter CSV
           </button>
         )}
       </div>

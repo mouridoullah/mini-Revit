@@ -53,22 +53,22 @@ La suite de tests dédiée `packages/core/src/mep/mep.test.ts` valide les 16 exi
 
 | Identifiant | Scénario de Test | Statut | Résultat Observé |
 | :--- | :--- | :--- | :--- |
-| **`T-MEP-01`** | Réseau linéaire | ✅ Passant | Chaîne continue de segments raccordés, traversée BFS complète |
-| **`T-MEP-02`** | Réseau ramifié | ✅ Passant | Té de dérivation avec 3 branches, connectivité multi-directionnelle |
-| **`T-MEP-03`** | Réseau avec boucle | ✅ Passant | Boucle fermée chaudière/radiateur détectée (`hasLoops() = true`), DAG 100% acyclique |
-| **`T-MEP-04`** | Réseaux déconnectés | ✅ Passant | Détection et partitionnement exact de 2 sous-réseaux disjoints (`getAllNetworks`) |
-| **`T-MEP-05`** | Ports libres | ✅ Passant | Identification exacte des extrémités ouvertes du réseau |
-| **`T-MEP-06`** | Incompatibilité de domaine | ✅ Passant | Rejet immédiat d'une connexion Plomberie $\leftrightarrow$ CVC (`DOMAIN_MISMATCH`) |
-| **`T-MEP-07`** | Incompatibilité de fluide | ✅ Passant | Rejet immédiat Eau Froide $\leftrightarrow$ Eau Chaude (`SYSTEM_TYPE_MISMATCH`) |
-| **`T-MEP-08`** | Connexion dupliquée | ✅ Passant | Rejet d'un second raccordement sur un port déjà engagé (`PORT_ALREADY_CONNECTED`) |
-| **`T-MEP-09`** | Suppression élément intermédiaire | ✅ Passant | Suppression de tuyau intermédiaire : purge automatique des 2 connecteurs incidents |
-| **`T-MEP-10`** | Suppression équipement raccordé | ✅ Passant | Nettoyage des connecteurs incidents et retrait de la liste `elementIds` du système |
-| **`T-MEP-11`** | Undo/Redo d'une connexion | ✅ Passant | Cycle Undo $\to$ port redevient ouvert, Redo $\to$ connexion rétablie |
-| **`T-MEP-12`** | Undo/Redo suppression élément | ✅ Passant | Cycle Undo $\to$ restauration parfaite de l'élément ET de ses connecteurs |
-| **`T-MEP-13`** | Sérialisation / Restauration | ✅ Passant | Cycle `toJSON` $\to$ `fromJSON` sans perte d'intégrité topologique |
-| **`T-MEP-14`** | Rétrocompatibilité maquettes anciennes | ✅ Passant | Chargement sans erreur d'un fichier architectural V2 sans clés MEP |
-| **`T-MEP-15`** | Cohérence DAG vs MepNetworkGraph | ✅ Passant | Invalidation réactive du niveau vers les tuyaux via `dag.getDependents(levelId)` |
-| **`T-MEP-SCALE`** | Scalabilité du MepNetworkGraph | ✅ Passant | Mesure sur 100, 1 000 et 10 000 connexions (détail ci-après) |
+| **`T-MEP-01`** | Réseau linéaire | Passant | Chaîne continue de segments raccordés, traversée BFS complète |
+| **`T-MEP-02`** | Réseau ramifié | Passant | Té de dérivation avec 3 branches, connectivité multi-directionnelle |
+| **`T-MEP-03`** | Réseau avec boucle | Passant | Boucle fermée chaudière/radiateur détectée (`hasLoops() = true`), DAG 100% acyclique |
+| **`T-MEP-04`** | Réseaux déconnectés | Passant | Détection et partitionnement exact de 2 sous-réseaux disjoints (`getAllNetworks`) |
+| **`T-MEP-05`** | Ports libres | Passant | Identification exacte des extrémités ouvertes du réseau |
+| **`T-MEP-06`** | Incompatibilité de domaine | Passant | Rejet immédiat d'une connexion Plomberie $\leftrightarrow$ CVC (`DOMAIN_MISMATCH`) |
+| **`T-MEP-07`** | Incompatibilité de fluide | Passant | Rejet immédiat Eau Froide $\leftrightarrow$ Eau Chaude (`SYSTEM_TYPE_MISMATCH`) |
+| **`T-MEP-08`** | Connexion dupliquée | Passant | Rejet d'un second raccordement sur un port déjà engagé (`PORT_ALREADY_CONNECTED`) |
+| **`T-MEP-09`** | Suppression élément intermédiaire | Passant | Suppression de tuyau intermédiaire : purge automatique des 2 connecteurs incidents |
+| **`T-MEP-10`** | Suppression équipement raccordé | Passant | Nettoyage des connecteurs incidents et retrait de la liste `elementIds` du système |
+| **`T-MEP-11`** | Undo/Redo d'une connexion | Passant | Cycle Undo $\to$ port redevient ouvert, Redo $\to$ connexion rétablie |
+| **`T-MEP-12`** | Undo/Redo suppression élément | Passant | Cycle Undo $\to$ restauration parfaite de l'élément ET de ses connecteurs |
+| **`T-MEP-13`** | Sérialisation / Restauration | Passant | Cycle `toJSON` $\to$ `fromJSON` sans perte d'intégrité topologique |
+| **`T-MEP-14`** | Rétrocompatibilité maquettes anciennes | Passant | Chargement sans erreur d'un fichier architectural V2 sans clés MEP |
+| **`T-MEP-15`** | Cohérence DAG vs MepNetworkGraph | Passant | Invalidation réactive du niveau vers les tuyaux via `dag.getDependents(levelId)` |
+| **`T-MEP-SCALE`** | Scalabilité du MepNetworkGraph | Passant | Mesure sur 100, 1 000 et 10 000 connexions (détail ci-après) |
 
 ---
 

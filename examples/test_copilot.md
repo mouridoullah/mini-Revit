@@ -1,10 +1,10 @@
-# 🏠 Plan de test complet — "La Maison R+1"
+# Plan de test complet — "La Maison R+1"
 
 Voici un plan architectural réel, avec **toutes les coordonnées et valeurs** pour reproduire et tester **100% des fonctionnalités** de Mini-BIM. Tu peux le suivre pas à pas et vérifier chaque résultat.
 
 ---
 
-## 📐 Le plan — Vue d'ensemble
+## Le plan — Vue d'ensemble
 
 **Maison individuelle R+1** de 8m × 6m hors œuvre, avec :
 - **RDC** : Séjour/cuisine ouverte (32 m²), Chambre 1 (12 m²), SdB (5 m²), WC (2 m²), escalier droit
@@ -30,7 +30,7 @@ Voici un plan architectural réel, avec **toutes les coordonnées et valeurs** p
 │     │  32 m²          │       │       │                 │
 │     │                 │       │       │                 │
 │  (0,0)└────────────────┴───────┴───────┘(8000,0)        │
-│         🚪              🪟       🪟                      │
+│                                                    │
 └─────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────┐
@@ -56,7 +56,7 @@ Voici un plan architectural réel, avec **toutes les coordonnées et valeurs** p
 
 ---
 
-## 📋 Inventaire complet — Ce qu'il faut créer
+## Inventaire complet — Ce qu'il faut créer
 
 ### RDC (Niveau 0, élévation = 0 mm)
 
@@ -102,7 +102,7 @@ Voici un plan architectural réel, avec **toutes les coordonnées et valeurs** p
 
 ---
 
-## 🎬 Déroulé pas à pas — 30 minutes
+##  Déroulé pas à pas — 30 minutes
 
 ### Phase 1 — Préparation (1 min)
 
@@ -110,7 +110,7 @@ Voici un plan architectural réel, avec **toutes les coordonnées et valeurs** p
 1. Ouvre http://localhost:5173/
 2. Le demoDocument par défaut s'affiche (4 murs + porte + fenêtre)
 3. Sélectionne tout (S, clic sur chaque élément, Suppr) OU
-   recharge avec 📂 en partant d'un projet vide
+   recharge avec  en partant d'un projet vide
 4. Vérifie que le plan 2D est vide
 ```
 
@@ -130,7 +130,7 @@ Voici un plan architectural réel, avec **toutes les coordonnées et valeurs** p
 9. Clic à (0, 6000) → clic à (0, 0) → 4e mur (fermeture)
 ```
 
-✅ **Vérification** :
+ **Vérification** :
 - Les 4 murs se raccordent proprement aux coins (onglets à 90°)
 - Le StatusBar affiche `Murs : 4`
 - La pièce "Séjour" est détectée avec environ **37 m²** (surface intérieure : 7.6 × 5.6 = 42.56 m², moins les refends à venir)
@@ -143,7 +143,7 @@ Voici un plan architectural réel, avec **toutes les coordonnées et valeurs** p
 3. W → (4000, 1000) → (8000, 1000) [refend horizontal est]
 ```
 
-✅ **Vérification** :
+ **Vérification** :
 - Les murs intérieurs s'accrochent aux murs extérieurs (T-junction propre)
 - Le plan affiche maintenant 4 pièces distinctes
 - Surface totale ≈ 42 m²
@@ -175,7 +175,7 @@ Voici un plan architectural réel, avec **toutes les coordonnées et valeurs** p
 1. F → clic sur le mur Ouest, à 1500 mm du Sud
 ```
 
-✅ **Vérification** :
+ **Vérification** :
 - Le poché du mur est **réellement découpé** à l'emplacement de chaque baie
 - En 3D : portes en bois, fenêtres en verre translucide
 - Si tu tentes de poser une porte sur un mur trop court → **error-banner** rouge s'affiche
@@ -190,7 +190,7 @@ Voici un plan architectural réel, avec **toutes les coordonnées et valeurs** p
 3. Double-clic (ou Enter) pour fermer
 ```
 
-✅ **Vérification** :
+ **Vérification** :
 - La dalle apparaît en 2D : poché béton + hachures 45°
 - En 3D : volume gris sous les murs
 - Sa surface ≈ 47 m² (elle déborde légèrement sous les murs extérieurs)
@@ -207,10 +207,10 @@ Voici un plan architectural réel, avec **toutes les coordonnées et valeurs** p
    - N = 16 marches
    - h = 175 mm
    - g = 187.5 mm
-   - 2h + g = 537.5 mm ⚠️ Hors Confort
+   - 2h + g = 537.5 mm  Hors Confort
 ```
 
-⚠️ **Test négatif intéressant** : l'escalier de test initial est **trop court** (3000 mm pour monter 2800 mm → giron trop petit). C'est **volontaire** pour tester le badge.
+ **Test négatif intéressant** : l'escalier de test initial est **trop court** (3000 mm pour monter 2800 mm → giron trop petit). C'est **volontaire** pour tester le badge.
 
 **Correction** : dans le PropertyInspector, change la longueur (ou supprime et refais avec une tête plus loin) :
 ```
@@ -218,7 +218,7 @@ Voici un plan architectural réel, avec **toutes les coordonnées et valeurs** p
 2. E → (5500, 1000) → (5500, 5000)  [4000 mm de long]
 ```
 
-✅ **Vérification après correction** :
+ **Vérification après correction** :
 - N = 16, h = 175, g = 250
 - 2h + g = 600 mm → **Badge Vert** : `Conforme (Confort)`
 
@@ -227,7 +227,7 @@ Voici un plan architectural réel, avec **toutes les coordonnées et valeurs** p
 ```
 1. Bouton + Étage (dans la Toolbar) → crée "Étage 1" à +2800 mm
 2. Sélecteur Étage : Étage 1
-3. Active l'underlay (👻 Underlay (N-1) ON)
+3. Active l'underlay ( Underlay (N-1) ON)
 4. Les murs du RDC apparaissent en pointillés gris
 ```
 
@@ -255,7 +255,7 @@ Voici un plan architectural réel, avec **toutes les coordonnées et valeurs** p
 2. Enter
 ```
 
-✅ **Vérification CRUCIALE** :
+ **Vérification CRUCIALE** :
 - La dalle R+1 doit avoir **une trémie automatique** à l'aplomb de l'escalier (visible en 2D comme croix de réservation + en 3D comme trou)
 - **La trémie n'est PAS stockée** dans la dalle (vérifier dans l'export JSON plus tard)
 - Surface dalle R+1 = 47 - 4 (trémie) = 43 m²
@@ -281,7 +281,7 @@ Voici un plan architectural réel, avec **toutes les coordonnées et valeurs** p
 1. Touche M (Déplacer Mur)
 2. Sélectionne le mur Ouest (le mur extérieur à x=0)
 3. Glisse-le de +500 mm vers l'Est
-4. ✅ Vérifications :
+4.  Vérifications :
    - Le mur Ouest est maintenant à x=500
    - Les murs Nord et Sud se sont ÉTIRÉS (ils vont de (500,y) à (8000,y))
    - Les fenêtres/portes des murs étirés ont suivi
@@ -294,7 +294,7 @@ Voici un plan architectural réel, avec **toutes les coordonnées et valeurs** p
 ```
 1. Sélectionne le mur Sud (qui porte la porte d'entrée)
 2. Déplace-le de (0, +300) mm vers le Nord
-3. ✅ Vérifications :
+3.  Vérifications :
    - Le mur Sud est à y=300
    - La porte d'entrée a SUIVI (offsetAlong = 3500 inchangé)
    - La pièce Séjour a rétréci
@@ -307,7 +307,7 @@ Voici un plan architectural réel, avec **toutes les coordonnées et valeurs** p
 1. Touche E (mais sans créer — utilise S pour sélection)
 2. Sélectionne l'escalier
 3. Glisse-le de (0, +500) — vers le Nord
-4. ✅ Vérifications :
+4.  Vérifications :
    - L'escalier a bougé en 2D et 3D
    - La trémie dans la dalle R+1 a suivi automatiquement
    - La dalle R+1 a été régénérée avec le nouveau trou
@@ -318,7 +318,7 @@ Voici un plan architectural réel, avec **toutes les coordonnées et valeurs** p
 ```
 1. Sélectionne un mur intérieur
 2. PropertyInspector → Type → change de "100mm" à "150mm"
-3. ✅ Vérifications :
+3.  Vérifications :
    - Le mur devient plus épais
    - Les pièces adjacentes ont vu leur surface réduite
    - En 3D : le mur est plus épais visuellement
@@ -337,14 +337,14 @@ Voici un plan architectural réel, avec **toutes les coordonnées et valeurs** p
    - Escaliers : 1 (16 marches)
    - Pièces RDC : Séjour 32 m², Chambre 1 12 m², SdB 5 m², WC 2 m²
    - Pièces R+1 : Chambre 2 14 m², Chambre 3 12 m², Palier 4 m², SdB 5 m²
-3. Bouton 📥 Exporter CSV → fichier .csv téléchargé
+3. Bouton  Exporter CSV → fichier .csv téléchargé
 4. Ouvre-le dans Excel/Numbers → vérifie les colonnes Catégorie, Élément, Quantité, Unité
 ```
 
 ### Phase 11 — Export IFC (2 min)
 
 ```
-1. Bouton 🏛️ Exporter IFC
+1. Bouton  Exporter IFC
 2. Fichier maison.ifc téléchargé (~50-200 KB)
 3. Ouvre dans BlenderBIM :
    - File → Import → IFC
@@ -356,7 +356,7 @@ Voici un plan architectural réel, avec **toutes les coordonnées et valeurs** p
    - Vérifie la même chose
 ```
 
-✅ **Vérification IFC critique** :
+ **Vérification IFC critique** :
 - Les murs doivent avoir une hauteur correcte (2800 - 200 = 2600 mm pour le RDC si topConstraint actif)
 - L'escalier doit avoir **N=16 contremarches** visibles
 - La trémie doit être **dans la dalle**, pas flottante
@@ -365,7 +365,7 @@ Voici un plan architectural réel, avec **toutes les coordonnées et valeurs** p
 ### Phase 12 — Export SVG (1 min)
 
 ```
-1. Bouton 📐 Plan (SVG) + sélecteur 1:100
+1. Bouton  Plan (SVG) + sélecteur 1:100
 2. Fichier plan-rdc-1-100.svg téléchargé
 3. Ouvre dans Chrome
 4. Vérifie :
@@ -381,7 +381,7 @@ Voici un plan architectural réel, avec **toutes les coordonnées et valeurs** p
 ### Phase 13 — Persistance JSON (1 min)
 
 ```
-1. Bouton 💾 (Sauvegarder) → fichier maison.json téléchargé
+1. Bouton  (Sauvegarder) → fichier maison.json téléchargé
 2. Ouvre-le dans un éditeur de texte
 3. Vérifie :
    - schemaVersion: 2
@@ -389,8 +389,8 @@ Voici un plan architectural réel, avec **toutes les coordonnées et valeurs** p
    - levels, wallTypes, doorTypes, windowTypes, stairTypes
    - walls, slabs, stairs, doors, windows, rooms
    - dimensions (si cotations)
-4. Bouton 📂 (Charger) → sélectionne le fichier
-5. ✅ Vérification :
+4. Bouton  (Charger) → sélectionne le fichier
+5.  Vérification :
    - Le projet est identique à avant la sauvegarde
    - Le viewport 2D et 3D se sont mis à jour instantanément
    - Les métriques sont correctes
@@ -400,32 +400,32 @@ Voici un plan architectural réel, avec **toutes les coordonnées et valeurs** p
 
 ```
 1. Enchaîne 10 modifications (déplacer mur, changer épaisseur, poser porte…)
-2. Ctrl+Z × 10 → ✅ tout revient à l'état initial
-3. Ctrl+Shift+Z × 10 → ✅ tout revient à l'état final
+2. Ctrl+Z × 10 →  tout revient à l'état initial
+3. Ctrl+Shift+Z × 10 →  tout revient à l'état final
 4. Vérifie : aucune commande fantôme, aucune corruption
 ```
 
 ---
 
-## 🎯 Tests spécifiques par fonctionnalité
+##  Tests spécifiques par fonctionnalité
 
 ### Test A — Les jonctions de murs
 ```
 1. Trace un L : (0,0)→(4000,0) et (4000,0)→(4000,4000)
-2. ✅ Vérification : le coin est en onglet biseauté (45°)
+2.  Vérification : le coin est en onglet biseauté (45°)
 3. Modifie l'angle : trace à 45° (0,0)→(4000,4000) et (4000,4000)→(4000,0)
-4. ✅ Vérification : l'onglet est calculé correctement
+4.  Vérification : l'onglet est calculé correctement
 5. Trace un T : (0,0)→(8000,0) et (4000,0)→(4000,4000)
-6. ✅ Vérification : le mur traversant reste continu, le mur aboutant s'arrête proprement
+6.  Vérification : le mur traversant reste continu, le mur aboutant s'arrête proprement
 ```
 
 ### Test B — Les escaliers (Blondel)
 ```
 1. Crée 3 escaliers avec des hauteurs différentes :
-   - (ΔZ=2500, L=3600) → N=14, h=178.5, g=257 → 2h+g=614 ✅ Conforme
-   - (ΔZ=2800, L=4000) → N=16, h=175, g=250 → 2h+g=600 ✅ Conforme
-   - (ΔZ=2800, L=3000) → N=16, h=175, g=187.5 → 2h+g=537 ⚠️ Hors Confort
-2. ✅ Vérification : badge vert/jaune/rouge selon le cas
+   - (ΔZ=2500, L=3600) → N=14, h=178.5, g=257 → 2h+g=614  Conforme
+   - (ΔZ=2800, L=4000) → N=16, h=175, g=250 → 2h+g=600  Conforme
+   - (ΔZ=2800, L=3000) → N=16, h=175, g=187.5 → 2h+g=537  Hors Confort
+2.  Vérification : badge vert/jaune/rouge selon le cas
 3. Bascule le sens de l'escalier avec ⇄ → 2D et 3D suivent
 ```
 
@@ -434,29 +434,29 @@ Voici un plan architectural réel, avec **toutes les coordonnées et valeurs** p
 1. RDC : trace 4 murs en rectangle
 2. R+1 : active l'underlay → les 4 murs RDC apparaissent en pointillés
 3. R+1 : trace un mur en partant d'un sommet RDC → snap à 12px écran
-4. ✅ Vérification : le mur R+1 est parfaitement aligné sur le sommet RDC
+4.  Vérification : le mur R+1 est parfaitement aligné sur le sommet RDC
 5. R+1 : désactive l'underlay → les pointillés disparaissent
 ```
 
 ### Test D — Cascade de suppression
 ```
 1. Sélectionne le mur Sud (porte + fenêtres hébergées)
-2. Suppr → ✅ le mur ET ses portes/fenêtres disparaissent
-3. Ctrl+Z → ✅ le mur ET ses portes/fenêtres réapparaissent
+2. Suppr →  le mur ET ses portes/fenêtres disparaissent
+3. Ctrl+Z →  le mur ET ses portes/fenêtres réapparaissent
 4. Sélectionne un niveau R+1 (DeleteLevelCommand si implémenté)
-   → ✅ si des murs y sont attachés, rejet avec DELETE_RESTRICTED
+   →  si des murs y sont attachés, rejet avec DELETE_RESTRICTED
 ```
 
 ### Test E — Pièces et surfaces
 ```
 1. Crée une pièce en L (2 murs en L)
-2. ✅ Vérification : la pièce est détectée avec surface et libellé au centre
+2.  Vérification : la pièce est détectée avec surface et libellé au centre
 3. Ajoute un poteau au milieu (petit mur 200×200)
-4. ✅ Vérification : la surface du poteau est DÉDUITE de la pièce
+4.  Vérification : la surface du poteau est DÉDUITE de la pièce
 5. Supprime un mur de la pièce
-6. ✅ Vérification : la pièce passe à `unenclosed`, surface = 0, mais elle n'est PAS supprimée
+6.  Vérification : la pièce passe à `unenclosed`, surface = 0, mais elle n'est PAS supprimée
 7. Refais le mur
-8. ✅ Vérification : la pièce retrouve son statut `enclosed` et sa surface
+8.  Vérification : la pièce retrouve son statut `enclosed` et sa surface
 ```
 
 ### Test F — Résilience et validation
@@ -470,7 +470,7 @@ Voici un plan architectural réel, avec **toutes les coordonnées et valeurs** p
 
 ---
 
-## 📊 Tableau récapitulatif — Ce que tu dois voir à la fin
+##  Tableau récapitulatif — Ce que tu dois voir à la fin
 
 | Métrique | Valeur attendue |
 |---|---|
@@ -493,7 +493,7 @@ Voici un plan architectural réel, avec **toutes les coordonnées et valeurs** p
 
 ---
 
-## 🎁 Bonus — Tests que tu peux faire au-delà du plan
+## Bonus — Tests que tu peux faire au-delà du plan
 
 | Test | Comment |
 |---|---|
@@ -506,33 +506,33 @@ Voici un plan architectural réel, avec **toutes les coordonnées et valeurs** p
 
 ---
 
-## 🐛 Ce que tu risques de rencontrer (bugs connus)
+## Ce que tu risques de rencontrer (bugs connus)
 
 | Symptôme | Cause | Contournement |
 |---|---|---|
 | Le snap inter-niveaux accroche trop | Underlay actif + snapToUnderlay par défaut | Désactive l'underlay si tu veux dessiner libre |
 | L'escalier de test 3000 mm est jaune | Giron trop court (L/N = 187.5mm < 250mm comfort) | Allonge l'escalier à 4000 mm |
 | Le badge Blondel est rouge | 2h+g hors [560, 680] | Ajuste la longueur ou la hauteur d'étage |
-| L'export IFC ne montre pas les dalles | Vérifie que tu as bien exporté, pas juste sauvegardé | Bouton 🏛️ Exporter IFC (pas 💾) |
+| L'export IFC ne montre pas les dalles | Vérifie que tu as bien exporté, pas juste sauvegardé | Bouton  Exporter IFC (pas ) |
 | La trémie n'apparaît pas en 3D | Régénération 3D en cours | Attends 1s, ou change de niveau et reviens |
 | Les cotes ne s'affichent pas | Fonctionnalité Phase 5, il faut les ajouter manuellement | Bouton cotations dans la Toolbar (si présent) |
 
 ---
 
-## 🎯 En résumé
+##  En résumé
 
 **Ce plan te permet de tester** :
-- ✅ 20 murs avec jonctions L/T/onglets
-- ✅ 7 ouvertures hébergées (portes + fenêtres)
-- ✅ 2 dalles avec trémie dérivée
-- ✅ 1 escalier paramétrique avec Blondel
-- ✅ 2 niveaux avec underlay et snap inter-niveaux
-- ✅ 8 pièces auto-détectées
-- ✅ Métre complet en temps réel
-- ✅ Export IFC4 + SVG
-- ✅ Persistance JSON
-- ✅ Undo/Redo sur 20+ commandes
-- ✅ Tests de crédibilité (murs qui suivent, escaliers qui suivent)
+-  20 murs avec jonctions L/T/onglets
+-  7 ouvertures hébergées (portes + fenêtres)
+-  2 dalles avec trémie dérivée
+-  1 escalier paramétrique avec Blondel
+-  2 niveaux avec underlay et snap inter-niveaux
+-  8 pièces auto-détectées
+-  Métre complet en temps réel
+-  Export IFC4 + SVG
+-  Persistance JSON
+-  Undo/Redo sur 20+ commandes
+-  Tests de crédibilité (murs qui suivent, escaliers qui suivent)
 
 **Durée** : 30-45 min si tu suis tout
 **Résultat** : une maison R+1 complète avec escalier, exportable et documentée
@@ -548,4 +548,4 @@ Voici un plan architectural réel, avec **toutes les coordonnées et valeurs** p
 - Crée 3 niveaux (RDC + R+1 + R+2 avec escalier entre chaque)
 - Teste la limite : 50 murs, 20 ouvertures → regarde les perfs
 
-**Bon test !** 🏛️✨ Partage-moi ce que tu observes, les frictions, les bugs — c'est ce qui guidera Phase 7 et les suivantes.
+**Bon test !**  Partage-moi ce que tu observes, les frictions, les bugs — c'est ce qui guidera Phase 7 et les suivantes.

@@ -21,6 +21,7 @@ export interface ToolbarProps {
   readonly underlayEnabled?: boolean;
   readonly onToggleUnderlay?: (enabled: boolean) => void;
   readonly hasUnderlayLevel?: boolean;
+  readonly onLoadR4Demo?: () => void;
 }
 
 /**
@@ -46,6 +47,7 @@ export function Toolbar({
   underlayEnabled = true,
   onToggleUnderlay,
   hasUnderlayLevel = false,
+  onLoadR4Demo,
 }: ToolbarProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [planScale, setPlanScale] = useState<50 | 100 | 200>(100);
@@ -108,9 +110,14 @@ export function Toolbar({
       style={{
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between',
+        justifyContent: 'flex-start',
+        gap: '12px',
         padding: '0 16px',
         height: '48px',
+        minWidth: 0,
+        flexShrink: 0,
+        overflowX: 'auto',
+        overflowY: 'hidden',
         backgroundColor: '#1f2937',
         color: '#ffffff',
         borderBottom: '1px solid #374151',
@@ -118,7 +125,7 @@ export function Toolbar({
       }}
     >
       {/* 1. Logo & Badge de Phase */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
         <span style={{ fontWeight: 700, fontSize: '16px', letterSpacing: '0.5px' }}>MINI-BIM</span>
         <span
           style={{
@@ -134,7 +141,7 @@ export function Toolbar({
       </div>
 
       {/* 2. Boutons d'Action Centraux */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexShrink: 0 }}>
         {/* Groupe Outils de Modélisation */}
         <div style={{ display: 'flex', gap: '6px' }}>
           <button
@@ -401,7 +408,6 @@ export function Toolbar({
                   transition: 'all 0.15s ease-in-out',
                 }}
               >
-                <span>👻</span>
                 <span>Underlay (N-1)</span>
                 <span
                   style={{
@@ -488,7 +494,7 @@ export function Toolbar({
               transition: 'all 0.15s ease-in-out',
             }}
           >
-            💾 Sauvegarder
+            Sauvegarder
           </button>
           <button
             type="button"
@@ -506,8 +512,29 @@ export function Toolbar({
               transition: 'all 0.15s ease-in-out',
             }}
           >
-            📂 Charger
+            Charger
           </button>
+          {onLoadR4Demo && (
+            <button
+              type="button"
+              data-testid="load-demo-r4-btn"
+              onClick={onLoadR4Demo}
+              title="Charger l'Immeuble R+4 complet avec tous les composants et réseaux MEP"
+              style={{
+                padding: '6px 10px',
+                fontSize: '12px',
+                borderRadius: '4px',
+                backgroundColor: '#0284c7',
+                color: '#ffffff',
+                border: '1px solid #0ea5e9',
+                cursor: 'pointer',
+                fontWeight: 600,
+                transition: 'all 0.15s ease-in-out',
+              }}
+            >
+              🏢 Immeuble R+4
+            </button>
+          )}
           <input
             ref={fileInputRef}
             type="file"
@@ -539,7 +566,7 @@ export function Toolbar({
               transition: 'all 0.15s ease-in-out',
             }}
           >
-            🏛️ Exporter IFC
+            Exporter IFC
           </button>
 
           <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -564,7 +591,7 @@ export function Toolbar({
                 transition: 'all 0.15s ease-in-out',
               }}
             >
-              📐 Plan (SVG)
+              Plan (SVG)
             </button>
             <select
               data-testid="export-svg-scale-select"

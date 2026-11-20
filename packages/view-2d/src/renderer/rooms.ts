@@ -114,7 +114,7 @@ export function drawRoomDiagnostics(
 
       // 3. Badge d'alerte avec la taille de la fuite au centre du gap
       const midScreen = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
-      const badgeText = `⚠️ Fuite : ${diag.leakGap.distanceMm} mm`;
+      const badgeText = `Fuite : ${diag.leakGap.distanceMm} mm`;
       ctx.font = 'bold 11px sans-serif';
       const textWidth = typeof ctx.measureText === 'function' ? ctx.measureText(badgeText).width : badgeText.length * 7;
       const padX = 6;
@@ -150,8 +150,8 @@ export function drawRoomDiagnostics(
     const seedScreen = transform.worldToScreen(diag.seed);
     const label =
       diag.kind === 'redundant'
-        ? `⚠️ ${diag.roomName} (Redondant)`
-        : `⚠️ ${diag.roomName} (Non clos)`;
+        ? `${diag.roomName} (Redondant)`
+        : `${diag.roomName} (Non clos)`;
     const bgCol =
       diag.kind === 'redundant'
         ? 'rgba(245, 158, 11, 0.9)'

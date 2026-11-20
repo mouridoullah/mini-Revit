@@ -73,7 +73,7 @@ export function ComponentRibbon({
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '11px', color: '#94a3b8' }}>
-          <span>💡 <b>Espace</b> : Pivoter 90°</span>
+          <span><b>Espace</b> : Pivoter 90°</span>
           {onRotate && (
             <button
               type="button"

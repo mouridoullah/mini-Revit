@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="297mm" height="210mm" viewBox="0 0 1123 794" version="1.1">
+  <rect width="100%" height="100%" fill="#ffffff" />
+  <g id="rooms">
+
+  </g>
+  <g id="walls">
+    <polygon id="wall_0_south" points="367.80,529.28 750.48,529.28 745.75,519.83 372.52,519.83" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_0_east" points="755.20,529.28 755.20,127.71 745.75,132.43 745.75,524.56" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_0_north" points="755.20,122.98 372.52,122.98 377.25,132.43 750.48,132.43" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_0_west" points="367.80,122.98 367.80,524.56 377.25,519.83 377.25,127.71" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_0_stair_west" points="659.77,519.83 659.77,261.88 652.21,261.88 652.21,519.83" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_0_stair_north" points="659.77,328.02 745.75,328.02 745.75,320.46 659.77,320.46" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_0_bedroom_split" points="377.25,261.88 745.75,261.88 745.75,258.10 377.25,258.10" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_0_bedroom_divider" points="563.39,258.10 563.39,132.43 559.61,132.43 559.61,258.10" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_0_bath_west" points="525.59,397.94 525.59,324.24 521.81,322.35 521.81,399.83" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_0_bath_east" points="582.29,401.72 582.29,326.13 578.51,326.13 578.51,399.83" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_0_bath_south" points="521.81,401.72 580.40,401.72 578.51,397.94 523.70,397.94" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_0_wet_north" points="525.59,326.13 652.21,326.13 652.21,322.35 523.70,322.35" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_0_wc_west" points="582.29,322.35 582.29,261.88 578.51,261.88 578.51,322.35" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_1_south" points="372.52,519.83 750.48,529.28" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_1_east" points="745.75,524.56 755.20,127.71" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_1_north" points="750.48,132.43 372.52,122.98" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_1_west" points="377.25,127.71 367.80,524.56" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_1_stair_west" points="659.77,519.83 659.77,261.88 652.21,261.88 652.21,519.83" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_1_stair_north" points="659.77,328.02 745.75,328.02 745.75,320.46 659.77,320.46" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_1_bedroom_split" points="377.25,261.88 745.75,261.88 745.75,258.10 377.25,258.10" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_1_bedroom_divider" points="563.39,258.10 563.39,132.43 559.61,132.43 559.61,258.10" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_1_bath_west" points="521.81,399.83 525.59,324.24" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_1_bath_east" points="578.51,399.83 582.29,326.13 578.51,326.13" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_1_bath_south" points="523.70,397.94 580.40,401.72" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_1_wet_north" points="523.70,322.35 652.21,326.13 652.21,322.35" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_1_wc_west" points="582.29,322.35 582.29,261.88 578.51,261.88 578.51,322.35" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_2_south" points="372.52,519.83 750.48,529.28" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_2_east" points="745.75,524.56 755.20,127.71" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_2_north" points="750.48,132.43 372.52,122.98" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_2_west" points="377.25,127.71 367.80,524.56" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_2_stair_west" points="659.77,519.83 659.77,261.88 652.21,261.88 652.21,519.83" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_2_stair_north" points="659.77,328.02 745.75,328.02 745.75,320.46 659.77,320.46" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_2_bedroom_split" points="377.25,261.88 745.75,261.88 745.75,258.10 377.25,258.10" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_2_bedroom_divider" points="563.39,258.10 563.39,132.43 559.61,132.43 559.61,258.10" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_2_bath_west" points="521.81,399.83 525.59,324.24" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_2_bath_east" points="578.51,399.83 582.29,326.13 578.51,326.13" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_2_bath_south" points="523.70,397.94 580.40,401.72" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_2_wet_north" points="523.70,322.35 652.21,326.13 652.21,322.35" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_2_wc_west" points="582.29,322.35 582.29,261.88 578.51,261.88 578.51,322.35" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_3_south" points="372.52,519.83 750.48,529.28" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_3_east" points="745.75,524.56 755.20,127.71" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_3_north" points="750.48,132.43 372.52,122.98" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_3_west" points="377.25,127.71 367.80,524.56" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_3_stair_west" points="659.77,519.83 659.77,261.88 652.21,261.88 652.21,519.83" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_3_stair_north" points="659.77,328.02 745.75,328.02 745.75,320.46 659.77,320.46" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_3_bedroom_split" points="377.25,261.88 745.75,261.88 745.75,258.10 377.25,258.10" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_3_bedroom_divider" points="563.39,258.10 563.39,132.43 559.61,132.43 559.61,258.10" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_3_bath_west" points="521.81,399.83 525.59,324.24" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_3_bath_east" points="578.51,399.83 582.29,326.13 578.51,326.13" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_3_bath_south" points="523.70,397.94 580.40,401.72" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_3_wet_north" points="523.70,322.35 652.21,326.13 652.21,322.35" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_3_wc_west" points="582.29,322.35 582.29,261.88 578.51,261.88 578.51,322.35" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_4_south" points="372.52,519.83 750.48,529.28" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_4_east" points="745.75,524.56 755.20,127.71" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_4_north" points="750.48,132.43 372.52,122.98" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_4_west" points="377.25,127.71 367.80,524.56" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_4_stair_west" points="659.77,519.83 659.77,261.88 652.21,261.88 652.21,519.83" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_4_stair_north" points="659.77,328.02 745.75,328.02 745.75,320.46 659.77,320.46" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_4_bedroom_split" points="377.25,261.88 745.75,261.88 745.75,258.10 377.25,258.10" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_4_bedroom_divider" points="563.39,258.10 563.39,132.43 559.61,132.43 559.61,258.10" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_4_bath_west" points="521.81,399.83 525.59,324.24" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_4_bath_east" points="578.51,399.83 582.29,326.13 578.51,326.13" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_4_bath_south" points="523.70,397.94 580.40,401.72" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_4_wet_north" points="523.70,322.35 652.21,326.13 652.21,322.35" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_4_wc_west" points="582.29,322.35 582.29,261.88 578.51,261.88 578.51,322.35" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_5_south" points="372.52,519.83 755.20,529.28 750.48,529.28 377.25,519.83" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_5_east" points="745.75,524.56 755.20,122.98 755.20,127.71 745.75,519.83" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_5_north" points="750.48,132.43 367.80,122.98 372.52,122.98 745.75,132.43" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_5_west" points="377.25,127.71 367.80,529.28 367.80,524.56 377.25,132.43" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_5_stair_west" points="659.77,519.83 659.77,261.88 652.21,261.88 652.21,519.83" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_5_stair_north" points="659.77,328.02 745.75,328.02 745.75,320.46 659.77,320.46" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_5_bedroom_split" points="377.25,261.88 745.75,261.88 745.75,258.10 377.25,258.10" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_5_bedroom_divider" points="563.39,258.10 563.39,132.43 559.61,132.43 559.61,258.10" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_5_bath_west" points="521.81,399.83 525.59,326.13 525.59,324.24 521.81,401.72" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_5_bath_east" points="578.51,399.83 582.29,326.13 578.51,326.13 578.51,397.94" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_5_bath_south" points="523.70,397.94 582.29,401.72 580.40,401.72 525.59,397.94" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_5_wet_north" points="523.70,322.35 652.21,326.13 652.21,322.35 521.81,322.35" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+    <polygon id="wall_5_wc_west" points="582.29,322.35 582.29,261.88 578.51,261.88 578.51,322.35" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />
+  </g>
+  <g id="openings">
+    <polygon points="652.02,392.28 652.02,358.26 659.96,358.26 659.96,392.28" fill="#ffffff" stroke="none" />
+    <path d="M 655.99 392.28 L 655.99 358.26 A 34.02 34.02 0 0 1 655.99 358.26 Z" fill="rgba(243, 244, 246, 0.5)" stroke="#111827" stroke-width="1" stroke-dasharray="3,2" />
+    <polygon points="682.44,519.60 720.24,519.60 720.24,529.52 682.44,529.52" fill="#ffffff" stroke="none" />
+    <path d="M 682.44 524.56 L 720.24 524.56 A 37.80 37.80 0 0 0 682.44 486.76 Z" fill="rgba(243, 244, 246, 0.5)" stroke="#111827" stroke-width="1" stroke-dasharray="3,2" />
+    <polygon points="410.32,258.01 440.56,258.01 440.56,261.98 410.32,261.98" fill="#ffffff" stroke="none" />
+    <path d="M 410.32 259.99 L 440.56 259.99 A 30.24 30.24 0 0 1 410.32 229.76 Z" fill="rgba(243, 244, 246, 0.5)" stroke="#111827" stroke-width="1" stroke-dasharray="3,2" />
+    <polygon points="599.30,258.01 629.53,258.01 629.53,261.98 599.30,261.98" fill="#ffffff" stroke="none" />
+    <path d="M 599.30 259.99 L 629.53 259.99 A 30.24 30.24 0 0 1 599.30 229.76 Z" fill="rgba(243, 244, 246, 0.5)" stroke="#111827" stroke-width="1" stroke-dasharray="3,2" />
+    <polygon points="536.93,397.85 567.17,397.85 567.17,401.82 536.93,401.82" fill="#ffffff" stroke="none" />
+    <path d="M 536.93 399.83 L 567.17 399.83 A 30.24 30.24 0 0 1 536.93 369.60 Z" fill="rgba(243, 244, 246, 0.5)" stroke="#111827" stroke-width="1" stroke-dasharray="3,2" />
+    <polygon points="578.41,314.80 578.41,284.56 582.38,284.56 582.38,314.80" fill="#ffffff" stroke="none" />
+    <path d="M 580.40 314.80 L 580.40 284.56 A 30.24 30.24 0 0 1 580.40 284.56 Z" fill="rgba(243, 244, 246, 0.5)" stroke="#111827" stroke-width="1" stroke-dasharray="3,2" />
+    <polygon points="652.02,392.28 652.02,358.26 659.96,358.26 659.96,392.28" fill="#ffffff" stroke="none" />
+    <path d="M 655.99 392.28 L 655.99 358.26 A 34.02 34.02 0 0 1 655.99 358.26 Z" fill="rgba(243, 244, 246, 0.5)" stroke="#111827" stroke-width="1" stroke-dasharray="3,2" />
+    <polygon points="410.32,258.01 440.56,258.01 440.56,261.98 410.32,261.98" fill="#ffffff" stroke="none" />
+    <path d="M 410.32 259.99 L 440.56 259.99 A 30.24 30.24 0 0 1 410.32 229.76 Z" fill="rgba(243, 244, 246, 0.5)" stroke="#111827" stroke-width="1" stroke-dasharray="3,2" />
+    <polygon points="599.30,258.01 629.53,258.01 629.53,261.98 599.30,261.98" fill="#ffffff" stroke="none" />
+    <path d="M 599.30 259.99 L 629.53 259.99 A 30.24 30.24 0 0 1 599.30 229.76 Z" fill="rgba(243, 244, 246, 0.5)" stroke="#111827" stroke-width="1" stroke-dasharray="3,2" />
+    <polygon points="536.93,397.85 567.17,397.85 567.17,401.82 536.93,401.82" fill="#ffffff" stroke="none" />
+    <path d="M 536.93 399.83 L 567.17 399.83 A 30.24 30.24 0 0 1 536.93 369.60 Z" fill="rgba(243, 244, 246, 0.5)" stroke="#111827" stroke-width="1" stroke-dasharray="3,2" />
+    <polygon points="578.41,314.80 578.41,284.56 582.38,284.56 582.38,314.80" fill="#ffffff" stroke="none" />
+    <path d="M 580.40 314.80 L 580.40 284.56 A 30.24 30.24 0 0 1 580.40 284.56 Z" fill="rgba(243, 244, 246, 0.5)" stroke="#111827" stroke-width="1" stroke-dasharray="3,2" />
+    <polygon points="652.02,392.28 652.02,358.26 659.96,358.26 659.96,392.28" fill="#ffffff" stroke="none" />
+    <path d="M 655.99 392.28 L 655.99 358.26 A 34.02 34.02 0 0 1 655.99 358.26 Z" fill="rgba(243, 244, 246, 0.5)" stroke="#111827" stroke-width="1" stroke-dasharray="3,2" />
+    <polygon points="410.32,258.01 440.56,258.01 440.56,261.98 410.32,261.98" fill="#ffffff" stroke="none" />
+    <path d="M 410.32 259.99 L 440.56 259.99 A 30.24 30.24 0 0 1 410.32 229.76 Z" fill="rgba(243, 244, 246, 0.5)" stroke="#111827" stroke-width="1" stroke-dasharray="3,2" />
+    <polygon points="599.30,258.01 629.53,258.01 629.53,261.98 599.30,261.98" fill="#ffffff" stroke="none" />
+    <path d="M 599.30 259.99 L 629.53 259.99 A 30.24 30.24 0 0 1 599.30 229.76 Z" fill="rgba(243, 244, 246, 0.5)" stroke="#111827" stroke-width="1" stroke-dasharray="3,2" />
+    <polygon points="536.93,397.85 567.17,397.85 567.17,401.82 536.93,401.82" fill="#ffffff" stroke="none" />
+    <path d="M 536.93 399.83 L 567.17 399.83 A 30.24 30.24 0 0 1 536.93 369.60 Z" fill="rgba(243, 244, 246, 0.5)" stroke="#111827" stroke-width="1" stroke-dasharray="3,2" />
+    <polygon points="578.41,314.80 578.41,284.56 582.38,284.56 582.38,314.80" fill="#ffffff" stroke="none" />
+    <path d="M 580.40 314.80 L 580.40 284.56 A 30.24 30.24 0 0 1 580.40 284.56 Z" fill="rgba(243, 244, 246, 0.5)" stroke="#111827" stroke-width="1" stroke-dasharray="3,2" />
+    <polygon points="652.02,392.28 652.02,358.26 659.96,358.26 659.96,392.28" fill="#ffffff" stroke="none" />
+    <path d="M 655.99 392.28 L 655.99 358.26 A 34.02 34.02 0 0 1 655.99 358.26 Z" fill="rgba(243, 244, 246, 0.5)" stroke="#111827" stroke-width="1" stroke-dasharray="3,2" />
+    <polygon points="410.32,258.01 440.56,258.01 440.56,261.98 410.32,261.98" fill="#ffffff" stroke="none" />
+    <path d="M 410.32 259.99 L 440.56 259.99 A 30.24 30.24 0 0 1 410.32 229.76 Z" fill="rgba(243, 244, 246, 0.5)" stroke="#111827" stroke-width="1" stroke-dasharray="3,2" />
+    <polygon points="599.30,258.01 629.53,258.01 629.53,261.98 599.30,261.98" fill="#ffffff" stroke="none" />
+    <path d="M 599.30 259.99 L 629.53 259.99 A 30.24 30.24 0 0 1 599.30 229.76 Z" fill="rgba(243, 244, 246, 0.5)" stroke="#111827" stroke-width="1" stroke-dasharray="3,2" />
+    <polygon points="536.93,397.85 567.17,397.85 567.17,401.82 536.93,401.82" fill="#ffffff" stroke="none" />
+    <path d="M 536.93 399.83 L 567.17 399.83 A 30.24 30.24 0 0 1 536.93 369.60 Z" fill="rgba(243, 244, 246, 0.5)" stroke="#111827" stroke-width="1" stroke-dasharray="3,2" />
+    <polygon points="578.41,314.80 578.41,284.56 582.38,284.56 582.38,314.80" fill="#ffffff" stroke="none" />
+    <path d="M 580.40 314.80 L 580.40 284.56 A 30.24 30.24 0 0 1 580.40 284.56 Z" fill="rgba(243, 244, 246, 0.5)" stroke="#111827" stroke-width="1" stroke-dasharray="3,2" />
+    <polygon points="652.02,392.28 652.02,358.26 659.96,358.26 659.96,392.28" fill="#ffffff" stroke="none" />
+    <path d="M 655.99 392.28 L 655.99 358.26 A 34.02 34.02 0 0 1 655.99 358.26 Z" fill="rgba(243, 244, 246, 0.5)" stroke="#111827" stroke-width="1" stroke-dasharray="3,2" />
+    <polygon points="410.32,258.01 440.56,258.01 440.56,261.98 410.32,261.98" fill="#ffffff" stroke="none" />
+    <path d="M 410.32 259.99 L 440.56 259.99 A 30.24 30.24 0 0 1 410.32 229.76 Z" fill="rgba(243, 244, 246, 0.5)" stroke="#111827" stroke-width="1" stroke-dasharray="3,2" />
+    <polygon points="599.30,258.01 629.53,258.01 629.53,261.98 599.30,261.98" fill="#ffffff" stroke="none" />
+    <path d="M 599.30 259.99 L 629.53 259.99 A 30.24 30.24 0 0 1 599.30 229.76 Z" fill="rgba(243, 244, 246, 0.5)" stroke="#111827" stroke-width="1" stroke-dasharray="3,2" />
+    <polygon points="536.93,397.85 567.17,397.85 567.17,401.82 536.93,401.82" fill="#ffffff" stroke="none" />
+    <path d="M 536.93 399.83 L 567.17 399.83 A 30.24 30.24 0 0 1 536.93 369.60 Z" fill="rgba(243, 244, 246, 0.5)" stroke="#111827" stroke-width="1" stroke-dasharray="3,2" />
+    <polygon points="578.41,314.80 578.41,284.56 582.38,284.56 582.38,314.80" fill="#ffffff" stroke="none" />
+    <path d="M 580.40 314.80 L 580.40 284.56 A 30.24 30.24 0 0 1 580.40 284.56 Z" fill="rgba(243, 244, 246, 0.5)" stroke="#111827" stroke-width="1" stroke-dasharray="3,2" />
+    <polygon points="652.02,392.28 652.02,358.26 659.96,358.26 659.96,392.28" fill="#ffffff" stroke="none" />
+    <path d="M 655.99 392.28 L 655.99 358.26 A 34.02 34.02 0 0 1 655.99 358.26 Z" fill="rgba(243, 244, 246, 0.5)" stroke="#111827" stroke-width="1" stroke-dasharray="3,2" />
+    <polygon points="410.32,258.01 440.56,258.01 440.56,261.98 410.32,261.98" fill="#ffffff" stroke="none" />
+    <path d="M 410.32 259.99 L 440.56 259.99 A 30.24 30.24 0 0 1 410.32 229.76 Z" fill="rgba(243, 244, 246, 0.5)" stroke="#111827" stroke-width="1" stroke-dasharray="3,2" />
+    <polygon points="599.30,258.01 629.53,258.01 629.53,261.98 599.30,261.98" fill="#ffffff" stroke="none" />
+    <path d="M 599.30 259.99 L 629.53 259.99 A 30.24 30.24 0 0 1 599.30 229.76 Z" fill="rgba(243, 244, 246, 0.5)" stroke="#111827" stroke-width="1" stroke-dasharray="3,2" />
+    <polygon points="536.93,397.85 567.17,397.85 567.17,401.82 536.93,401.82" fill="#ffffff" stroke="none" />
+    <path d="M 536.93 399.83 L 567.17 399.83 A 30.24 30.24 0 0 1 536.93 369.60 Z" fill="rgba(243, 244, 246, 0.5)" stroke="#111827" stroke-width="1" stroke-dasharray="3,2" />
+    <polygon points="578.41,314.80 578.41,284.56 582.38,284.56 582.38,314.80" fill="#ffffff" stroke="none" />
+    <path d="M 580.40 314.80 L 580.40 284.56 A 30.24 30.24 0 0 1 580.40 284.56 Z" fill="rgba(243, 244, 246, 0.5)" stroke="#111827" stroke-width="1" stroke-dasharray="3,2" />
+    <line x1="410.32" y1="524.56" x2="455.67" y2="524.56" stroke="#3b82f6" stroke-width="2" />
+    <line x1="523.70" y1="524.56" x2="569.06" y2="524.56" stroke="#3b82f6" stroke-width="2" />
+    <line x1="697.56" y1="127.71" x2="652.21" y2="127.71" stroke="#3b82f6" stroke-width="2" />
+    <line x1="516.15" y1="127.71" x2="470.79" y2="127.71" stroke="#3b82f6" stroke-width="2" />
+    <line x1="372.52" y1="222.20" x2="372.52" y2="267.55" stroke="#3b82f6" stroke-width="2" />
+    <line x1="750.48" y1="460.31" x2="750.48" y2="414.95" stroke="#3b82f6" stroke-width="2" />
+    <line x1="410.32" y1="524.56" x2="455.67" y2="524.56" stroke="#3b82f6" stroke-width="2" />
+    <line x1="523.70" y1="524.56" x2="569.06" y2="524.56" stroke="#3b82f6" stroke-width="2" />
+    <line x1="697.56" y1="127.71" x2="652.21" y2="127.71" stroke="#3b82f6" stroke-width="2" />
+    <line x1="516.15" y1="127.71" x2="470.79" y2="127.71" stroke="#3b82f6" stroke-width="2" />
+    <line x1="372.52" y1="222.20" x2="372.52" y2="267.55" stroke="#3b82f6" stroke-width="2" />
+    <line x1="750.48" y1="460.31" x2="750.48" y2="414.95" stroke="#3b82f6" stroke-width="2" />
+    <line x1="410.32" y1="524.56" x2="455.67" y2="524.56" stroke="#3b82f6" stroke-width="2" />
+    <line x1="523.70" y1="524.56" x2="569.06" y2="524.56" stroke="#3b82f6" stroke-width="2" />
+    <line x1="697.56" y1="127.71" x2="652.21" y2="127.71" stroke="#3b82f6" stroke-width="2" />
+    <line x1="516.15" y1="127.71" x2="470.79" y2="127.71" stroke="#3b82f6" stroke-width="2" />
+    <line x1="372.52" y1="222.20" x2="372.52" y2="267.55" stroke="#3b82f6" stroke-width="2" />
+    <line x1="750.48" y1="460.31" x2="750.48" y2="414.95" stroke="#3b82f6" stroke-width="2" />
+    <line x1="410.32" y1="524.56" x2="455.67" y2="524.56" stroke="#3b82f6" stroke-width="2" />
+    <line x1="523.70" y1="524.56" x2="569.06" y2="524.56" stroke="#3b82f6" stroke-width="2" />
+    <line x1="697.56" y1="127.71" x2="652.21" y2="127.71" stroke="#3b82f6" stroke-width="2" />
+    <line x1="516.15" y1="127.71" x2="470.79" y2="127.71" stroke="#3b82f6" stroke-width="2" />
+    <line x1="372.52" y1="222.20" x2="372.52" y2="267.55" stroke="#3b82f6" stroke-width="2" />
+    <line x1="750.48" y1="460.31" x2="750.48" y2="414.95" stroke="#3b82f6" stroke-width="2" />
+    <line x1="410.32" y1="524.56" x2="455.67" y2="524.56" stroke="#3b82f6" stroke-width="2" />
+    <line x1="523.70" y1="524.56" x2="569.06" y2="524.56" stroke="#3b82f6" stroke-width="2" />
+    <line x1="697.56" y1="127.71" x2="652.21" y2="127.71" stroke="#3b82f6" stroke-width="2" />
+    <line x1="516.15" y1="127.71" x2="470.79" y2="127.71" stroke="#3b82f6" stroke-width="2" />
+    <line x1="372.52" y1="222.20" x2="372.52" y2="267.55" stroke="#3b82f6" stroke-width="2" />
+    <line x1="750.48" y1="460.31" x2="750.48" y2="414.95" stroke="#3b82f6" stroke-width="2" />
+    <line x1="410.32" y1="524.56" x2="455.67" y2="524.56" stroke="#3b82f6" stroke-width="2" />
+    <line x1="523.70" y1="524.56" x2="569.06" y2="524.56" stroke="#3b82f6" stroke-width="2" />
+    <line x1="697.56" y1="127.71" x2="652.21" y2="127.71" stroke="#3b82f6" stroke-width="2" />
+    <line x1="516.15" y1="127.71" x2="470.79" y2="127.71" stroke="#3b82f6" stroke-width="2" />
+    <line x1="372.52" y1="222.20" x2="372.52" y2="267.55" stroke="#3b82f6" stroke-width="2" />
+    <line x1="750.48" y1="460.31" x2="750.48" y2="414.95" stroke="#3b82f6" stroke-width="2" />
+  </g>
+  <g id="dimensions">
+    <line x1="372.52" y1="524.56" x2="372.52" y2="554.80" stroke="#1f2937" stroke-width="0.75" />
+    <line x1="750.48" y1="524.56" x2="750.48" y2="554.80" stroke="#1f2937" stroke-width="0.75" />
+    <line x1="372.52" y1="554.80" x2="750.48" y2="554.80" stroke="#1f2937" stroke-width="0.75" />
+    <line x1="369.52" y1="557.80" x2="375.52" y2="551.80" stroke="#1f2937" stroke-width="1.2" />
+    <line x1="747.48" y1="557.80" x2="753.48" y2="551.80" stroke="#1f2937" stroke-width="1.2" />
+    <text x="561.50" y="550.80" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#111827" text-anchor="middle">10.00 m</text>
+    <line x1="750.48" y1="127.71" x2="750.48" y2="157.94" stroke="#1f2937" stroke-width="0.75" />
+    <line x1="372.52" y1="127.71" x2="372.52" y2="157.94" stroke="#1f2937" stroke-width="0.75" />
+    <line x1="750.48" y1="157.94" x2="372.52" y2="157.94" stroke="#1f2937" stroke-width="0.75" />
+    <line x1="747.48" y1="160.94" x2="753.48" y2="154.94" stroke="#1f2937" stroke-width="1.2" />
+    <line x1="369.52" y1="160.94" x2="375.52" y2="154.94" stroke="#1f2937" stroke-width="1.2" />
+    <text x="561.50" y="153.94" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#111827" text-anchor="middle">10.00 m</text>
+    <line x1="372.52" y1="127.71" x2="342.29" y2="127.71" stroke="#1f2937" stroke-width="0.75" />
+    <line x1="372.52" y1="524.56" x2="342.29" y2="524.56" stroke="#1f2937" stroke-width="0.75" />
+    <line x1="342.29" y1="127.71" x2="342.29" y2="524.56" stroke="#1f2937" stroke-width="0.75" />
+    <line x1="339.29" y1="130.71" x2="345.29" y2="124.71" stroke="#1f2937" stroke-width="1.2" />
+    <line x1="339.29" y1="527.56" x2="345.29" y2="521.56" stroke="#1f2937" stroke-width="1.2" />
+    <text x="342.29" y="322.13" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#111827" text-anchor="middle">10.50 m</text>
+    <line x1="750.48" y1="524.56" x2="720.24" y2="524.56" stroke="#1f2937" stroke-width="0.75" />
+    <line x1="750.48" y1="127.71" x2="720.24" y2="127.71" stroke="#1f2937" stroke-width="0.75" />
+    <line x1="720.24" y1="524.56" x2="720.24" y2="127.71" stroke="#1f2937" stroke-width="0.75" />
+    <line x1="717.24" y1="527.56" x2="723.24" y2="521.56" stroke="#1f2937" stroke-width="1.2" />
+    <line x1="717.24" y1="130.71" x2="723.24" y2="124.71" stroke="#1f2937" stroke-width="1.2" />
+    <text x="720.24" y="322.13" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#111827" text-anchor="middle">10.50 m</text>
+    <line x1="372.52" y1="524.56" x2="372.52" y2="547.24" stroke="#1f2937" stroke-width="0.75" />
+    <line x1="750.48" y1="524.56" x2="750.48" y2="547.24" stroke="#1f2937" stroke-width="0.75" />
+    <line x1="372.52" y1="547.24" x2="750.48" y2="547.24" stroke="#1f2937" stroke-width="0.75" />
+    <line x1="369.52" y1="550.24" x2="375.52" y2="544.24" stroke="#1f2937" stroke-width="1.2" />
+    <line x1="747.48" y1="550.24" x2="753.48" y2="544.24" stroke="#1f2937" stroke-width="1.2" />
+    <text x="561.50" y="543.24" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#111827" text-anchor="middle">10.00 m</text>
+  </g>
+
+  <!-- Cadre extérieur et Cartouche réglementaire -->
+  <g id="border-and-cartouche">
+    <rect x="75.59" y="75.59" width="971.82" height="642.82" fill="none" stroke="#111827" stroke-width="1.5" />
+    <rect x="763.94" y="586.13" width="283.46" height="132.28" fill="#ffffff" stroke="#111827" stroke-width="1.5" />
+    <line x1="763.94" y1="611.13" x2="1047.41" y2="611.13" stroke="#111827" stroke-width="0.75" />
+    <line x1="763.94" y1="636.13" x2="1047.41" y2="636.13" stroke="#111827" stroke-width="0.75" />
+    <line x1="763.94" y1="661.13" x2="1047.41" y2="661.13" stroke="#111827" stroke-width="0.75" />
+    <line x1="903.94" y1="636.13" x2="903.94" y2="718.41" stroke="#111827" stroke-width="0.75" />
+
+    <!-- Textes du cartouche -->
+    <text x="771.94" y="603.13" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#111827">Projet Mini-BIM</text>
+    <text x="771.94" y="627.13" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#2563eb">Plan d’Étage</text>
+    <text x="771.94" y="652.13" font-family="Arial, sans-serif" font-size="9" fill="#4b5563">ÉCHELLE : 1:100</text>
+    <text x="911.94" y="652.13" font-family="Arial, sans-serif" font-size="9" fill="#4b5563">FORMAT : A4</text>
+    <text x="771.94" y="678.13" font-family="Arial, sans-serif" font-size="9" fill="#4b5563">AUTEUR : Mini-BIM Architect</text>
+    <text x="911.94" y="678.13" font-family="Arial, sans-serif" font-size="9" fill="#4b5563">DATE : 20/11/2026</text>
+  </g>
+</svg>

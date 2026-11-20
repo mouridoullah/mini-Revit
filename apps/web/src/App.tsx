@@ -64,6 +64,20 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
       try {
         if (typeof window !== 'undefined') {
           const params = new URLSearchParams(window.location.search);
+          const demoParam = params.get('demo');
+          if (demoParam === 'r4' || demoParam === 'immeuble-r4') {
+            const resp = await fetch('/demo-immeuble-r4.json');
+            if (resp.ok) {
+              const text = await resp.text();
+              if (!isCancelled) {
+                const r4Doc = BimDocument.fromJSON(text);
+                setDocument(r4Doc);
+                setActiveLevelId('level_r0');
+                setInfoMessage('🏢 Immeuble R+4 complet chargé avec succès !');
+                return;
+              }
+            }
+          }
           if (params.get('demo') === 'roof') {
             const resp = await fetch('/demo-roof-plan.json');
             if (resp.ok) {
@@ -288,6 +302,28 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
     [activeTool, setDocument],
   );
 
+  const handleLoadR4Demo = useCallback(async () => {
+    try {
+      activeTool.reset();
+      setSelectedIds([]);
+      setDrawingLength(null);
+      const resp = await fetch('/demo-immeuble-r4.json');
+      if (!resp.ok) {
+        throw new Error(`Échec du téléchargement (/demo-immeuble-r4.json: ${resp.status})`);
+      }
+      const text = await resp.text();
+      const r4Doc = BimDocument.fromJSON(text);
+      setDocument(r4Doc);
+      setActiveLevelId('level_r0');
+      setInfoMessage('🏢 Immeuble R+4 complet chargé avec succès !');
+      setErrorMessage(null);
+    } catch (err) {
+      setErrorMessage(
+        err instanceof Error ? err.message : 'Erreur lors du chargement de la démo R+4.',
+      );
+    }
+  }, [activeTool, setDocument]);
+
   return (
     <div
       data-testid="app-root"
@@ -308,6 +344,7 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
         onRedo={() => redo()}
         onSave={handleSave}
         onLoadFile={handleLoadFile}
+        onLoadR4Demo={handleLoadR4Demo}
         onExportIfc={handleExportIfc}
         onExportSvg={handleExportSvg}
         levels={Object.values(doc.getState().levels)}
@@ -368,7 +405,7 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
             boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
           }}
         >
-          <span>ℹ️ {infoMessage}</span>
+          <span>{infoMessage}</span>
           <button
             type="button"
             data-testid="close-info-banner-btn"
@@ -405,7 +442,7 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
             boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
           }}
         >
-          <span>⚠️ {errorMessage}</span>
+          <span>{errorMessage}</span>
           <button
             type="button"
             data-testid="close-error-banner-btn"

@@ -1,0 +1,1650 @@
+{
+  "schemaVersion": 2,
+  "units": "mm",
+  "levels": {
+    "level_mep_skeleton": {
+      "id": "level_mep_skeleton",
+      "name": "R?f?rence r?seaux",
+      "elevation": 0
+    }
+  },
+  "wallTypes": {},
+  "slabTypes": {},
+  "doorTypes": {},
+  "windowTypes": {},
+  "walls": {},
+  "slabs": {},
+  "doors": {},
+  "windows": {},
+  "rooms": {},
+  "dimensions": {},
+  "stairTypes": {},
+  "stairs": {},
+  "roofTypes": {},
+  "roofs": {},
+  "roofOpenings": {},
+  "componentTypes": {},
+  "components": {},
+  "pipes": {
+    "pipe_trunk_1": {
+      "id": "pipe_trunk_1",
+      "category": "pipe",
+      "levelId": "level_mep_skeleton",
+      "systemId": "sys_eau_froide",
+      "start": {
+        "x": 0,
+        "y": 0,
+        "z": 1200
+      },
+      "end": {
+        "x": 2000,
+        "y": 0,
+        "z": 1200
+      },
+      "diameter": 32,
+      "material": "Multicouche",
+      "ports": [
+        {
+          "id": "01M7TWQMXM30N4NN556N6VQJ3C",
+          "elementId": "pipe_trunk_1",
+          "position": {
+            "x": 0,
+            "y": 0,
+            "z": 1200
+          },
+          "direction": {
+            "x": -1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "domestic_cold_water",
+          "shape": "round",
+          "diameter": 32,
+          "flowDirection": "bidirectional",
+          "label": "PIPE_START"
+        },
+        {
+          "id": "01M7TWQMXNC3WBQTQQGSQ6YJV8",
+          "elementId": "pipe_trunk_1",
+          "position": {
+            "x": 2000,
+            "y": 0,
+            "z": 1200
+          },
+          "direction": {
+            "x": 1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "domestic_cold_water",
+          "shape": "round",
+          "diameter": 32,
+          "flowDirection": "bidirectional",
+          "label": "PIPE_END"
+        }
+      ],
+      "name": "Plomberie - eau froide"
+    },
+    "pipe_trunk_2": {
+      "id": "pipe_trunk_2",
+      "category": "pipe",
+      "levelId": "level_mep_skeleton",
+      "systemId": "sys_eau_froide",
+      "start": {
+        "x": 2000,
+        "y": 0,
+        "z": 1200
+      },
+      "end": {
+        "x": 4000,
+        "y": 0,
+        "z": 1200
+      },
+      "diameter": 32,
+      "material": "Multicouche",
+      "ports": [
+        {
+          "id": "01M7TWQMXQGESCRQZ4WYXRGA52",
+          "elementId": "pipe_trunk_2",
+          "position": {
+            "x": 2000,
+            "y": 0,
+            "z": 1200
+          },
+          "direction": {
+            "x": -1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "domestic_cold_water",
+          "shape": "round",
+          "diameter": 32,
+          "flowDirection": "bidirectional",
+          "label": "PIPE_START"
+        },
+        {
+          "id": "01M7TWQMXQ3WDHGK6CYJAGHYV3",
+          "elementId": "pipe_trunk_2",
+          "position": {
+            "x": 4000,
+            "y": 0,
+            "z": 1200
+          },
+          "direction": {
+            "x": 1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "domestic_cold_water",
+          "shape": "round",
+          "diameter": 32,
+          "flowDirection": "bidirectional",
+          "label": "PIPE_END"
+        }
+      ],
+      "name": "Plomberie - eau froide"
+    },
+    "pipe_trunk_3": {
+      "id": "pipe_trunk_3",
+      "category": "pipe",
+      "levelId": "level_mep_skeleton",
+      "systemId": "sys_eau_froide",
+      "start": {
+        "x": 4000,
+        "y": 0,
+        "z": 1200
+      },
+      "end": {
+        "x": 6000,
+        "y": 0,
+        "z": 1200
+      },
+      "diameter": 32,
+      "material": "Multicouche",
+      "ports": [
+        {
+          "id": "01M7TWQMXQXKKF722BF490VQJP",
+          "elementId": "pipe_trunk_3",
+          "position": {
+            "x": 4000,
+            "y": 0,
+            "z": 1200
+          },
+          "direction": {
+            "x": -1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "domestic_cold_water",
+          "shape": "round",
+          "diameter": 32,
+          "flowDirection": "bidirectional",
+          "label": "PIPE_START"
+        },
+        {
+          "id": "01M7TWQMXRCFCTX4XKP7KTEVRW",
+          "elementId": "pipe_trunk_3",
+          "position": {
+            "x": 6000,
+            "y": 0,
+            "z": 1200
+          },
+          "direction": {
+            "x": 1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "domestic_cold_water",
+          "shape": "round",
+          "diameter": 32,
+          "flowDirection": "bidirectional",
+          "label": "PIPE_END"
+        }
+      ],
+      "name": "Plomberie - eau froide"
+    },
+    "pipe_branch_1": {
+      "id": "pipe_branch_1",
+      "category": "pipe",
+      "levelId": "level_mep_skeleton",
+      "systemId": "sys_eau_froide",
+      "start": {
+        "x": 2000,
+        "y": 0,
+        "z": 1200
+      },
+      "end": {
+        "x": 2000,
+        "y": 1500,
+        "z": 1200
+      },
+      "diameter": 32,
+      "material": "Multicouche",
+      "ports": [
+        {
+          "id": "01M7TWQMXR3ZV2BP26W6N3BBRD",
+          "elementId": "pipe_branch_1",
+          "position": {
+            "x": 2000,
+            "y": 0,
+            "z": 1200
+          },
+          "direction": {
+            "x": 0,
+            "y": -1,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "domestic_cold_water",
+          "shape": "round",
+          "diameter": 32,
+          "flowDirection": "bidirectional",
+          "label": "PIPE_START"
+        },
+        {
+          "id": "01M7TWQMXRW41C8916YZSRF2PZ",
+          "elementId": "pipe_branch_1",
+          "position": {
+            "x": 2000,
+            "y": 1500,
+            "z": 1200
+          },
+          "direction": {
+            "x": 0,
+            "y": 1,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "domestic_cold_water",
+          "shape": "round",
+          "diameter": 32,
+          "flowDirection": "bidirectional",
+          "label": "PIPE_END"
+        }
+      ],
+      "name": "Plomberie - eau froide"
+    },
+    "pipe_branch_2": {
+      "id": "pipe_branch_2",
+      "category": "pipe",
+      "levelId": "level_mep_skeleton",
+      "systemId": "sys_eau_froide",
+      "start": {
+        "x": 4000,
+        "y": 0,
+        "z": 1200
+      },
+      "end": {
+        "x": 4000,
+        "y": 1500,
+        "z": 1200
+      },
+      "diameter": 32,
+      "material": "Multicouche",
+      "ports": [
+        {
+          "id": "01M7TWQMXW5JXYF3M0G4XBYJNX",
+          "elementId": "pipe_branch_2",
+          "position": {
+            "x": 4000,
+            "y": 0,
+            "z": 1200
+          },
+          "direction": {
+            "x": 0,
+            "y": -1,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "domestic_cold_water",
+          "shape": "round",
+          "diameter": 32,
+          "flowDirection": "bidirectional",
+          "label": "PIPE_START"
+        },
+        {
+          "id": "01M7TWQMXWYPVWDQRTP2FW69PT",
+          "elementId": "pipe_branch_2",
+          "position": {
+            "x": 4000,
+            "y": 1500,
+            "z": 1200
+          },
+          "direction": {
+            "x": 0,
+            "y": 1,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "domestic_cold_water",
+          "shape": "round",
+          "diameter": 32,
+          "flowDirection": "bidirectional",
+          "label": "PIPE_END"
+        }
+      ],
+      "name": "Plomberie - eau froide"
+    }
+  },
+  "ducts": {
+    "duct_trunk_1": {
+      "id": "duct_trunk_1",
+      "category": "duct",
+      "levelId": "level_mep_skeleton",
+      "systemId": "sys_ventilation",
+      "start": {
+        "x": 0,
+        "y": 3500,
+        "z": 2700
+      },
+      "end": {
+        "x": 2000,
+        "y": 3500,
+        "z": 2700
+      },
+      "shape": "rectangular",
+      "width": 400,
+      "height": 250,
+      "ports": [
+        {
+          "id": "01M7TWQMY1JE80KM16EDW4CC92",
+          "elementId": "duct_trunk_1",
+          "position": {
+            "x": 0,
+            "y": 3500,
+            "z": 2700
+          },
+          "direction": {
+            "x": -1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "hvac",
+          "systemType": "supply_air",
+          "shape": "rectangular",
+          "width": 400,
+          "height": 250,
+          "flowDirection": "bidirectional",
+          "label": "DUCT_START"
+        },
+        {
+          "id": "01M7TWQMY1E1V92GDSFBE6PTHS",
+          "elementId": "duct_trunk_1",
+          "position": {
+            "x": 2000,
+            "y": 3500,
+            "z": 2700
+          },
+          "direction": {
+            "x": 1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "hvac",
+          "systemType": "supply_air",
+          "shape": "rectangular",
+          "width": 400,
+          "height": 250,
+          "flowDirection": "bidirectional",
+          "label": "DUCT_END"
+        }
+      ],
+      "name": "Ventilation - soufflage"
+    },
+    "duct_trunk_2": {
+      "id": "duct_trunk_2",
+      "category": "duct",
+      "levelId": "level_mep_skeleton",
+      "systemId": "sys_ventilation",
+      "start": {
+        "x": 2000,
+        "y": 3500,
+        "z": 2700
+      },
+      "end": {
+        "x": 4000,
+        "y": 3500,
+        "z": 2700
+      },
+      "shape": "rectangular",
+      "width": 400,
+      "height": 250,
+      "ports": [
+        {
+          "id": "01M7TWQMY3V1DYTK4944AZNFWX",
+          "elementId": "duct_trunk_2",
+          "position": {
+            "x": 2000,
+            "y": 3500,
+            "z": 2700
+          },
+          "direction": {
+            "x": -1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "hvac",
+          "systemType": "supply_air",
+          "shape": "rectangular",
+          "width": 400,
+          "height": 250,
+          "flowDirection": "bidirectional",
+          "label": "DUCT_START"
+        },
+        {
+          "id": "01M7TWQMY35KZ9C5C0VKY6W05D",
+          "elementId": "duct_trunk_2",
+          "position": {
+            "x": 4000,
+            "y": 3500,
+            "z": 2700
+          },
+          "direction": {
+            "x": 1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "hvac",
+          "systemType": "supply_air",
+          "shape": "rectangular",
+          "width": 400,
+          "height": 250,
+          "flowDirection": "bidirectional",
+          "label": "DUCT_END"
+        }
+      ],
+      "name": "Ventilation - soufflage"
+    },
+    "duct_trunk_3": {
+      "id": "duct_trunk_3",
+      "category": "duct",
+      "levelId": "level_mep_skeleton",
+      "systemId": "sys_ventilation",
+      "start": {
+        "x": 4000,
+        "y": 3500,
+        "z": 2700
+      },
+      "end": {
+        "x": 6000,
+        "y": 3500,
+        "z": 2700
+      },
+      "shape": "rectangular",
+      "width": 400,
+      "height": 250,
+      "ports": [
+        {
+          "id": "01M7TWQMY3FQ8D5GNKMEHZ89ET",
+          "elementId": "duct_trunk_3",
+          "position": {
+            "x": 4000,
+            "y": 3500,
+            "z": 2700
+          },
+          "direction": {
+            "x": -1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "hvac",
+          "systemType": "supply_air",
+          "shape": "rectangular",
+          "width": 400,
+          "height": 250,
+          "flowDirection": "bidirectional",
+          "label": "DUCT_START"
+        },
+        {
+          "id": "01M7TWQMY3M429SJFMNC7AVH4H",
+          "elementId": "duct_trunk_3",
+          "position": {
+            "x": 6000,
+            "y": 3500,
+            "z": 2700
+          },
+          "direction": {
+            "x": 1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "hvac",
+          "systemType": "supply_air",
+          "shape": "rectangular",
+          "width": 400,
+          "height": 250,
+          "flowDirection": "bidirectional",
+          "label": "DUCT_END"
+        }
+      ],
+      "name": "Ventilation - soufflage"
+    },
+    "duct_branch_1": {
+      "id": "duct_branch_1",
+      "category": "duct",
+      "levelId": "level_mep_skeleton",
+      "systemId": "sys_ventilation",
+      "start": {
+        "x": 2000,
+        "y": 3500,
+        "z": 2700
+      },
+      "end": {
+        "x": 2000,
+        "y": 5000,
+        "z": 2700
+      },
+      "shape": "rectangular",
+      "width": 400,
+      "height": 250,
+      "ports": [
+        {
+          "id": "01M7TWQMY4D37Y2SREW5H34XPR",
+          "elementId": "duct_branch_1",
+          "position": {
+            "x": 2000,
+            "y": 3500,
+            "z": 2700
+          },
+          "direction": {
+            "x": 0,
+            "y": -1,
+            "z": 0
+          },
+          "domain": "hvac",
+          "systemType": "supply_air",
+          "shape": "rectangular",
+          "width": 400,
+          "height": 250,
+          "flowDirection": "bidirectional",
+          "label": "DUCT_START"
+        },
+        {
+          "id": "01M7TWQMY4M27MZDRB59HJY8SZ",
+          "elementId": "duct_branch_1",
+          "position": {
+            "x": 2000,
+            "y": 5000,
+            "z": 2700
+          },
+          "direction": {
+            "x": 0,
+            "y": 1,
+            "z": 0
+          },
+          "domain": "hvac",
+          "systemType": "supply_air",
+          "shape": "rectangular",
+          "width": 400,
+          "height": 250,
+          "flowDirection": "bidirectional",
+          "label": "DUCT_END"
+        }
+      ],
+      "name": "Ventilation - soufflage"
+    },
+    "duct_branch_2": {
+      "id": "duct_branch_2",
+      "category": "duct",
+      "levelId": "level_mep_skeleton",
+      "systemId": "sys_ventilation",
+      "start": {
+        "x": 4000,
+        "y": 3500,
+        "z": 2700
+      },
+      "end": {
+        "x": 4000,
+        "y": 5000,
+        "z": 2700
+      },
+      "shape": "rectangular",
+      "width": 400,
+      "height": 250,
+      "ports": [
+        {
+          "id": "01M7TWQMY8JHNMH4BF9HMNSZE2",
+          "elementId": "duct_branch_2",
+          "position": {
+            "x": 4000,
+            "y": 3500,
+            "z": 2700
+          },
+          "direction": {
+            "x": 0,
+            "y": -1,
+            "z": 0
+          },
+          "domain": "hvac",
+          "systemType": "supply_air",
+          "shape": "rectangular",
+          "width": 400,
+          "height": 250,
+          "flowDirection": "bidirectional",
+          "label": "DUCT_START"
+        },
+        {
+          "id": "01M7TWQMY9EXC0AD74FYE72SJJ",
+          "elementId": "duct_branch_2",
+          "position": {
+            "x": 4000,
+            "y": 5000,
+            "z": 2700
+          },
+          "direction": {
+            "x": 0,
+            "y": 1,
+            "z": 0
+          },
+          "domain": "hvac",
+          "systemType": "supply_air",
+          "shape": "rectangular",
+          "width": 400,
+          "height": 250,
+          "flowDirection": "bidirectional",
+          "label": "DUCT_END"
+        }
+      ],
+      "name": "Ventilation - soufflage"
+    }
+  },
+  "cableTrays": {
+    "tray_trunk_1": {
+      "id": "tray_trunk_1",
+      "category": "cableTray",
+      "levelId": "level_mep_skeleton",
+      "systemId": "sys_electricite",
+      "start": {
+        "x": 0,
+        "y": 7000,
+        "z": 4200
+      },
+      "end": {
+        "x": 2000,
+        "y": 7000,
+        "z": 4200
+      },
+      "width": 200,
+      "height": 60,
+      "ports": [
+        {
+          "id": "01M7TWQMYC8G8N1TFD3WY9F22F",
+          "elementId": "tray_trunk_1",
+          "position": {
+            "x": 0,
+            "y": 7000,
+            "z": 4200
+          },
+          "direction": {
+            "x": -1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "electrical",
+          "systemType": "power",
+          "shape": "rectangular",
+          "width": 200,
+          "height": 60,
+          "flowDirection": "bidirectional",
+          "label": "TRAY_START"
+        },
+        {
+          "id": "01M7TWQMYCB0TCEE29S0YXWP7J",
+          "elementId": "tray_trunk_1",
+          "position": {
+            "x": 2000,
+            "y": 7000,
+            "z": 4200
+          },
+          "direction": {
+            "x": 1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "electrical",
+          "systemType": "power",
+          "shape": "rectangular",
+          "width": 200,
+          "height": 60,
+          "flowDirection": "bidirectional",
+          "label": "TRAY_END"
+        }
+      ],
+      "name": "?lectricit? - cheminement"
+    },
+    "tray_trunk_2": {
+      "id": "tray_trunk_2",
+      "category": "cableTray",
+      "levelId": "level_mep_skeleton",
+      "systemId": "sys_electricite",
+      "start": {
+        "x": 2000,
+        "y": 7000,
+        "z": 4200
+      },
+      "end": {
+        "x": 4000,
+        "y": 7000,
+        "z": 4200
+      },
+      "width": 200,
+      "height": 60,
+      "ports": [
+        {
+          "id": "01M7TWQMYDNBV0724104QSZ2XW",
+          "elementId": "tray_trunk_2",
+          "position": {
+            "x": 2000,
+            "y": 7000,
+            "z": 4200
+          },
+          "direction": {
+            "x": -1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "electrical",
+          "systemType": "power",
+          "shape": "rectangular",
+          "width": 200,
+          "height": 60,
+          "flowDirection": "bidirectional",
+          "label": "TRAY_START"
+        },
+        {
+          "id": "01M7TWQMYDNRTP728K0VT1NHY7",
+          "elementId": "tray_trunk_2",
+          "position": {
+            "x": 4000,
+            "y": 7000,
+            "z": 4200
+          },
+          "direction": {
+            "x": 1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "electrical",
+          "systemType": "power",
+          "shape": "rectangular",
+          "width": 200,
+          "height": 60,
+          "flowDirection": "bidirectional",
+          "label": "TRAY_END"
+        }
+      ],
+      "name": "?lectricit? - cheminement"
+    },
+    "tray_trunk_3": {
+      "id": "tray_trunk_3",
+      "category": "cableTray",
+      "levelId": "level_mep_skeleton",
+      "systemId": "sys_electricite",
+      "start": {
+        "x": 4000,
+        "y": 7000,
+        "z": 4200
+      },
+      "end": {
+        "x": 6000,
+        "y": 7000,
+        "z": 4200
+      },
+      "width": 200,
+      "height": 60,
+      "ports": [
+        {
+          "id": "01M7TWQMYD6AG022NCHNHDGWH6",
+          "elementId": "tray_trunk_3",
+          "position": {
+            "x": 4000,
+            "y": 7000,
+            "z": 4200
+          },
+          "direction": {
+            "x": -1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "electrical",
+          "systemType": "power",
+          "shape": "rectangular",
+          "width": 200,
+          "height": 60,
+          "flowDirection": "bidirectional",
+          "label": "TRAY_START"
+        },
+        {
+          "id": "01M7TWQMYFHX2Q9BEFVXMZ5EPX",
+          "elementId": "tray_trunk_3",
+          "position": {
+            "x": 6000,
+            "y": 7000,
+            "z": 4200
+          },
+          "direction": {
+            "x": 1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "electrical",
+          "systemType": "power",
+          "shape": "rectangular",
+          "width": 200,
+          "height": 60,
+          "flowDirection": "bidirectional",
+          "label": "TRAY_END"
+        }
+      ],
+      "name": "?lectricit? - cheminement"
+    },
+    "tray_branch_1": {
+      "id": "tray_branch_1",
+      "category": "cableTray",
+      "levelId": "level_mep_skeleton",
+      "systemId": "sys_electricite",
+      "start": {
+        "x": 2000,
+        "y": 7000,
+        "z": 4200
+      },
+      "end": {
+        "x": 2000,
+        "y": 8500,
+        "z": 4200
+      },
+      "width": 200,
+      "height": 60,
+      "ports": [
+        {
+          "id": "01M7TWQMYGGEX0J8QSYH1TEK5V",
+          "elementId": "tray_branch_1",
+          "position": {
+            "x": 2000,
+            "y": 7000,
+            "z": 4200
+          },
+          "direction": {
+            "x": 0,
+            "y": -1,
+            "z": 0
+          },
+          "domain": "electrical",
+          "systemType": "power",
+          "shape": "rectangular",
+          "width": 200,
+          "height": 60,
+          "flowDirection": "bidirectional",
+          "label": "TRAY_START"
+        },
+        {
+          "id": "01M7TWQMYGS2BMZCGMBVWT5J9X",
+          "elementId": "tray_branch_1",
+          "position": {
+            "x": 2000,
+            "y": 8500,
+            "z": 4200
+          },
+          "direction": {
+            "x": 0,
+            "y": 1,
+            "z": 0
+          },
+          "domain": "electrical",
+          "systemType": "power",
+          "shape": "rectangular",
+          "width": 200,
+          "height": 60,
+          "flowDirection": "bidirectional",
+          "label": "TRAY_END"
+        }
+      ],
+      "name": "?lectricit? - cheminement"
+    },
+    "tray_branch_2": {
+      "id": "tray_branch_2",
+      "category": "cableTray",
+      "levelId": "level_mep_skeleton",
+      "systemId": "sys_electricite",
+      "start": {
+        "x": 4000,
+        "y": 7000,
+        "z": 4200
+      },
+      "end": {
+        "x": 4000,
+        "y": 8500,
+        "z": 4200
+      },
+      "width": 200,
+      "height": 60,
+      "ports": [
+        {
+          "id": "01M7TWQMYJ0Z3RCZK1MMNYRJSF",
+          "elementId": "tray_branch_2",
+          "position": {
+            "x": 4000,
+            "y": 7000,
+            "z": 4200
+          },
+          "direction": {
+            "x": 0,
+            "y": -1,
+            "z": 0
+          },
+          "domain": "electrical",
+          "systemType": "power",
+          "shape": "rectangular",
+          "width": 200,
+          "height": 60,
+          "flowDirection": "bidirectional",
+          "label": "TRAY_START"
+        },
+        {
+          "id": "01M7TWQMYK0TY65M6WP6JWQXMS",
+          "elementId": "tray_branch_2",
+          "position": {
+            "x": 4000,
+            "y": 8500,
+            "z": 4200
+          },
+          "direction": {
+            "x": 0,
+            "y": 1,
+            "z": 0
+          },
+          "domain": "electrical",
+          "systemType": "power",
+          "shape": "rectangular",
+          "width": 200,
+          "height": 60,
+          "flowDirection": "bidirectional",
+          "label": "TRAY_END"
+        }
+      ],
+      "name": "?lectricit? - cheminement"
+    }
+  },
+  "mepFittings": {
+    "tee_pipe_1": {
+      "id": "tee_pipe_1",
+      "category": "mepFitting",
+      "levelId": "level_mep_skeleton",
+      "systemId": "sys_eau_froide",
+      "fittingType": "tee",
+      "domain": "plumbing",
+      "systemType": "domestic_cold_water",
+      "position": {
+        "x": 2000,
+        "y": 0,
+        "z": 1200
+      },
+      "ports": [
+        {
+          "id": "tee_pipe_1_left",
+          "elementId": "tee_pipe_1",
+          "position": {
+            "x": 2000,
+            "y": 0,
+            "z": 1200
+          },
+          "direction": {
+            "x": -1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "domestic_cold_water",
+          "shape": "round",
+          "diameter": 32,
+          "flowDirection": "bidirectional",
+          "label": "TRONC_GAUCHE"
+        },
+        {
+          "id": "tee_pipe_1_right",
+          "elementId": "tee_pipe_1",
+          "position": {
+            "x": 2000,
+            "y": 0,
+            "z": 1200
+          },
+          "direction": {
+            "x": 1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "domestic_cold_water",
+          "shape": "round",
+          "diameter": 32,
+          "flowDirection": "bidirectional",
+          "label": "TRONC_DROIT"
+        },
+        {
+          "id": "tee_pipe_1_branch",
+          "elementId": "tee_pipe_1",
+          "position": {
+            "x": 2000,
+            "y": 0,
+            "z": 1200
+          },
+          "direction": {
+            "x": 0,
+            "y": 1,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "domestic_cold_water",
+          "shape": "round",
+          "diameter": 32,
+          "flowDirection": "bidirectional",
+          "label": "BRANCHE"
+        }
+      ],
+      "name": "T? Plomberie - eau froide"
+    },
+    "tee_pipe_2": {
+      "id": "tee_pipe_2",
+      "category": "mepFitting",
+      "levelId": "level_mep_skeleton",
+      "systemId": "sys_eau_froide",
+      "fittingType": "tee",
+      "domain": "plumbing",
+      "systemType": "domestic_cold_water",
+      "position": {
+        "x": 4000,
+        "y": 0,
+        "z": 1200
+      },
+      "ports": [
+        {
+          "id": "tee_pipe_2_left",
+          "elementId": "tee_pipe_2",
+          "position": {
+            "x": 4000,
+            "y": 0,
+            "z": 1200
+          },
+          "direction": {
+            "x": -1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "domestic_cold_water",
+          "shape": "round",
+          "diameter": 32,
+          "flowDirection": "bidirectional",
+          "label": "TRONC_GAUCHE"
+        },
+        {
+          "id": "tee_pipe_2_right",
+          "elementId": "tee_pipe_2",
+          "position": {
+            "x": 4000,
+            "y": 0,
+            "z": 1200
+          },
+          "direction": {
+            "x": 1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "domestic_cold_water",
+          "shape": "round",
+          "diameter": 32,
+          "flowDirection": "bidirectional",
+          "label": "TRONC_DROIT"
+        },
+        {
+          "id": "tee_pipe_2_branch",
+          "elementId": "tee_pipe_2",
+          "position": {
+            "x": 4000,
+            "y": 0,
+            "z": 1200
+          },
+          "direction": {
+            "x": 0,
+            "y": 1,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "domestic_cold_water",
+          "shape": "round",
+          "diameter": 32,
+          "flowDirection": "bidirectional",
+          "label": "BRANCHE"
+        }
+      ],
+      "name": "T? Plomberie - eau froide"
+    },
+    "tee_duct_1": {
+      "id": "tee_duct_1",
+      "category": "mepFitting",
+      "levelId": "level_mep_skeleton",
+      "systemId": "sys_ventilation",
+      "fittingType": "tee",
+      "domain": "hvac",
+      "systemType": "supply_air",
+      "position": {
+        "x": 2000,
+        "y": 3500,
+        "z": 2700
+      },
+      "ports": [
+        {
+          "id": "tee_duct_1_left",
+          "elementId": "tee_duct_1",
+          "position": {
+            "x": 2000,
+            "y": 3500,
+            "z": 2700
+          },
+          "direction": {
+            "x": -1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "hvac",
+          "systemType": "supply_air",
+          "shape": "rectangular",
+          "width": 400,
+          "height": 250,
+          "flowDirection": "bidirectional",
+          "label": "TRONC_GAUCHE"
+        },
+        {
+          "id": "tee_duct_1_right",
+          "elementId": "tee_duct_1",
+          "position": {
+            "x": 2000,
+            "y": 3500,
+            "z": 2700
+          },
+          "direction": {
+            "x": 1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "hvac",
+          "systemType": "supply_air",
+          "shape": "rectangular",
+          "width": 400,
+          "height": 250,
+          "flowDirection": "bidirectional",
+          "label": "TRONC_DROIT"
+        },
+        {
+          "id": "tee_duct_1_branch",
+          "elementId": "tee_duct_1",
+          "position": {
+            "x": 2000,
+            "y": 3500,
+            "z": 2700
+          },
+          "direction": {
+            "x": 0,
+            "y": 1,
+            "z": 0
+          },
+          "domain": "hvac",
+          "systemType": "supply_air",
+          "shape": "rectangular",
+          "width": 400,
+          "height": 250,
+          "flowDirection": "bidirectional",
+          "label": "BRANCHE"
+        }
+      ],
+      "name": "T? Ventilation - soufflage"
+    },
+    "tee_duct_2": {
+      "id": "tee_duct_2",
+      "category": "mepFitting",
+      "levelId": "level_mep_skeleton",
+      "systemId": "sys_ventilation",
+      "fittingType": "tee",
+      "domain": "hvac",
+      "systemType": "supply_air",
+      "position": {
+        "x": 4000,
+        "y": 3500,
+        "z": 2700
+      },
+      "ports": [
+        {
+          "id": "tee_duct_2_left",
+          "elementId": "tee_duct_2",
+          "position": {
+            "x": 4000,
+            "y": 3500,
+            "z": 2700
+          },
+          "direction": {
+            "x": -1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "hvac",
+          "systemType": "supply_air",
+          "shape": "rectangular",
+          "width": 400,
+          "height": 250,
+          "flowDirection": "bidirectional",
+          "label": "TRONC_GAUCHE"
+        },
+        {
+          "id": "tee_duct_2_right",
+          "elementId": "tee_duct_2",
+          "position": {
+            "x": 4000,
+            "y": 3500,
+            "z": 2700
+          },
+          "direction": {
+            "x": 1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "hvac",
+          "systemType": "supply_air",
+          "shape": "rectangular",
+          "width": 400,
+          "height": 250,
+          "flowDirection": "bidirectional",
+          "label": "TRONC_DROIT"
+        },
+        {
+          "id": "tee_duct_2_branch",
+          "elementId": "tee_duct_2",
+          "position": {
+            "x": 4000,
+            "y": 3500,
+            "z": 2700
+          },
+          "direction": {
+            "x": 0,
+            "y": 1,
+            "z": 0
+          },
+          "domain": "hvac",
+          "systemType": "supply_air",
+          "shape": "rectangular",
+          "width": 400,
+          "height": 250,
+          "flowDirection": "bidirectional",
+          "label": "BRANCHE"
+        }
+      ],
+      "name": "T? Ventilation - soufflage"
+    },
+    "tee_tray_1": {
+      "id": "tee_tray_1",
+      "category": "mepFitting",
+      "levelId": "level_mep_skeleton",
+      "systemId": "sys_electricite",
+      "fittingType": "tee",
+      "domain": "electrical",
+      "systemType": "power",
+      "position": {
+        "x": 2000,
+        "y": 7000,
+        "z": 4200
+      },
+      "ports": [
+        {
+          "id": "tee_tray_1_left",
+          "elementId": "tee_tray_1",
+          "position": {
+            "x": 2000,
+            "y": 7000,
+            "z": 4200
+          },
+          "direction": {
+            "x": -1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "electrical",
+          "systemType": "power",
+          "shape": "rectangular",
+          "width": 200,
+          "height": 60,
+          "flowDirection": "bidirectional",
+          "label": "TRONC_GAUCHE"
+        },
+        {
+          "id": "tee_tray_1_right",
+          "elementId": "tee_tray_1",
+          "position": {
+            "x": 2000,
+            "y": 7000,
+            "z": 4200
+          },
+          "direction": {
+            "x": 1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "electrical",
+          "systemType": "power",
+          "shape": "rectangular",
+          "width": 200,
+          "height": 60,
+          "flowDirection": "bidirectional",
+          "label": "TRONC_DROIT"
+        },
+        {
+          "id": "tee_tray_1_branch",
+          "elementId": "tee_tray_1",
+          "position": {
+            "x": 2000,
+            "y": 7000,
+            "z": 4200
+          },
+          "direction": {
+            "x": 0,
+            "y": 1,
+            "z": 0
+          },
+          "domain": "electrical",
+          "systemType": "power",
+          "shape": "rectangular",
+          "width": 200,
+          "height": 60,
+          "flowDirection": "bidirectional",
+          "label": "BRANCHE"
+        }
+      ],
+      "name": "T? ?lectricit? - cheminement"
+    },
+    "tee_tray_2": {
+      "id": "tee_tray_2",
+      "category": "mepFitting",
+      "levelId": "level_mep_skeleton",
+      "systemId": "sys_electricite",
+      "fittingType": "tee",
+      "domain": "electrical",
+      "systemType": "power",
+      "position": {
+        "x": 4000,
+        "y": 7000,
+        "z": 4200
+      },
+      "ports": [
+        {
+          "id": "tee_tray_2_left",
+          "elementId": "tee_tray_2",
+          "position": {
+            "x": 4000,
+            "y": 7000,
+            "z": 4200
+          },
+          "direction": {
+            "x": -1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "electrical",
+          "systemType": "power",
+          "shape": "rectangular",
+          "width": 200,
+          "height": 60,
+          "flowDirection": "bidirectional",
+          "label": "TRONC_GAUCHE"
+        },
+        {
+          "id": "tee_tray_2_right",
+          "elementId": "tee_tray_2",
+          "position": {
+            "x": 4000,
+            "y": 7000,
+            "z": 4200
+          },
+          "direction": {
+            "x": 1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "electrical",
+          "systemType": "power",
+          "shape": "rectangular",
+          "width": 200,
+          "height": 60,
+          "flowDirection": "bidirectional",
+          "label": "TRONC_DROIT"
+        },
+        {
+          "id": "tee_tray_2_branch",
+          "elementId": "tee_tray_2",
+          "position": {
+            "x": 4000,
+            "y": 7000,
+            "z": 4200
+          },
+          "direction": {
+            "x": 0,
+            "y": 1,
+            "z": 0
+          },
+          "domain": "electrical",
+          "systemType": "power",
+          "shape": "rectangular",
+          "width": 200,
+          "height": 60,
+          "flowDirection": "bidirectional",
+          "label": "BRANCHE"
+        }
+      ],
+      "name": "T? ?lectricit? - cheminement"
+    }
+  },
+  "mepEquipments": {},
+  "mepSystems": {
+    "sys_eau_froide": {
+      "id": "sys_eau_froide",
+      "category": "mepSystem",
+      "name": "Plomberie - eau froide",
+      "domain": "plumbing",
+      "systemType": "domestic_cold_water",
+      "elementIds": [
+        "pipe_trunk_1",
+        "pipe_trunk_2",
+        "pipe_trunk_3",
+        "pipe_branch_1",
+        "pipe_branch_2",
+        "tee_pipe_1",
+        "tee_pipe_2"
+      ],
+      "color": "#2563eb"
+    },
+    "sys_ventilation": {
+      "id": "sys_ventilation",
+      "category": "mepSystem",
+      "name": "Ventilation - soufflage",
+      "domain": "hvac",
+      "systemType": "supply_air",
+      "elementIds": [
+        "duct_trunk_1",
+        "duct_trunk_2",
+        "duct_trunk_3",
+        "duct_branch_1",
+        "duct_branch_2",
+        "tee_duct_1",
+        "tee_duct_2"
+      ],
+      "color": "#0ea5e9"
+    },
+    "sys_electricite": {
+      "id": "sys_electricite",
+      "category": "mepSystem",
+      "name": "?lectricit? - cheminement",
+      "domain": "electrical",
+      "systemType": "power",
+      "elementIds": [
+        "tray_trunk_1",
+        "tray_trunk_2",
+        "tray_trunk_3",
+        "tray_branch_1",
+        "tee_tray_1",
+        "tray_branch_2",
+        "tee_tray_2"
+      ],
+      "color": "#f59e0b"
+    }
+  },
+  "mepConnectors": {
+    "conn_pipe_1_1": {
+      "id": "conn_pipe_1_1",
+      "category": "mepConnector",
+      "portAId": "01M7TWQMXNC3WBQTQQGSQ6YJV8",
+      "portBId": "tee_pipe_1_left",
+      "systemId": "sys_eau_froide",
+      "name": "Connexion pipe 1.1"
+    },
+    "conn_pipe_1_2": {
+      "id": "conn_pipe_1_2",
+      "category": "mepConnector",
+      "portAId": "01M7TWQMXQGESCRQZ4WYXRGA52",
+      "portBId": "tee_pipe_1_right",
+      "systemId": "sys_eau_froide",
+      "name": "Connexion pipe 1.2"
+    },
+    "conn_pipe_1_3": {
+      "id": "conn_pipe_1_3",
+      "category": "mepConnector",
+      "portAId": "01M7TWQMXR3ZV2BP26W6N3BBRD",
+      "portBId": "tee_pipe_1_branch",
+      "systemId": "sys_eau_froide",
+      "name": "Connexion pipe 1.3"
+    },
+    "conn_pipe_2_1": {
+      "id": "conn_pipe_2_1",
+      "category": "mepConnector",
+      "portAId": "01M7TWQMXQ3WDHGK6CYJAGHYV3",
+      "portBId": "tee_pipe_2_left",
+      "systemId": "sys_eau_froide",
+      "name": "Connexion pipe 2.1"
+    },
+    "conn_pipe_2_2": {
+      "id": "conn_pipe_2_2",
+      "category": "mepConnector",
+      "portAId": "01M7TWQMXQXKKF722BF490VQJP",
+      "portBId": "tee_pipe_2_right",
+      "systemId": "sys_eau_froide",
+      "name": "Connexion pipe 2.2"
+    },
+    "conn_pipe_2_3": {
+      "id": "conn_pipe_2_3",
+      "category": "mepConnector",
+      "portAId": "01M7TWQMXW5JXYF3M0G4XBYJNX",
+      "portBId": "tee_pipe_2_branch",
+      "systemId": "sys_eau_froide",
+      "name": "Connexion pipe 2.3"
+    },
+    "conn_duct_1_1": {
+      "id": "conn_duct_1_1",
+      "category": "mepConnector",
+      "portAId": "01M7TWQMY1E1V92GDSFBE6PTHS",
+      "portBId": "tee_duct_1_left",
+      "systemId": "sys_ventilation",
+      "name": "Connexion duct 1.1"
+    },
+    "conn_duct_1_2": {
+      "id": "conn_duct_1_2",
+      "category": "mepConnector",
+      "portAId": "01M7TWQMY3V1DYTK4944AZNFWX",
+      "portBId": "tee_duct_1_right",
+      "systemId": "sys_ventilation",
+      "name": "Connexion duct 1.2"
+    },
+    "conn_duct_1_3": {
+      "id": "conn_duct_1_3",
+      "category": "mepConnector",
+      "portAId": "01M7TWQMY4D37Y2SREW5H34XPR",
+      "portBId": "tee_duct_1_branch",
+      "systemId": "sys_ventilation",
+      "name": "Connexion duct 1.3"
+    },
+    "conn_duct_2_1": {
+      "id": "conn_duct_2_1",
+      "category": "mepConnector",
+      "portAId": "01M7TWQMY35KZ9C5C0VKY6W05D",
+      "portBId": "tee_duct_2_left",
+      "systemId": "sys_ventilation",
+      "name": "Connexion duct 2.1"
+    },
+    "conn_duct_2_2": {
+      "id": "conn_duct_2_2",
+      "category": "mepConnector",
+      "portAId": "01M7TWQMY3FQ8D5GNKMEHZ89ET",
+      "portBId": "tee_duct_2_right",
+      "systemId": "sys_ventilation",
+      "name": "Connexion duct 2.2"
+    },
+    "conn_duct_2_3": {
+      "id": "conn_duct_2_3",
+      "category": "mepConnector",
+      "portAId": "01M7TWQMY8JHNMH4BF9HMNSZE2",
+      "portBId": "tee_duct_2_branch",
+      "systemId": "sys_ventilation",
+      "name": "Connexion duct 2.3"
+    },
+    "conn_tray_1_1": {
+      "id": "conn_tray_1_1",
+      "category": "mepConnector",
+      "portAId": "01M7TWQMYCB0TCEE29S0YXWP7J",
+      "portBId": "tee_tray_1_left",
+      "systemId": "sys_electricite",
+      "name": "Connexion tray 1.1"
+    },
+    "conn_tray_1_2": {
+      "id": "conn_tray_1_2",
+      "category": "mepConnector",
+      "portAId": "01M7TWQMYDNBV0724104QSZ2XW",
+      "portBId": "tee_tray_1_right",
+      "systemId": "sys_electricite",
+      "name": "Connexion tray 1.2"
+    },
+    "conn_tray_1_3": {
+      "id": "conn_tray_1_3",
+      "category": "mepConnector",
+      "portAId": "01M7TWQMYGGEX0J8QSYH1TEK5V",
+      "portBId": "tee_tray_1_branch",
+      "systemId": "sys_electricite",
+      "name": "Connexion tray 1.3"
+    },
+    "conn_tray_2_1": {
+      "id": "conn_tray_2_1",
+      "category": "mepConnector",
+      "portAId": "01M7TWQMYDNRTP728K0VT1NHY7",
+      "portBId": "tee_tray_2_left",
+      "systemId": "sys_electricite",
+      "name": "Connexion tray 2.1"
+    },
+    "conn_tray_2_2": {
+      "id": "conn_tray_2_2",
+      "category": "mepConnector",
+      "portAId": "01M7TWQMYD6AG022NCHNHDGWH6",
+      "portBId": "tee_tray_2_right",
+      "systemId": "sys_electricite",
+      "name": "Connexion tray 2.2"
+    },
+    "conn_tray_2_3": {
+      "id": "conn_tray_2_3",
+      "category": "mepConnector",
+      "portAId": "01M7TWQMYJ0Z3RCZK1MMNYRJSF",
+      "portBId": "tee_tray_2_branch",
+      "systemId": "sys_electricite",
+      "name": "Connexion tray 2.3"
+    }
+  }
+}
