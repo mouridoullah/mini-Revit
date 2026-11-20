@@ -22,6 +22,8 @@ export interface ToolbarProps {
   readonly onToggleUnderlay?: (enabled: boolean) => void;
   readonly hasUnderlayLevel?: boolean;
   readonly onLoadR4Demo?: () => void;
+  readonly isClashPanelOpen?: boolean;
+  readonly onToggleClashPanel?: () => void;
 }
 
 /**
@@ -48,6 +50,8 @@ export function Toolbar({
   onToggleUnderlay,
   hasUnderlayLevel = false,
   onLoadR4Demo,
+  isClashPanelOpen = false,
+  onToggleClashPanel,
 }: ToolbarProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [planScale, setPlanScale] = useState<50 | 100 | 200>(100);
@@ -533,6 +537,27 @@ export function Toolbar({
               }}
             >
               🏢 Immeuble R+4
+            </button>
+          )}
+          {onToggleClashPanel && (
+            <button
+              type="button"
+              data-testid="toggle-clash-panel-btn"
+              onClick={onToggleClashPanel}
+              title="Ouvrir le panneau de détection des conflits géométriques BIM (Clash Detection)"
+              style={{
+                padding: '6px 10px',
+                fontSize: '12px',
+                borderRadius: '4px',
+                backgroundColor: isClashPanelOpen ? '#ea580c' : '#374151',
+                color: '#ffffff',
+                border: isClashPanelOpen ? '1px solid #f97316' : '1px solid #4b5563',
+                cursor: 'pointer',
+                fontWeight: 600,
+                transition: 'all 0.15s ease-in-out',
+              }}
+            >
+              ⚡ Conflits
             </button>
           )}
           <input

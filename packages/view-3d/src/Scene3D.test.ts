@@ -505,4 +505,59 @@ describe('Scene3D — Gestionnaire de scène 3D Three.js impératif', () => {
 
     scene3d.dispose();
   });
+
+  it('T-CLASH-OVERLAY-01 — setClashOverlays crée les volumes et repères filaires puis clearClashOverlays les détruit', () => {
+    const scene3d = new Scene3D(canvas, { width: 800, height: 600 });
+    const scene = scene3d.getScene();
+
+    scene3d.setClashOverlays([
+      {
+        id: 'clash_1',
+        severity: 'hard',
+        intersectionBox: {
+          min: { x: 100, y: 100, z: 0 },
+          max: { x: 200, y: 200, z: 300 },
+        },
+        point: { x: 150, y: 150, z: 150 },
+      },
+      {
+        id: 'clash_2',
+        severity: 'clearance',
+        intersectionBox: {
+          min: { x: 500, y: 500, z: 0 },
+          max: { x: 600, y: 600, z: 100 },
+        },
+        point: { x: 550, y: 550, z: 50 },
+      },
+    ]);
+
+    // scene3d a créé un groupe contenant 3 enfants par clash (box + edges + sphere point) = 6
+    const overlaysGroup = scene.children.find((c) => c instanceof THREE.Group);
+    expect(overlaysGroup).toBeDefined();
+    expect(overlaysGroup?.children.length).toBe(6);
+
+    // clearClashOverlays libère tout
+    scene3d.clearClashOverlays();
+    expect(overlaysGroup?.children.length).toBe(0);
+
+    scene3d.dispose();
+  });
+
+  it('T-CLASH-OVERLAY-02 — focusOnPoint oriente et positionne la caméra vers le point 3D cible', () => {
+    const scene3d = new Scene3D(canvas, { width: 800, height: 600 });
+    const controls = scene3d.getControls();
+    const camera = scene3d.getCamera();
+
+    scene3d.focusOnPoint({ x: 1500, y: 2000, z: 2700 }, 1000);
+
+    expect(controls.target.x).toBeCloseTo(1500, 1);
+    expect(controls.target.y).toBeCloseTo(2000, 1);
+    expect(controls.target.z).toBeCloseTo(2700, 1);
+
+    // La caméra doit être décalée à environ 1 000 mm de la cible
+    const dist = camera.position.distanceTo(controls.target);
+    expect(Math.round(dist)).toBe(1000);
+
+    scene3d.dispose();
+  });
 });

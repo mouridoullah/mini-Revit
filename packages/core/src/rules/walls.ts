@@ -1,7 +1,8 @@
 import type { Wall, WallType, BimState, ElementId } from '../types.js';
 import type { RuleViolation } from './types.js';
 import { assertNoViolations } from './utils.js';
-import { checkComponentCollisions } from './components.js';
+import { getComponentObbVertices, doConvexPolygonsIntersect } from './components.js';
+import { computeWallFootprint2d, type WallFootprint2D } from '@mini-bim/geometry';
 
 /**
  * Vérifie les règles métier propres à un mur (longueur, type, niveau).
@@ -41,15 +42,51 @@ export function checkWallViolations(wall: Wall, state: BimState): RuleViolation[
   }
 
   // 4. Détection non-bloquante des interférences avec les composants libres du même niveau (ADR-054 / Warning)
+  // Optimisation Broad-phase AABB (Phase 9.4) : élimine la boucle quadratique O(C * (C + W))
   if (state.components) {
+    const wallType = state.wallTypes[wall.typeId];
+    const halfThick = ((wallType?.thickness ?? 200) * 0.5) + 5;
+    const wallMinX = Math.min(wall.start.x, wall.end.x) - halfThick;
+    const wallMaxX = Math.max(wall.start.x, wall.end.x) + halfThick;
+    const wallMinY = Math.min(wall.start.y, wall.end.y) - halfThick;
+    const wallMaxY = Math.max(wall.start.y, wall.end.y) + halfThick;
+
+    let wallFp: WallFootprint2D | null = null;
+
     for (const comp of Object.values(state.components)) {
       if (comp.levelId !== wall.levelId) continue;
       if (comp.placement.hostWallId === wall.id) continue;
-      const compCollisions = checkComponentCollisions(comp, state);
-      for (const c of compCollisions) {
-        if (c.offendingIds.includes(wall.id)) {
-          violations.push(c);
-        }
+
+      // Broad-phase AABB 2D
+      const ct = state.componentTypes ? state.componentTypes[comp.typeId] : undefined;
+      const maxDim = Math.max(ct?.width ?? 600, ct?.depth ?? 600) * 0.75;
+      if (
+        comp.placement.x + maxDim < wallMinX ||
+        comp.placement.x - maxDim > wallMaxX ||
+        comp.placement.y + maxDim < wallMinY ||
+        comp.placement.y - maxDim > wallMaxY
+      ) {
+        continue;
+      }
+
+      // Narrow-phase : polygones convexes SAT uniquement si AABB se chevauchent
+      if (!wallFp) {
+        wallFp = computeWallFootprint2d({
+          start: wall.start,
+          end: wall.end,
+          thickness: wallType?.thickness ?? 200,
+          locationLine: 'center',
+        });
+      }
+
+      const compPoly = getComponentObbVertices(comp, state);
+      if (wallFp && doConvexPolygonsIntersect(compPoly, wallFp.vertices, 1)) {
+        violations.push({
+          code: 'COMPONENT_COLLISION',
+          message: `Component "${comp.id}" collides with wall "${wall.id}".`,
+          offendingIds: [comp.id, wall.id],
+          severity: 'warning',
+        });
       }
     }
   }

@@ -70,4 +70,4 @@ export {
   type ResolvedWall,
   type JunctionSolution,
 } from '@mini-bim/geometry';
-export type { SceneOptions, MeshHandle } from './types.js';
+export type { SceneOptions, MeshHandle, ClashOverlayItem } from './types.js';

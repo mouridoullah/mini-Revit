@@ -31,28 +31,28 @@ describe('Intégration UI & Double Rendu 2D/3D — « Immeuble R+4 Complet » (T
     expect(Object.keys(state.doors)).toHaveLength(31);
     expect(Object.keys(state.windows)).toHaveLength(36);
     expect(Object.keys(state.rooms)).toHaveLength(36);
-    expect(Object.keys(state.stairs)).toHaveLength(5);
-    expect(Object.keys(state.roofs)).toHaveLength(1);
-    expect(Object.keys(state.roofOpenings)).toHaveLength(1);
+    expect(Object.keys(state.stairs ?? {})).toHaveLength(5);
+    expect(Object.keys(state.roofs ?? {})).toHaveLength(1);
+    expect(Object.keys(state.roofOpenings ?? {})).toHaveLength(1);
     expect(Object.keys(state.dimensions)).toHaveLength(5);
-    expect(Object.keys(state.components)).toHaveLength(108);
+    expect(Object.keys(state.components ?? {})).toHaveLength(108);
 
     // MEP (Réseaux Techniques)
-    expect(Object.keys(state.pipes)).toHaveLength(285);
-    expect(Object.keys(state.ducts)).toHaveLength(12);
-    expect(Object.keys(state.cableTrays)).toHaveLength(12);
-    expect(Object.keys(state.mepFittings)).toHaveLength(284);
-    expect(Object.keys(state.mepEquipments)).toHaveLength(41);
-    expect(Object.keys(state.mepSystems)).toHaveLength(7);
-    expect(Object.keys(state.mepConnectors)).toHaveLength(624);
+    expect(Object.keys(state.pipes ?? {})).toHaveLength(285);
+    expect(Object.keys(state.ducts ?? {})).toHaveLength(12);
+    expect(Object.keys(state.cableTrays ?? {})).toHaveLength(12);
+    expect(Object.keys(state.mepFittings ?? {})).toHaveLength(284);
+    expect(Object.keys(state.mepEquipments ?? {})).toHaveLength(41);
+    expect(Object.keys(state.mepSystems ?? {})).toHaveLength(7);
+    expect(Object.keys(state.mepConnectors ?? {})).toHaveLength(624);
 
     // Graphs
     const dag = DependencyGraph.build(state);
     expect(dag.hasCycle()).toBe(false);
 
     const mepGraph = MepNetworkGraph.build(state);
-    expect(mepGraph.elements.size).toBeGreaterThanOrEqual(600);
-    expect(mepGraph.connectors.size).toBeGreaterThanOrEqual(600);
+    expect(mepGraph.getElementCount()).toBeGreaterThanOrEqual(600);
+    expect(mepGraph.getConnectorCount()).toBeGreaterThanOrEqual(600);
   });
 
   it('monte Viewport2D et Viewport3D avec l’Immeuble R+4 sans aucune exception graphique', () => {

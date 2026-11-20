@@ -236,6 +236,20 @@ export class MepNetworkGraph {
   }
 
   /**
+   * Retourne le nombre total d'éléments MEP dans le graphe.
+   */
+  public getElementCount(): number {
+    return this.elements.size;
+  }
+
+  /**
+   * Retourne le nombre total de connecteurs physiques dans le graphe.
+   */
+  public getConnectorCount(): number {
+    return this.connectors.size;
+  }
+
+  /**
    * Retourne l'élément MEP par son identifiant.
    */
   public getElement(elementId: ElementId): MepElement | undefined {
