@@ -180,4 +180,42 @@ test.describe('Mini-BIM E2E Smoke Tests (Playwright Real Browser)', () => {
 
     expect(consoleErrors).toEqual([]);
   });
+
+  test('ouvre le panneau des maquettes IFC fédérées (Sous-phase 9.5), vérifie les onglets et contrôles sans erreur', async ({ page }) => {
+    const consoleErrors: string[] = [];
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') consoleErrors.push(msg.text());
+    });
+    page.on('pageerror', (err) => {
+      consoleErrors.push(err.message);
+    });
+
+    await page.goto('/');
+
+    // 1. Bouton "📁 IFC Réf" dans la Toolbar
+    const fedToggleBtn = page.locator('button[data-testid="toggle-federated-panel-btn"]');
+    await expect(fedToggleBtn).toBeVisible();
+    await fedToggleBtn.click();
+
+    // 2. Panneau FederatedIfcPanel visible
+    const fedPanel = page.locator('[data-testid="federated-ifc-panel"]');
+    await expect(fedPanel).toBeVisible();
+
+    // 3. Navigation sur les onglets
+    const tabInspector = page.locator('button[data-testid="tab-inspector-btn"]');
+    await expect(tabInspector).toBeVisible();
+    await tabInspector.click();
+
+    const tabClashes = page.locator('button[data-testid="tab-clashes-btn"]');
+    await expect(tabClashes).toBeVisible();
+    await tabClashes.click();
+
+    // 4. Fermeture du panneau
+    const closeBtn = page.locator('button[data-testid="close-federated-panel-btn"]');
+    await expect(closeBtn).toBeVisible();
+    await closeBtn.click();
+    await expect(fedPanel).not.toBeVisible();
+
+    expect(consoleErrors).toEqual([]);
+  });
 });

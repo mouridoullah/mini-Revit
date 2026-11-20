@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as THREE from 'three';
 import { type RawMeshData } from '@mini-bim/geometry';
 import { Scene3D } from './Scene3D.js';
+import { type FederatedModelVisual } from './types.js';
 
 // Mock ciblé de THREE.WebGLRenderer pour environnement headless / CI sans GPU matériel
 vi.mock('three', async (importOriginal) => {
@@ -557,6 +558,105 @@ describe('Scene3D — Gestionnaire de scène 3D Three.js impératif', () => {
     // La caméra doit être décalée à environ 1 000 mm de la cible
     const dist = camera.position.distanceTo(controls.target);
     expect(Math.round(dist)).toBe(1000);
+
+    scene3d.dispose();
+  });
+
+  it('T-FED-VIEW3D-01 : Ajoute une maquette fédérée dans Scene3D avec opacité et décalage', () => {
+    const scene3d = new Scene3D(canvas, { width: 800, height: 600 });
+    const sampleVisual: FederatedModelVisual = {
+      id: 'fed_sample_01',
+      name: 'Maquette Structure Fédérée',
+      opacity: 0.35,
+      wireframe: false,
+      offset: { x: 100, y: 200, z: 0 },
+      items: [
+        {
+          expressId: 101,
+          positions: new Float32Array([0, 0, 0, 1000, 0, 0, 1000, 1000, 0, 0, 1000, 0]),
+          normals: new Float32Array([0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1]),
+          indices: new Uint32Array([0, 1, 2, 0, 2, 3]),
+          color: { r: 0.2, g: 0.6, b: 0.8, a: 1.0 },
+        },
+      ],
+    };
+
+    scene3d.addFederatedModel(sampleVisual);
+
+    const rootScene = scene3d.getScene();
+    const fedGroup = rootScene.getObjectByName('FederatedIfcContainer') as THREE.Group;
+    expect(fedGroup).toBeDefined();
+
+    const modelGroup = fedGroup.getObjectByName('FederatedModel_fed_sample_01') as THREE.Group;
+    expect(modelGroup).toBeDefined();
+    expect(modelGroup.position.x).toBe(100);
+    expect(modelGroup.position.y).toBe(200);
+
+    const mesh = modelGroup.getObjectByName('IfcEntity_fed_sample_01_101') as THREE.Mesh;
+    expect(mesh).toBeDefined();
+    expect(mesh.userData.isFederated).toBe(true);
+    expect(mesh.userData.expressId).toBe(101);
+
+    const mat = mesh.material as THREE.MeshStandardMaterial;
+    expect(mat.opacity).toBe(0.35);
+    expect(mat.transparent).toBe(true);
+
+    scene3d.dispose();
+  });
+
+  it('T-FED-VIEW3D-02 : Contrôle interactif de visibilité, opacité, filaire et décalage', () => {
+    const scene3d = new Scene3D(canvas, { width: 800, height: 600 });
+    const sampleVisual: FederatedModelVisual = {
+      id: 'fed_sample_01',
+      name: 'Structure',
+      items: [
+        {
+          expressId: 101,
+          positions: new Float32Array([0, 0, 0, 1000, 0, 0, 1000, 1000, 0]),
+        },
+      ],
+    };
+
+    scene3d.addFederatedModel(sampleVisual);
+
+    // Visibilité
+    scene3d.setFederatedModelVisibility('fed_sample_01', false);
+    const fedGroup = scene3d.getScene().getObjectByName('FederatedIfcContainer') as THREE.Group;
+    const modelGroup = fedGroup.getObjectByName('FederatedModel_fed_sample_01') as THREE.Group;
+    expect(modelGroup.visible).toBe(false);
+
+    // Opacité
+    scene3d.setFederatedModelOpacity('fed_sample_01', 0.75);
+    const mesh = modelGroup.children[0] as THREE.Mesh;
+    const mat = mesh.material as THREE.MeshStandardMaterial;
+    expect(mat.opacity).toBe(0.75);
+
+    // Filaire
+    scene3d.setFederatedModelWireframe('fed_sample_01', true);
+    expect(mat.wireframe).toBe(true);
+
+    // Décalage
+    scene3d.setFederatedModelOffset('fed_sample_01', { x: 300, y: 400, z: 500 });
+    expect(modelGroup.position.x).toBe(300);
+    expect(modelGroup.position.y).toBe(400);
+    expect(modelGroup.position.z).toBe(500);
+
+    scene3d.dispose();
+  });
+
+  it('T-FED-VIEW3D-03 : Déchargement et nettoyage GPU (removeFederatedModel)', () => {
+    const scene3d = new Scene3D(canvas, { width: 800, height: 600 });
+    scene3d.addFederatedModel({
+      id: 'fed_to_remove',
+      name: 'To Remove',
+      items: [{ expressId: 1, positions: new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0]) }],
+    });
+
+    const fedGroup = scene3d.getScene().getObjectByName('FederatedIfcContainer') as THREE.Group;
+    expect(fedGroup.children.length).toBe(1);
+
+    scene3d.removeFederatedModel('fed_to_remove');
+    expect(fedGroup.children.length).toBe(0);
 
     scene3d.dispose();
   });

@@ -335,4 +335,142 @@ describe('Moteur de Détection des Conflits Géométriques BIM (Clash Detection 
     expect(resA.map((c) => c.id)).toEqual(resB.map((c) => c.id));
     expect(resA).toEqual(resB);
   });
+
+  // ---------------------------------------------------------------------------
+  // DURCISSEMENT 9.4.1 : CAS LIMITES GÉOMÉTRIQUES DU SOLVEUR 3D
+  // ---------------------------------------------------------------------------
+  it('T-CLASH-08 (9.4.1) : Collision avec mur oblique orienté à 45° et SAT 15 axes', () => {
+    // Mur à 45°
+    const wallOblique: Wall = {
+      id: 'w_oblique',
+      category: 'wall',
+      typeId: 'wt_200',
+      levelId: 'lvl_0',
+      start: { x: 0, y: 0 },
+      end: { x: 4000, y: 4000 },
+    };
+
+    // Tuyau orthogonal au mur coupant à (2000, 2000)
+    const pipeCross = createPipe({
+      id: 'pipe_cross_45',
+      levelId: 'lvl_0',
+      start: { x: 1000, y: 3000, z: 1200 },
+      end: { x: 3000, y: 1000, z: 1200 },
+      diameter: 60,
+      systemType: 'domestic_cold_water',
+    });
+
+    const state: BimState = {
+      ...baseState,
+      walls: { w_oblique: wallOblique },
+      pipes: { pipe_cross_45: pipeCross },
+    };
+
+    const clashes = detectClashes(state);
+    expect(clashes).toHaveLength(1);
+    expect(clashes[0]!.severity).toBe('hard');
+    expect(clashes[0]!.elementA).toBe('pipe_cross_45');
+    expect(clashes[0]!.elementB).toBe('w_oblique');
+    expect(clashes[0]!.penetrationDepthMm).toBeGreaterThan(0);
+  });
+
+  it('T-CLASH-09 (9.4.1) : Colonne montante verticale traversant une dalle pleine sans trémie', () => {
+    const slab: Slab = {
+      id: 'slab_full',
+      category: 'slab',
+      slabTypeId: 'st_200',
+      levelId: 'lvl_1',
+      boundary: [
+        { x: 0, y: 0 },
+        { x: 4000, y: 0 },
+        { x: 4000, y: 4000 },
+        { x: 0, y: 4000 },
+      ],
+      holes: [],
+      openings: [],
+    };
+
+    // Colonne montante verticale (axe Z : de z = 1000 à z = 4500 mm) traversant la dalle à z = 2800..3000
+    const riserPipe = createPipe({
+      id: 'riser_pipe',
+      levelId: 'lvl_0',
+      start: { x: 2000, y: 2000, z: 1000 },
+      end: { x: 2000, y: 2000, z: 4500 },
+      diameter: 100,
+      systemType: 'drainage_waste',
+    });
+
+    const state: BimState = {
+      ...baseState,
+      slabs: { slab_full: slab },
+      pipes: { riser_pipe: riserPipe },
+    };
+
+    const clashes = detectClashes(state);
+    expect(clashes).toHaveLength(1);
+    expect(clashes[0]!.severity).toBe('hard');
+    expect(clashes[0]!.elementA).toBe('riser_pipe');
+    expect(clashes[0]!.elementB).toBe('slab_full');
+    expect(clashes[0]!.point.x).toBeCloseTo(2000, 0);
+    expect(clashes[0]!.point.y).toBeCloseTo(2000, 0);
+  });
+
+  it('T-CLASH-10 (9.4.1) : Frontière exacte de tolérance de contact dalle/mur (1.9 mm toléré vs 2.5 mm détecté)', () => {
+    const wall: Wall = {
+      id: 'wall_support',
+      category: 'wall',
+      typeId: 'wt_200',
+      levelId: 'lvl_0',
+      start: { x: 0, y: 0 },
+      end: { x: 4000, y: 0 },
+      // Hauteur du mur 2800 mm (z: 0..2800)
+    };
+
+    // Dalle avec assise : épaisseur 200 mm sous zBase.
+    // Pour une pénétration de 1.9 mm dans le mur (qui culmine à 2800 mm) :
+    // zBase = 2800 - 1.9 + 200 = 2998.1 mm (pénétration = 1.9 mm <= 2.0 mm tolérée)
+    const slabNormalContact: Slab = {
+      id: 'slab_normal',
+      category: 'slab',
+      slabTypeId: 'st_200',
+      levelId: 'lvl_0',
+      baseOffset: 2998.1,
+      boundary: [
+        { x: 0, y: -500 },
+        { x: 4000, y: -500 },
+        { x: 4000, y: 500 },
+        { x: 0, y: 500 },
+      ],
+      holes: [],
+      openings: [],
+    };
+
+    const stateNormal: BimState = {
+      ...baseState,
+      walls: { wall_support: wall },
+      slabs: { slab_normal: slabNormalContact },
+    };
+
+    // Pénétration de 1.9 mm -> aucun clash (règle sémantique d'appui dalle/mur ADR-059)
+    const clashesNormal = detectClashes(stateNormal, { hardToleranceMm: 2.0 });
+    expect(clashesNormal).toHaveLength(0);
+
+    // Dalle avec pénétration excessive de 2.5 mm > 2.0 mm (zBase = 2800 - 2.5 + 200 = 2997.5 mm)
+    const slabExcessivePenetration: Slab = {
+      ...slabNormalContact,
+      id: 'slab_excessive',
+      baseOffset: 2997.5,
+    };
+
+    const stateExcessive: BimState = {
+      ...baseState,
+      walls: { wall_support: wall },
+      slabs: { slab_excessive: slabExcessivePenetration },
+    };
+
+    // Pénétration de 2.5 mm -> clash détecté
+    const clashesExcessive = detectClashes(stateExcessive, { hardToleranceMm: 2.0 });
+    expect(clashesExcessive).toHaveLength(1);
+    expect(clashesExcessive[0]!.severity).toBe('hard');
+  });
 });

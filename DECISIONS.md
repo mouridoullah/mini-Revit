@@ -68,6 +68,7 @@
 | **ADR-057** | Indexation Spatiale 2D et Modularisation des Générateurs Graphiques (Phase 9.3)                 | **Accepté**  | 19/11/2026 |
 | **ADR-058** | Routage Géométrique Déterministe 3D et Insertion Paramétrique des Raccords MEP (Phase 9.3.3)    | **Accepté**  | 19/11/2026 |
 | **ADR-059** | Moteur de Détection des Conflits 3D, Index Spatial BVH et Qualification Sémantique (Phase 9.4)  | **Accepté**  | 20/11/2026 |
+| **ADR-060** | Modèle de Référence Fédéré IFC en Lecture Seule & Coordination Spatiale Inter-Maquettes (Phase 9.5) | **Accepté**  | 20/11/2026 |
 
 ---
 
@@ -2432,6 +2433,45 @@ Dans le cadre de la Phase 9 (Réseaux Techniques MEP) et de la coordination spat
    - Rendu 3D Three.js des volumes englobants filaires et translucides (rouge pour hard, ambre pour clearance) et sphère repère au point de collision.
    - Méthode `focusOnPoint` pour centrer et orienter la caméra 3D sur le conflit.
    - Panneau `ClashPanel` avec compteurs, filtres par discipline et sévérité, export CSV et sélection croisée des deux entités en interférence.
+
+---
+
+## ADR-060 : Modèle de Référence Fédéré IFC en Lecture Seule (Underlay 3D) & Coordination Spatiale Inter-Maquettes
+
+### Contexte
+
+Dans le cadre de la clôture de la Phase 9 (Réseaux Techniques MEP, Détection de Collisions & Import IFC), Mini-BIM doit intégrer des maquettes IFC externes issues d'autres logiciels BIM (Revit, Archicad, Tekla) pour permettre la synthèse interdisciplinaire (BIM Management). Tenter de convertir destructivement ces maquettes vers des entités éditables natives (`Wall`, `Slab`, etc. dans `BimState`) corrompt la source de vérité et introduit une infinité de cas limites géométriques non maîtrisés. Le standard industriel consiste à traiter les modèles IFC externes comme des maquettes de référence fédérées en lecture seule (*Underlay 3D* / coordination layer).
+
+### Décisions Clés
+
+1. **D1 — Isolation Stricte du Noyau Métier (`ADR-001`) :**
+   - Les maquettes externes sont typées par l'interface `FederatedModel`, totalement découplée de `BimState`.
+   - Zéro injection dans `state.walls`, `state.slabs` ou `state.pipes`.
+   - Zéro mutation de l'historique Undo/Redo ni du CommandBus.
+   - Zéro persistance automatique dans IndexedDB (`autoSave`).
+   - Cycle de vie indépendant (chargement, recalage, bascule de visibilité, déchargement explicite).
+
+2. **D2 — Normalisation Métrique & Alignement de Repère Z-up (`ADR-003`) :**
+   - Détection des unités déclarées (`IFCSIUNIT`) via `detectIfcUnits` et normalisation vers le millimètre (`scaleToMm`).
+   - Conversion inverse du repère standard Y-up de WebIFC/Three.js vers le repère architectural Z-up de Mini-BIM :
+     $$\begin{cases} X_{\text{mini}} = X_{\text{web}} \times \text{scaleToMm} \\ Y_{\text{mini}} = -Z_{\text{web}} \times \text{scaleToMm} \\ Z_{\text{mini}} = Y_{\text{web}} \times \text{scaleToMm} \end{cases}$$
+   - Alignement étalon round-trip validé sur la Villa Contemporaine Complexe avec un écart inférieur à 0,1 mm.
+
+3. **D3 — Discipline Mémoire WASM & Rendu Dédié Three.js (`view-3d`) :**
+   - Libération déterministe de la mémoire WebAssembly via `try ... finally { ifcApi.CloseModel(openModelId); }`.
+   - Gestionnaire modulaire `FederatedIfcManager` dans `packages/view-3d` encapsulant le groupe Three.js `federatedIfcGroup`.
+   - Contrôles de visibilité, opacité réglable, mode filaire et décalage de recalage spatial $(dX, dY, dZ)$ en millimètres.
+   - Libération GPU stricte de toutes les `BufferGeometry` et des matériaux lors du déchargement ou du `dispose()`.
+
+4. **D4 — Coordination Spatiale BVH Inter-Modèles (`ADR-059`) :**
+   - Indexation des boîtes englobantes normalisées dans le `BVHTree` de la Phase 9.4.
+   - Détection interactive des interférences entre éléments natifs (ex: canalisations, gaines) et entités IFC externes (`detectFederatedClashes`).
+
+5. **D5 — Inspection Sémantique en Lecture Seule & UI Réactive (`apps/web`) :**
+   - Raycasting 3D sans altération du document.
+   - Panneau `FederatedIfcPanel` avec onglets Maquettes, Inspecteur de propriétés (`GlobalId`, type IFC, `PropertySets`, `BaseQuantities`) et Conflits spatiaux.
+   - Respect strict de la Règle d'or #2 : zéro import de `@mini-bim/geometry` dans `apps/web`.
+
 
 
 
