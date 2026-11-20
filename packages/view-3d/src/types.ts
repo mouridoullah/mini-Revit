@@ -75,3 +75,17 @@ export interface MeshHandle {
    */
   readonly material: THREE.Material;
 }
+
+/**
+ * Données d'un conflit géométrique ou d'un dégagement pour superposition 3D.
+ */
+export interface ClashOverlayItem {
+  readonly id?: string;
+  readonly severity: 'hard' | 'clearance';
+  readonly intersectionBox: {
+    readonly min: { readonly x: number; readonly y: number; readonly z: number };
+    readonly max: { readonly x: number; readonly y: number; readonly z: number };
+  };
+  readonly point?: { readonly x: number; readonly y: number; readonly z: number };
+}
+

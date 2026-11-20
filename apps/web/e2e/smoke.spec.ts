@@ -148,4 +148,36 @@ test.describe('Mini-BIM E2E Smoke Tests (Playwright Real Browser)', () => {
 
     expect(consoleErrors).toEqual([]);
   });
+
+  test('ouvre le panneau de détection des conflits (Clash Detection), lance l’analyse et interagit avec la sélection sans erreur', async ({ page }) => {
+    const consoleErrors: string[] = [];
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') consoleErrors.push(msg.text());
+    });
+    page.on('pageerror', (err) => {
+      consoleErrors.push(err.message);
+    });
+
+    await page.goto('/');
+
+    // 1. Bouton "⚡ Conflits" dans la Toolbar
+    const clashToggleBtn = page.locator('button[data-testid="toggle-clash-panel-btn"]');
+    await expect(clashToggleBtn).toBeVisible();
+    await clashToggleBtn.click();
+
+    // 2. Panneau ClashPanel visible
+    const clashPanel = page.locator('[data-testid="clash-panel"]');
+    await expect(clashPanel).toBeVisible();
+
+    // 3. Cliquer sur "Analyser"
+    const runClashBtn = page.locator('button[data-testid="run-clash-btn"]');
+    await expect(runClashBtn).toBeVisible();
+    await runClashBtn.click();
+
+    // 4. Vérifier que l'analyse aboutit sans erreur console
+    const noClashesOrTable = page.locator('[data-testid="no-clashes-msg"], [data-testid="clash-table"]');
+    await expect(noClashesOrTable).toBeVisible();
+
+    expect(consoleErrors).toEqual([]);
+  });
 });

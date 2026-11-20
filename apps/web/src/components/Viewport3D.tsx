@@ -18,6 +18,7 @@ import {
   getMepSystemColor,
   type WallInput,
   type OpeningGeometryParams,
+  type ClashOverlayItem,
 } from '@mini-bim/view-3d';
 import { computeStairShaft, resolveWallGeometry } from '@mini-bim/core';
 import { useBimDocument } from '../hooks/useBimDocument.js';
@@ -26,6 +27,8 @@ import { useResizeObserver } from '../hooks/useResizeObserver.js';
 export interface Viewport3DProps {
   readonly selection?: readonly string[];
   readonly onSelectionChanged?: (ids: readonly string[]) => void;
+  readonly clashes?: readonly ClashOverlayItem[];
+  readonly focusPoint?: { readonly x: number; readonly y: number; readonly z: number } | null;
 }
 
 /**
@@ -33,7 +36,12 @@ export interface Viewport3DProps {
  * Règle d'or 3 : Instanciation unique dans useEffect, jamais recréé à chaque render.
  * Règle d'or 2 : Aucun import direct de @mini-bim/geometry (passe par view-3d).
  */
-export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = {}) {
+export function Viewport3D({
+  selection,
+  onSelectionChanged,
+  clashes,
+  focusPoint,
+}: Viewport3DProps = {}) {
   const { state, lastChangedIds } = useBimDocument();
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -540,6 +548,22 @@ export function Viewport3D({ selection, onSelectionChanged }: Viewport3DProps = 
       sceneRef.current.setHighlight(selection ?? []);
     }
   }, [selection]);
+
+  // Synchronisation des superpositions visuelles des conflits 3D (Phase 9.4)
+  useEffect(() => {
+    if (!sceneRef.current) return;
+    if (clashes && clashes.length > 0) {
+      sceneRef.current.setClashOverlays(clashes);
+    } else {
+      sceneRef.current.clearClashOverlays();
+    }
+  }, [clashes]);
+
+  // Centrage dynamique de la caméra 3D sur un point d'interférence
+  useEffect(() => {
+    if (!sceneRef.current || !focusPoint) return;
+    sceneRef.current.focusOnPoint(focusPoint);
+  }, [focusPoint]);
 
   // Écouteur de picking 3D (clic stationnaire raycast)
   useEffect(() => {

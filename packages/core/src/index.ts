@@ -204,3 +204,4 @@ export {
   type BenchmarkOptions,
 } from './perf/stats.js';
 export * from './mep/index.js';
+export * from './clash/index.js';

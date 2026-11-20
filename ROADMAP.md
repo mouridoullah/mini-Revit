@@ -447,14 +447,18 @@ flowchart LR
     - **Chantier A — Filtrage par Niveau & Frustum Culling 2D (`SpatialGrid2D`) :** Moteur d'indexation spatiale uniforme en grille 2D (`packages/view-2d/src/spatial/`), élimination des éléments hors écran avec marge de garde dynamique, filtrage par niveau et escaliers multi-niveaux.
     - **Validation Métrologique 60 FPS :** Rendu 2D sur 1 000 entités réduit de **270 ms** à **11,63 ms (P95)** et **7,78 ms (P50)** (> 60 FPS garanti, 1,44× sous le budget de 16,67 ms).
     - **Métriques Officielles :** **1 069 tests passants** (107 suites), 0 erreur TS, 0 warning ESLint, Playwright E2E 2/2 vert. Consigné dans `ADR-057`.
-  - **9.3 Rendu 2D/3D & Outils Interactifs MEP (`apps/web`, `view-2d`, `view-3d`) :**
-    - Tracé interactif de gaines et conduites avec routage automatique des coudes (45°/90°) et tés.
-    - Rendu 2D symbolique unifilaire et bifilaire.
-    - Rendu 3D instancié temps réel sous Three.js.
-  - **9.4 Moteur de Détection Automatique de Collisions (Clash Detection Engine) :**
-    - Algorithmes d'intersection géométrique 3D rapide (BVH / boîtes englobantes orientées OBB / Ericson segment-segment).
-    - Détection des conflits interdisciplinaires (tuyau traversant un porteur sans réservation, gaine traversant une dalle sans trémie).
-    - Rapport d'interférences dans l'UI avec boîtes englobantes, volume de clash, sévérité (hard clash vs clearance) et suivi de statut.
+  - **9.3 Rendu 2D/3D & Outils Interactifs MEP (`apps/web`, `view-2d`, `view-3d`) [LIVRÉ & QUALIFIÉ] :**
+    - 9.3.1 : Génération géométrique paramétrique 2D/3D et shaders par domaine fluide (1 100 tests verts).
+    - 9.3.2 : Outil interactif `MepTool`, machine à états avec prévisualisation, accrochage magnétique et inspecteur de propriétés `MepInspector` (1 118 tests verts).
+    - 9.3.3 : Routage géométrique déterministe 3D (direct, L-90°, L-45°, baïonnette Z, colonne verticale), commandes transactionnelles atomiques (`RouteMepPathCommand`, `InsertTeeBranchCommand`, `ConnectWithTransitionCommand`) et compensation réversible sans orphelins (1 133 tests verts, consigné dans `ADR-058`).
+  - **9.4 Moteur de Détection Automatique de Collisions (Clash Detection Engine) [LIVRÉ & QUALIFIÉ] :**
+    - Broad-phase 3D déterministe par BVH (AABB Tree) en TypeScript pur dans `packages/core/src/clash/spatial/` avec élagage de 99,63 % des paires candidates ($P_{50} = 34,9\text{ ms}$ sur 1 000 entités).
+    - Résolution de la scalabilité historique de `checkWallViolations` via pre-culling AABB 2D (temps de test global réduit de 3×).
+    - Narrow-phase analytique exacte 3D dans `packages/core/src/clash/narrow-phase/` : 3D SAT complet (15 axes) pour OBB/OBB et calcul analytique exact segment-à-segment et segment-à-OBB pour cylindres avec support des dégagements techniques (`clearance`).
+    - Qualification sémantique BIM éliminant 100 % des faux positifs (connecteurs MEP partagés, baies hébergées dans leur mur hôte, jonctions d'angles de murs connectés, appuis plans de dalles $\le 2\text{ mm}$, escaliers dans trémies).
+    - Superpositions visuelles 3D filaires et translucides dans `Scene3D` avec récentes caméras (`focusOnPoint`).
+    - Panneau interactif `ClashPanel.tsx` déployable depuis la Toolbar avec compteurs, filtres par discipline/sévérité, sélection croisée et export de rapports CSV.
+    - Consigné dans `ADR-059` avec 100% de tests unitaires, d'intégration et Playwright E2E au vert.
   - **9.5 Modèle de Référence Fédéré IFC en Lecture Seule (Read-Only Reference Underlay) :**
     - Chargement sans perte de fichiers IFC externes via `web-ifc` pour coordination interdisciplinaire.
     - Affichage 3D en transparence / matériau de coordination et projection 2D en plan/coupe, sans conversion destructive vers le modèle interne.

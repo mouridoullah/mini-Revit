@@ -4,6 +4,7 @@ import { useBimDocument } from './hooks/useBimDocument.js';
 import { Toolbar } from './components/Toolbar.js';
 import { StatusBar } from './components/StatusBar.js';
 import { MetricsPanel } from './components/MetricsPanel.js';
+import { ClashPanel } from './components/ClashPanel.js';
 import { PropertyInspector } from './components/PropertyInspector.js';
 import { ComponentRibbon } from './components/ComponentRibbon.js';
 import { MepRibbon } from './components/MepRibbon.js';
@@ -18,7 +19,14 @@ import {
   AutoSaveManager,
   loadFromIndexedDB,
 } from './persistence/autoSave.js';
-import { BimDocument, exportToIfc, detectRooms, Commands, generateId } from '@mini-bim/core';
+import {
+  BimDocument,
+  exportToIfc,
+  detectRooms,
+  Commands,
+  generateId,
+  type ClashResult,
+} from '@mini-bim/core';
 import { generatePlanSvg } from '@mini-bim/view-2d';
 
 export interface AppProps {
@@ -44,6 +52,18 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
   const [mepDisplayMode, setMepDisplayMode] = useState<'single-line' | 'double-line'>('single-line');
   const [underlayEnabled, setUnderlayEnabled] = useState(true);
   const [isInspectorCollapsed, setIsInspectorCollapsed] = useState(false);
+  const [isClashPanelOpen, setIsClashPanelOpen] = useState(false);
+  const [activeClashes, setActiveClashes] = useState<readonly ClashResult[]>([]);
+  const [clashFocusPoint, setClashFocusPoint] = useState<{
+    readonly x: number;
+    readonly y: number;
+    readonly z: number;
+  } | null>(null);
+
+  const handleSelectClash = useCallback((clash: ClashResult) => {
+    setSelectedIds([clash.elementA, clash.elementB]);
+    setClashFocusPoint(clash.point);
+  }, []);
 
   const autoSaveManagerRef = useRef<AutoSaveManager | null>(null);
   if (!autoSaveManagerRef.current) {
@@ -354,6 +374,8 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
         underlayEnabled={underlayEnabled}
         onToggleUnderlay={setUnderlayEnabled}
         hasUnderlayLevel={hasUnderlayLevel}
+        isClashPanelOpen={isClashPanelOpen}
+        onToggleClashPanel={() => setIsClashPanelOpen((prev) => !prev)}
       />
 
       {/* Galerie / Bandeau d'options pour l'outil Composant (Phase 8) */}
@@ -512,7 +534,12 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
               overflow: 'hidden',
             }}
           >
-            <Viewport3D selection={selectedIds} onSelectionChanged={setSelectedIds} />
+            <Viewport3D
+              selection={selectedIds}
+              onSelectionChanged={setSelectedIds}
+              clashes={activeClashes}
+              focusPoint={clashFocusPoint}
+            />
           </section>
         </main>
 
@@ -523,6 +550,15 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
           onToggleCollapse={() => setIsInspectorCollapsed((p) => !p)}
         />
       </div>
+
+      {/* Panneau rétractable de détection des conflits géométriques BIM (Phase 9.4) */}
+      <ClashPanel
+        doc={doc}
+        isCollapsed={!isClashPanelOpen}
+        onToggleCollapse={() => setIsClashPanelOpen((p) => !p)}
+        onSelectClash={handleSelectClash}
+        onClashesChanged={setActiveClashes}
+      />
 
       {/* Panneau rétractable du tableau de métrés et surfaces */}
       <MetricsPanel doc={doc} activeLevelId={activeLevelId} />

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { type RawMeshData } from '@mini-bim/geometry';
-import { type SceneOptions } from './types.js';
+import { type SceneOptions, type ClashOverlayItem } from './types.js';
 import { MeshAdapter } from './MeshAdapter.js';
 import {
   createDefaultMaterial,
@@ -45,6 +45,11 @@ export class Scene3D {
   private readonly kitchenMaterial: THREE.MeshStandardMaterial;
   private readonly furnitureMaterial: THREE.MeshStandardMaterial;
   private readonly glazingMaterial: THREE.MeshStandardMaterial;
+
+  /**
+   * Groupe conteneur des superpositions filaires et visuelles de collisions.
+   */
+  private readonly clashOverlaysGroup: THREE.Group = new THREE.Group();
 
   /**
    * Registre des maillages architecturaux indexés par elementId.
@@ -117,6 +122,7 @@ export class Scene3D {
     // Bascule de la grille du plan XZ standard Three.js vers le plan XY architectural
     this.gridHelper.rotation.x = Math.PI / 2;
     this.scene.add(this.gridHelper);
+    this.scene.add(this.clashOverlaysGroup);
 
     // 6. Contrôles orbitaux
     this.controls = new OrbitControls(this.camera, canvas);
@@ -607,6 +613,118 @@ export class Scene3D {
   }
 
   /**
+   * Efface et libère tous les volumes et repères de surimpression de collisions.
+   */
+  public clearClashOverlays(): void {
+    if (this.isDisposed) return;
+    while (this.clashOverlaysGroup.children.length > 0) {
+      const child = this.clashOverlaysGroup.children[0];
+      if (!child) break;
+      this.clashOverlaysGroup.remove(child);
+      if (child instanceof THREE.Mesh || child instanceof THREE.LineSegments) {
+        child.geometry?.dispose();
+        if (Array.isArray(child.material)) {
+          child.material.forEach((m) => m.dispose());
+        } else if (child.material) {
+          child.material.dispose();
+        }
+      }
+    }
+    this.render();
+  }
+
+  /**
+   * Génère et affiche les volumes englobants et repères visuels des conflits détectés.
+   * - Hard clash : boîte filaire rouge (0xef4444) avec remplissage translucide
+   * - Clearance : boîte filaire ambre (0xf59e0b) avec remplissage translucide
+   * - Point de collision : sphère repère (rayon 35 mm)
+   */
+  public setClashOverlays(clashes: readonly ClashOverlayItem[]): void {
+    if (this.isDisposed) return;
+    this.clearClashOverlays();
+
+    for (const clash of clashes) {
+      const isHard = clash.severity === 'hard';
+      const color = isHard ? 0xef4444 : 0xf59e0b;
+      const min = clash.intersectionBox.min;
+      const max = clash.intersectionBox.max;
+
+      // Calcul des dimensions de la zone d'interférence avec épaisseur minimale visible
+      const dx = Math.max(Math.abs(max.x - min.x), 30);
+      const dy = Math.max(Math.abs(max.y - min.y), 30);
+      const dz = Math.max(Math.abs(max.z - min.z), 30);
+
+      const cx = (min.x + max.x) / 2;
+      const cy = (min.y + max.y) / 2;
+      const cz = (min.z + max.z) / 2;
+
+      // 1. Volume translucide
+      const boxGeo = new THREE.BoxGeometry(dx, dy, dz);
+      const boxMat = new THREE.MeshBasicMaterial({
+        color,
+        transparent: true,
+        opacity: 0.25,
+        depthWrite: false,
+      });
+      const boxMesh = new THREE.Mesh(boxGeo, boxMat);
+      boxMesh.position.set(cx, cy, cz);
+      this.clashOverlaysGroup.add(boxMesh);
+
+      // 2. Arêtes filaires accentuées
+      const edgesGeo = new THREE.EdgesGeometry(boxGeo);
+      const lineMat = new THREE.LineBasicMaterial({
+        color,
+      });
+      const lineSegments = new THREE.LineSegments(edgesGeo, lineMat);
+      lineSegments.position.set(cx, cy, cz);
+      this.clashOverlaysGroup.add(lineSegments);
+
+      // 3. Repère ponctuel au point de contact
+      if (clash.point) {
+        const sphereGeo = new THREE.SphereGeometry(35, 8, 8);
+        const sphereMat = new THREE.MeshBasicMaterial({
+          color,
+          wireframe: true,
+        });
+        const sphereMesh = new THREE.Mesh(sphereGeo, sphereMat);
+        sphereMesh.position.set(clash.point.x, clash.point.y, clash.point.z);
+        this.clashOverlaysGroup.add(sphereMesh);
+      }
+    }
+
+    this.render();
+  }
+
+  /**
+   * Centre la caméra et l'orbite sur un point de coordonnées 3D spécifique.
+   */
+  public focusOnPoint(
+    point: { readonly x: number; readonly y: number; readonly z: number },
+    distance = 2500,
+  ): void {
+    if (this.isDisposed) return;
+
+    this.controls.target.set(point.x, point.y, point.z);
+
+    const dir = new THREE.Vector3()
+      .subVectors(this.camera.position, this.controls.target)
+      .normalize();
+
+    if (dir.lengthSq() < 0.001) {
+      dir.set(1, 1, 0.75).normalize();
+    }
+
+    this.camera.position.set(
+      point.x + dir.x * distance,
+      point.y + dir.y * distance,
+      point.z + dir.z * distance,
+    );
+
+    this.controls.update();
+    this.render();
+  }
+
+  /**
    * Retourne le nombre total de maillages architecturaux enregistrés dans la scène.
    */
   public getMeshCount(): number {
@@ -676,7 +794,11 @@ export class Scene3D {
       this.gridHelper.material.dispose();
     }
 
-    // 4. Libérer les matériaux gérés
+    // 4. Libérer les superpositions de collision
+    this.clearClashOverlays();
+    this.scene.remove(this.clashOverlaysGroup);
+
+    // 5. Libérer les matériaux gérés
     this.defaultMaterial.dispose();
     this.highlightMaterial.dispose();
     this.slabMaterial.dispose();
