@@ -73,7 +73,26 @@ export interface FederatedModelOptions {
 }
 
 /**
- * Candidat d'interférence spatiale entre une entité native et une entité fédérée.
+ * Clé d'identité composée d'une entité fédérée.
+ * Garantit l'unicité stricte multi-modèles (deux modèles distincts pouvant partager le même expressId).
+ */
+export interface FederatedEntityKey {
+  modelId: string;
+  expressId: number;
+}
+
+/**
+ * Statut de qualification géométrique et sémantique d'un conflit fédéré.
+ */
+export type FederatedClashStatus =
+  | 'CANDIDATE'             // Chevauchement spatial AABB brut
+  | 'QUALIFIED_CLASH'       // Conflit physique vérifié par Narrow-Phase (SAT 3D ou Cylindre)
+  | 'UNSUPPORTED_GEOMETRY'  // Géométrie maillée complexe non analytique
+  | 'IGNORED';              // Interaction sémantiquement légitime (réservations, volumes spatiaux)
+
+/**
+ * Résultat de détection d'interférence spatiale entre une entité native et une entité fédérée
+ * ou entre deux entités fédérées.
  */
 export interface FederatedClashCandidate {
   modelId: string;
@@ -84,4 +103,6 @@ export interface FederatedClashCandidate {
   intersectionBox: AABB3D;
   point: { x: number; y: number; z: number };
   penetrationEstimateMm: number;
+  status: FederatedClashStatus;
+  qualifier?: string | undefined;
 }
