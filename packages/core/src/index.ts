@@ -205,3 +205,5 @@ export {
 } from './perf/stats.js';
 export * from './mep/index.js';
 export * from './clash/index.js';
+export * as Federation from './federation/index.js';
+export * from './federation/types.js';

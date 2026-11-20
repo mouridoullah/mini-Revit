@@ -19,6 +19,7 @@ import {
   type WallInput,
   type OpeningGeometryParams,
   type ClashOverlayItem,
+  type FederatedModelVisual,
 } from '@mini-bim/view-3d';
 import { computeStairShaft, resolveWallGeometry } from '@mini-bim/core';
 import { useBimDocument } from '../hooks/useBimDocument.js';
@@ -29,6 +30,8 @@ export interface Viewport3DProps {
   readonly onSelectionChanged?: (ids: readonly string[]) => void;
   readonly clashes?: readonly ClashOverlayItem[];
   readonly focusPoint?: { readonly x: number; readonly y: number; readonly z: number } | null;
+  readonly federatedModels?: readonly FederatedModelVisual[];
+  readonly onSelectFederatedEntity?: (modelId: string | null, expressId: number | null) => void;
 }
 
 /**
@@ -41,12 +44,15 @@ export function Viewport3D({
   onSelectionChanged,
   clashes,
   focusPoint,
+  federatedModels,
+  onSelectFederatedEntity,
 }: Viewport3DProps = {}) {
   const { state, lastChangedIds } = useBimDocument();
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sceneRef = useRef<Scene3D | null>(null);
   const renderedElementIdsRef = useRef<Set<string>>(new Set());
+  const renderedFedModelIdsRef = useRef<Set<string>>(new Set());
   const doorMaterialRef = useRef<ReturnType<typeof createDoorPlaceholderMaterial> | null>(null);
   const windowMaterialRef = useRef<ReturnType<typeof createWindowPlaceholderMaterial> | null>(null);
   const selectionRef = useRef<readonly string[] | undefined>(selection);
@@ -565,10 +571,34 @@ export function Viewport3D({
     sceneRef.current.focusOnPoint(focusPoint);
   }, [focusPoint]);
 
+  // Synchronisation des maquettes IFC externes fédérées
+  useEffect(() => {
+    const scene = sceneRef.current;
+    if (!scene) return;
+
+    const currentFedIds = new Set(federatedModels?.map((m) => m.id) ?? []);
+
+    // Suppression des modèles retirés
+    for (const id of renderedFedModelIdsRef.current) {
+      if (!currentFedIds.has(id)) {
+        scene.removeFederatedModel(id);
+      }
+    }
+
+    // Ajout / mise à jour
+    if (federatedModels) {
+      for (const model of federatedModels) {
+        scene.addFederatedModel(model);
+      }
+    }
+
+    renderedFedModelIdsRef.current = currentFedIds;
+  }, [federatedModels]);
+
   // Écouteur de picking 3D (clic stationnaire raycast)
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !onSelectionChanged) return;
+    if (!canvas) return;
 
     let pointerDownPos = { x: 0, y: 0 };
 
@@ -594,9 +624,17 @@ export function Viewport3D({
 
       const hitId = scene.raycast(screenX, screenY);
       if (hitId) {
-        onSelectionChanged([hitId]);
+        onSelectionChanged?.([hitId]);
+        onSelectFederatedEntity?.(null, null);
       } else {
-        onSelectionChanged([]);
+        const fedHit = scene.getFederatedEntityAt(e.clientX, e.clientY);
+        if (fedHit) {
+          onSelectFederatedEntity?.(fedHit.modelId, fedHit.expressId);
+          onSelectionChanged?.([]);
+        } else {
+          onSelectionChanged?.([]);
+          onSelectFederatedEntity?.(null, null);
+        }
       }
     };
 
@@ -607,7 +645,7 @@ export function Viewport3D({
       canvas.removeEventListener('pointerdown', handlePointerDown);
       canvas.removeEventListener('pointerup', handlePointerUp);
     };
-  }, [onSelectionChanged]);
+  }, [onSelectionChanged, onSelectFederatedEntity]);
 
   // Adaptation responsive de la taille du canvas
   useResizeObserver(containerRef, (width, height) => {

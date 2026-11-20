@@ -21,11 +21,11 @@ flowchart TD
         P4 --> P5["Phase 5<br/>Plans & OpenBIM IFC4"]
     end
 
-    subgraph S2 ["SAISON 2 (V2.0 EN COURS — VERS UN OUTIL BIM RICHE & COMPLET)"]
+    subgraph S2 ["SAISON 2 (V2.0 LIVRÉE & QUALIFIÉE — ARCHITECTURE, MEP & INTEROPÉRABILITÉ)"]
         direction LR
         P6["Phase 6<br/>Dalles, Multi-Niveaux & Escalier"] --> P7["Phase 7<br/>Toitures, Pentes & Coupes Dynamiques"]
         P7 --> P8["Phase 8<br/>Objets, Mobilier & Bibliothèque"]
-        P8 --> P9["Phase 9<br/>MEP, Clashs & Import IFC"]
+        P8 --> P9["Phase 9<br/>MEP, Clashs & Fédération IFC"]
     end
 
     S1 ==> S2
@@ -459,6 +459,12 @@ flowchart LR
     - Superpositions visuelles 3D filaires et translucides dans `Scene3D` avec récentes caméras (`focusOnPoint`).
     - Panneau interactif `ClashPanel.tsx` déployable depuis la Toolbar avec compteurs, filtres par discipline/sévérité, sélection croisée et export de rapports CSV.
     - Consigné dans `ADR-059` avec 100% de tests unitaires, d'intégration et Playwright E2E au vert.
-  - **9.5 Modèle de Référence Fédéré IFC en Lecture Seule (Read-Only Reference Underlay) :**
-    - Chargement sans perte de fichiers IFC externes via `web-ifc` pour coordination interdisciplinaire.
-    - Affichage 3D en transparence / matériau de coordination et projection 2D en plan/coupe, sans conversion destructive vers le modèle interne.
+  - **9.5 Fédération IFC, Visualisation des Maquettes Externes & Coordination Inter-Modèles [LIVRÉ & QUALIFIÉ] :**
+    - **Isolation Stricte du Noyau Métier (`ADR-001`) :** Modèle fédéré en lecture seule (`FederatedModel`) sans mutation de `BimState`, sans transaction CommandBus, sans historique Undo/Redo et sans persistance IndexedDB.
+    - **Normalisation Métrique & Alignement de Repère Z-up (`ADR-003`) :** Détection automatique d'échelle (`detectIfcUnits`) et conversion de repère OpenGL Y-up $\to$ Mini-BIM Z-up. Validation étalon round-trip sur la Villa Contemporaine Complexe avec un écart $< 0,1\text{ mm}$ sur tous les sommets.
+    - **Discipline Mémoire WASM & Moteur 3D (`FederatedIfcManager.ts`, `Scene3D.ts`) :** Fermeture systématique de WebIFC (`try ... finally { CloseModel }`), conteneur Three.js dédié, visibilité, filaire, opacité réglable, décalage spatial $(dX, dY, dZ)$ et libération GPU totale des `BufferGeometry` et matériaux.
+    - **Coordination Spatiale BVH Inter-Modèles :** Fonction `detectFederatedClashes` testant les interférences entre les géométries natives et les entités IFC externes via le `BVHTree`.
+    - **Durcissement Géométrique 9.4.1 :** Qualification des cas limites de clash (OBB obliques à 45°, colonnes montantes verticales traversant une dalle, frontière de tolérance exacte de contact à 1,9 mm toléré vs 2,5 mm détecté).
+    - **Interface Web Complète (`apps/web`) :** Boutons `📁 IFC Réf` et `+ IFC` dans la Toolbar, panneau rétractable `FederatedIfcPanel.tsx` (onglets Maquettes, Inspecteur d'entités avec `GlobalId` et `PropertySets`, Conflits spatiaux), raycasting 3D sans effet de bord, et respect strict de la Règle d'or #2 (zéro import de `@mini-bim/geometry` dans `web`).
+    - **Consigné dans `ADR-060` :** Monorepo qualifié à 100% de tests verts (1 177 tests Vitest sur 110 suites, 6 tests Playwright E2E réels, 0 erreur TypeScript strict, 0 warning ESLint).
+

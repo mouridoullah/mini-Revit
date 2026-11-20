@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { type RawMeshData } from '@mini-bim/geometry';
-import { type SceneOptions, type ClashOverlayItem } from './types.js';
+import { type SceneOptions, type ClashOverlayItem, type FederatedModelVisual } from './types.js';
 import { MeshAdapter } from './MeshAdapter.js';
+import { FederatedIfcManager } from './FederatedIfcManager.js';
 import {
   createDefaultMaterial,
   createHighlightMaterial,
@@ -50,6 +51,11 @@ export class Scene3D {
    * Groupe conteneur des superpositions filaires et visuelles de collisions.
    */
   private readonly clashOverlaysGroup: THREE.Group = new THREE.Group();
+
+  /**
+   * Gestionnaire impératif des maquettes IFC externes fédérées.
+   */
+  private readonly federatedManager: FederatedIfcManager = new FederatedIfcManager();
 
   /**
    * Registre des maillages architecturaux indexés par elementId.
@@ -123,6 +129,7 @@ export class Scene3D {
     this.gridHelper.rotation.x = Math.PI / 2;
     this.scene.add(this.gridHelper);
     this.scene.add(this.clashOverlaysGroup);
+    this.scene.add(this.federatedManager.getRootGroup());
 
     // 6. Contrôles orbitaux
     this.controls = new OrbitControls(this.camera, canvas);
@@ -725,6 +732,77 @@ export class Scene3D {
   }
 
   /**
+   * Ajoute ou met à jour une maquette IFC fédérée dans la scène 3D.
+   */
+  public addFederatedModel(model: FederatedModelVisual): void {
+    if (this.isDisposed) return;
+    this.federatedManager.addModel(model);
+    this.render();
+  }
+
+  /**
+   * Retire une maquette IFC fédérée et libère ses ressources WebGL.
+   */
+  public removeFederatedModel(modelId: string): void {
+    if (this.isDisposed) return;
+    this.federatedManager.removeModel(modelId);
+    this.render();
+  }
+
+  /**
+   * Modifie la visibilité d'un modèle fédéré.
+   */
+  public setFederatedModelVisibility(modelId: string, visible: boolean): void {
+    if (this.isDisposed) return;
+    this.federatedManager.setVisibility(modelId, visible);
+    this.render();
+  }
+
+  /**
+   * Modifie l'opacité d'un modèle fédéré.
+   */
+  public setFederatedModelOpacity(modelId: string, opacity: number): void {
+    if (this.isDisposed) return;
+    this.federatedManager.setOpacity(modelId, opacity);
+    this.render();
+  }
+
+  /**
+   * Active ou désactive le mode filaire pour un modèle fédéré.
+   */
+  public setFederatedModelWireframe(modelId: string, wireframe: boolean): void {
+    if (this.isDisposed) return;
+    this.federatedManager.setWireframe(modelId, wireframe);
+    this.render();
+  }
+
+  /**
+   * Ajuste le décalage de recalage (dx, dy, dz) d'un modèle fédéré en mm.
+   */
+  public setFederatedModelOffset(modelId: string, offset: { x: number; y: number; z: number }): void {
+    if (this.isDisposed) return;
+    this.federatedManager.setOffset(modelId, offset);
+    this.render();
+  }
+
+  /**
+   * Raycast sur les géométries de référence IFC fédérées.
+   */
+  public getFederatedEntityAt(screenX: number, screenY: number): { modelId: string; expressId: number } | null {
+    if (this.isDisposed) return null;
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return null;
+
+    const ndcX = ((screenX - rect.left) / rect.width) * 2 - 1;
+    const ndcY = -(((screenY - rect.top) / rect.height) * 2 - 1);
+
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(new THREE.Vector2(ndcX, ndcY), this.camera);
+
+    return this.federatedManager.pickEntity(raycaster);
+  }
+
+  /**
    * Retourne le nombre total de maillages architecturaux enregistrés dans la scène.
    */
   public getMeshCount(): number {
@@ -797,6 +875,10 @@ export class Scene3D {
     // 4. Libérer les superpositions de collision
     this.clearClashOverlays();
     this.scene.remove(this.clashOverlaysGroup);
+
+    // 4b. Libérer les maquettes IFC fédérées
+    this.federatedManager.dispose();
+    this.scene.remove(this.federatedManager.getRootGroup());
 
     // 5. Libérer les matériaux gérés
     this.defaultMaterial.dispose();

@@ -24,6 +24,10 @@ export interface ToolbarProps {
   readonly onLoadR4Demo?: () => void;
   readonly isClashPanelOpen?: boolean;
   readonly onToggleClashPanel?: () => void;
+  readonly isFederatedPanelOpen?: boolean;
+  readonly onToggleFederatedPanel?: () => void;
+  readonly federatedModelCount?: number;
+  readonly onLoadFederatedIfc?: (file: File) => void;
 }
 
 /**
@@ -52,8 +56,13 @@ export function Toolbar({
   onLoadR4Demo,
   isClashPanelOpen = false,
   onToggleClashPanel,
+  isFederatedPanelOpen = false,
+  onToggleFederatedPanel,
+  federatedModelCount = 0,
+  onLoadFederatedIfc,
 }: ToolbarProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const ifcFileInputRef = useRef<HTMLInputElement>(null);
   const [planScale, setPlanScale] = useState<50 | 100 | 200>(100);
 
   useEffect(() => {
@@ -105,8 +114,20 @@ export function Toolbar({
     }
   };
 
+  const handleIfcFileInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      onLoadFederatedIfc?.(file);
+      e.target.value = '';
+    }
+  };
+
   const handleLoadClick = () => {
     fileInputRef.current?.click();
+  };
+
+  const handleLoadIfcClick = () => {
+    ifcFileInputRef.current?.click();
   };
 
   return (
@@ -560,12 +581,79 @@ export function Toolbar({
               ⚡ Conflits
             </button>
           )}
+          {onToggleFederatedPanel && (
+            <button
+              type="button"
+              data-testid="toggle-federated-panel-btn"
+              onClick={onToggleFederatedPanel}
+              title="Ouvrir le panneau des maquettes IFC externes fédérées"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 10px',
+                fontSize: '12px',
+                borderRadius: '4px',
+                backgroundColor: isFederatedPanelOpen ? '#2563eb' : '#374151',
+                color: '#ffffff',
+                border: isFederatedPanelOpen ? '1px solid #3b82f6' : '1px solid #4b5563',
+                cursor: 'pointer',
+                fontWeight: 600,
+                transition: 'all 0.15s ease-in-out',
+              }}
+            >
+              <span>📁 IFC Réf</span>
+              {federatedModelCount > 0 && (
+                <span
+                  style={{
+                    backgroundColor: isFederatedPanelOpen ? '#ffffff' : '#3b82f6',
+                    color: isFederatedPanelOpen ? '#2563eb' : '#ffffff',
+                    fontSize: '10px',
+                    padding: '1px 5px',
+                    borderRadius: '9999px',
+                    fontWeight: 700,
+                  }}
+                >
+                  {federatedModelCount}
+                </span>
+              )}
+            </button>
+          )}
+          {onLoadFederatedIfc && (
+            <button
+              type="button"
+              data-testid="load-ifc-toolbar-btn"
+              onClick={handleLoadIfcClick}
+              title="Charger une maquette IFC externe (.ifc) en lecture seule"
+              style={{
+                padding: '6px 10px',
+                fontSize: '12px',
+                borderRadius: '4px',
+                backgroundColor: '#374151',
+                color: '#ffffff',
+                border: '1px solid #4b5563',
+                cursor: 'pointer',
+                fontWeight: 500,
+                transition: 'all 0.15s ease-in-out',
+              }}
+            >
+              + IFC
+            </button>
+          )}
           <input
             ref={fileInputRef}
             type="file"
             accept=".json,.mbim.json"
             data-testid="file-input"
             onChange={handleFileInputChange}
+            style={{ display: 'none' }}
+          />
+          <input
+            ref={ifcFileInputRef}
+            type="file"
+            accept=".ifc"
+            data-testid="ifc-file-input"
+            onChange={handleIfcFileInputChange}
             style={{ display: 'none' }}
           />
         </div>

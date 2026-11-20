@@ -89,3 +89,28 @@ export interface ClashOverlayItem {
   readonly point?: { readonly x: number; readonly y: number; readonly z: number };
 }
 
+/**
+ * Entité maillée d'une maquette IFC externe fédérée.
+ */
+export interface FederatedMeshItem {
+  readonly expressId: number;
+  readonly positions: Float32Array;
+  readonly normals?: Float32Array;
+  readonly indices?: Uint32Array;
+  readonly color?: { readonly r: number; readonly g: number; readonly b: number; readonly a?: number };
+}
+
+/**
+ * Représentation visuelle 3D complète d'une maquette IFC fédérée.
+ */
+export interface FederatedModelVisual {
+  readonly id: string;
+  readonly name: string;
+  readonly items: readonly FederatedMeshItem[];
+  readonly opacity?: number;
+  readonly wireframe?: boolean;
+  readonly offset?: { readonly x: number; readonly y: number; readonly z: number };
+  readonly visible?: boolean;
+}
+
+

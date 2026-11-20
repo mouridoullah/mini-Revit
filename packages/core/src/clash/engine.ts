@@ -25,7 +25,7 @@ import {
   classifyClashInteraction,
 } from './classification/rules.js';
 
-interface IndexedElement {
+export interface IndexedElement {
   readonly id: ElementId;
   readonly category: ClashCategory;
   readonly discipline: ClashDiscipline;
@@ -171,7 +171,7 @@ export function detectClashes(
   return results;
 }
 
-function extractIndexedElements(
+export function extractIndexedElements(
   state: BimState,
   filterIds?: readonly ElementId[],
 ): IndexedElement[] {

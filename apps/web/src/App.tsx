@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { BimDocumentProvider } from './context/BimDocumentContext.js';
 import { useBimDocument } from './hooks/useBimDocument.js';
 import { Toolbar } from './components/Toolbar.js';
 import { StatusBar } from './components/StatusBar.js';
 import { MetricsPanel } from './components/MetricsPanel.js';
 import { ClashPanel } from './components/ClashPanel.js';
+import { FederatedIfcPanel, type FederatedModelOptions } from './components/FederatedIfcPanel.js';
 import { PropertyInspector } from './components/PropertyInspector.js';
 import { ComponentRibbon } from './components/ComponentRibbon.js';
 import { MepRibbon } from './components/MepRibbon.js';
@@ -26,6 +27,10 @@ import {
   Commands,
   generateId,
   type ClashResult,
+  Federation,
+  type FederatedModel,
+  type FederatedEntity,
+  type FederatedClashCandidate,
 } from '@mini-bim/core';
 import { generatePlanSvg } from '@mini-bim/view-2d';
 
@@ -64,6 +69,117 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
     setSelectedIds([clash.elementA, clash.elementB]);
     setClashFocusPoint(clash.point);
   }, []);
+
+  // Maquettes IFC externes fédérées en lecture seule (Sous-phase 9.5)
+  const [federatedModels, setFederatedModels] = useState<Map<string, FederatedModel>>(new Map());
+  const [federatedOptions, setFederatedOptions] = useState<Map<string, FederatedModelOptions>>(new Map());
+  const [isFederatedPanelOpen, setIsFederatedPanelOpen] = useState(false);
+  const [selectedFederatedEntity, setSelectedFederatedEntity] = useState<{ modelId: string; entity: FederatedEntity } | null>(null);
+  const [federatedClashes, setFederatedClashes] = useState<readonly FederatedClashCandidate[]>([]);
+
+  const handleLoadFederatedIfc = useCallback(async (file: File) => {
+    try {
+      const buffer = await file.arrayBuffer();
+      const model = await Federation.loadFederatedIfc(buffer, {
+        modelId: `fed_${generateId()}`,
+        name: file.name,
+        wasmPath: '/web-ifc.wasm',
+      });
+
+      setFederatedModels((prev) => {
+        const next = new Map(prev);
+        next.set(model.id, model);
+        return next;
+      });
+
+      setFederatedOptions((prev) => {
+        const next = new Map(prev);
+        next.set(model.id, {
+          visible: true,
+          opacity: 0.35,
+          wireframe: false,
+          offset: { x: 0, y: 0, z: 0 },
+        });
+        return next;
+      });
+
+      setIsFederatedPanelOpen(true);
+      setInfoMessage(`Maquette IFC "${file.name}" chargée en référence (${model.entityCount} entités).`);
+    } catch (err) {
+      setErrorMessage(`Échec du chargement du fichier IFC : ${(err as Error).message}`);
+    }
+  }, []);
+
+  const handleUnloadFederatedModel = useCallback((modelId: string) => {
+    setFederatedModels((prev) => {
+      const next = new Map(prev);
+      next.delete(modelId);
+      return next;
+    });
+    setFederatedOptions((prev) => {
+      const next = new Map(prev);
+      next.delete(modelId);
+      return next;
+    });
+    setSelectedFederatedEntity((curr) => (curr?.modelId === modelId ? null : curr));
+    setFederatedClashes([]);
+  }, []);
+
+  const handleUpdateFederatedOptions = useCallback((modelId: string, patch: Partial<FederatedModelOptions>) => {
+    setFederatedOptions((prev) => {
+      const next = new Map(prev);
+      const existing = next.get(modelId) ?? {
+        visible: true,
+        opacity: 0.35,
+        wireframe: false,
+        offset: { x: 0, y: 0, z: 0 },
+      };
+      next.set(modelId, { ...existing, ...patch });
+      return next;
+    });
+  }, []);
+
+  const handleCheckFederatedClashes = useCallback((modelId: string) => {
+    const model = federatedModels.get(modelId);
+    if (!model) return;
+    const opts = federatedOptions.get(modelId);
+    const results = Federation.detectFederatedClashes(doc.getState(), model, {
+      offset: opts?.offset,
+    });
+    setFederatedClashes(results);
+  }, [doc, federatedModels, federatedOptions]);
+
+  const handleSelectFederatedEntity = useCallback((modelId: string | null, expressId: number | null) => {
+    if (!modelId || expressId === null) {
+      setSelectedFederatedEntity(null);
+      return;
+    }
+    const model = federatedModels.get(modelId);
+    const entity = model?.entities[expressId];
+    if (entity) {
+      setSelectedFederatedEntity({ modelId, entity });
+      setIsFederatedPanelOpen(true);
+    } else {
+      setSelectedFederatedEntity(null);
+    }
+  }, [federatedModels]);
+
+  const federatedVisuals = useMemo(() => {
+    return Array.from(federatedModels.values()).map((m) => {
+      const opts = federatedOptions.get(m.id) ?? {
+        visible: true,
+        opacity: 0.35,
+        wireframe: false,
+        offset: { x: 0, y: 0, z: 0 },
+      };
+      return {
+        id: m.id,
+        name: m.name,
+        items: m.meshes,
+        ...opts,
+      };
+    });
+  }, [federatedModels, federatedOptions]);
 
   const autoSaveManagerRef = useRef<AutoSaveManager | null>(null);
   if (!autoSaveManagerRef.current) {
@@ -376,6 +492,10 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
         hasUnderlayLevel={hasUnderlayLevel}
         isClashPanelOpen={isClashPanelOpen}
         onToggleClashPanel={() => setIsClashPanelOpen((prev) => !prev)}
+        isFederatedPanelOpen={isFederatedPanelOpen}
+        onToggleFederatedPanel={() => setIsFederatedPanelOpen((prev) => !prev)}
+        federatedModelCount={federatedModels.size}
+        onLoadFederatedIfc={handleLoadFederatedIfc}
       />
 
       {/* Galerie / Bandeau d'options pour l'outil Composant (Phase 8) */}
@@ -539,6 +659,8 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
               onSelectionChanged={setSelectedIds}
               clashes={activeClashes}
               focusPoint={clashFocusPoint}
+              federatedModels={federatedVisuals}
+              onSelectFederatedEntity={handleSelectFederatedEntity}
             />
           </section>
         </main>
@@ -558,6 +680,21 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
         onToggleCollapse={() => setIsClashPanelOpen((p) => !p)}
         onSelectClash={handleSelectClash}
         onClashesChanged={setActiveClashes}
+      />
+
+      {/* Panneau rétractable des maquettes IFC externes fédérées (Sous-phase 9.5) */}
+      <FederatedIfcPanel
+        models={Array.from(federatedModels.values())}
+        options={federatedOptions}
+        selectedEntity={selectedFederatedEntity}
+        isCollapsed={!isFederatedPanelOpen}
+        onToggleCollapse={() => setIsFederatedPanelOpen((p) => !p)}
+        onSelectEntity={(modelId, entity) => setSelectedFederatedEntity(entity ? { modelId, entity } : null)}
+        onUpdateOptions={handleUpdateFederatedOptions}
+        onUnloadModel={handleUnloadFederatedModel}
+        onFocusPoint={(point) => setClashFocusPoint(point)}
+        onCheckClashes={handleCheckFederatedClashes}
+        clashCandidates={federatedClashes}
       />
 
       {/* Panneau rétractable du tableau de métrés et surfaces */}
