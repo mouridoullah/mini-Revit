@@ -1,5 +1,11 @@
 import { type BimState, type Wall, type ElementId } from './types.js';
-import { isPointInPolygon, computeEffectiveSlabPolygon, vec2, type Vec2 } from '@mini-bim/geometry';
+import { isPointInPolygon, vec2, type Vec2 } from '@mini-bim/geometry';
+import {
+  getOrComputeSlabGeometry,
+  getOrBuildWallResolutionIndex,
+  type WallResolutionIndex,
+  type EffectiveSlabGeometry,
+} from './walls/index-cache.js';
 
 export interface ComputeWallEffectiveHeightOptions {
   /** Échantillonnage supplémentaire le long du mur si nécessaire (par défaut [start, mid, end]). */
@@ -110,34 +116,35 @@ export function computeWallVerticalBounds(
     let zTop = targetLevel.elevation + topOffset;
     let limitingSlabId: ElementId | undefined;
 
-    // Rechercher les dalles associées au niveau supérieur
-    if (state.slabs) {
-      const targetSlabs = Object.values(state.slabs).filter(
-        (sl) => sl.levelId === topLevelId,
-      );
+    // Rechercher les dalles associées au niveau supérieur (filtrage spatial O(1) et AABB)
+    const index = getOrBuildWallResolutionIndex(state);
+    const targetSlabs = index.slabsByLevelId.get(topLevelId);
 
-      for (const slab of targetSlabs) {
-        const slabType = state.slabTypes?.[slab.slabTypeId];
-        if (!slabType) continue;
+    if (targetSlabs && targetSlabs.length > 0) {
+      const wallMinX = Math.min(wall.start.x, wall.end.x);
+      const wallMaxX = Math.max(wall.start.x, wall.end.x);
+      const wallMinY = Math.min(wall.start.y, wall.end.y);
+      const wallMaxY = Math.max(wall.start.y, wall.end.y);
 
-        let effectivePolygon;
-        try {
-          effectivePolygon = computeEffectiveSlabPolygon({
-            boundary: slab.boundary,
-            holes: slab.holes,
-            openings: slab.openings,
-          });
-        } catch {
-          // Si la dalle est corrompue ou dégénérée, l'ignorer pour le calcul d'arase
+      for (const item of targetSlabs) {
+        if (!item.slabType) continue;
+
+        // Élimination rapide AABB
+        if (
+          wallMaxX < item.geometry.aabb.minX ||
+          wallMinX > item.geometry.aabb.maxX ||
+          wallMaxY < item.geometry.aabb.minY ||
+          wallMinY > item.geometry.aabb.maxY
+        ) {
           continue;
         }
 
-        if (isWallCoveredBySlab(wall, effectivePolygon)) {
+        if (isWallCoveredBySlab(wall, item.geometry)) {
           // Arase inférieure (sous-face) de la dalle
-          const zInfSlab = targetLevel.elevation + (slab.baseOffset ?? 0) - slabType.thickness;
+          const zInfSlab = targetLevel.elevation + (item.slab.baseOffset ?? 0) - item.slabType.thickness;
           if (zInfSlab < zTop) {
             zTop = zInfSlab;
-            limitingSlabId = slab.id;
+            limitingSlabId = item.slab.id;
           }
         }
       }
@@ -190,23 +197,29 @@ export function computeWallSlabPenetration(wall: Wall, state: BimState): number 
 
   let maxPenetrationMm = 0;
 
+  const wallMinX = Math.min(wall.start.x, wall.end.x);
+  const wallMaxX = Math.max(wall.start.x, wall.end.x);
+  const wallMinY = Math.min(wall.start.y, wall.end.y);
+  const wallMaxY = Math.max(wall.start.y, wall.end.y);
+
   for (const sl of Object.values(state.slabs ?? {})) {
     const slLevel = state.levels[sl.levelId];
     if (slLevel && slLevel.elevation > (curLevel?.elevation ?? 0)) {
       const slType = state.slabTypes?.[sl.slabTypeId];
       if (slType) {
-        let effectivePolygon;
-        try {
-          effectivePolygon = computeEffectiveSlabPolygon({
-            boundary: sl.boundary,
-            holes: sl.holes,
-            openings: sl.openings,
-          });
-        } catch {
+        const geom = getOrComputeSlabGeometry(sl);
+        if (!geom) continue;
+
+        if (
+          wallMaxX < geom.aabb.minX ||
+          wallMinX > geom.aabb.maxX ||
+          wallMaxY < geom.aabb.minY ||
+          wallMinY > geom.aabb.maxY
+        ) {
           continue;
         }
 
-        if (isWallCoveredBySlab(wall, effectivePolygon)) {
+        if (isWallCoveredBySlab(wall, geom)) {
           const zInf = slLevel.elevation + (sl.baseOffset ?? 0) - slType.thickness;
           if (zTop > zInf) {
             maxPenetrationMm = Math.max(maxPenetrationMm, zTop - zInf);
@@ -224,3 +237,9 @@ export {
   type ResolvedWall,
   type ResolvedOpening,
 } from './walls/resolve.js';
+export {
+  getOrComputeSlabGeometry,
+  getOrBuildWallResolutionIndex,
+  type WallResolutionIndex,
+  type EffectiveSlabGeometry,
+} from './walls/index-cache.js';
