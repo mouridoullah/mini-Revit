@@ -39,11 +39,11 @@ export function ComponentRibbon({
       style={{
         display: 'flex',
         flexDirection: 'column',
-        backgroundColor: '#1e293b',
-        borderBottom: '1px solid #334155',
+        backgroundColor: 'var(--bg-canvas-chrome)',
+        borderBottom: '1px solid var(--border-subtle)',
         padding: '6px 16px',
         gap: '6px',
-        color: '#f8fafc',
+        color: 'var(--text-primary)',
         userSelect: 'none',
       }}
     >
@@ -61,9 +61,9 @@ export function ComponentRibbon({
                 fontSize: '11px',
                 fontWeight: selectedFamily === tab.key ? 600 : 400,
                 borderRadius: '4px',
-                backgroundColor: selectedFamily === tab.key ? '#3b82f6' : '#334155',
-                color: selectedFamily === tab.key ? '#ffffff' : '#cbd5e1',
-                border: 'none',
+                backgroundColor: selectedFamily === tab.key ? 'var(--accent-primary)' : 'var(--bg-card)',
+                color: selectedFamily === tab.key ? '#ffffff' : 'var(--text-secondary)',
+                border: '1px solid var(--border-subtle)',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
               }}
@@ -73,7 +73,7 @@ export function ComponentRibbon({
           ))}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '11px', color: '#94a3b8' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '11px', color: 'var(--text-secondary)' }}>
           <span><b>Espace</b> : Pivoter 90°</span>
           {onRotate && (
             <button
@@ -84,9 +84,9 @@ export function ComponentRibbon({
                 padding: '3px 8px',
                 fontSize: '11px',
                 borderRadius: '4px',
-                backgroundColor: '#475569',
-                color: '#ffffff',
-                border: 'none',
+                backgroundColor: 'var(--bg-card)',
+                color: 'var(--text-primary)',
+                border: '1px solid var(--border-subtle)',
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -97,7 +97,7 @@ export function ComponentRibbon({
             </button>
           )}
           {activeType && (
-            <span style={{ color: '#38bdf8' }}>
+            <span style={{ color: 'var(--accent-primary)' }}>
               Format : {activeType.width} × {activeType.depth} × {activeType.height} mm
             </span>
           )}
@@ -129,9 +129,9 @@ export function ComponentRibbon({
                 borderRadius: '4px',
                 fontSize: '11px',
                 whiteSpace: 'nowrap',
-                backgroundColor: isSelected ? '#2563eb' : '#0f172a',
-                color: isSelected ? '#ffffff' : '#e2e8f0',
-                border: isSelected ? '1px solid #60a5fa' : '1px solid #334155',
+                backgroundColor: isSelected ? 'var(--accent-primary)' : 'var(--bg-card)',
+                color: isSelected ? '#ffffff' : 'var(--text-primary)',
+                border: isSelected ? '1px solid var(--accent-primary)' : '1px solid var(--border-subtle)',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
               }}

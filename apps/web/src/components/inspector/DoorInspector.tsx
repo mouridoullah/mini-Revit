@@ -15,18 +15,18 @@ export function DoorInspector({ door, state, onExecute }: DoorInspectorProps) {
   return (
     <div data-testid="inspector-door-panel">
       <div
-        style={{ fontSize: '13px', fontWeight: 600, color: '#f59e0b', marginBottom: '12px' }}
+        style={{ fontSize: '13px', fontWeight: 600, color: 'var(--accent-warning)', marginBottom: '12px' }}
       >
         Porte
       </div>
-      <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '8px' }}>
+      <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
         ID : <span data-testid="door-id">{door.id}</span>
       </div>
 
       <div
         style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '10px' }}
       >
-        <label style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 500 }}>
+        <label style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 500 }}>
           Type de porte
         </label>
         <select
@@ -39,9 +39,9 @@ export function DoorInspector({ door, state, onExecute }: DoorInspectorProps) {
             padding: '5px 8px',
             fontSize: '12px',
             borderRadius: '4px',
-            backgroundColor: '#1f2937',
-            color: '#f3f4f6',
-            border: '1px solid #4b5563',
+            backgroundColor: 'var(--bg-card)',
+            color: 'var(--text-primary)',
+            border: '1px solid var(--border-subtle)',
             outline: 'none',
           }}
         >
@@ -72,9 +72,9 @@ export function DoorInspector({ door, state, onExecute }: DoorInspectorProps) {
             padding: '5px',
             fontSize: '11px',
             borderRadius: '4px',
-            backgroundColor: '#374151',
-            color: '#f3f4f6',
-            border: '1px solid #4b5563',
+            backgroundColor: 'var(--bg-card)',
+            color: 'var(--text-primary)',
+            border: '1px solid var(--border-subtle)',
             cursor: 'pointer',
           }}
         >
@@ -98,9 +98,9 @@ export function DoorInspector({ door, state, onExecute }: DoorInspectorProps) {
             padding: '5px',
             fontSize: '11px',
             borderRadius: '4px',
-            backgroundColor: '#374151',
-            color: '#f3f4f6',
-            border: '1px solid #4b5563',
+            backgroundColor: 'var(--bg-card)',
+            color: 'var(--text-primary)',
+            border: '1px solid var(--border-subtle)',
             cursor: 'pointer',
           }}
         >

@@ -146,16 +146,9 @@ test.describe('Mini-BIM E2E Smoke Tests (Playwright Real Browser)', () => {
   }) => {
     const consoleErrors: string[] = [];
     page.on('console', (msg) => {
-      console.log(`[BROWSER CONSOLE ${msg.type()}] ${msg.text()}`);
       if (msg.type() === 'error') {
         consoleErrors.push(msg.text());
       }
-    });
-    page.on('requestfailed', (req) => {
-      console.log(`[REQUEST FAILED] ${req.url()} ${req.failure()?.errorText}`);
-    });
-    page.on('response', (res) => {
-      if (res.status() >= 400) console.log(`[HTTP ERROR] ${res.status()} ${res.url()}`);
     });
 
     page.on('pageerror', (err) => {

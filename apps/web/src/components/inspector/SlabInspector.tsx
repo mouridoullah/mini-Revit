@@ -17,11 +17,11 @@ export function SlabInspector({ slab, state, onExecute }: SlabInspectorProps) {
   return (
     <div data-testid="inspector-slab-panel">
       <div
-        style={{ fontSize: '13px', fontWeight: 600, color: '#34d399', marginBottom: '12px' }}
+        style={{ fontSize: '13px', fontWeight: 600, color: 'var(--accent-success)', marginBottom: '12px' }}
       >
         Dalle Structurelle
       </div>
-      <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '8px' }}>
+      <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
         ID : <span data-testid="slab-id">{slab.id}</span>
       </div>
 
@@ -37,7 +37,7 @@ export function SlabInspector({ slab, state, onExecute }: SlabInspectorProps) {
       <div
         style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '10px' }}
       >
-        <label style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 500 }}>
+        <label style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 500 }}>
           Type de dalle
         </label>
         <select
@@ -50,9 +50,9 @@ export function SlabInspector({ slab, state, onExecute }: SlabInspectorProps) {
             padding: '5px 8px',
             fontSize: '12px',
             borderRadius: '4px',
-            backgroundColor: '#1f2937',
-            color: '#f3f4f6',
-            border: '1px solid #4b5563',
+            backgroundColor: 'var(--bg-card)',
+            color: 'var(--text-primary)',
+            border: '1px solid var(--border-subtle)',
             outline: 'none',
           }}
         >
@@ -66,7 +66,7 @@ export function SlabInspector({ slab, state, onExecute }: SlabInspectorProps) {
 
       <div
         data-testid="slab-thickness-display"
-        style={{ fontSize: '12px', color: '#d1d5db', marginBottom: '10px' }}
+        style={{ fontSize: '12px', color: 'var(--text-primary)', marginBottom: '10px' }}
       >
         Épaisseur : <strong>{currentSlabType?.thickness ?? 200} mm</strong>
       </div>
@@ -80,14 +80,14 @@ export function SlabInspector({ slab, state, onExecute }: SlabInspectorProps) {
         }}
       />
 
-      <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>
+      <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px' }}>
         Réservations / Trémies : {(slab.holes?.length ?? 0) + (slab.openings?.length ?? 0)}
       </div>
 
       {currentSlabType && (
-        <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #374151' }}>
+        <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid var(--border-subtle)' }}>
           <div
-            style={{ fontSize: '11px', fontWeight: 600, color: '#9ca3af', marginBottom: '8px' }}
+            style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}
           >
             Édition du Type ({currentSlabType.name})
           </div>

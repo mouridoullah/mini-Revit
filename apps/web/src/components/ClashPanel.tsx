@@ -117,16 +117,16 @@ export function ClashPanel({
         width: embedded ? '100%' : '520px',
         height: embedded && !collapsed ? '100%' : undefined,
         maxHeight: embedded ? 'none' : collapsed ? '44px' : '460px',
-        backgroundColor: '#1f2937',
-        color: '#f3f4f6',
+        backgroundColor: 'var(--bg-card)',
+        color: 'var(--text-primary)',
         borderRadius: embedded ? 0 : '8px 8px 0 0',
         boxShadow: '0 -4px 16px rgba(0, 0, 0, 0.35)',
         zIndex: embedded ? 'auto' : 40,
         display: 'flex',
         flexDirection: 'column',
         transition: 'max-height 0.25s ease-in-out',
-        border: '1px solid #374151',
-        borderBottom: embedded ? '1px solid #374151' : 'none',
+        border: '1px solid var(--border-subtle)',
+        borderBottom: embedded ? '1px solid var(--border-subtle)' : 'none',
         overflow: 'hidden',
       }}
     >
@@ -140,9 +140,9 @@ export function ClashPanel({
           alignItems: 'center',
           justifyContent: 'space-between',
           cursor: 'pointer',
-          backgroundColor: '#111827',
+          backgroundColor: 'var(--bg-canvas-chrome)',
           userSelect: 'none',
-          borderBottom: collapsed ? 'none' : '1px solid #374151',
+          borderBottom: collapsed ? 'none' : '1px solid var(--border-subtle)',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -180,7 +180,7 @@ export function ClashPanel({
           )}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#9ca3af' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: 'var(--text-secondary)' }}>
             {collapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
             {collapsed ? 'Déplier' : 'Réduire'}
           </span>
@@ -279,9 +279,9 @@ export function ClashPanel({
                   onChange={(e) => setSeverityFilter(e.target.value as 'all' | ClashSeverity)}
                   style={{
                     padding: '4px 6px',
-                    backgroundColor: '#374151',
-                    color: '#f9fafb',
-                    border: '1px solid #4b5563',
+                    backgroundColor: 'var(--bg-card)',
+                    color: 'var(--text-primary)',
+                    border: '1px solid var(--border-subtle)',
                     borderRadius: '4px',
                     outline: 'none',
                   }}
@@ -297,9 +297,9 @@ export function ClashPanel({
                   onChange={(e) => setDisciplineFilter(e.target.value as DisciplineFilter)}
                   style={{
                     padding: '4px 6px',
-                    backgroundColor: '#374151',
-                    color: '#f9fafb',
-                    border: '1px solid #4b5563',
+                    backgroundColor: 'var(--bg-card)',
+                    color: 'var(--text-primary)',
+                    border: '1px solid var(--border-subtle)',
                     borderRadius: '4px',
                     outline: 'none',
                   }}
@@ -319,8 +319,8 @@ export function ClashPanel({
               flex: 1,
               overflowY: 'auto',
               borderRadius: '4px',
-              border: '1px solid #374151',
-              backgroundColor: '#111827',
+              border: '1px solid var(--border-subtle)',
+              backgroundColor: 'var(--bg-canvas-chrome)',
               minHeight: '160px',
             }}
           >
@@ -329,7 +329,7 @@ export function ClashPanel({
                 style={{
                   padding: '36px 16px',
                   textAlign: 'center',
-                  color: '#9ca3af',
+                  color: 'var(--text-secondary)',
                   fontSize: '12px',
                 }}
               >
@@ -342,7 +342,7 @@ export function ClashPanel({
                 style={{
                   padding: '36px 16px',
                   textAlign: 'center',
-                  color: '#10b981',
+                  color: 'var(--accent-success)',
                   fontSize: '13px',
                   fontWeight: 500,
                 }}
@@ -359,7 +359,7 @@ export function ClashPanel({
                 }}
               >
                 <thead>
-                  <tr style={{ backgroundColor: '#1f2937', color: '#9ca3af', textAlign: 'left' }}>
+                  <tr style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-secondary)', textAlign: 'left' }}>
                     <th style={{ padding: '6px 8px' }}>Type</th>
                     <th style={{ padding: '6px 8px' }}>Interférence</th>
                     <th style={{ padding: '6px 8px' }}>Pénétration</th>
@@ -380,8 +380,8 @@ export function ClashPanel({
                         }}
                         style={{
                           cursor: 'pointer',
-                          backgroundColor: isSelected ? '#374151' : 'transparent',
-                          borderTop: '1px solid #1f2937',
+                          backgroundColor: isSelected ? 'var(--bg-card)' : 'transparent',
+                          borderTop: '1px solid var(--border-subtle)',
                           transition: 'background-color 0.1s ease',
                         }}
                       >
@@ -401,18 +401,18 @@ export function ClashPanel({
                           </span>
                         </td>
                         <td style={{ padding: '6px 8px' }}>
-                          <div style={{ fontWeight: 600, color: '#f3f4f6' }}>
+                          <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
                             {c.categoryA} ({c.elementA}) ↔ {c.categoryB} ({c.elementB})
                           </div>
-                          <div style={{ color: '#9ca3af', fontSize: '10px' }}>
+                          <div style={{ color: 'var(--text-secondary)', fontSize: '10px' }}>
                             {c.disciplineA} ↔ {c.disciplineB}
                           </div>
                         </td>
-                        <td style={{ padding: '6px 8px', color: '#e5e7eb', fontWeight: 600 }}>
+                        <td style={{ padding: '6px 8px', color: 'var(--text-primary)', fontWeight: 600 }}>
                           {Math.round(c.penetrationDepthMm)} mm
                         </td>
                         <td
-                          style={{ padding: '6px 8px', color: '#9ca3af', fontFamily: 'monospace' }}
+                          style={{ padding: '6px 8px', color: 'var(--text-secondary)', fontFamily: 'monospace' }}
                         >
                           ({Math.round(c.point.x)}, {Math.round(c.point.y)}, {Math.round(c.point.z)}
                           )

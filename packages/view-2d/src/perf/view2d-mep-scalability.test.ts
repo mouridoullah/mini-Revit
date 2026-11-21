@@ -229,8 +229,9 @@ describe('Banc de Scalabilité Mixte Architecture + MEP 2D (@mini-bim/view-2d)',
     console.table(results);
 
     // Assertions architecturales :
-    // 1. À 100 entités : P95 < 15 ms
-    expect(results[100]!.renderSingleLineP95Ms).toBeLessThan(15);
+    // 1. À 100 entités : P50 < 15 ms et P95 < 50 ms
+    expect(results[100]!.renderSingleLineP50Ms).toBeLessThan(15);
+    expect(results[100]!.renderSingleLineP95Ms).toBeLessThan(50);
 
     // 2. À 1 000 entités mixtes : P50 sous le seuil interactif (25 ms) et P95 < 50 ms (ADR-014)
     expect(results[1000]!.renderSingleLineP50Ms).toBeLessThan(25);

@@ -65,10 +65,10 @@ export function MepRibbon({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        backgroundColor: '#1e293b',
-        borderBottom: '1px solid #334155',
+        backgroundColor: 'var(--bg-canvas-chrome)',
+        borderBottom: '1px solid var(--border-subtle)',
         padding: '6px 16px',
-        color: '#f8fafc',
+        color: 'var(--text-primary)',
         fontSize: '12px',
         userSelect: 'none',
         gap: '16px',
@@ -77,7 +77,7 @@ export function MepRibbon({
     >
       {/* 1. Sélecteur de catégorie MEP */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-        <span style={{ fontWeight: 600, color: '#94a3b8', marginRight: '4px' }}>Réseau :</span>
+        <span style={{ fontWeight: 600, color: 'var(--text-secondary)', marginRight: '4px' }}>Réseau :</span>
         {CATEGORY_ITEMS.map((item) => {
           const isActive = currentCategoryKey === item.key;
           return (
@@ -96,9 +96,9 @@ export function MepRibbon({
                 borderRadius: '4px',
                 fontSize: '11px',
                 fontWeight: isActive ? 600 : 400,
-                backgroundColor: isActive ? '#3b82f6' : '#334155',
-                color: isActive ? '#ffffff' : '#cbd5e1',
-                border: isActive ? '1px solid #60a5fa' : '1px solid transparent',
+                backgroundColor: isActive ? 'var(--accent-primary)' : 'var(--bg-card)',
+                color: isActive ? '#ffffff' : 'var(--text-secondary)',
+                border: isActive ? '1px solid var(--accent-primary)' : '1px solid var(--border-subtle)',
                 cursor: 'pointer',
               }}
             >
@@ -110,7 +110,7 @@ export function MepRibbon({
 
       {/* 2. Sélecteur de fluide / système */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <span style={{ fontWeight: 600, color: '#94a3b8' }}>Système :</span>
+        <span style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Système :</span>
         <select
           data-testid="mep-system-select"
           value={config.systemType ?? 'domestic_cold_water'}
@@ -125,9 +125,9 @@ export function MepRibbon({
           }}
           style={{
             padding: '3px 8px',
-            backgroundColor: '#0f172a',
-            color: '#f8fafc',
-            border: '1px solid #475569',
+            backgroundColor: 'var(--bg-card)',
+            color: 'var(--text-primary)',
+            border: '1px solid var(--border-subtle)',
             borderRadius: '4px',
             fontSize: '11px',
             cursor: 'pointer',
@@ -145,7 +145,7 @@ export function MepRibbon({
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
         {!isRectangular ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <span style={{ color: '#94a3b8' }}>Ø (mm) :</span>
+            <span style={{ color: 'var(--text-secondary)' }}>Ø (mm) :</span>
             <input
               type="number"
               data-testid="mep-diameter-input"
@@ -157,9 +157,9 @@ export function MepRibbon({
               style={{
                 width: '60px',
                 padding: '2px 6px',
-                backgroundColor: '#0f172a',
-                color: '#f8fafc',
-                border: '1px solid #475569',
+                backgroundColor: 'var(--bg-card)',
+                color: 'var(--text-primary)',
+                border: '1px solid var(--border-subtle)',
                 borderRadius: '4px',
                 fontSize: '11px',
               }}
@@ -168,7 +168,7 @@ export function MepRibbon({
         ) : (
           <>
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <span style={{ color: '#94a3b8' }}>L (mm) :</span>
+              <span style={{ color: 'var(--text-secondary)' }}>L (mm) :</span>
               <input
                 type="number"
                 data-testid="mep-width-input"
@@ -180,16 +180,16 @@ export function MepRibbon({
                 style={{
                   width: '60px',
                   padding: '2px 6px',
-                  backgroundColor: '#0f172a',
-                  color: '#f8fafc',
-                  border: '1px solid #475569',
+                  backgroundColor: 'var(--bg-card)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--border-subtle)',
                   borderRadius: '4px',
                   fontSize: '11px',
                 }}
               />
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <span style={{ color: '#94a3b8' }}>H (mm) :</span>
+              <span style={{ color: 'var(--text-secondary)' }}>H (mm) :</span>
               <input
                 type="number"
                 data-testid="mep-height-input"
@@ -201,9 +201,9 @@ export function MepRibbon({
                 style={{
                   width: '60px',
                   padding: '2px 6px',
-                  backgroundColor: '#0f172a',
-                  color: '#f8fafc',
-                  border: '1px solid #475569',
+                  backgroundColor: 'var(--bg-card)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--border-subtle)',
                   borderRadius: '4px',
                   fontSize: '11px',
                 }}
@@ -213,7 +213,7 @@ export function MepRibbon({
         )}
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <span style={{ color: '#94a3b8' }}>Élévation (mm) :</span>
+          <span style={{ color: 'var(--text-secondary)' }}>Élévation (mm) :</span>
           <input
             type="number"
             data-testid="mep-elevation-input"
@@ -225,9 +225,9 @@ export function MepRibbon({
             style={{
               width: '70px',
               padding: '2px 6px',
-              backgroundColor: '#0f172a',
-              color: '#f8fafc',
-              border: '1px solid #475569',
+              backgroundColor: 'var(--bg-card)',
+              color: 'var(--text-primary)',
+              border: '1px solid var(--border-subtle)',
               borderRadius: '4px',
               fontSize: '11px',
             }}
@@ -237,16 +237,16 @@ export function MepRibbon({
 
       {/* 4. Bascule Unifilaire / Bifilaire */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-        <span style={{ fontWeight: 600, color: '#94a3b8' }}>Mode 2D :</span>
+        <span style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Mode 2D :</span>
         <button
           type="button"
           data-testid="mep-mode-toggle"
           onClick={() => onToggleDisplayMode(displayMode === 'single-line' ? 'double-line' : 'single-line')}
           style={{
             padding: '3px 10px',
-            backgroundColor: displayMode === 'double-line' ? '#0284c7' : '#334155',
-            color: '#f8fafc',
-            border: '1px solid #475569',
+            backgroundColor: displayMode === 'double-line' ? 'var(--accent-primary)' : 'var(--bg-card)',
+            color: displayMode === 'double-line' ? '#ffffff' : 'var(--text-primary)',
+            border: '1px solid var(--border-subtle)',
             borderRadius: '4px',
             fontSize: '11px',
             cursor: 'pointer',
@@ -259,16 +259,16 @@ export function MepRibbon({
 
       {/* 5. Routage auto : Angle préférentiel & inversion */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-        <span style={{ fontWeight: 600, color: '#94a3b8' }}>Angle :</span>
+        <span style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Angle :</span>
         <button
           type="button"
           data-testid="mep-angle-90"
           onClick={() => onChangeConfig({ anglePreference: 90 })}
           style={{
             padding: '3px 8px',
-            backgroundColor: (config.anglePreference ?? 90) === 90 ? '#3b82f6' : '#334155',
-            color: '#f8fafc',
-            border: (config.anglePreference ?? 90) === 90 ? '1px solid #60a5fa' : '1px solid transparent',
+            backgroundColor: (config.anglePreference ?? 90) === 90 ? 'var(--accent-primary)' : 'var(--bg-card)',
+            color: (config.anglePreference ?? 90) === 90 ? '#ffffff' : 'var(--text-secondary)',
+            border: (config.anglePreference ?? 90) === 90 ? '1px solid var(--accent-primary)' : '1px solid var(--border-subtle)',
             borderRadius: '4px',
             fontSize: '11px',
             cursor: 'pointer',
@@ -283,9 +283,9 @@ export function MepRibbon({
           onClick={() => onChangeConfig({ anglePreference: 45 })}
           style={{
             padding: '3px 8px',
-            backgroundColor: config.anglePreference === 45 ? '#3b82f6' : '#334155',
-            color: '#f8fafc',
-            border: config.anglePreference === 45 ? '1px solid #60a5fa' : '1px solid transparent',
+            backgroundColor: config.anglePreference === 45 ? 'var(--accent-primary)' : 'var(--bg-card)',
+            color: config.anglePreference === 45 ? '#ffffff' : 'var(--text-secondary)',
+            border: config.anglePreference === 45 ? '1px solid var(--accent-primary)' : '1px solid var(--border-subtle)',
             borderRadius: '4px',
             fontSize: '11px',
             cursor: 'pointer',
@@ -294,7 +294,7 @@ export function MepRibbon({
         >
           45°
         </button>
-        <span style={{ color: '#64748b', fontSize: '10px', marginLeft: '4px' }}>
+        <span style={{ color: 'var(--text-muted)', fontSize: '10px', marginLeft: '4px' }}>
           (Tab : inverser coude)
         </span>
       </div>

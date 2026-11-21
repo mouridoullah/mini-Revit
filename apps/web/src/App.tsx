@@ -457,7 +457,7 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        setInfoMessage('Plan SVG exporte.');
+        setInfoMessage('Plan SVG exporté.');
       } catch (err) {
         setErrorMessage(
           err instanceof Error ? err.message : 'Erreur lors de l’exportation du plan SVG.',

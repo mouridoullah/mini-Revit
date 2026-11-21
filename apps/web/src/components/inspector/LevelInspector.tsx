@@ -31,11 +31,11 @@ export function LevelInspector({
   return (
     <div data-testid="inspector-level-panel">
       <div
-        style={{ fontSize: '13px', fontWeight: 600, color: '#a78bfa', marginBottom: '12px' }}
+        style={{ fontSize: '13px', fontWeight: 600, color: 'var(--accent-primary)', marginBottom: '12px' }}
       >
         Niveau
       </div>
-      <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '8px' }}>
+      <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
         ID : <span data-testid="level-id">{level.id}</span>
       </div>
 

@@ -20,12 +20,12 @@ export function RoofInspector({ roof, state, onExecute }: RoofInspectorProps) {
   return (
     <div data-testid="inspector-roof-panel">
       <div
-        style={{ fontSize: '13px', fontWeight: 600, color: '#f59e0b', marginBottom: '12px' }}
+        style={{ fontSize: '13px', fontWeight: 600, color: 'var(--accent-warning)', marginBottom: '12px' }}
       >
         {isGable ? 'Toiture à 2 pans' : 'Toiture terrasse (Toit plat)'}
       </div>
 
-      <div style={{ fontSize: '11px', color: '#9ca3af', marginBottom: '8px' }}>
+      <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
         ID : <span data-testid="roof-id">{roof.id}</span>
       </div>
 
@@ -41,7 +41,7 @@ export function RoofInspector({ roof, state, onExecute }: RoofInspectorProps) {
       <div
         style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '10px' }}
       >
-        <label style={{ fontSize: '11px', color: '#9ca3af' }}>Type de toiture</label>
+        <label style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Type de toiture</label>
         <select
           data-testid="roof-type-select"
           value={roof.roofTypeId}
@@ -52,9 +52,9 @@ export function RoofInspector({ roof, state, onExecute }: RoofInspectorProps) {
             padding: '5px 8px',
             fontSize: '12px',
             borderRadius: '4px',
-            backgroundColor: '#1f2937',
-            color: '#f9fafb',
-            border: '1px solid #4b5563',
+            backgroundColor: 'var(--bg-card)',
+            color: 'var(--text-primary)',
+            border: '1px solid var(--border-subtle)',
           }}
         >
           {Object.values(roofTypes).map((rt) => (
@@ -65,7 +65,7 @@ export function RoofInspector({ roof, state, onExecute }: RoofInspectorProps) {
         </select>
       </div>
 
-      <div style={{ fontSize: '12px', color: '#d1d5db', marginBottom: '6px' }}>
+      <div style={{ fontSize: '12px', color: 'var(--text-primary)', marginBottom: '6px' }}>
         Niveau d'assise : {level?.name ?? 'Niveau 0'}
       </div>
 

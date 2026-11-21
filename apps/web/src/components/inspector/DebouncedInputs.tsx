@@ -66,7 +66,7 @@ export function DebouncedNumberInput({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '10px' }}>
-      <label style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 500 }}>{label}</label>
+      <label style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 500 }}>{label}</label>
       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
         <input
           type="number"
@@ -84,13 +84,13 @@ export function DebouncedNumberInput({
             padding: '5px 8px',
             fontSize: '12px',
             borderRadius: '4px',
-            backgroundColor: '#1f2937',
-            color: '#f3f4f6',
-            border: '1px solid #4b5563',
+            backgroundColor: 'var(--bg-card)',
+            color: 'var(--text-primary)',
+            border: '1px solid var(--border-subtle)',
             outline: 'none',
           }}
         />
-        {unit && <span style={{ fontSize: '11px', color: '#9ca3af' }}>{unit}</span>}
+        {unit && <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{unit}</span>}
       </div>
     </div>
   );
@@ -144,7 +144,7 @@ export function DebouncedTextInput({ label, value, testId, onChange }: Debounced
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '10px' }}>
-      <label style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 500 }}>{label}</label>
+      <label style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 500 }}>{label}</label>
       <input
         type="text"
         data-testid={testId}
@@ -156,9 +156,9 @@ export function DebouncedTextInput({ label, value, testId, onChange }: Debounced
           padding: '5px 8px',
           fontSize: '12px',
           borderRadius: '4px',
-          backgroundColor: '#1f2937',
-          color: '#f3f4f6',
-          border: '1px solid #4b5563',
+          backgroundColor: 'var(--bg-card)',
+          color: 'var(--text-primary)',
+          border: '1px solid var(--border-subtle)',
           outline: 'none',
         }}
       />

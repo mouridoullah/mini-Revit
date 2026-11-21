@@ -77,11 +77,11 @@ export function MepInspector({ elementId, state, onExecute }: MepInspectorProps)
   return (
     <div data-testid="inspector-mep-panel">
       {/* 1. Titre et Catégorie */}
-      <div style={{ fontSize: '13px', fontWeight: 600, color: '#38bdf8', marginBottom: '8px' }}>
+      <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--accent-primary)', marginBottom: '8px' }}>
         {CATEGORY_NAMES[category] ?? category}
       </div>
 
-      <div style={{ fontSize: '11px', color: '#9ca3af', marginBottom: '8px' }}>
+      <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
         ID : <span data-testid="mep-id">{elem.id}</span>
       </div>
 
@@ -96,8 +96,8 @@ export function MepInspector({ elementId, state, onExecute }: MepInspectorProps)
       />
 
       {/* 3. Niveau de référence */}
-      <div style={{ fontSize: '11px', color: '#9ca3af', marginBottom: '10px' }}>
-        Niveau : <span style={{ color: '#f3f4f6', fontWeight: 500 }}>{level?.name ?? 'Non assigné'}</span>
+      <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '10px' }}>
+        Niveau : <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{level?.name ?? 'Non assigné'}</span>
       </div>
 
       {/* 4. Dimensions selon la catégorie */}
@@ -187,9 +187,9 @@ export function MepInspector({ elementId, state, onExecute }: MepInspectorProps)
 
       {/* 5. Longueur mesurée */}
       {lengthMm !== null && (
-        <div style={{ fontSize: '11px', color: '#9ca3af', marginBottom: '10px' }}>
+        <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '10px' }}>
           Longueur développée :{' '}
-          <span data-testid="mep-length" style={{ color: '#f3f4f6', fontWeight: 600 }}>
+          <span data-testid="mep-length" style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
             {lengthMm} mm
           </span>
         </div>
@@ -197,7 +197,7 @@ export function MepInspector({ elementId, state, onExecute }: MepInspectorProps)
 
       {/* 6. Ports et statut topologique */}
       <div style={{ marginTop: '12px', marginBottom: '12px' }}>
-        <div style={{ fontSize: '11px', fontWeight: 600, color: '#9ca3af', marginBottom: '6px' }}>
+        <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
           Connecteurs physiques ({portStatuses.length}) :
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -209,21 +209,21 @@ export function MepInspector({ elementId, state, onExecute }: MepInspectorProps)
                 fontSize: '11px',
                 padding: '4px 8px',
                 borderRadius: '4px',
-                backgroundColor: '#111827',
-                border: '1px solid #374151',
+                backgroundColor: 'var(--bg-canvas-chrome)',
+                border: '1px solid var(--border-subtle)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
               }}
             >
-              <span style={{ color: '#d1d5db' }}>
+              <span style={{ color: 'var(--text-primary)' }}>
                 Port {idx + 1} ({ps.port.shape})
               </span>
               <span
                 style={{
                   fontSize: '10px',
                   fontWeight: 600,
-                  color: ps.isConnected ? '#22c55e' : '#f59e0b',
+                  color: ps.isConnected ? 'var(--accent-success)' : 'var(--accent-warning)',
                 }}
               >
                 {ps.isConnected ? 'Connecté' : 'Libre (ouvert)'}
@@ -234,7 +234,7 @@ export function MepInspector({ elementId, state, onExecute }: MepInspectorProps)
       </div>
 
       {/* 7. Action Supprimer */}
-      <div style={{ marginTop: '16px', borderTop: '1px solid #374151', paddingTop: '12px' }}>
+      <div style={{ marginTop: '16px', borderTop: '1px solid var(--border-subtle)', paddingTop: '12px' }}>
         <button
           type="button"
           data-testid="mep-delete-btn"

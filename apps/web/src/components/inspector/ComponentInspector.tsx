@@ -41,7 +41,7 @@ export function ComponentInspector({ comp, state, onExecute }: ComponentInspecto
         {compType ? `${famName} — ${compType.name}` : 'Composant'}
       </div>
 
-      <div style={{ fontSize: '11px', color: '#9ca3af', marginBottom: '8px' }}>
+      <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
         ID : <span data-testid="component-id">{comp.id}</span>
       </div>
 
@@ -57,7 +57,7 @@ export function ComponentInspector({ comp, state, onExecute }: ComponentInspecto
       <div
         style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '10px' }}
       >
-        <label style={{ fontSize: '11px', color: '#9ca3af' }}>Type de composant</label>
+        <label style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Type de composant</label>
         <select
           data-testid="component-type-select"
           value={comp.typeId}
@@ -68,9 +68,9 @@ export function ComponentInspector({ comp, state, onExecute }: ComponentInspecto
             padding: '5px 8px',
             fontSize: '12px',
             borderRadius: '4px',
-            backgroundColor: '#1f2937',
-            color: '#f9fafb',
-            border: '1px solid #4b5563',
+            backgroundColor: 'var(--bg-card)',
+            color: 'var(--text-primary)',
+            border: '1px solid var(--border-subtle)',
           }}
         >
           {Object.values(compTypes).map((ct) => (
@@ -82,7 +82,7 @@ export function ComponentInspector({ comp, state, onExecute }: ComponentInspecto
       </div>
 
       {compType && (
-        <div style={{ fontSize: '11px', color: '#9ca3af', marginBottom: '8px' }}>
+        <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
           Dimensions nominales : <b>{compType.width} × {compType.depth} × {compType.height} mm</b>
         </div>
       )}
@@ -94,12 +94,12 @@ export function ComponentInspector({ comp, state, onExecute }: ComponentInspecto
           gap: '6px',
           marginBottom: '12px',
           padding: '8px',
-          backgroundColor: '#111827',
+          backgroundColor: 'var(--bg-canvas-chrome)',
           borderRadius: '4px',
-          border: '1px solid #374151',
+          border: '1px solid var(--border-subtle)',
         }}
       >
-        <div style={{ fontSize: '11px', fontWeight: 600, color: '#60a5fa' }}>
+        <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--accent-primary)' }}>
           Paramétrie Dimensionnelle (Instance)
         </div>
         <div style={{ display: 'flex', gap: '6px' }}>
@@ -221,9 +221,9 @@ export function ComponentInspector({ comp, state, onExecute }: ComponentInspecto
             padding: '4px 8px',
             fontSize: '11px',
             borderRadius: '4px',
-            backgroundColor: '#374151',
-            color: '#ffffff',
-            border: '1px solid #4b5563',
+            backgroundColor: 'var(--bg-card)',
+            color: 'var(--text-primary)',
+            border: '1px solid var(--border-subtle)',
             cursor: 'pointer',
             marginTop: '12px',
             display: 'inline-flex',
@@ -250,7 +250,7 @@ export function ComponentInspector({ comp, state, onExecute }: ComponentInspecto
       />
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-        <label style={{ fontSize: '11px', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <label style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
           <input
             type="checkbox"
             data-testid="component-flipped-checkbox"
@@ -268,7 +268,7 @@ export function ComponentInspector({ comp, state, onExecute }: ComponentInspecto
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-        <label style={{ fontSize: '11px', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <label style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
           <input
             type="checkbox"
             data-testid="component-clearance-checkbox"
@@ -286,7 +286,7 @@ export function ComponentInspector({ comp, state, onExecute }: ComponentInspecto
       </div>
 
       {comp.placement.hostWallId && (
-        <div style={{ fontSize: '11px', color: '#9ca3af', marginBottom: '10px' }}>
+        <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '10px' }}>
           Mur adossé : <code>{comp.placement.hostWallId}</code>
         </div>
       )}

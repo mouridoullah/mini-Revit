@@ -86,53 +86,53 @@ export function StatusBar({
         justifyContent: 'space-between',
         padding: '0 16px',
         height: '28px',
-        backgroundColor: '#111827',
-        color: '#9ca3af',
+        backgroundColor: 'var(--bg-canvas-chrome)',
+        color: 'var(--text-secondary)',
         fontSize: '12px',
-        borderTop: '1px solid #374151',
+        borderTop: '1px solid var(--border-subtle)',
         userSelect: 'none',
       }}
     >
       <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-        <span data-testid="status-tool-info" style={{ color: '#60a5fa', fontWeight: 500 }}>
+        <span data-testid="status-tool-info" style={{ color: 'var(--accent-primary)', fontWeight: 500 }}>
           {toolMessage}
         </span>
-        <span style={{ color: '#4b5563' }}>|</span>
+        <span style={{ color: 'var(--border-subtle)' }}>|</span>
         <span>
-          Niveau actif : <strong style={{ color: '#e5e7eb' }}>{activeLevel}</strong>
+          Niveau actif : <strong style={{ color: 'var(--text-primary)' }}>{activeLevel}</strong>
         </span>
         <span data-testid="status-surface-info">
-          Surface : <strong style={{ color: '#e5e7eb' }}>{totalRoomAreaM2} m²</strong>
+          Surface : <strong style={{ color: 'var(--text-primary)' }}>{totalRoomAreaM2} m²</strong>
         </span>
         <span>
-          Niveaux : <strong style={{ color: '#e5e7eb' }}>{levelCount}</strong>
+          Niveaux : <strong style={{ color: 'var(--text-primary)' }}>{levelCount}</strong>
         </span>
         <span>
-          Murs : <strong style={{ color: '#e5e7eb' }}>{wallCount}</strong>
+          Murs : <strong style={{ color: 'var(--text-primary)' }}>{wallCount}</strong>
         </span>
         {slabCount > 0 && (
           <span>
-            Dalles : <strong style={{ color: '#e5e7eb' }}>{slabCount}</strong>
+            Dalles : <strong style={{ color: 'var(--text-primary)' }}>{slabCount}</strong>
           </span>
         )}
         {roofCount > 0 && (
           <span>
-            Toitures : <strong style={{ color: '#e5e7eb' }}>{roofCount}</strong>
+            Toitures : <strong style={{ color: 'var(--text-primary)' }}>{roofCount}</strong>
           </span>
         )}
         {doorCount > 0 && (
           <span>
-            Portes : <strong style={{ color: '#e5e7eb' }}>{doorCount}</strong>
+            Portes : <strong style={{ color: 'var(--text-primary)' }}>{doorCount}</strong>
           </span>
         )}
         {windowCount > 0 && (
           <span>
-            Fenêtres : <strong style={{ color: '#e5e7eb' }}>{windowCount}</strong>
+            Fenêtres : <strong style={{ color: 'var(--text-primary)' }}>{windowCount}</strong>
           </span>
         )}
         {componentCount > 0 && (
           <span>
-            Composants : <strong style={{ color: '#e5e7eb' }}>{componentCount}</strong>
+            Composants : <strong style={{ color: 'var(--text-primary)' }}>{componentCount}</strong>
           </span>
         )}
       </div>

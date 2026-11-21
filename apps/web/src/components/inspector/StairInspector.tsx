@@ -37,11 +37,11 @@ export function StairInspector({ stair, state, onExecute }: StairInspectorProps)
   return (
     <div data-testid="inspector-stair-panel">
       <div
-        style={{ fontSize: '13px', fontWeight: 600, color: '#f59e0b', marginBottom: '12px' }}
+        style={{ fontSize: '13px', fontWeight: 600, color: 'var(--accent-warning)', marginBottom: '12px' }}
       >
         Escalier Droit Paramétrique
       </div>
-      <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '8px' }}>
+      <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
         ID : <span data-testid="stair-id">{stair.id}</span>
       </div>
 
@@ -57,7 +57,7 @@ export function StairInspector({ stair, state, onExecute }: StairInspectorProps)
       <div
         style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '10px' }}
       >
-        <label style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 500 }}>
+        <label style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 500 }}>
           Type d'escalier
         </label>
         <select
@@ -70,9 +70,9 @@ export function StairInspector({ stair, state, onExecute }: StairInspectorProps)
             padding: '5px 8px',
             fontSize: '12px',
             borderRadius: '4px',
-            backgroundColor: '#1f2937',
-            color: '#f3f4f6',
-            border: '1px solid #4b5563',
+            backgroundColor: 'var(--bg-card)',
+            color: 'var(--text-primary)',
+            border: '1px solid var(--border-subtle)',
             outline: 'none',
           }}
         >
@@ -96,34 +96,34 @@ export function StairInspector({ stair, state, onExecute }: StairInspectorProps)
         }}
       />
 
-      <div style={{ fontSize: '12px', color: '#d1d5db', marginBottom: '6px' }}>
+      <div style={{ fontSize: '12px', color: 'var(--text-primary)', marginBottom: '6px' }}>
         Niveaux : {bottomLevel?.name ?? 'Niveau bas'} → {topLevel?.name ?? 'Niveau haut'}
       </div>
 
       <div
         data-testid="stair-rise-display"
-        style={{ fontSize: '12px', color: '#d1d5db', marginBottom: '6px' }}
+        style={{ fontSize: '12px', color: 'var(--text-primary)', marginBottom: '6px' }}
       >
         Dénivelée (ΔZ) : <strong>{Math.round(geom.totalRise)} mm</strong>
       </div>
 
       <div
         data-testid="stair-steps-display"
-        style={{ fontSize: '12px', color: '#d1d5db', marginBottom: '6px' }}
+        style={{ fontSize: '12px', color: 'var(--text-primary)', marginBottom: '6px' }}
       >
         Nombre de marches (N) : <strong>{geom.numberOfSteps}</strong>
       </div>
 
       <div
         data-testid="stair-riser-display"
-        style={{ fontSize: '12px', color: '#d1d5db', marginBottom: '6px' }}
+        style={{ fontSize: '12px', color: 'var(--text-primary)', marginBottom: '6px' }}
       >
         Contremarche (h) : <strong>{geom.stepHeight.toFixed(1)} mm</strong>
       </div>
 
       <div
         data-testid="stair-tread-display"
-        style={{ fontSize: '12px', color: '#d1d5db', marginBottom: '10px' }}
+        style={{ fontSize: '12px', color: 'var(--text-primary)', marginBottom: '10px' }}
       >
         Giron (g) : <strong>{geom.stepDepth.toFixed(1)} mm</strong>
       </div>
@@ -178,9 +178,9 @@ export function StairInspector({ stair, state, onExecute }: StairInspectorProps)
           fontSize: '11px',
           fontWeight: 500,
           borderRadius: '4px',
-          backgroundColor: '#374151',
-          color: '#f3f4f6',
-          border: '1px solid #4b5563',
+          backgroundColor: 'var(--bg-card)',
+          color: 'var(--text-primary)',
+          border: '1px solid var(--border-subtle)',
           cursor: 'pointer',
           marginBottom: '10px',
         }}

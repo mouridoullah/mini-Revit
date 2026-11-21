@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Trash2 } from 'lucide-react';
+import { Trash2, ChevronLeft } from 'lucide-react';
 import type { Commands, BimDocument } from '@mini-bim/core';
 import {
   WallInspector,
@@ -68,8 +68,8 @@ export function PropertyInspector({
         style={{
           width: '36px',
           height: '100%',
-          backgroundColor: '#111827',
-          borderLeft: '1px solid #374151',
+          backgroundColor: 'var(--bg-canvas-chrome)',
+          borderLeft: '1px solid var(--border-subtle)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -85,14 +85,16 @@ export function PropertyInspector({
           style={{
             background: 'none',
             border: 'none',
-            color: '#9ca3af',
+            color: 'var(--text-secondary)',
             cursor: 'pointer',
             padding: '6px',
             borderRadius: '4px',
-            fontSize: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
         >
-          ◀
+          <ChevronLeft size={16} />
         </button>
       </aside>
     );
@@ -105,7 +107,7 @@ export function PropertyInspector({
       return (
         <div
           data-testid="inspector-no-selection"
-          style={{ color: '#9ca3af', fontSize: '12px', textAlign: 'center', marginTop: '20px' }}
+          style={{ color: 'var(--text-secondary)', fontSize: '12px', textAlign: 'center', marginTop: '20px' }}
         >
           Aucune sélection
         </div>
@@ -116,7 +118,7 @@ export function PropertyInspector({
       return (
         <div
           data-testid="inspector-multi-selection"
-          style={{ color: '#9ca3af', fontSize: '12px', textAlign: 'center', marginTop: '20px' }}
+          style={{ color: 'var(--text-secondary)', fontSize: '12px', textAlign: 'center', marginTop: '20px' }}
         >
           {selectedIds.length} éléments sélectionnés
         </div>
@@ -193,7 +195,7 @@ export function PropertyInspector({
       return <MepInspector elementId={id} state={state} onExecute={execute} />;
     }
 
-    return <div style={{ color: '#9ca3af', fontSize: '12px' }}>Élément sélectionné : {id}</div>;
+    return <div style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>Élément sélectionné : {id}</div>;
   };
 
   return (
@@ -202,8 +204,8 @@ export function PropertyInspector({
       style={{
         width: '280px',
         height: '100%',
-        backgroundColor: '#111827',
-        borderLeft: '1px solid #374151',
+        backgroundColor: 'var(--bg-canvas-chrome)',
+        borderLeft: '1px solid var(--border-subtle)',
         display: 'flex',
         flexDirection: 'column',
         userSelect: 'none',
@@ -216,11 +218,11 @@ export function PropertyInspector({
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '10px 14px',
-          borderBottom: '1px solid #374151',
-          backgroundColor: '#1f2937',
+          borderBottom: '1px solid var(--border-subtle)',
+          backgroundColor: 'var(--bg-card)',
         }}
       >
-        <span style={{ fontSize: '12px', fontWeight: 600, color: '#f3f4f6' }}>Propriétés</span>
+        <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>Propriétés</span>
         {selectedIds.length === 1 && onDeleteSelected && (
           <button
             type="button"
@@ -228,7 +230,7 @@ export function PropertyInspector({
             aria-label="Supprimer l’élément sélectionné"
             title="Supprimer l’élément sélectionné"
             onClick={onDeleteSelected}
-            style={{ background: 'transparent', border: 0, color: '#ef4444', cursor: 'pointer' }}
+            style={{ background: 'transparent', border: 0, color: 'var(--accent-danger)', cursor: 'pointer' }}
           >
             <Trash2 size={16} strokeWidth={1.75} />
           </button>
