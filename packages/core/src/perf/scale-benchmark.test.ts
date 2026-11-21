@@ -3,6 +3,8 @@ import { DependencyGraph } from '../dag/DependencyGraph.js';
 import { BimDocument } from '../document.js';
 import * as Commands from '../commands.js';
 import { validateDirty } from '../rules/dirty.js';
+import { resolveWallGeometry } from '../walls/resolve.js';
+import { generateSyntheticBimModel } from './synthetic-generator.js';
 import {
   type BimState,
   type Wall,
@@ -185,5 +187,74 @@ describe('Chantier 8.6.3 : Banc de Performance Synthétique & Échelle du Moteur
     const avgMs = elapsed / iterations;
 
     expect(avgMs).toBeLessThan(50);
+  });
+
+  // ---------------------------------------------------------------------------
+  // CRITÈRES DE SORTIE DU BANC 10K (PHASE 10 / ADR-014)
+  // ---------------------------------------------------------------------------
+  describe('Phase 10 — Qualification du Palier 10 000 Entités (ADR-014)', () => {
+    it('T-SCALE-10K-RESOLVE-WALLS : Résolution globale de 4 000 murs avec ouvertures/dalles prend moins de 100 ms (vs 6 708 ms)', () => {
+      const { state, breakdown } = generateSyntheticBimModel(10000);
+      expect(breakdown.walls).toBeGreaterThanOrEqual(4000);
+      const walls = Object.values(state.walls);
+
+      // Warm-up (indexation initiale WeakMap)
+      resolveWallGeometry(walls[0]!, state);
+
+      const start = performance.now();
+      for (let i = 0; i < walls.length; i++) {
+        resolveWallGeometry(walls[i]!, state);
+      }
+      const elapsedMs = performance.now() - start;
+
+      console.log(`[BENCHMARK 10K] Résolution globale de ${walls.length} murs : ${elapsedMs.toFixed(2)} ms (Cible < 100 ms)`);
+      expect(elapsedMs).toBeLessThan(100);
+    });
+
+    it('T-SCALE-10K-UPDATE-WALL : UpdateWallCommand unitaire sur maquette 10 000 prend moins de 50 ms (vs 6 931 ms)', () => {
+      const { state } = generateSyntheticBimModel(10000);
+      const doc = new BimDocument(state);
+      const wallId = Object.keys(state.walls)[0]!;
+
+      // Warm-up
+      doc.execute(new Commands.UpdateWallCommand(wallId, { heightOverride: 2950 }));
+
+      const iterations = 5;
+      const start = performance.now();
+      for (let i = 0; i < iterations; i++) {
+        doc.execute(
+          new Commands.UpdateWallCommand(wallId, {
+            heightOverride: 2950 + (i % 2 === 0 ? 50 : 0),
+          }),
+        );
+      }
+      const elapsedMs = performance.now() - start;
+      const avgMs = elapsedMs / iterations;
+
+      console.log(`[BENCHMARK 10K] UpdateWallCommand unitaire sur 10k : ${avgMs.toFixed(2)} ms/op (Cible < 50 ms)`);
+      expect(avgMs).toBeLessThan(50);
+    });
+
+    it('T-SCALE-10K-MOVE-WALL : MoveWallCommand unitaire sur maquette 10 000 prend moins de 50 ms sans goulot résiduel', () => {
+      const { state } = generateSyntheticBimModel(10000);
+      const doc = new BimDocument(state);
+      const wallId = Object.keys(state.walls)[0]!;
+
+      // Warm-up (permet à V8 TurboFan d'optimiser les branches d'exécution)
+      for (let w = 0; w < 3; w++) {
+        doc.execute(new Commands.MoveWallCommand(wallId, { x: w % 2 === 0 ? 10 : -10, y: 0 }));
+      }
+
+      const iterations = 5;
+      const start = performance.now();
+      for (let i = 0; i < iterations; i++) {
+        doc.execute(new Commands.MoveWallCommand(wallId, { x: i % 2 === 0 ? 10 : -10, y: 0 }));
+      }
+      const elapsedMs = performance.now() - start;
+      const avgMs = elapsedMs / iterations;
+
+      console.log(`[BENCHMARK 10K] MoveWallCommand unitaire sur 10k : ${avgMs.toFixed(2)} ms/op (Cible < 50 ms)`);
+      expect(avgMs).toBeLessThan(50);
+    });
   });
 });

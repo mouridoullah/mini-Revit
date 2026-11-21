@@ -3,6 +3,7 @@ import { type BimState, type Wall, type ElementId, type Roof } from '../types.js
 import { computeWallVerticalBounds } from '../walls.js';
 import { computeWallTopProfile, isWallCoveredByRoof } from '../roofs/top-profile.js';
 import { getComponentEffectiveDimensions } from '../components/dimensions.js';
+import { getOrBuildWallResolutionIndex } from './index-cache.js';
 
 export interface ResolvedOpening {
   readonly id: ElementId;
@@ -117,6 +118,12 @@ export function getWallLocalHeadroom(
  * @returns Géométrie résolue du mur
  */
 export function resolveWallGeometry(wall: Wall, state: BimState): ResolvedWall {
+  const index = getOrBuildWallResolutionIndex(state);
+  const cached = index.resolvedWallsCache.get(wall.id);
+  if (cached) {
+    return cached;
+  }
+
   const currentLevel = state.levels[wall.levelId];
   const zBase = (currentLevel?.elevation ?? 0) + (wall.baseOffset ?? 0);
   const wallType = state.wallTypes[wall.typeId];
@@ -158,9 +165,27 @@ export function resolveWallGeometry(wall: Wall, state: BimState): ResolvedWall {
     if (wall.topConstraint.roofId && state.roofs) {
       targetRoof = state.roofs[wall.topConstraint.roofId];
     }
-    if (!targetRoof && state.roofs) {
-      // Auto-détection si roofId omis
-      targetRoof = Object.values(state.roofs).find((r) => isWallCoveredByRoof(wall, r));
+    if (!targetRoof && index.roofs.length > 0) {
+      // Auto-détection filtrée par AABB si roofId omis
+      const wallMinX = Math.min(wall.start.x, wall.end.x);
+      const wallMaxX = Math.max(wall.start.x, wall.end.x);
+      const wallMinY = Math.min(wall.start.y, wall.end.y);
+      const wallMaxY = Math.max(wall.start.y, wall.end.y);
+      const tol = 10;
+      for (const rInfo of index.roofs) {
+        if (
+          wallMaxX < rInfo.aabb.minX - tol ||
+          wallMinX > rInfo.aabb.maxX + tol ||
+          wallMaxY < rInfo.aabb.minY - tol ||
+          wallMinY > rInfo.aabb.maxY + tol
+        ) {
+          continue;
+        }
+        if (isWallCoveredByRoof(wall, rInfo.roof)) {
+          targetRoof = rInfo.roof;
+          break;
+        }
+      }
     }
 
     if (targetRoof) {
@@ -192,8 +217,26 @@ export function resolveWallGeometry(wall: Wall, state: BimState): ResolvedWall {
   // 5. Priorité 5 : Détection automatique sous toiture (ADR-053 [D8])
   else {
     let autoRoof: Roof | undefined;
-    if (state.roofs) {
-      autoRoof = Object.values(state.roofs).find((r) => isWallCoveredByRoof(wall, r));
+    if (index.roofs.length > 0) {
+      const wallMinX = Math.min(wall.start.x, wall.end.x);
+      const wallMaxX = Math.max(wall.start.x, wall.end.x);
+      const wallMinY = Math.min(wall.start.y, wall.end.y);
+      const wallMaxY = Math.max(wall.start.y, wall.end.y);
+      const tol = 10;
+      for (const rInfo of index.roofs) {
+        if (
+          wallMaxX < rInfo.aabb.minX - tol ||
+          wallMinX > rInfo.aabb.maxX + tol ||
+          wallMaxY < rInfo.aabb.minY - tol ||
+          wallMinY > rInfo.aabb.maxY + tol
+        ) {
+          continue;
+        }
+        if (isWallCoveredByRoof(wall, rInfo.roof)) {
+          autoRoof = rInfo.roof;
+          break;
+        }
+      }
     }
 
     if (autoRoof) {
@@ -213,89 +256,85 @@ export function resolveWallGeometry(wall: Wall, state: BimState): ResolvedWall {
     }
   }
 
-  // 6. Résolution des ouvertures hébergées
+  // 6. Résolution des ouvertures hébergées (via indexation relationnelle O(1))
   const openings: ResolvedOpening[] = [];
 
-  if (state.doors) {
-    for (const door of Object.values(state.doors)) {
-      if (door.hostWallId === wall.id) {
-        const dt = state.doorTypes?.[door.doorTypeId];
-        const width = dt?.width ?? 900;
-        const doorHeight = dt?.height ?? 2100;
-        const sillHeight = 0;
+  const wallDoors = index.doorsByHostWallId.get(wall.id);
+  if (wallDoors) {
+    for (const door of wallDoors) {
+      const dt = state.doorTypes?.[door.doorTypeId];
+      const width = dt?.width ?? 900;
+      const doorHeight = dt?.height ?? 2100;
+      const sillHeight = 0;
+      const sillZAbsolute = zBase + sillHeight;
+      const lintelZAbsolute = sillZAbsolute + doorHeight;
+
+      openings.push({
+        id: door.id,
+        kind: 'door',
+        offsetAlong: door.offsetAlong,
+        width,
+        height: doorHeight,
+        sillHeight,
+        sillZAbsolute,
+        lintelZAbsolute,
+      });
+    }
+  }
+
+  const wallWindows = index.windowsByHostWallId.get(wall.id);
+  if (wallWindows) {
+    for (const win of wallWindows) {
+      const wt = state.windowTypes?.[win.windowTypeId];
+      const width = wt?.width ?? 1200;
+      const winHeight = wt?.height ?? 1400;
+      const sillHeight = win.sillHeight ?? 0;
+      const sillZAbsolute = zBase + sillHeight;
+      const lintelZAbsolute = sillZAbsolute + winHeight;
+
+      openings.push({
+        id: win.id,
+        kind: 'window',
+        offsetAlong: win.offsetAlong,
+        width,
+        height: winHeight,
+        sillHeight,
+        sillZAbsolute,
+        lintelZAbsolute,
+      });
+    }
+  }
+
+  const wallComponents = index.componentsByHostWallId.get(wall.id);
+  if (wallComponents) {
+    for (const comp of wallComponents) {
+      const ct = state.componentTypes?.[comp.typeId];
+      if (!ct) continue;
+      const isGlazing =
+        ct.family === 'glazing' ||
+        ct.ifcEntity === 'IfcDoor' ||
+        ct.ifcEntity === 'IfcWindow' ||
+        ct.subType === 'sliding_door' ||
+        ct.subType === 'french_window';
+      if (isGlazing || comp.openingId) {
+        const dims = getComponentEffectiveDimensions(comp, ct);
+        const pVec = { x: comp.placement.x - wall.start.x, y: comp.placement.y - wall.start.y };
+        const projDist = wallLength > 0 ? (pVec.x * dx + pVec.y * dy) / wallLength : 0;
+        const offsetAlong = projDist - dims.width / 2;
+        const sillHeight = comp.placement.elevationOffset ?? ct.defaultElevationOffset ?? 0;
         const sillZAbsolute = zBase + sillHeight;
-        const lintelZAbsolute = sillZAbsolute + doorHeight;
+        const lintelZAbsolute = sillZAbsolute + dims.height;
 
         openings.push({
-          id: door.id,
-          kind: 'door',
-          offsetAlong: door.offsetAlong,
-          width,
-          height: doorHeight,
+          id: comp.id,
+          kind: ct.ifcEntity === 'IfcWindow' || ct.subType === 'french_window' ? 'window' : 'door',
+          offsetAlong,
+          width: dims.width,
+          height: dims.height,
           sillHeight,
           sillZAbsolute,
           lintelZAbsolute,
         });
-      }
-    }
-  }
-
-  if (state.windows) {
-    for (const win of Object.values(state.windows)) {
-      if (win.hostWallId === wall.id) {
-        const wt = state.windowTypes?.[win.windowTypeId];
-        const width = wt?.width ?? 1200;
-        const winHeight = wt?.height ?? 1400;
-        const sillHeight = win.sillHeight ?? 0;
-        const sillZAbsolute = zBase + sillHeight;
-        const lintelZAbsolute = sillZAbsolute + winHeight;
-
-        openings.push({
-          id: win.id,
-          kind: 'window',
-          offsetAlong: win.offsetAlong,
-          width,
-          height: winHeight,
-          sillHeight,
-          sillZAbsolute,
-          lintelZAbsolute,
-        });
-      }
-    }
-  }
-
-  // 6c. Résolution des réservations d'ouvertures de menuiseries issues de composants (Phase 8.4)
-  if (state.components) {
-    for (const comp of Object.values(state.components)) {
-      if (comp.placement.hostWallId === wall.id) {
-        const ct = state.componentTypes?.[comp.typeId];
-        if (!ct) continue;
-        const isGlazing =
-          ct.family === 'glazing' ||
-          ct.ifcEntity === 'IfcDoor' ||
-          ct.ifcEntity === 'IfcWindow' ||
-          ct.subType === 'sliding_door' ||
-          ct.subType === 'french_window';
-        if (isGlazing || comp.openingId) {
-          const dims = getComponentEffectiveDimensions(comp, ct);
-          const pVec = { x: comp.placement.x - wall.start.x, y: comp.placement.y - wall.start.y };
-          const projDist = wallLength > 0 ? (pVec.x * dx + pVec.y * dy) / wallLength : 0;
-          const offsetAlong = projDist - dims.width / 2;
-          const sillHeight = comp.placement.elevationOffset ?? ct.defaultElevationOffset ?? 0;
-          const sillZAbsolute = zBase + sillHeight;
-          const lintelZAbsolute = sillZAbsolute + dims.height;
-
-          openings.push({
-            id: comp.id,
-            kind: ct.ifcEntity === 'IfcWindow' || ct.subType === 'french_window' ? 'window' : 'door',
-            offsetAlong,
-            width: dims.width,
-            height: dims.height,
-            sillHeight,
-            sillZAbsolute,
-            lintelZAbsolute,
-          });
-        }
       }
     }
   }
@@ -304,7 +343,7 @@ export function resolveWallGeometry(wall: Wall, state: BimState): ResolvedWall {
 
   const grossAreaMm2 = computeWallPolygonalSideArea(topProfile, zBase);
 
-  return {
+  const result: ResolvedWall = {
     wallId: wall.id,
     zBase,
     zTop,
@@ -317,4 +356,6 @@ export function resolveWallGeometry(wall: Wall, state: BimState): ResolvedWall {
     openings,
     topProfile,
   };
+  index.resolvedWallsCache.set(wall.id, result);
+  return result;
 }

@@ -20,7 +20,7 @@ export function computeDimensionValue(dim: Pick<Dimension, 'references'>, state:
     if (!wall) return 0;
     const dx = wall.end.x - wall.start.x;
     const dy = wall.end.y - wall.start.y;
-    return Number(Math.hypot(dx, dy).toFixed(3));
+    return Math.round(Math.hypot(dx, dy) * 1000) / 1000;
   }
 
   if (dim.references.length >= 2) {
@@ -41,10 +41,10 @@ export function computeDimensionValue(dim: Pick<Dimension, 'references'>, state:
       const ny = dx1 / len1;
       // Distance orthogonale projetée
       const dist = Math.abs((m2.x - m1.x) * nx + (m2.y - m1.y) * ny);
-      return Number(dist.toFixed(3));
+      return Math.round(dist * 1000) / 1000;
     }
 
-    return Number(Math.hypot(m2.x - m1.x, m2.y - m1.y).toFixed(3));
+    return Math.round(Math.hypot(m2.x - m1.x, m2.y - m1.y) * 1000) / 1000;
   }
 
   return 0;

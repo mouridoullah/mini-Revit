@@ -158,6 +158,55 @@ export function collectViolationsForDirty(
 
   const uniqueDirty = Array.from(new Set(dirtyIds));
   for (const id of uniqueDirty) {
+    const wall = state.walls[id];
+    if (wall) {
+      for (const v of checkWallViolations(wall, state)) pushViolation(v);
+      for (const v of checkOpeningsOnWall(wall, state)) pushViolation(v);
+      continue;
+    }
+    const door = state.doors?.[id];
+    if (door) {
+      for (const v of checkDoorViolations(door, state)) pushViolation(v);
+      continue;
+    }
+    const win = state.windows?.[id];
+    if (win) {
+      for (const v of checkWindowViolations(win, state)) pushViolation(v);
+      continue;
+    }
+    const rm = state.rooms?.[id];
+    if (rm) {
+      for (const v of checkRoomViolations(rm, state)) pushViolation(v);
+      continue;
+    }
+    const dim = state.dimensions?.[id];
+    if (dim) {
+      for (const v of checkDimensionViolations(dim, state)) pushViolation(v);
+      continue;
+    }
+    const comp = state.components?.[id];
+    if (comp) {
+      for (const v of checkComponentViolations(comp, state)) pushViolation(v);
+      for (const v of checkComponentCollisions(comp, state)) pushViolation(v);
+      continue;
+    }
+    const sl = state.slabs?.[id];
+    if (sl) {
+      for (const v of checkSlabViolations(sl, state)) pushViolation(v);
+      continue;
+    }
+    const lvl = state.levels[id];
+    if (lvl) {
+      for (const v of checkLevelViolations(lvl, state)) pushViolation(v);
+      continue;
+    }
+    const wt = state.wallTypes[id];
+    if (wt) {
+      for (const v of checkWallTypeViolations(wt)) pushViolation(v);
+      continue;
+    }
+
+    // Fallback pour les catégories moins fréquentes (MEP, toitures, escaliers, etc.)
     for (const validator of CATEGORY_VALIDATORS) {
       for (const v of validator(id, state)) {
         pushViolation(v);
@@ -181,6 +230,13 @@ export function validateDirty(
 ): void {
   const draftViolations = collectViolationsForDirty(draftState, dirtyIds);
   if (draftViolations.length === 0) {
+    return;
+  }
+
+  // Si aucune violation n'est bloquante (seulement des avertissements), la transaction est valide.
+  // Évite un second balayage coûteux de collectViolationsForDirty(previousState) sur les maquettes 10k (ADR-014).
+  const hasFatalCandidate = draftViolations.some((v) => v.severity !== 'warning');
+  if (!hasFatalCandidate) {
     return;
   }
 

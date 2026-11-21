@@ -280,13 +280,21 @@ export function unionPolygonFootprints(polygons: readonly (readonly Vec2[])[]): 
     (polygonClipping as unknown as { default?: typeof polygonClipping }).default ?? polygonClipping;
 
   const geoms: [number, number][][][] = [];
-  for (const poly of polygons) {
-    if (poly.length < 3) continue;
-    const ring: [number, number][] = poly.map((v) => [v.x, v.y]);
-    const r0 = ring[0];
-    const rn = ring[ring.length - 1];
-    if (r0 && rn && (r0[0] !== rn[0] || r0[1] !== rn[1])) {
-      ring.push([r0[0], r0[1]]);
+  for (let i = 0; i < polygons.length; i++) {
+    const poly = polygons[i]!;
+    const pLen = poly.length;
+    if (pLen < 3) continue;
+    const p0 = poly[0]!;
+    const pn = poly[pLen - 1]!;
+    const isClosed = p0.x === pn.x && p0.y === pn.y;
+    const ringLen = isClosed ? pLen : pLen + 1;
+    const ring: [number, number][] = new Array(ringLen);
+    for (let j = 0; j < pLen; j++) {
+      const v = poly[j]!;
+      ring[j] = [v.x, v.y];
+    }
+    if (!isClosed) {
+      ring[pLen] = [p0.x, p0.y];
     }
     geoms.push([ring]);
   }

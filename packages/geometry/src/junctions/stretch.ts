@@ -234,11 +234,34 @@ export function findConnectedWalls(
     sharedPoint: Vec2;
   }> = [];
 
-  for (const w of allWalls) {
+  const tStartX = targetWall.start.x;
+  const tEndX = targetWall.end.x;
+  const tStartY = targetWall.start.y;
+  const tEndY = targetWall.end.y;
+  const targetMinX = (tStartX < tEndX ? tStartX : tEndX) - tolerance;
+  const targetMaxX = (tStartX < tEndX ? tEndX : tStartX) + tolerance;
+  const targetMinY = (tStartY < tEndY ? tStartY : tEndY) - tolerance;
+  const targetMaxY = (tStartY < tEndY ? tEndY : tStartY) + tolerance;
+
+  for (let i = 0; i < allWalls.length; i++) {
+    const w = allWalls[i]!;
     if (w.id === targetWall.id) continue;
     if (targetWall.levelId && w.levelId && targetWall.levelId !== w.levelId) {
       continue;
     }
+
+    // Broad-phase AABB 2D (Phase 10 / ADR-014) : élimine ~99% des murs distants
+    const wsX = w.start.x;
+    const weX = w.end.x;
+    const wMinX = wsX < weX ? wsX : weX;
+    const wMaxX = wsX < weX ? weX : wsX;
+    if (wMaxX < targetMinX || wMinX > targetMaxX) continue;
+
+    const wsY = w.start.y;
+    const weY = w.end.y;
+    const wMinY = wsY < weY ? wsY : weY;
+    const wMaxY = wsY < weY ? weY : wsY;
+    if (wMaxY < targetMinY || wMinY > targetMaxY) continue;
 
     // 1. Vérifier coïncidence des extrémités
     const dStartStart = distance(w.start, targetWall.start);

@@ -1,7 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { vec2 } from '@mini-bim/geometry';
 import { resolveWallGeometry } from './resolve.js';
-import { computeWallSlabPenetration } from '../walls.js';
+import {
+  computeWallSlabPenetration,
+  getOrBuildWallResolutionIndex,
+  getOrComputeSlabGeometry,
+} from '../walls.js';
 import type { BimState, Wall, WallType, Level, Slab, SlabType, Door, Window, DoorType, WindowType } from '../types.js';
 
 describe('resolveWallGeometry (core/walls/resolve.ts) — Source unique de vérité', () => {
@@ -359,6 +363,27 @@ describe('resolveWallGeometry (core/walls/resolve.ts) — Source unique de véri
 
       const penetration = computeWallSlabPenetration(autoWall, stateWithSlab);
       expect(penetration).toBe(0);
+    });
+
+    it('T-INDEX-CACHE-01 : getOrBuildWallResolutionIndex mémoïse sur BimState et slabGeometryCache sur Slab', () => {
+      const stateWithSlab: BimState = {
+        schemaVersion: 2,
+        levels: { [level0.id]: level0, [level1.id]: level1 },
+        wallTypes: { [wallType.id]: wallType },
+        slabTypes: { [slabType.id]: slabType },
+        slabs: { [slabR1.id]: slabR1 },
+        walls: {},
+      } as unknown as BimState;
+
+      const idx1 = getOrBuildWallResolutionIndex(stateWithSlab);
+      const idx2 = getOrBuildWallResolutionIndex(stateWithSlab);
+      expect(idx1).toBe(idx2);
+
+      const geom1 = getOrComputeSlabGeometry(slabR1);
+      const geom2 = getOrComputeSlabGeometry(slabR1);
+      expect(geom1).toBe(geom2);
+      expect(geom1?.aabb.minX).toBe(0);
+      expect(geom1?.aabb.maxX).toBe(5000);
     });
   });
 });

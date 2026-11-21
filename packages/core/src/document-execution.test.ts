@@ -3,6 +3,7 @@ import { BimDocument } from './document.js';
 import {
   AddWallCommand,
   UpdateWallCommand,
+  MoveWallCommand,
   DeleteWallCommand,
   AddDoorCommand,
   UpdateWallTypeCommand,
@@ -211,7 +212,7 @@ describe('Intégration BimDocument.execute() + DAG Minimal (T-EXEC-01 à 07)', (
     expect(doc.canUndo()).toBe(canUndoBefore);
   });
 
-  it('T-EXEC-05: execute sur 10 commandes successives reconstruit le DAG à chaque appel (D3)', () => {
+  it('T-EXEC-05: execute maintient le DAG de manière incrémentale sans reconstruction globale ex nihilo', () => {
     const doc = BimDocument.createDefaultProject();
     const levelId = Object.keys(doc.getState().levels)[0]!;
     const typeId = Object.keys(doc.getState().wallTypes)[0]!;
@@ -232,9 +233,104 @@ describe('Intégration BimDocument.execute() + DAG Minimal (T-EXEC-01 à 07)', (
       );
     }
 
-    // Le DAG est reconstruit à chaque execute (2 fois par execute : before + after pour couverture complète)
-    expect(buildSpy).toHaveBeenCalledTimes(20);
+    // Phase 10 : Le DAG est maintenu incrémentiellement (0 reconstruction complète)
+    expect(buildSpy).toHaveBeenCalledTimes(0);
+
+    // Et le DAG incrémental obtenu est strictement équivalent bit-à-bit à un build complet
+    const referenceDag = DependencyGraph.build(doc.getState());
+    expect(doc.getDependencyGraph().equals(referenceDag)).toBe(true);
+
     buildSpy.mockRestore();
+  });
+
+  it('T-EXEC-INVARIANT-CONTRACT : Le DAG incrémental reste bit-à-bit identique à DependencyGraph.build(state) après séquence mixte, rejets, undo et redo', () => {
+    const doc = BimDocument.createDefaultProject();
+    const levelId = Object.keys(doc.getState().levels)[0]!;
+    const wallTypeId = Object.keys(doc.getState().wallTypes)[0]!;
+    const doorTypeId = Object.keys(doc.getState().doorTypes)[0]!;
+
+    const assertDagExact = () => {
+      const fullDag = DependencyGraph.build(doc.getState());
+      const incrementalDag = doc.getDependencyGraph();
+      expect(incrementalDag.equals(fullDag)).toBe(true);
+    };
+
+    assertDagExact();
+
+    // 1. Ajout de murs
+    doc.execute(
+      new AddWallCommand({
+        id: 'wall_inv_1',
+        category: 'wall',
+        typeId: wallTypeId,
+        levelId,
+        start: vec2(0, 0),
+        end: vec2(4000, 0),
+      }),
+    );
+    assertDagExact();
+
+    doc.execute(
+      new AddWallCommand({
+        id: 'wall_inv_2',
+        category: 'wall',
+        typeId: wallTypeId,
+        levelId,
+        start: vec2(4000, 0),
+        end: vec2(4000, 3000),
+      }),
+    );
+    assertDagExact();
+
+    // 2. Ajout d'une porte
+    doc.execute(
+      new AddDoorCommand({
+        id: 'door_inv_1',
+        category: 'door',
+        hostWallId: 'wall_inv_1',
+        doorTypeId,
+        offsetAlong: 1000,
+        swing: { side: 'left', direction: 'in' },
+      }),
+    );
+    assertDagExact();
+
+    // 3. Déplacement du mur hôte
+    doc.execute(new MoveWallCommand('wall_inv_1', { x: 50, y: 0 }));
+    assertDagExact();
+
+    // 4. Tentative d'opération rejetée par validation (BimValidationError)
+    // Tenter de placer une porte hors du mur (offsetAlong = 9000 > longueur 4000)
+    expect(() => {
+      doc.execute(
+        new AddDoorCommand({
+          id: 'door_invalid',
+          category: 'door',
+          hostWallId: 'wall_inv_1',
+          doorTypeId,
+          offsetAlong: 9000,
+          swing: { side: 'right', direction: 'in' },
+        }),
+      );
+    }).toThrow();
+    // Invariant préservé malgré le rejet (atomicité totale)
+    assertDagExact();
+
+    // 5. Test undo successifs
+    expect(doc.canUndo()).toBe(true);
+    doc.undo(); // Annule MoveWallCommand
+    assertDagExact();
+
+    doc.undo(); // Annule AddDoorCommand
+    assertDagExact();
+
+    // 6. Test redo
+    expect(doc.canRedo()).toBe(true);
+    doc.redo(); // Rétablit AddDoorCommand
+    assertDagExact();
+
+    doc.redo(); // Rétablit MoveWallCommand
+    assertDagExact();
   });
 
   it('T-EXEC-06: Vigilance V1 — Vérification de stabilité des commandes de type/niveau', () => {

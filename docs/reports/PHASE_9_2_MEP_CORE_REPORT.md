@@ -99,8 +99,8 @@ Mesures obtenues sur le `MepNetworkGraph` sur des chaînes continues de 100 à 1
 - **Linting ESLint :** **0 erreur, 0 warning** (`pnpm lint`).
 - **Build de production séquentiel :** Réussi en **4,14 secondes** avec chunks modulaires (`three`, `react-vendor`, `index`).
 - **Gouvernance :**
-  - **ADR-056** rédigé et consigné dans [`docs/adr/ADR-056-mep-topological-network-graph-and-semantic-model.md`](file:///c:/Users/bdame/Downloads/mini-Revit/docs/adr/ADR-056-mep-topological-network-graph-and-semantic-model.md).
-  - Resynchronisation complète de [`DECISIONS.md`](file:///c:/Users/bdame/Downloads/mini-Revit/DECISIONS.md), [`DOMAIN_MODEL.md`](file:///c:/Users/bdame/Downloads/mini-Revit/DOMAIN_MODEL.md) et [`ROADMAP.md`](file:///c:/Users/bdame/Downloads/mini-Revit/ROADMAP.md).
+  - **ADR-056** rédigé et consigné dans [`docs/adr/ADR-056-mep-topological-network-graph-and-semantic-model.md`](../adr/ADR-056-mep-topological-network-graph-and-semantic-model.md).
+  - Resynchronisation complète de [`DECISIONS.md`](../../DECISIONS.md), [`DOMAIN_MODEL.md`](../../DOMAIN_MODEL.md) et [`ROADMAP.md`](../../ROADMAP.md).
   - Registre de catégories étendu à 25 catégories et 29 relations déclaratives.
 
 ---

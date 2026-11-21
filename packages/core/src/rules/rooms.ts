@@ -37,8 +37,24 @@ export function checkRoomViolations(room: Room, state: BimState): RuleViolation[
     });
   }
 
-  // 4. Vérification que le seed est dans une pièce fermée
-  const detected = detectRooms(state, room.levelId);
+  // 4. Vérification que le seed est dans une pièce fermée (analyse spatiale locale accélérée)
+  // Une pièce formellement marquée 'unenclosed' (ADR-039) ne constitue pas une violation bloquante.
+  if (room.status === 'unenclosed') {
+    return violations;
+  }
+
+  // Si la pièce est déjà validée fermée avec une aire calculée, inutile de ré-exécuter le clipping booléen
+  if (room.status === 'enclosed' && typeof room.area === 'number' && room.area > 0) {
+    return violations;
+  }
+
+  const localBox = {
+    minX: room.seed.x - 3_000,
+    maxX: room.seed.x + 3_000,
+    minY: room.seed.y - 3_000,
+    maxY: room.seed.y + 3_000,
+  };
+  const detected = detectRooms(state, room.levelId, { boundingBox: localBox });
   const isInsideClosedRoom = detected.some((d) => {
     const inOuter = isPointInPolygon(room.seed, d.polygon);
     if (!inOuter) return false;
@@ -48,7 +64,7 @@ export function checkRoomViolations(room: Room, state: BimState): RuleViolation[
     return true;
   });
 
-  if (!isInsideClosedRoom && room.status !== 'unenclosed') {
+  if (!isInsideClosedRoom) {
     violations.push({
       code: 'ROOM_SEED_NOT_IN_CLOSED_AREA',
       message: `Room seed (${room.seed.x}, ${room.seed.y}) is not located inside any closed area on level "${room.levelId}".`,

@@ -572,5 +572,30 @@ describe('Détection des Pièces et Modèle Room (core)', () => {
       expect(res.changed).toContain('room_reclose');
       expect(addCmd.getChangedIds()).toContain('room_reclose');
     });
+
+    it('T-ROOM-CACHE-01 : detectRooms réutilise le cache WeakMap sur la même référence BimState et recalcule sur mutation', () => {
+      setupRectangularRoom();
+      const state1 = doc.getState();
+
+      const r1 = detectRooms(state1, levelId);
+      const r2 = detectRooms(state1, levelId);
+      // Même référence en mémoire (mémoïsation O(1))
+      expect(r1).toBe(r2);
+
+      // Mutation du document
+      doc.execute(new AddRoomCommand({
+        id: 'room_cached',
+        category: 'room',
+        levelId,
+        seed: vec2(2000, 1500),
+        name: 'Salon',
+      }));
+      const state2 = doc.getState();
+      expect(state2).not.toBe(state1);
+
+      const r3 = detectRooms(state2, levelId);
+      expect(r3).not.toBe(r1);
+      expect(r3[0]?.existingRoomId).toBe('room_cached');
+    });
   });
 });

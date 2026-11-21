@@ -14,6 +14,7 @@ import {
 } from '@mini-bim/geometry';
 import { resolveWallGeometry, getWallLocalHeadroom } from '../walls/resolve.js';
 import { getComponentEffectiveDimensions } from '../components/dimensions.js';
+import { getOrBuildWallResolutionIndex } from '../walls/index-cache.js';
 
 /**
  * Vérifie les ouvertures sur un mur donné, avec une éventuelle ouverture candidate
@@ -27,9 +28,12 @@ export function checkOpeningsWithCandidate(
   const allOpeningsOnHost: OpeningInput[] = [];
   const candidateId = candidate?.id;
 
-  if (state.doors) {
-    for (const d of Object.values(state.doors)) {
-      if (d.hostWallId === wall.id && d.id !== candidateId) {
+  const index = getOrBuildWallResolutionIndex(state);
+
+  const hostDoors = index.doorsByHostWallId.get(wall.id);
+  if (hostDoors) {
+    for (const d of hostDoors) {
+      if (d.id !== candidateId) {
         const dType = d.doorTypeId ? state.doorTypes?.[d.doorTypeId] : undefined;
         const width = dType?.width ?? 900;
         const height = dType?.height ?? 2100;
@@ -47,9 +51,10 @@ export function checkOpeningsWithCandidate(
     }
   }
 
-  if (state.windows) {
-    for (const w of Object.values(state.windows)) {
-      if (w.hostWallId === wall.id && w.id !== candidateId) {
+  const hostWindows = index.windowsByHostWallId.get(wall.id);
+  if (hostWindows) {
+    for (const w of hostWindows) {
+      if (w.id !== candidateId) {
         const winType = w.windowTypeId ? state.windowTypes?.[w.windowTypeId] : undefined;
         const width = winType?.width ?? 1200;
         const height = winType?.height ?? 1400;
@@ -67,9 +72,10 @@ export function checkOpeningsWithCandidate(
   }
 
   // 2c. Réservations d'ouvertures issues de menuiseries composants (Phase 8.5)
-  if (state.components) {
-    for (const comp of Object.values(state.components)) {
-      if (comp.placement.hostWallId === wall.id && comp.id !== candidateId) {
+  const hostComps = index.componentsByHostWallId.get(wall.id);
+  if (hostComps) {
+    for (const comp of hostComps) {
+      if (comp.id !== candidateId) {
         const ct = state.componentTypes?.[comp.typeId];
         const isGlazing =
           ct &&
