@@ -3,6 +3,7 @@ import { vec2 } from '@mini-bim/geometry';
 import { BimDocument } from './document.js';
 import {
   AddWallCommand,
+  MoveWallCommand,
   UpdateWallCommand,
   DeleteWallCommand,
   AddRoomCommand,
@@ -596,6 +597,66 @@ describe('Détection des Pièces et Modèle Room (core)', () => {
       const r3 = detectRooms(state2, levelId);
       expect(r3).not.toBe(r1);
       expect(r3[0]?.existingRoomId).toBe('room_cached');
+    });
+
+    it('T-ROOM-SCALE-FALLBACK : MoveWallCommand sur une grande pièce ouverte (> 15m) maintient le statut enclosed via repli architectural', () => {
+      // Construction d'une grande salle de 20 m × 20 m (400 m²)
+      const w1: Wall = {
+        id: 'w_large_south',
+        category: 'wall',
+        typeId,
+        levelId,
+        start: vec2(0, 0),
+        end: vec2(20000, 0),
+      };
+      const w2: Wall = {
+        id: 'w_large_east',
+        category: 'wall',
+        typeId,
+        levelId,
+        start: vec2(20000, 0),
+        end: vec2(20000, 20000),
+      };
+      const w3: Wall = {
+        id: 'w_large_north',
+        category: 'wall',
+        typeId,
+        levelId,
+        start: vec2(20000, 20000),
+        end: vec2(0, 20000),
+      };
+      const w4: Wall = {
+        id: 'w_large_west',
+        category: 'wall',
+        typeId,
+        levelId,
+        start: vec2(0, 20000),
+        end: vec2(0, 0),
+      };
+
+      doc.execute(new AddWallCommand(w1));
+      doc.execute(new AddWallCommand(w2));
+      doc.execute(new AddWallCommand(w3));
+      doc.execute(new AddWallCommand(w4));
+
+      const largeRoom: Room = {
+        id: 'room_large_hall',
+        category: 'room',
+        levelId,
+        seed: vec2(10000, 10000),
+        name: 'Grand Hall Événementiel',
+      };
+      doc.execute(new AddRoomCommand(largeRoom));
+      expect(doc.getState().rooms['room_large_hall']?.status).toBe('enclosed');
+
+      // Déplacement cinématique du mur Sud vers le bas (y = -500 mm)
+      // w_large_east et w_large_west sont élastiquement étirés
+      const moveRes = doc.execute(new MoveWallCommand('w_large_south', vec2(0, -500)));
+
+      const updatedRoom = doc.getState().rooms['room_large_hall'];
+      expect(updatedRoom?.status).toBe('enclosed');
+      expect(updatedRoom?.area).toBeGreaterThan(390); // Surface agrandie
+      expect(moveRes.changed).toContain('room_large_hall');
     });
   });
 });

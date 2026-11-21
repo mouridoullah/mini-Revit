@@ -1,5 +1,5 @@
 import { computeEffectiveSlabPolygon, type Vec2 } from '@mini-bim/geometry';
-import { isDraft, original } from 'immer';
+import { isDraft, original, type Draft } from 'immer';
 import type {
   BimState,
   ElementId,
@@ -51,7 +51,7 @@ export interface WallResolutionIndex {
   readonly roomsByLevelId: Map<ElementId, Room[]>;
   readonly slabsByLevelId: Map<ElementId, CachedSlabInfo[]>;
   readonly roofs: CachedRoofInfo[];
-  readonly resolvedWallsCache: Map<ElementId, any>;
+  readonly resolvedWallsCache: Map<ElementId, unknown>;
 }
 
 /**
@@ -122,7 +122,7 @@ class LazyWallResolutionIndex implements WallResolutionIndex {
   private _roomsByLevelId?: Map<ElementId, Room[]>;
   private _slabsByLevelId?: Map<ElementId, CachedSlabInfo[]>;
   private _roofs?: CachedRoofInfo[];
-  public readonly resolvedWallsCache = new Map<ElementId, any>();
+  public readonly resolvedWallsCache = new Map<ElementId, unknown>();
 
   constructor(private readonly state: BimState) {}
 
@@ -366,15 +366,35 @@ class LazyWallResolutionIndex implements WallResolutionIndex {
   }
 }
 
+export interface WallResolutionIndexOptions {
+  /**
+   * Si true, court-circuite la dé-proxification Immer et instancie un index frais directement sur l'état fourni.
+   * À utiliser si resolveWallGeometry est invoqué sur un draft Immer en cours de mutation.
+   */
+  readonly bypassUnwrap?: boolean;
+}
+
 /**
  * Cache de résolution d'indexation spatiale et relationnelle indexé par référence immuable BimState (WeakMap).
  * Permet à resolveWallGeometry et computeWallVerticalBounds de résoudre en O(1) les entités associées
  * sans aucun scan complet quadratique du modèle.
+ *
+ * NOTE DE SÉCURITÉ ARCHITECTURALE (ADR-062) :
+ * Lorsqu'un draft Immer lui est passé, getOrBuildWallResolutionIndex utilise par défaut original(draft)
+ * pour éviter les pièges Proxy de V8 sur les millions d'accès de lecture.
+ * Si une commande a déjà muté des entités dans ce draft et a besoin de résoudre la géométrie
+ * avec les valeurs fraîchement modifiées, elle DOIT passer `{ bypassUnwrap: true }`.
  */
 export const wallResolutionIndexCache = new WeakMap<BimState, WallResolutionIndex>();
 
-export function getOrBuildWallResolutionIndex(state: BimState): WallResolutionIndex {
-  const unwrappedState = (isDraft(state) ? (original(state as any) ?? state) : state) as BimState;
+export function getOrBuildWallResolutionIndex(
+  state: BimState,
+  options?: WallResolutionIndexOptions,
+): WallResolutionIndex {
+  if (options?.bypassUnwrap) {
+    return new LazyWallResolutionIndex(state);
+  }
+  const unwrappedState = (isDraft(state) ? (original((state as unknown) as Draft<BimState>) ?? state) : state) as BimState;
   const cached = wallResolutionIndexCache.get(unwrappedState);
   if (cached) return cached;
 

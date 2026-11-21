@@ -1,4 +1,4 @@
-import { isDraft, original } from 'immer';
+import { isDraft, original, type Draft } from 'immer';
 import { type BimState, type ElementId, type Room, type Wall } from '../types.js';
 import { getOrBuildWallResolutionIndex } from '../walls/index-cache.js';
 import {
@@ -116,7 +116,7 @@ function computeDetectRooms(
   // 1. Filtrer les murs appartenant strictement au niveau architectural requis
   // Lecture optimisée évitant le réveil de 4 000 proxies Immer si state est un draft
   const isDraftState = isDraft(state);
-  const base = (isDraftState ? (original(state as any) ?? state) : state) as BimState;
+  const base = (isDraftState ? (original((state as unknown) as Draft<BimState>) ?? state) : state) as BimState;
   const levelWalls: Wall[] = [];
 
   const index = getOrBuildWallResolutionIndex(base);

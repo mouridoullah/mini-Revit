@@ -54,8 +54,8 @@ export function checkRoomViolations(room: Room, state: BimState): RuleViolation[
     minY: room.seed.y - 3_000,
     maxY: room.seed.y + 3_000,
   };
-  const detected = detectRooms(state, room.levelId, { boundingBox: localBox });
-  const isInsideClosedRoom = detected.some((d) => {
+  let detected = detectRooms(state, room.levelId, { boundingBox: localBox });
+  let isInsideClosedRoom = detected.some((d) => {
     const inOuter = isPointInPolygon(room.seed, d.polygon);
     if (!inOuter) return false;
     if (d.holes && d.holes.some((h) => isPointInPolygon(room.seed, h))) {
@@ -63,6 +63,20 @@ export function checkRoomViolations(room: Room, state: BimState): RuleViolation[
     }
     return true;
   });
+
+  // Repli architectural (grandes pièces > 6m) : si la boîte locale de 3m n'englobe pas les murs
+  // d'enceinte distants, basculer sur la détection complète du niveau pour éliminer tout faux rejet.
+  if (!isInsideClosedRoom) {
+    detected = detectRooms(state, room.levelId);
+    isInsideClosedRoom = detected.some((d) => {
+      const inOuter = isPointInPolygon(room.seed, d.polygon);
+      if (!inOuter) return false;
+      if (d.holes && d.holes.some((h) => isPointInPolygon(room.seed, h))) {
+        return false;
+      }
+      return true;
+    });
+  }
 
   if (!isInsideClosedRoom) {
     violations.push({

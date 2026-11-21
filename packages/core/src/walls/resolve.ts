@@ -3,7 +3,7 @@ import { type BimState, type Wall, type ElementId, type Roof } from '../types.js
 import { computeWallVerticalBounds } from '../walls.js';
 import { computeWallTopProfile, isWallCoveredByRoof } from '../roofs/top-profile.js';
 import { getComponentEffectiveDimensions } from '../components/dimensions.js';
-import { getOrBuildWallResolutionIndex } from './index-cache.js';
+import { getOrBuildWallResolutionIndex, type WallResolutionIndexOptions } from './index-cache.js';
 
 export interface ResolvedOpening {
   readonly id: ElementId;
@@ -117,9 +117,13 @@ export function getWallLocalHeadroom(
  * @param state État global du document BIM
  * @returns Géométrie résolue du mur
  */
-export function resolveWallGeometry(wall: Wall, state: BimState): ResolvedWall {
-  const index = getOrBuildWallResolutionIndex(state);
-  const cached = index.resolvedWallsCache.get(wall.id);
+export function resolveWallGeometry(
+  wall: Wall,
+  state: BimState,
+  options?: WallResolutionIndexOptions,
+): ResolvedWall {
+  const index = getOrBuildWallResolutionIndex(state, options);
+  const cached = index.resolvedWallsCache.get(wall.id) as ResolvedWall | undefined;
   if (cached) {
     return cached;
   }

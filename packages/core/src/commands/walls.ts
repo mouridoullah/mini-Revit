@@ -1,4 +1,4 @@
-import { isDraft, original } from 'immer';
+import { isDraft, original, type Draft } from 'immer';
 import type { Command } from './base.js';
 import type { Wall, WallType, BimState, ElementId, Room } from '../types.js';
 import { validateWall, validateWallType, BimValidationError } from '../rules/index.js';
@@ -219,7 +219,7 @@ export class MoveWallCommand implements Command {
     const propagateChain = this.options.propagateChain === true;
 
     // Référence immuable non-proxifiée de base pour accès en lecture rapide et index WeakMap
-    const baseState = (isDraft(draft) ? (original(draft as any) ?? draft) : draft) as BimState;
+    const baseState = (isDraft(draft) ? (original((draft as unknown) as Draft<BimState>) ?? draft) : draft) as BimState;
     const index = getOrBuildWallResolutionIndex(baseState);
 
     // Déplacement initial du mur cible
@@ -402,35 +402,70 @@ export class MoveWallCommand implements Command {
         }
       }
 
+      // Boîte englobante préliminaire des murs modifiés
       const margin = stretchNeighbors ? 20 : 2_000;
-      const localBox = {
-        minX: minX - margin,
-        maxX: maxX + margin,
-        minY: minY - margin,
-        maxY: maxY + margin,
-      };
+      let boxMinX = minX - margin;
+      let boxMaxX = maxX + margin;
+      let boxMinY = minY - margin;
+      let boxMaxY = maxY + margin;
 
       const localRooms: Room[] = [];
       const baseRoomsOnLevel = index.roomsByLevelId.get(wall.levelId) ?? [];
       for (let i = 0; i < baseRoomsOnLevel.length; i++) {
         const r = baseRoomsOnLevel[i]!;
-        if (
-          r.seed.x >= localBox.minX &&
-          r.seed.x <= localBox.maxX &&
-          r.seed.y >= localBox.minY &&
-          r.seed.y <= localBox.maxY
-        ) {
+        // Rayon d'influence estimé de la pièce basé sur sa surface connue ou distance standard
+        const roomAreaMm2 = (r.area ?? 25) * 1_000_000; // Défaut ~25 m²
+        const approxRadius = Math.max(12_000, Math.sqrt(roomAreaMm2) * 1.5);
+
+        // Distance orthogonale grossière entre le seed et la zone des murs déplacés
+        const seedToWallX = r.seed.x < minX ? minX - r.seed.x : r.seed.x > maxX ? r.seed.x - maxX : 0;
+        const seedToWallY = r.seed.y < minY ? minY - r.seed.y : r.seed.y > maxY ? r.seed.y - maxY : 0;
+        const seedDist = Math.hypot(seedToWallX, seedToWallY);
+
+        if (seedDist <= approxRadius) {
           localRooms.push(r);
+          // Étendre la boîte locale pour inclure le seed de la pièce candidate
+          if (r.seed.x - 500 < boxMinX) boxMinX = r.seed.x - 500;
+          if (r.seed.x + 500 > boxMaxX) boxMaxX = r.seed.x + 500;
+          if (r.seed.y - 500 < boxMinY) boxMinY = r.seed.y - 500;
+          if (r.seed.y + 500 > boxMaxY) boxMaxY = r.seed.y + 500;
         }
       }
 
       if (localRooms.length > 0) {
-        const detected = detectRooms(draft as BimState, wall.levelId, {
+        const localBox = {
+          minX: boxMinX,
+          maxX: boxMaxX,
+          minY: boxMinY,
+          maxY: boxMaxY,
+        };
+
+        let detected = detectRooms(draft as BimState, wall.levelId, {
           boundingBox: localBox,
           noNewWalls: true,
           modifiedWallIds,
         });
-        for (const room of localRooms) {
+
+        // Repli architectural pour grandes pièces ouvertes (Point de vigilance Phase 10) :
+        // Si une pièce était précédemment 'enclosed' et devient 'unenclosed' dans la fenêtre locale,
+        // on bascule sur la détection complète du niveau pour éliminer tout faux négatif
+        // causé par un mur d'enceinte lointain exclu de la boîte locale.
+        let fallbackDone = false;
+        for (let i = 0; i < localRooms.length; i++) {
+          const room = localRooms[i]!;
+          const match = detected.find((d) => isPointInPolygon(room.seed, d.polygon));
+          if (!match && room.status === 'enclosed' && !fallbackDone) {
+            detected = detectRooms(draft as BimState, wall.levelId, {
+              noNewWalls: true,
+              modifiedWallIds,
+            });
+            fallbackDone = true;
+            break;
+          }
+        }
+
+        for (let i = 0; i < localRooms.length; i++) {
+          const room = localRooms[i]!;
           const match = detected.find((d) => isPointInPolygon(room.seed, d.polygon));
           const newStatus = match ? 'enclosed' : 'unenclosed';
           const newArea = match ? match.areaMm2 / 1_000_000 : 0;

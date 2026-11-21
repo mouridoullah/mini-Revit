@@ -32,7 +32,7 @@ flowchart TD
     subgraph UI ["Couche Présentation (React / UI) — Cockpit Graphite (ADR-061)"]
         ReactUI["Composants React (Inspecteur, Project Browser, Dock Droit, Métrés)"]
         SplitViews["SplitViewport (Vues synchronisées 2D Plan / 3D Orbitale)"]
-        UIStore["Zustand UI Store (Mode outil, sélection active, calques, snap)"]
+        UIStore["React UI Store & Contexte (BimDocumentContext, mode outil, sélection, snap)"]
     end
 
     subgraph AppLayer ["Couche Application"]
@@ -68,7 +68,7 @@ flowchart TD
     end
 
     subgraph Persistence ["Couche Persistance & Fédération"]
-        AutoSave["AutoSaveManager (IndexedDB Local-First, ADR-048 / ADR-058)"]
+        AutoSave["AutoSaveManager (IndexedDB Local-First, ADR-051)"]
         Serializer["Sérialiseur / Désérialiseur JSON Schéma v2"]
         WebIFCLoader["WebIFC Parser (Modèles de coordination externes, ADR-060)"]
     end
@@ -125,7 +125,7 @@ flowchart TD
 ### 3.3 Couche Application & Outils (`apps/web/src/tools` & CommandBus)
 
 - **Rôle :** Orchestration des flux utilisateurs, outillage interactif et historique.
-- **Dépendances :** `@mini-bim/core`, `@mini-bim/geometry`.
+- **Dépendances :** `@mini-bim/core`. (Strictement aucun import direct de `@mini-bim/geometry` dans `apps/web`, conformément à ADR-022 et ADR-061).
 - **Responsabilités :**
   - Bus de commandes : `execute(command)`, `undo()`, `redo()`.
   - Commandes transactionnelles typées : `AddWallCommand`, `MoveWallCommand`, `MoveOpeningCommand`, `AddDoorCommand`, `MepToolCommand`, etc.
@@ -155,7 +155,7 @@ flowchart TD
 - **Rôle :** Sauvegarde locale continue, restauration, validation et conversion.
 - **Dépendances :** `@mini-bim/core`.
 - **Responsabilités :**
-  - Persistance automatique réactive par `AutoSaveManager` dans IndexedDB (ADR-048 / ADR-058), avec détection de conflits et restauration déterministe.
+  - Persistance automatique réactive par `AutoSaveManager` dans IndexedDB (ADR-051), avec détection de conflits et restauration déterministe.
   - Import/Export de snapshots JSON versionnés (`schemaVersion: 2`).
   - Migration ascendante sans perte `migrateSchemaV1toV2` (ADR-043).
   - Générateur IFC4 STEP ISO 10303-21 natif pur TypeScript (`IfcWall`, `IfcDoor`, `IfcWindow`, `IfcSlab`, `IfcSpace`, `IfcBuildingStorey`).
