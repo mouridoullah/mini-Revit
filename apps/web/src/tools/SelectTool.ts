@@ -1,4 +1,4 @@
-import { findWallAtScreen, findComponentAtScreen, findMepElementAtScreen } from '@mini-bim/view-2d';
+import { findWallAtScreen, findComponentAtScreen, findMepElementAtScreen, findOpeningAtScreen } from '@mini-bim/view-2d';
 import {
   type Tool,
   type ToolEvent,
@@ -51,7 +51,17 @@ export class SelectTool implements Tool {
         return { kind: 'selectionChanged', ids: [hitComponentId] };
       }
 
-      // 3. Murs architecturaux
+      // 3. Portes et fenêtres sont dessinées dans le vide du mur hôte :
+      // les tester avant les murs évite que le mur masque leur sélection.
+      const hitOpening = findOpeningAtScreen(event.screen, ctx.transform, ctx.doc, {
+        activeLevelId: ctx.activeLevelId,
+      });
+      if (hitOpening) {
+        this.state = { kind: 'selected', wallId: hitOpening.id };
+        return { kind: 'selectionChanged', ids: [hitOpening.id] };
+      }
+
+      // 4. Murs architecturaux
       const hitWallId = findWallAtScreen(event.screen, ctx.transform, ctx.doc, {
         activeLevelId: ctx.activeLevelId,
       });

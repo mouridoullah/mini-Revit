@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Trash2 } from 'lucide-react';
 import type { Commands, BimDocument } from '@mini-bim/core';
 import {
   WallInspector,
@@ -17,6 +18,7 @@ export interface PropertyInspectorProps {
   readonly selectedIds: readonly string[];
   readonly isCollapsed?: boolean;
   readonly onToggleCollapse?: () => void;
+  readonly onDeleteSelected?: () => void;
 }
 
 /**
@@ -30,6 +32,7 @@ export function PropertyInspector({
   selectedIds,
   isCollapsed: controlledCollapsed,
   onToggleCollapse,
+  onDeleteSelected,
 }: PropertyInspectorProps) {
   const [internalCollapsed, setInternalCollapsed] = useState(false);
   const [, setTick] = useState(0);
@@ -218,23 +221,18 @@ export function PropertyInspector({
         }}
       >
         <span style={{ fontSize: '12px', fontWeight: 600, color: '#f3f4f6' }}>Propriétés</span>
-        <button
-          type="button"
-          data-testid="toggle-inspector-btn"
-          onClick={toggle}
-          title="Réduire l'inspecteur"
-          style={{
-            background: 'none',
-            border: 'none',
-            color: '#9ca3af',
-            cursor: 'pointer',
-            padding: '2px 6px',
-            borderRadius: '4px',
-            fontSize: '12px',
-          }}
-        >
-          ▶
-        </button>
+        {selectedIds.length === 1 && onDeleteSelected && (
+          <button
+            type="button"
+            data-testid="delete-selected-btn"
+            aria-label="Supprimer l’élément sélectionné"
+            title="Supprimer l’élément sélectionné"
+            onClick={onDeleteSelected}
+            style={{ background: 'transparent', border: 0, color: '#ef4444', cursor: 'pointer' }}
+          >
+            <Trash2 size={16} strokeWidth={1.75} />
+          </button>
+        )}
       </header>
 
       <div style={{ padding: '14px', flex: 1 }}>{renderContent()}</div>

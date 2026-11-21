@@ -1,0 +1,240 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--bg-canvas-chrome);
+  color: var(--text-primary);
+}
+.body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+}
+.workspace {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+}
+.viewportFrame {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  flex: 1;
+  background: #fff;
+}
+.viewportFrame3d {
+  background: #262a33;
+}
+.viewportLabel {
+  position: absolute;
+  z-index: 2;
+  left: 12px;
+  top: 10px;
+  padding: 5px 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  background: rgba(27, 30, 36, 0.88);
+  color: var(--text-secondary);
+  font-size: 11px;
+  pointer-events: none;
+}
+.viewportFrame3d .zoomFit {
+  border-color: var(--border-strong);
+  background: rgba(27, 30, 36, 0.92);
+  color: var(--text-secondary);
+}
+.viewportFrame3d .zoomFit:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+.viewport2dLabel {
+  color: #475569;
+  background: rgba(255, 255, 255, 0.88);
+  border-color: #dbe1e8;
+}
+.split {
+  width: 5px;
+  flex: 0 0 5px;
+  cursor: col-resize;
+  background: var(--bg-canvas-chrome);
+  border-inline: 1px solid var(--border-subtle);
+  touch-action: none;
+}
+.split:hover,
+.split:focus {
+  background: var(--accent-primary);
+  outline: none;
+}
+.layoutControls {
+  position: absolute;
+  z-index: 5;
+  right: 12px;
+  top: 10px;
+  display: flex;
+  padding: 3px;
+  gap: 2px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: rgba(27, 30, 36, 0.92);
+}
+.layoutButton {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.layoutButton:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+.layoutActive {
+  background: var(--accent-primary);
+  color: #fff;
+}
+.layoutThemeButton {
+  margin-left: 4px;
+  border-left: 1px solid var(--border-strong);
+}
+.zoomFit {
+  position: absolute;
+  z-index: 3;
+  left: 12px;
+  bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 8px;
+  border: 1px solid #dbe1e8;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #475569;
+  font-size: 10px;
+  cursor: pointer;
+}
+.zoomFit:hover {
+  background: #f1f5f9;
+}
+.browser {
+  width: 220px;
+  flex: 0 0 220px;
+  overflow: auto;
+  background: var(--bg-surface);
+  border-right: 1px solid var(--border-subtle);
+}
+.browserCollapsed {
+  width: 30px;
+  flex-basis: 30px;
+}
+.browserHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 34px;
+  padding: 0 9px;
+  border-bottom: 1px solid var(--border-subtle);
+  font-weight: 600;
+}
+.browserSection {
+  padding: 9px 8px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 7px;
+  color: var(--text-secondary);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.browserRow {
+  display: flex;
+  width: 100%;
+  min-height: 28px;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+.browserRow:hover {
+  background: var(--bg-hover);
+}
+.browserActive {
+  background: rgba(59, 130, 246, 0.2);
+  color: #bfdbfe;
+}
+.subtle {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+.rightDock {
+  width: 300px;
+  flex: 0 0 300px;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--bg-surface);
+  border-left: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+}
+.rightCollapsed {
+  width: 34px;
+  flex-basis: 34px;
+}
+.dockTabs {
+  height: 36px;
+  flex: 0 0 36px;
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.dockTab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 5px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.dockActive {
+  color: var(--text-primary);
+  border-bottom-color: var(--accent-primary);
+}
+.dockContent {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+.metrics {
+  height: 36px;
+  flex: 0 0 36px;
+  overflow: hidden;
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border-subtle);
+}
+.metricsExpanded {
+  height: 220px;
+  flex-basis: 220px;
+}

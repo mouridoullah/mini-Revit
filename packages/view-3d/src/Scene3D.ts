@@ -35,7 +35,8 @@ export class Scene3D {
   private readonly camera: THREE.PerspectiveCamera;
   private readonly controls: OrbitControls;
   private readonly gridHelper: THREE.GridHelper;
-  private readonly ambientLight: THREE.AmbientLight;
+  private readonly gridMajorVertexMask: readonly boolean[];
+  private readonly ambientLight: THREE.HemisphereLight;
   private readonly directionalLight: THREE.DirectionalLight;
   private readonly defaultMaterial: THREE.MeshStandardMaterial;
   private readonly highlightMaterial: THREE.MeshStandardMaterial;
@@ -85,7 +86,7 @@ export class Scene3D {
 
     const width = options.width ?? 800;
     const height = options.height ?? 600;
-    const background = options.background ?? 0xf4f3ef;
+    const background = options.background ?? 0x262a33;
     const gridSize = options.gridSize ?? 20000;
     const gridDivisions = options.gridDivisions ?? 20;
     const camPos = options.cameraPosition ?? { x: 8000, y: 8000, z: 8000 };
@@ -114,17 +115,28 @@ export class Scene3D {
     this.camera.lookAt(camTarget.x, camTarget.y, camTarget.z);
 
     // 4. Éclairage architectural
-    this.ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+    this.ambientLight = new THREE.HemisphereLight(0xe8eefb, 0x424854, 1.15);
     this.scene.add(this.ambientLight);
 
-    this.directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    this.directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
     this.directionalLight.position.set(15000, -20000, 25000);
     this.directionalLight.target.position.set(camTarget.x, camTarget.y, camTarget.z);
     this.scene.add(this.directionalLight);
     this.scene.add(this.directionalLight.target);
 
     // 5. Grille de sol horizontale XY (Z = 0)
-    this.gridHelper = new THREE.GridHelper(gridSize, gridDivisions, 0x888888, 0xd0d0d0);
+    this.gridHelper = new THREE.GridHelper(gridSize, gridDivisions, 0x566070, 0x3a404c);
+    const gridColors = this.gridHelper.geometry.getAttribute('color');
+    const majorColor = new THREE.Color(0x566070);
+    const minorColor = new THREE.Color(0x3a404c);
+    this.gridMajorVertexMask = Array.from({ length: gridColors.count }, (_, index) => {
+      const r = gridColors.getX(index);
+      const g = gridColors.getY(index);
+      const b = gridColors.getZ(index);
+      const majorDistance = Math.hypot(r - majorColor.r, g - majorColor.g, b - majorColor.b);
+      const minorDistance = Math.hypot(r - minorColor.r, g - minorColor.g, b - minorColor.b);
+      return majorDistance < minorDistance;
+    });
     // Bascule de la grille du plan XZ standard Three.js vers le plan XY architectural
     this.gridHelper.rotation.x = Math.PI / 2;
     this.scene.add(this.gridHelper);
@@ -216,6 +228,15 @@ export class Scene3D {
       ...(materialOptions ?? {}),
     };
 
+    // Arêtes d'architecture fines, conservées comme enfants du volume sélectionnable.
+    if (['wall', 'slab', 'roof'].includes(String(mesh.userData.category ?? ''))) {
+      const edges = new THREE.EdgesGeometry(geometry, 15);
+      const lines = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x2b303b }));
+      lines.name = `${rawData.elementId}-architectural-edges`;
+      lines.userData.ownsGeometryAndMaterial = true;
+      mesh.add(lines);
+    }
+
     this.scene.add(mesh);
 
     const existingList = this.meshes.get(rawData.elementId) ?? [];
@@ -295,6 +316,7 @@ export class Scene3D {
 
     for (const mesh of meshList) {
       this.scene.remove(mesh);
+      this.disposeArchitecturalEdges(mesh);
       mesh.geometry.dispose();
 
       // Protection des matériaux partagés ou non possédés (S2-3)
@@ -325,6 +347,18 @@ export class Scene3D {
 
     this.meshes.delete(elementId);
     this.render();
+  }
+
+  private disposeArchitecturalEdges(mesh: THREE.Mesh): void {
+    for (const child of [...mesh.children]) {
+      if (child.userData?.ownsGeometryAndMaterial !== true) continue;
+      mesh.remove(child);
+      if (child instanceof THREE.LineSegments) {
+        child.geometry.dispose();
+        const materials = Array.isArray(child.material) ? child.material : [child.material];
+        materials.forEach((material) => material.dispose());
+      }
+    }
   }
 
   /**
@@ -513,10 +547,7 @@ export class Scene3D {
     if (colorOrMaterial instanceof THREE.Material) {
       material = colorOrMaterial;
     } else {
-      const hex =
-        colorOrMaterial ??
-        (rawMesh.userData?.color as string | undefined) ??
-        '#64748b';
+      const hex = colorOrMaterial ?? (rawMesh.userData?.color as string | undefined) ?? '#64748b';
       material = createMepMaterial(hex);
     }
 
@@ -707,7 +738,7 @@ export class Scene3D {
    */
   public focusOnPoint(
     point: { readonly x: number; readonly y: number; readonly z: number },
-    distance = 2500,
+    distance = 6500,
   ): void {
     if (this.isDisposed) return;
 
@@ -729,6 +760,44 @@ export class Scene3D {
 
     this.controls.update();
     this.render();
+  }
+
+  /**
+   * Cadre tous les maillages du modèle dans le viewport.
+   * Retourne false si aucun maillage n'est présent.
+   */
+  public zoomToFit(): boolean {
+    if (this.isDisposed) return false;
+
+    const bounds = new THREE.Box3();
+    for (const meshes of this.meshes.values()) {
+      for (const mesh of meshes) {
+        bounds.expandByObject(mesh);
+      }
+    }
+    if (bounds.isEmpty()) return false;
+
+    const sphere = bounds.getBoundingSphere(new THREE.Sphere());
+    const center = sphere.center;
+    const verticalFov = THREE.MathUtils.degToRad(this.camera.fov);
+    const horizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * this.camera.aspect);
+    const limitingFov = Math.min(verticalFov, horizontalFov);
+    const distance = (Math.max(sphere.radius, 500) * 1.15) / Math.sin(limitingFov / 2);
+
+    const direction = new THREE.Vector3()
+      .subVectors(this.camera.position, this.controls.target)
+      .normalize();
+    if (direction.lengthSq() < 0.001) {
+      direction.set(1, 1, 0.75).normalize();
+    }
+
+    this.controls.target.copy(center);
+    this.camera.position.copy(center).addScaledVector(direction, distance);
+    this.camera.far = Math.max(this.camera.far, distance * 10);
+    this.camera.updateProjectionMatrix();
+    this.controls.update();
+    this.render();
+    return true;
   }
 
   /**
@@ -779,16 +848,28 @@ export class Scene3D {
   /**
    * Ajuste le décalage de recalage (dx, dy, dz) d'un modèle fédéré en mm.
    */
-  public setFederatedModelOffset(modelId: string, offset: { x: number; y: number; z: number }): void {
+  public setFederatedModelOffset(
+    modelId: string,
+    offset: { x: number; y: number; z: number },
+  ): void {
     if (this.isDisposed) return;
     this.federatedManager.setOffset(modelId, offset);
+    this.render();
+  }
+
+  public setFederatedSelection(modelId: string | null, expressId: number | null): void {
+    if (this.isDisposed) return;
+    this.federatedManager.setSelectedEntity(modelId, expressId);
     this.render();
   }
 
   /**
    * Raycast sur les géométries de référence IFC fédérées.
    */
-  public getFederatedEntityAt(screenX: number, screenY: number): { modelId: string; expressId: number } | null {
+  public getFederatedEntityAt(
+    screenX: number,
+    screenY: number,
+  ): { modelId: string; expressId: number } | null {
     if (this.isDisposed) return null;
     const rect = this.renderer.domElement.getBoundingClientRect();
     if (rect.width === 0 || rect.height === 0) return null;
@@ -822,6 +903,27 @@ export class Scene3D {
   }
 
   /**
+   * Modifie le fond de la scène et les couleurs de la grille.
+   */
+  public setBackground(
+    background: THREE.ColorRepresentation,
+    gridColors: readonly [THREE.ColorRepresentation, THREE.ColorRepresentation],
+  ): void {
+    if (this.isDisposed) return;
+
+    this.scene.background = new THREE.Color(background);
+    const colors = this.gridHelper.geometry.getAttribute('color');
+    const majorColor = new THREE.Color(gridColors[0]);
+    const minorColor = new THREE.Color(gridColors[1]);
+    for (let index = 0; index < colors.count; index++) {
+      const color = this.gridMajorVertexMask[index] ? majorColor : minorColor;
+      colors.setXYZ(index, color.r, color.g, color.b);
+    }
+    colors.needsUpdate = true;
+    this.render();
+  }
+
+  /**
    * Redimensionne le viewport et recalcule la matrice de projection de la caméra.
    */
   public resize(width: number, height: number): void {
@@ -847,6 +949,7 @@ export class Scene3D {
     for (const meshList of this.meshes.values()) {
       for (const mesh of meshList) {
         this.scene.remove(mesh);
+        this.disposeArchitecturalEdges(mesh);
         mesh.geometry.dispose();
         if (mesh.userData?.ownsMaterial === false || mesh.userData?.isSharedMaterial === true) {
           continue;

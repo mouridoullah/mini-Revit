@@ -57,13 +57,7 @@ describe('Composant FederatedIfcPanel (apps/web/src/components/FederatedIfcPanel
   ]);
 
   it('T-FED-UI-01 : Affiche le message vide lorsqu’aucune maquette n’est chargée', () => {
-    render(
-      <FederatedIfcPanel
-        models={[]}
-        options={new Map()}
-        isCollapsed={false}
-      />,
-    );
+    render(<FederatedIfcPanel models={[]} options={new Map()} isCollapsed={false} />);
 
     expect(screen.getByText('Aucune maquette IFC chargée')).toBeDefined();
     expect(screen.getByText(/Chargez un fichier \.ifc en lecture seule/)).toBeDefined();
@@ -134,6 +128,7 @@ describe('Composant FederatedIfcPanel (apps/web/src/components/FederatedIfcPanel
 
   it('T-FED-UI-04 : L’onglet Conflits affiche les interférences spatiales BVH', () => {
     const handleFocus = vi.fn();
+    const handleTargetClash = vi.fn();
 
     render(
       <FederatedIfcPanel
@@ -141,6 +136,7 @@ describe('Composant FederatedIfcPanel (apps/web/src/components/FederatedIfcPanel
         options={sampleOptions}
         isCollapsed={false}
         onFocusPoint={handleFocus}
+        onTargetClash={handleTargetClash}
         clashCandidates={[
           {
             modelId: 'fed_mod_01',
@@ -154,6 +150,7 @@ describe('Composant FederatedIfcPanel (apps/web/src/components/FederatedIfcPanel
             },
             point: { x: 2000, y: 0, z: 1200 },
             penetrationEstimateMm: 100,
+            status: 'CANDIDATE',
           },
         ]}
       />,
@@ -163,11 +160,14 @@ describe('Composant FederatedIfcPanel (apps/web/src/components/FederatedIfcPanel
     const clashesTab = screen.getByTestId('tab-clashes-btn');
     fireEvent.click(clashesTab);
 
-    expect(screen.getByText(/pipe #pipe_san_01 ⚡ IfcWall #42/)).toBeDefined();
+    expect(screen.getByText(/pipe #pipe_san_01/)).toBeDefined();
     expect(screen.getByText(/Pénétration est\. : 100 mm/)).toBeDefined();
 
     const ciblerBtn = screen.getByText('Cibler');
     fireEvent.click(ciblerBtn);
-    expect(handleFocus).toHaveBeenCalledWith({ x: 2000, y: 0, z: 1200 });
+    expect(handleTargetClash).toHaveBeenCalledWith(
+      expect.objectContaining({ modelId: 'fed_mod_01', expressId: 42, nativeId: 'pipe_san_01' }),
+    );
+    expect(handleFocus).not.toHaveBeenCalled();
   });
 });

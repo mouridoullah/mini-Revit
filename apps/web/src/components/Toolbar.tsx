@@ -1,7 +1,102 @@
-import { useState, useEffect, useRef, type ChangeEvent } from 'react';
-import { type ToolKind } from '../tools/types.js';
-import { type Level } from '@mini-bim/core';
-import { LevelSelector } from './LevelSelector.js';
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type ComponentType,
+  type ReactNode,
+} from 'react';
+import {
+  Box,
+  BrickWall,
+  Building2,
+  ChevronDown,
+  DoorOpen,
+  FileBox,
+  FolderOpen,
+  Layers,
+  Move,
+  PanelRight,
+  Redo2,
+  Save,
+  Search,
+  Sparkles,
+  Undo2,
+  Upload,
+  Waypoints,
+  Ruler,
+  Square,
+  TriangleRight,
+  Wind,
+} from 'lucide-react';
+import type { ToolKind } from '../tools/types.js';
+import type { Level } from '@mini-bim/core';
+import type { LucideProps } from 'lucide-react';
+import type { DockTab } from './RightDockPanel.js';
+import styles from './Toolbar.module.css';
+
+type RibbonTab = 'Architecture' | 'Structure' | 'MEP' | 'Coordination';
+const toolSets: Record<
+  RibbonTab,
+  {
+    kind: ToolKind;
+    label: string;
+    shortcut: string;
+    testId: string;
+    icon: ComponentType<LucideProps>;
+  }[]
+> = {
+  Architecture: [
+    {
+      kind: 'select',
+      label: 'Sélectionner',
+      shortcut: 'S',
+      testId: 'tool-select-btn',
+      icon: Search,
+    },
+    { kind: 'wall', label: 'Mur', shortcut: 'W', testId: 'tool-wall-btn', icon: BrickWall },
+    { kind: 'door', label: 'Porte', shortcut: 'D', testId: 'tool-door-btn', icon: DoorOpen },
+    { kind: 'window', label: 'Fenêtre', shortcut: 'F', testId: 'tool-window-btn', icon: Wind },
+    {
+      kind: 'component',
+      label: 'Composant',
+      shortcut: 'C',
+      testId: 'tool-component-btn',
+      icon: Box,
+    },
+    {
+      kind: 'moveWall',
+      label: 'Déplacer mur',
+      shortcut: 'M',
+      testId: 'tool-move-wall-btn',
+      icon: Move,
+    },
+    {
+      kind: 'moveOpening',
+      label: 'Déplacer ouverture',
+      shortcut: 'O',
+      testId: 'tool-move-opening-btn',
+      icon: Move,
+    },
+  ],
+  Structure: [
+    { kind: 'slab', label: 'Dalle', shortcut: 'L', testId: 'tool-slab-btn', icon: Square },
+    {
+      kind: 'stair',
+      label: 'Escalier',
+      shortcut: 'E',
+      testId: 'tool-stair-btn',
+      icon: TriangleRight,
+    },
+    { kind: 'roof', label: 'Toiture', shortcut: 'R', testId: 'tool-roof-btn', icon: Building2 },
+  ],
+  MEP: [
+    { kind: 'mep', label: 'Réseau MEP', shortcut: 'P', testId: 'tool-mep-btn', icon: Waypoints },
+  ],
+  Coordination: [],
+};
+const tabForTool = (kind: ToolKind): RibbonTab =>
+  kind === 'mep' ? 'MEP' : ['slab', 'stair', 'roof'].includes(kind) ? 'Structure' : 'Architecture';
 
 export interface ToolbarProps {
   readonly activeToolKind: ToolKind;
@@ -12,6 +107,8 @@ export interface ToolbarProps {
   readonly onRedo: () => void;
   readonly onSave: () => void;
   readonly onLoadFile: (file: File) => void;
+  readonly onRequestLoadIfc?: () => void;
+  readonly onToggleMetrics?: () => void;
   readonly onExportIfc?: () => void;
   readonly onExportSvg?: (scale: 50 | 100 | 200) => void;
   readonly levels?: readonly Level[];
@@ -27,14 +124,9 @@ export interface ToolbarProps {
   readonly isFederatedPanelOpen?: boolean;
   readonly onToggleFederatedPanel?: () => void;
   readonly federatedModelCount?: number;
-  readonly onLoadFederatedIfc?: (file: File) => void;
+  readonly onOpenDockTab?: (tab: DockTab) => void;
+  readonly mepControls?: ReactNode;
 }
-
-/**
- * Barre d'outils supérieure de l'application Mini-BIM.
- * Intègre les outils interactifs, l'historique transactionnel (Undo/Redo),
- * la persistance JSON, et les exports BIM (IFC4 & Plans vectoriels SVG).
- */
 export function Toolbar({
   activeToolKind,
   onSelectTool,
@@ -44,9 +136,11 @@ export function Toolbar({
   onRedo,
   onSave,
   onLoadFile,
+  onRequestLoadIfc,
+  onToggleMetrics,
   onExportIfc,
   onExportSvg,
-  levels,
+  levels = [],
   activeLevelId,
   onSelectLevel,
   onAddLevel,
@@ -59,668 +153,145 @@ export function Toolbar({
   isFederatedPanelOpen = false,
   onToggleFederatedPanel,
   federatedModelCount = 0,
-  onLoadFederatedIfc,
+  onOpenDockTab,
+  mepControls,
 }: ToolbarProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const ifcFileInputRef = useRef<HTMLInputElement>(null);
-  const [planScale, setPlanScale] = useState<50 | 100 | 200>(100);
-
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [scale, setScale] = useState<50 | 100 | 200>(100);
+  const [tab, setTab] = useState<RibbonTab>(() => tabForTool(activeToolKind));
+  useEffect(() => setTab(tabForTool(activeToolKind)), [activeToolKind]);
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const activeTag = (document.activeElement?.tagName || '').toLowerCase();
-      if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') {
+    const keyMap: Record<string, ToolKind> = {
+      s: 'select',
+      w: 'wall',
+      d: 'door',
+      f: 'window',
+      c: 'component',
+      m: 'moveWall',
+      o: 'moveOpening',
+      l: 'slab',
+      e: 'stair',
+      r: 'roof',
+      p: 'mep',
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (
+        event.ctrlKey ||
+        event.metaKey ||
+        event.altKey ||
+        /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName ?? '')
+      )
         return;
-      }
-      if (e.ctrlKey || e.metaKey || e.altKey) {
-        return;
-      }
-      if (e.key === 's' || e.key === 'S') {
-        onSelectTool('select');
-      } else if (e.key === 'w' || e.key === 'W') {
-        onSelectTool('wall');
-      } else if (e.key === 'd' || e.key === 'D') {
-        onSelectTool('door');
-      } else if (e.key === 'f' || e.key === 'F') {
-        onSelectTool('window');
-      } else if (e.key === 'm' || e.key === 'M') {
-        onSelectTool('moveWall');
-      } else if (e.key === 'o' || e.key === 'O') {
-        onSelectTool('moveOpening');
-      } else if (e.key === 'l' || e.key === 'L') {
-        onSelectTool('slab');
-      } else if (e.key === 'e' || e.key === 'E') {
-        onSelectTool('stair');
-      } else if (e.key === 'r' || e.key === 'R') {
-        onSelectTool('roof');
-      } else if (e.key === 'c' || e.key === 'C') {
-        onSelectTool('component');
-      } else if (e.key === 'p' || e.key === 'P') {
-        onSelectTool('mep');
+      const kind = keyMap[event.key.toLowerCase()];
+      if (kind) {
+        setTab(tabForTool(kind));
+        onSelectTool(kind);
       }
     };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
   }, [onSelectTool]);
-
-  const handleFileInputChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      onLoadFile(file);
-      // Réinitialiser la valeur pour permettre de ré-importer le même fichier
-      e.target.value = '';
-    }
+  const fileChange = (event: ChangeEvent<HTMLInputElement>, callback?: (file: File) => void) => {
+    const file = event.target.files?.[0];
+    if (file) callback?.(file);
+    event.target.value = '';
   };
-
-  const handleIfcFileInputChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      onLoadFederatedIfc?.(file);
-      e.target.value = '';
-    }
-  };
-
-  const handleLoadClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleLoadIfcClick = () => {
-    ifcFileInputRef.current?.click();
-  };
-
-  return (
-    <header
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'flex-start',
-        gap: '12px',
-        padding: '0 16px',
-        height: '48px',
-        minWidth: 0,
-        flexShrink: 0,
-        overflowX: 'auto',
-        overflowY: 'hidden',
-        backgroundColor: '#1f2937',
-        color: '#ffffff',
-        borderBottom: '1px solid #374151',
-        userSelect: 'none',
-      }}
+  const toolButton = ({
+    kind,
+    label,
+    shortcut,
+    testId,
+    icon: Icon,
+  }: (typeof toolSets)[RibbonTab][number]) => (
+    <button
+      key={kind}
+      type="button"
+      data-testid={testId}
+      aria-pressed={activeToolKind === kind}
+      className={`${styles.tool} ${activeToolKind === kind ? styles.active : ''}`}
+      title={`${label} (${shortcut})`}
+      onClick={() => onSelectTool(kind)}
     >
-      {/* 1. Logo & Badge de Phase */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
-        <span style={{ fontWeight: 700, fontSize: '16px', letterSpacing: '0.5px' }}>MINI-BIM</span>
-        <span
-          style={{
-            fontSize: '11px',
-            backgroundColor: '#374151',
-            padding: '2px 8px',
-            borderRadius: '4px',
-            color: '#9ca3af',
-          }}
-        >
-          Phase 8 — Composants & Mobilier Paramétrique
-        </span>
-      </div>
-
-      {/* 2. Boutons d'Action Centraux */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexShrink: 0 }}>
-        {/* Groupe Outils de Modélisation */}
-        <div style={{ display: 'flex', gap: '6px' }}>
-          <button
-            type="button"
-            data-testid="tool-select-btn"
-            onClick={() => onSelectTool('select')}
-            style={{
-              padding: '6px 12px',
-              fontSize: '12px',
-              fontWeight: activeToolKind === 'select' ? 600 : 400,
-              borderRadius: '4px',
-              backgroundColor: activeToolKind === 'select' ? '#2563eb' : '#374151',
-              color: activeToolKind === 'select' ? '#ffffff' : '#d1d5db',
-              border: activeToolKind === 'select' ? '1px solid #3b82f6' : '1px solid #4b5563',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease-in-out',
-            }}
-          >
-            Sélectionner (S)
-          </button>
-          <button
-            type="button"
-            data-testid="tool-wall-btn"
-            onClick={() => onSelectTool('wall')}
-            style={{
-              padding: '6px 12px',
-              fontSize: '12px',
-              fontWeight: activeToolKind === 'wall' ? 600 : 400,
-              borderRadius: '4px',
-              backgroundColor: activeToolKind === 'wall' ? '#2563eb' : '#374151',
-              color: activeToolKind === 'wall' ? '#ffffff' : '#d1d5db',
-              border: activeToolKind === 'wall' ? '1px solid #3b82f6' : '1px solid #4b5563',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease-in-out',
-            }}
-          >
-            Tracer Mur (W)
-          </button>
-          <button
-            type="button"
-            data-testid="tool-slab-btn"
-            onClick={() => onSelectTool('slab')}
-            style={{
-              padding: '6px 12px',
-              fontSize: '12px',
-              fontWeight: activeToolKind === 'slab' ? 600 : 400,
-              borderRadius: '4px',
-              backgroundColor: activeToolKind === 'slab' ? '#2563eb' : '#374151',
-              color: activeToolKind === 'slab' ? '#ffffff' : '#d1d5db',
-              border: activeToolKind === 'slab' ? '1px solid #3b82f6' : '1px solid #4b5563',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease-in-out',
-            }}
-          >
-            Dalle (L)
-          </button>
-          <button
-            type="button"
-            data-testid="tool-stair-btn"
-            onClick={() => onSelectTool('stair')}
-            style={{
-              padding: '6px 12px',
-              fontSize: '12px',
-              fontWeight: activeToolKind === 'stair' ? 600 : 400,
-              borderRadius: '4px',
-              backgroundColor: activeToolKind === 'stair' ? '#2563eb' : '#374151',
-              color: activeToolKind === 'stair' ? '#ffffff' : '#d1d5db',
-              border: activeToolKind === 'stair' ? '1px solid #3b82f6' : '1px solid #4b5563',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease-in-out',
-            }}
-          >
-            Escalier (E)
-          </button>
-          <button
-            type="button"
-            data-testid="tool-roof-btn"
-            onClick={() => onSelectTool('roof')}
-            style={{
-              padding: '6px 12px',
-              fontSize: '12px',
-              fontWeight: activeToolKind === 'roof' ? 600 : 400,
-              borderRadius: '4px',
-              backgroundColor: activeToolKind === 'roof' ? '#2563eb' : '#374151',
-              color: activeToolKind === 'roof' ? '#ffffff' : '#d1d5db',
-              border: activeToolKind === 'roof' ? '1px solid #3b82f6' : '1px solid #4b5563',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease-in-out',
-            }}
-          >
-            Toiture (R)
-          </button>
-          <button
-            type="button"
-            data-testid="tool-component-btn"
-            onClick={() => onSelectTool('component')}
-            style={{
-              padding: '6px 12px',
-              fontSize: '12px',
-              fontWeight: activeToolKind === 'component' ? 600 : 400,
-              borderRadius: '4px',
-              backgroundColor: activeToolKind === 'component' ? '#2563eb' : '#374151',
-              color: activeToolKind === 'component' ? '#ffffff' : '#d1d5db',
-              border: activeToolKind === 'component' ? '1px solid #3b82f6' : '1px solid #4b5563',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease-in-out',
-            }}
-          >
-            Composant (C)
-          </button>
-          <button
-            type="button"
-            data-testid="tool-mep-btn"
-            onClick={() => onSelectTool('mep')}
-            style={{
-              padding: '6px 12px',
-              fontSize: '12px',
-              fontWeight: activeToolKind === 'mep' ? 600 : 400,
-              borderRadius: '4px',
-              backgroundColor: activeToolKind === 'mep' ? '#0284c7' : '#374151',
-              color: activeToolKind === 'mep' ? '#ffffff' : '#d1d5db',
-              border: activeToolKind === 'mep' ? '1px solid #38bdf8' : '1px solid #4b5563',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease-in-out',
-            }}
-          >
-            Réseaux MEP (P)
-          </button>
-          <button
-            type="button"
-            data-testid="tool-door-btn"
-            onClick={() => onSelectTool('door')}
-            style={{
-              padding: '6px 12px',
-              fontSize: '12px',
-              fontWeight: activeToolKind === 'door' ? 600 : 400,
-              borderRadius: '4px',
-              backgroundColor: activeToolKind === 'door' ? '#2563eb' : '#374151',
-              color: activeToolKind === 'door' ? '#ffffff' : '#d1d5db',
-              border: activeToolKind === 'door' ? '1px solid #3b82f6' : '1px solid #4b5563',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease-in-out',
-            }}
-          >
-            Porte (D)
-          </button>
-          <button
-            type="button"
-            data-testid="tool-window-btn"
-            onClick={() => onSelectTool('window')}
-            style={{
-              padding: '6px 12px',
-              fontSize: '12px',
-              fontWeight: activeToolKind === 'window' ? 600 : 400,
-              borderRadius: '4px',
-              backgroundColor: activeToolKind === 'window' ? '#2563eb' : '#374151',
-              color: activeToolKind === 'window' ? '#ffffff' : '#d1d5db',
-              border: activeToolKind === 'window' ? '1px solid #3b82f6' : '1px solid #4b5563',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease-in-out',
-            }}
-          >
-            Fenêtre (F)
-          </button>
-          <button
-            type="button"
-            data-testid="tool-move-wall-btn"
-            onClick={() => onSelectTool('moveWall')}
-            style={{
-              padding: '6px 12px',
-              fontSize: '12px',
-              fontWeight: activeToolKind === 'moveWall' ? 600 : 400,
-              borderRadius: '4px',
-              backgroundColor: activeToolKind === 'moveWall' ? '#2563eb' : '#374151',
-              color: activeToolKind === 'moveWall' ? '#ffffff' : '#d1d5db',
-              border: activeToolKind === 'moveWall' ? '1px solid #3b82f6' : '1px solid #4b5563',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease-in-out',
-            }}
-          >
-            Déplacer Mur (M)
-          </button>
-          <button
-            type="button"
-            data-testid="tool-move-opening-btn"
-            onClick={() => onSelectTool('moveOpening')}
-            style={{
-              padding: '6px 12px',
-              fontSize: '12px',
-              fontWeight: activeToolKind === 'moveOpening' ? 600 : 400,
-              borderRadius: '4px',
-              backgroundColor: activeToolKind === 'moveOpening' ? '#2563eb' : '#374151',
-              color: activeToolKind === 'moveOpening' ? '#ffffff' : '#d1d5db',
-              border: activeToolKind === 'moveOpening' ? '1px solid #3b82f6' : '1px solid #4b5563',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease-in-out',
-            }}
-          >
-            Déplacer Ouverture (O)
-          </button>
+      <Icon size={16} strokeWidth={1.75} />
+      <span>{label}</span>
+      <kbd>{shortcut}</kbd>
+    </button>
+  );
+  return (
+    <header className={styles.header} data-testid="ribbon-header">
+      <div className={styles.topRow}>
+        <div className={styles.brand}>
+          <span className={styles.logo}>
+            <Building2 size={17} />
+          </span>
+          <strong>MINI-BIM</strong>
+          <span className={styles.version}>0.1</span>
         </div>
-
-        {/* Sélecteur d'étage actif et vue fantôme Underlay (ADR-046 / Phase 6.2) */}
-        {levels && activeLevelId && onSelectLevel && (
-          <>
-            <div style={{ width: '1px', height: '24px', backgroundColor: '#4b5563' }} />
-            <LevelSelector
-              levels={levels}
-              activeLevelId={activeLevelId}
-              onSelectLevel={onSelectLevel}
-            />
-            {onAddLevel && (
-              <button
-                type="button"
-                data-testid="add-level-btn"
-                onClick={onAddLevel}
-                title="Ajouter un étage supérieur (R+1, R+2...)"
-                style={{
-                  padding: '4px 8px',
-                  fontSize: '12px',
-                  borderRadius: '4px',
-                  backgroundColor: '#374151',
-                  color: '#e5e7eb',
-                  border: '1px solid #4b5563',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease-in-out',
-                }}
-              >
-                + Étage
-              </button>
-            )}
-            {onToggleUnderlay && (
-              <button
-                type="button"
-                data-testid="underlay-toggle-btn"
-                onClick={() => onToggleUnderlay(!underlayEnabled)}
-                disabled={!hasUnderlayLevel}
-                title={
-                  hasUnderlayLevel
-                    ? 'Afficher la vue fantôme du niveau inférieur (N-1)'
-                    : 'Aucun niveau inférieur disponible pour l’étage actif'
-                }
-                style={{
-                  padding: '6px 10px',
-                  fontSize: '12px',
-                  fontWeight: underlayEnabled && hasUnderlayLevel ? 600 : 400,
-                  borderRadius: '4px',
-                  backgroundColor:
-                    underlayEnabled && hasUnderlayLevel ? '#374151' : '#1f2937',
-                  color: !hasUnderlayLevel
-                    ? '#6b7280'
-                    : underlayEnabled
-                      ? '#60a5fa'
-                      : '#9ca3af',
-                  border:
-                    underlayEnabled && hasUnderlayLevel
-                      ? '1px solid #3b82f6'
-                      : '1px solid #4b5563',
-                  cursor: hasUnderlayLevel ? 'pointer' : 'not-allowed',
-                  opacity: hasUnderlayLevel ? 1 : 0.5,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  transition: 'all 0.15s ease-in-out',
-                }}
-              >
-                <span>Underlay (N-1)</span>
-                <span
-                  style={{
-                    fontSize: '10px',
-                    padding: '1px 4px',
-                    borderRadius: '2px',
-                    backgroundColor:
-                      underlayEnabled && hasUnderlayLevel ? '#1e3a8a' : '#374151',
-                    color:
-                      underlayEnabled && hasUnderlayLevel ? '#93c5fd' : '#9ca3af',
-                  }}
-                >
-                  {underlayEnabled && hasUnderlayLevel ? 'ON' : 'OFF'}
-                </span>
-              </button>
-            )}
-          </>
-        )}
-
-        <div style={{ width: '1px', height: '24px', backgroundColor: '#4b5563' }} />
-
-        {/* Groupe Historique Undo / Redo */}
-        <div style={{ display: 'flex', gap: '6px' }}>
+        <nav className={styles.tabs} aria-label="Onglets métiers">
+          {(['Architecture', 'Structure', 'MEP', 'Coordination'] as RibbonTab[]).map((name) => (
+            <button
+              key={name}
+              data-testid={`ribbon-tab-${name.toLowerCase()}`}
+              className={`${styles.tab} ${tab === name ? styles.tabActive : ''}`}
+              onClick={() => {
+                setTab(name);
+                if (name === 'Coordination') onOpenDockTab?.('clashes');
+              }}
+            >
+              {name}
+            </button>
+          ))}
+        </nav>
+        <div className={styles.globalActions}>
           <button
-            type="button"
+            className={styles.iconAction}
             data-testid="undo-btn"
-            onClick={onUndo}
+            title="Annuler (Ctrl+Z)"
             disabled={!canUndo}
-            title="Annuler la dernière action (Ctrl+Z)"
-            style={{
-              padding: '6px 10px',
-              fontSize: '12px',
-              borderRadius: '4px',
-              backgroundColor: canUndo ? '#374151' : '#1f2937',
-              color: canUndo ? '#e5e7eb' : '#6b7280',
-              border: '1px solid #4b5563',
-              cursor: canUndo ? 'pointer' : 'not-allowed',
-              opacity: canUndo ? 1 : 0.5,
-              transition: 'all 0.15s ease-in-out',
-            }}
+            onClick={onUndo}
           >
-            ↶ Annuler
+            <Undo2 size={16} strokeWidth={1.75} />
           </button>
           <button
-            type="button"
+            className={styles.iconAction}
             data-testid="redo-btn"
-            onClick={onRedo}
+            title="Rétablir (Ctrl+Shift+Z)"
             disabled={!canRedo}
-            title="Rétablir la dernière action (Ctrl+Shift+Z)"
-            style={{
-              padding: '6px 10px',
-              fontSize: '12px',
-              borderRadius: '4px',
-              backgroundColor: canRedo ? '#374151' : '#1f2937',
-              color: canRedo ? '#e5e7eb' : '#6b7280',
-              border: '1px solid #4b5563',
-              cursor: canRedo ? 'pointer' : 'not-allowed',
-              opacity: canRedo ? 1 : 0.5,
-              transition: 'all 0.15s ease-in-out',
-            }}
+            onClick={onRedo}
           >
-            ↷ Rétablir
+            <Redo2 size={16} strokeWidth={1.75} />
           </button>
-        </div>
-
-        <div style={{ width: '1px', height: '24px', backgroundColor: '#4b5563' }} />
-
-        {/* Groupe Persistance JSON */}
-        <div style={{ display: 'flex', gap: '6px' }}>
-          <button
-            type="button"
-            data-testid="save-btn"
-            onClick={onSave}
-            title="Sauvegarder le modèle architectural au format JSON"
-            style={{
-              padding: '6px 10px',
-              fontSize: '12px',
-              borderRadius: '4px',
-              backgroundColor: '#059669',
-              color: '#ffffff',
-              border: '1px solid #10b981',
-              cursor: 'pointer',
-              fontWeight: 500,
-              transition: 'all 0.15s ease-in-out',
-            }}
-          >
-            Sauvegarder
+          <span className={styles.divider} />
+          <button className={styles.action} data-testid="save-btn" onClick={onSave}>
+            <Save size={15} />
+            Sauvegarder JSON
           </button>
           <button
-            type="button"
+            className={styles.action}
             data-testid="load-btn"
-            onClick={handleLoadClick}
-            title="Charger un modèle architectural JSON"
-            style={{
-              padding: '6px 10px',
-              fontSize: '12px',
-              borderRadius: '4px',
-              backgroundColor: '#374151',
-              color: '#e5e7eb',
-              border: '1px solid #4b5563',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease-in-out',
-            }}
+            onClick={() => fileRef.current?.click()}
           >
-            Charger
+            <FolderOpen size={15} />
+            Charger JSON
           </button>
-          {onLoadR4Demo && (
-            <button
-              type="button"
-              data-testid="load-demo-r4-btn"
-              onClick={onLoadR4Demo}
-              title="Charger l'Immeuble R+4 complet avec tous les composants et réseaux MEP"
-              style={{
-                padding: '6px 10px',
-                fontSize: '12px',
-                borderRadius: '4px',
-                backgroundColor: '#0284c7',
-                color: '#ffffff',
-                border: '1px solid #0ea5e9',
-                cursor: 'pointer',
-                fontWeight: 600,
-                transition: 'all 0.15s ease-in-out',
-              }}
-            >
-              🏢 Immeuble R+4
-            </button>
-          )}
-          {onToggleClashPanel && (
-            <button
-              type="button"
-              data-testid="toggle-clash-panel-btn"
-              onClick={onToggleClashPanel}
-              title="Ouvrir le panneau de détection des conflits géométriques BIM (Clash Detection)"
-              style={{
-                padding: '6px 10px',
-                fontSize: '12px',
-                borderRadius: '4px',
-                backgroundColor: isClashPanelOpen ? '#ea580c' : '#374151',
-                color: '#ffffff',
-                border: isClashPanelOpen ? '1px solid #f97316' : '1px solid #4b5563',
-                cursor: 'pointer',
-                fontWeight: 600,
-                transition: 'all 0.15s ease-in-out',
-              }}
-            >
-              ⚡ Conflits
-            </button>
-          )}
-          {onToggleFederatedPanel && (
-            <button
-              type="button"
-              data-testid="toggle-federated-panel-btn"
-              onClick={onToggleFederatedPanel}
-              title="Ouvrir le panneau des maquettes IFC externes fédérées"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '6px 10px',
-                fontSize: '12px',
-                borderRadius: '4px',
-                backgroundColor: isFederatedPanelOpen ? '#2563eb' : '#374151',
-                color: '#ffffff',
-                border: isFederatedPanelOpen ? '1px solid #3b82f6' : '1px solid #4b5563',
-                cursor: 'pointer',
-                fontWeight: 600,
-                transition: 'all 0.15s ease-in-out',
-              }}
-            >
-              <span>📁 IFC Réf</span>
-              {federatedModelCount > 0 && (
-                <span
-                  style={{
-                    backgroundColor: isFederatedPanelOpen ? '#ffffff' : '#3b82f6',
-                    color: isFederatedPanelOpen ? '#2563eb' : '#ffffff',
-                    fontSize: '10px',
-                    padding: '1px 5px',
-                    borderRadius: '9999px',
-                    fontWeight: 700,
-                  }}
-                >
-                  {federatedModelCount}
-                </span>
-              )}
-            </button>
-          )}
-          {onLoadFederatedIfc && (
-            <button
-              type="button"
-              data-testid="load-ifc-toolbar-btn"
-              onClick={handleLoadIfcClick}
-              title="Charger une maquette IFC externe (.ifc) en lecture seule"
-              style={{
-                padding: '6px 10px',
-                fontSize: '12px',
-                borderRadius: '4px',
-                backgroundColor: '#374151',
-                color: '#ffffff',
-                border: '1px solid #4b5563',
-                cursor: 'pointer',
-                fontWeight: 500,
-                transition: 'all 0.15s ease-in-out',
-              }}
-            >
-              + IFC
-            </button>
-          )}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".json,.mbim.json"
-            data-testid="file-input"
-            onChange={handleFileInputChange}
-            style={{ display: 'none' }}
-          />
-          <input
-            ref={ifcFileInputRef}
-            type="file"
-            accept=".ifc"
-            data-testid="ifc-file-input"
-            onChange={handleIfcFileInputChange}
-            style={{ display: 'none' }}
-          />
-        </div>
-
-        <div style={{ width: '1px', height: '24px', backgroundColor: '#4b5563' }} />
-
-        {/* Groupe Exports BIM & Plans (Phase 5) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <button
-            type="button"
-            data-testid="export-ifc-btn"
-            onClick={onExportIfc}
-            title="Exporter la maquette numérique au standard IFC4 (ISO 10303-21)"
-            style={{
-              padding: '6px 10px',
-              fontSize: '12px',
-              borderRadius: '4px',
-              backgroundColor: '#4f46e5',
-              color: '#ffffff',
-              border: '1px solid #6366f1',
-              cursor: 'pointer',
-              fontWeight: 500,
-              transition: 'all 0.15s ease-in-out',
-            }}
-          >
-            Exporter IFC
+          <button className={styles.action} data-testid="export-ifc-btn" onClick={onExportIfc}>
+            <FileBox size={15} />
+            Exporter IFC4
           </button>
-
-          <div style={{ display: 'flex', alignItems: 'center' }}>
+          <div className={styles.exportGroup}>
             <button
-              type="button"
+              className={styles.action}
               data-testid="export-svg-btn"
-              onClick={() => onExportSvg?.(planScale)}
-              title="Exporter le plan d'étage vectoriel imprimable (SVG)"
-              style={{
-                padding: '6px 10px',
-                fontSize: '12px',
-                borderTopLeftRadius: '4px',
-                borderBottomLeftRadius: '4px',
-                borderTopRightRadius: 0,
-                borderBottomRightRadius: 0,
-                backgroundColor: '#2563eb',
-                color: '#ffffff',
-                border: '1px solid #3b82f6',
-                borderRight: 'none',
-                cursor: 'pointer',
-                fontWeight: 500,
-                transition: 'all 0.15s ease-in-out',
-              }}
+              onClick={() => onExportSvg?.(scale)}
             >
-              Plan (SVG)
+              <Upload size={15} />
+              Plan SVG
             </button>
             <select
+              aria-label="Échelle du plan SVG"
               data-testid="export-svg-scale-select"
-              value={planScale}
-              onChange={(e) => setPlanScale(Number(e.target.value) as 50 | 100 | 200)}
-              style={{
-                padding: '5px 4px',
-                fontSize: '11px',
-                borderTopRightRadius: '4px',
-                borderBottomRightRadius: '4px',
-                backgroundColor: '#1d4ed8',
-                color: '#ffffff',
-                border: '1px solid #3b82f6',
-                cursor: 'pointer',
-                outline: 'none',
-              }}
+              value={scale}
+              onChange={(e) => setScale(Number(e.target.value) as 50 | 100 | 200)}
             >
               <option value={50}>1:50</option>
               <option value={100}>1:100</option>
@@ -729,6 +300,112 @@ export function Toolbar({
           </div>
         </div>
       </div>
+      <div className={styles.toolRow}>
+        <div className={styles.tools}>
+          {tab === 'Coordination' ? (
+            <>
+              <button
+                className={styles.tool}
+                data-testid="toggle-clash-panel-btn"
+                aria-pressed={isClashPanelOpen}
+                onClick={() => {
+                  onToggleClashPanel?.();
+                  onOpenDockTab?.('clashes');
+                }}
+              >
+                <Sparkles size={16} />
+                Détecter conflits
+              </button>
+              <button
+                className={styles.tool}
+                data-testid="load-ifc-toolbar-btn"
+                onClick={() => onRequestLoadIfc?.()}
+              >
+                <FileBox size={16} />
+                Charger IFC réf (+ IFC)
+              </button>
+              <button
+                className={styles.tool}
+                data-testid="toggle-federated-panel-btn"
+                aria-pressed={isFederatedPanelOpen}
+                onClick={() => {
+                  onToggleFederatedPanel?.();
+                  onOpenDockTab?.('ifc');
+                }}
+              >
+                <PanelRight size={16} />
+                Afficher panneau IFC {federatedModelCount > 0 && `(${federatedModelCount})`}
+              </button>
+              <button
+                className={styles.tool}
+                data-testid="metrics-ribbon-btn"
+                onClick={() => onToggleMetrics?.()}
+              >
+                <Ruler size={16} />
+                Afficher métrés
+              </button>
+            </>
+          ) : (
+            Object.values(toolSets)
+              .flat()
+              .map((tool) => (
+                <span
+                  key={tool.kind}
+                  hidden={tab !== tabForTool(tool.kind) && tool.kind !== 'select'}
+                >
+                  {toolButton(tool)}
+                </span>
+              ))
+          )}
+          {tab === 'Structure' && (
+            <div className={styles.quickControls}>
+              <button className={styles.tool} data-testid="add-level-btn" onClick={onAddLevel}>
+                <Layers size={16} />+ Étage
+              </button>
+              <button
+                data-testid="underlay-toggle-btn"
+                className={styles.tool}
+                disabled={!hasUnderlayLevel}
+                aria-pressed={underlayEnabled && hasUnderlayLevel}
+                onClick={() => onToggleUnderlay?.(!underlayEnabled)}
+              >
+                <ChevronDown size={16} />
+                Underlay N-1 <span>{underlayEnabled && hasUnderlayLevel ? 'ON' : 'OFF'}</span>
+              </button>
+            </div>
+          )}
+          {tab === 'Coordination' && onLoadR4Demo && (
+            <button className={styles.tool} data-testid="load-demo-r4-btn" onClick={onLoadR4Demo}>
+              <Building2 size={16} />
+              Démo R+4
+            </button>
+          )}
+        </div>
+        {tab === 'MEP' && <div className={styles.contextMepControls}>{mepControls}</div>}
+        <div className={styles.levelPicker}>
+          <span>Niveau</span>
+          <select
+            data-testid="level-selector"
+            aria-label="Niveau actif"
+            value={activeLevelId ?? ''}
+            onChange={(event) => onSelectLevel?.(event.target.value)}
+          >
+            {levels.map((level) => (
+              <option key={level.id} value={level.id}>
+                {level.name} — {level.elevation} mm
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+      <input
+        ref={fileRef}
+        type="file"
+        accept=".json,.mbim.json"
+        data-testid="file-input"
+        hidden
+        onChange={(event) => fileChange(event, onLoadFile)}
+      />
     </header>
   );
 }

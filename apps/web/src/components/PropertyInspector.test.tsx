@@ -30,6 +30,7 @@ describe('PropertyInspector — Panneau latéral d’inspection et d’édition 
   it('T-INSPECT-01 : états d’affichage (vide, multiple, rétracté)', () => {
     const { rerender } = render(<PropertyInspector doc={doc} selectedIds={[]} />);
     expect(screen.getByTestId('inspector-no-selection')).toBeDefined();
+    expect(screen.queryByTestId('toggle-inspector-btn')).toBeNull();
 
     // Sélection multiple
     rerender(<PropertyInspector doc={doc} selectedIds={['id1', 'id2']} />);

@@ -66,6 +66,7 @@ export class MoveOpeningTool implements Tool {
         openingId: hit.id,
         hostWallId: hit.hostWallId,
         initialOffsetAlong: opening.offsetAlong,
+        initialScreen: event.screen,
         currentOffsetAlong: opening.offsetAlong,
         width: openingWidth,
       };
@@ -138,7 +139,26 @@ export class MoveOpeningTool implements Tool {
         return { kind: 'noop' };
       }
 
-      const { openingId, initialOffsetAlong, currentOffsetAlong } = this.state;
+      const { openingId, hostWallId, initialOffsetAlong, initialScreen, width } = this.state;
+      const wall = ctx.doc.getState().walls[hostWallId];
+      let currentOffsetAlong = this.state.currentOffsetAlong;
+      const pointerMoved =
+        Math.hypot(event.screen.x - initialScreen.x, event.screen.y - initialScreen.y) > 0;
+      if (wall && pointerMoved) {
+        const dx = wall.end.x - wall.start.x;
+        const dy = wall.end.y - wall.start.y;
+        const wallLen = Math.hypot(dx, dy);
+        if (wallLen >= 1e-6) {
+          const worldCursor = ctx.transform.screenToWorld(event.screen);
+          const rawOffset =
+            ((worldCursor.x - wall.start.x) * dx + (worldCursor.y - wall.start.y) * dy) / wallLen;
+          const maxOffset = Math.max(MIN_OPENING_CLEARANCE, wallLen - width - MIN_OPENING_CLEARANCE);
+          currentOffsetAlong = Math.max(
+            MIN_OPENING_CLEARANCE,
+            Math.min(snapToStep(rawOffset, 50), maxOffset),
+          );
+        }
+      }
       this.state = { kind: 'idle' };
 
       // Si la position n'a pas changé, aucune commande inutile

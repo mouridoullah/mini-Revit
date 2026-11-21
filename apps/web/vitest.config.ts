@@ -12,6 +12,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      '@mini-bim/core/federation': path.resolve(__dirname, '../../packages/core/src/federation/index.ts'),
       '@mini-bim/core': path.resolve(__dirname, '../../packages/core/src/index.ts'),
       '@mini-bim/view-2d': path.resolve(__dirname, '../../packages/view-2d/src/index.ts'),
       '@mini-bim/view-3d': path.resolve(__dirname, '../../packages/view-3d/src/index.ts'),

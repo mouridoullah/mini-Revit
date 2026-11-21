@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { type BimDocument, computeLevelMetrics, type LevelMetrics } from '@mini-bim/core';
 
 export interface MetricsPanelProps {
@@ -158,8 +159,8 @@ export function MetricsPanel({
       style={{
         display: 'flex',
         flexDirection: 'column',
-        backgroundColor: '#ffffff',
-        borderTop: '2px solid #e5e7eb',
+        backgroundColor: 'var(--bg-surface)',
+        borderTop: '1px solid var(--border-subtle)',
         boxShadow: '0 -2px 6px rgba(0,0,0,0.06)',
         transition: 'height 0.2s ease',
         height: isCollapsed ? '36px' : '220px',
@@ -174,8 +175,8 @@ export function MetricsPanel({
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '6px 16px',
-          backgroundColor: '#f9fafb',
-          borderBottom: isCollapsed ? 'none' : '1px solid #e5e7eb',
+          backgroundColor: 'var(--bg-elevated)',
+          borderBottom: isCollapsed ? 'none' : '1px solid var(--border-subtle)',
           userSelect: 'none',
         }}
       >
@@ -190,13 +191,13 @@ export function MetricsPanel({
               cursor: 'pointer',
               fontSize: '13px',
               fontWeight: 600,
-              color: '#374151',
+              color: 'var(--text-primary)',
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
             }}
           >
-            <span>{isCollapsed ? '▶' : '▼'}</span>
+            {isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
             <span>Tableau de Métrés & Surfaces</span>
           </button>
 
@@ -204,7 +205,7 @@ export function MetricsPanel({
             <label
               style={{
                 fontSize: '12px',
-                color: '#6b7280',
+                color: 'var(--text-secondary)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '4px',
@@ -219,8 +220,10 @@ export function MetricsPanel({
                   fontSize: '12px',
                   padding: '2px 6px',
                   borderRadius: '4px',
-                  border: '1px solid #d1d5db',
-                  backgroundColor: '#ffffff',
+                  border: '1px solid var(--border-strong)',
+                  backgroundColor: 'var(--bg-surface)',
+                  color: 'var(--text-primary)',
+                  colorScheme: 'dark',
                 }}
               >
                 {levels.map((lvl) => (
@@ -240,7 +243,7 @@ export function MetricsPanel({
             onClick={handleExportCsv}
             disabled={!metrics}
             style={{
-              backgroundColor: '#2563eb',
+              backgroundColor: 'var(--accent-primary)',
               color: '#ffffff',
               border: 'none',
               borderRadius: '4px',
@@ -273,7 +276,7 @@ export function MetricsPanel({
               }}
             >
               <thead>
-                <tr style={{ borderBottom: '2px solid #e5e7eb', color: '#4b5563' }}>
+                <tr style={{ borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}>
                   <th style={{ padding: '4px 8px' }}>Catégorie</th>
                   <th style={{ padding: '4px 8px' }}>Élément</th>
                   <th style={{ padding: '4px 8px', textAlign: 'right' }}>Quantité</th>
@@ -282,7 +285,7 @@ export function MetricsPanel({
               </thead>
               <tbody>
                 {/* Section Murs */}
-                <tr style={{ backgroundColor: '#f9fafb', fontWeight: 600 }}>
+                <tr style={{ backgroundColor: 'var(--bg-elevated)', fontWeight: 600 }}>
                   <td style={{ padding: '4px 8px' }}>Murs</td>
                   <td style={{ padding: '4px 8px' }}>Linéaire total</td>
                   <td style={{ padding: '4px 8px', textAlign: 'right' }}>
@@ -308,7 +311,7 @@ export function MetricsPanel({
                 </tr>
 
                 {/* Section Portes & Fenêtres */}
-                <tr style={{ backgroundColor: '#f9fafb', fontWeight: 600 }}>
+                <tr style={{ backgroundColor: 'var(--bg-elevated)', fontWeight: 600 }}>
                   <td style={{ padding: '4px 8px' }}>Ouvertures</td>
                   <td style={{ padding: '4px 8px' }}>Portes</td>
                   <td style={{ padding: '4px 8px', textAlign: 'right' }}>
@@ -326,7 +329,7 @@ export function MetricsPanel({
                 </tr>
 
                 {/* Section Pièces */}
-                <tr style={{ backgroundColor: '#f9fafb', fontWeight: 600 }}>
+                <tr style={{ backgroundColor: 'var(--bg-elevated)', fontWeight: 600 }}>
                   <td style={{ padding: '4px 8px' }}>Pièces</td>
                   <td style={{ padding: '4px 8px' }}>Surface utile totale</td>
                   <td style={{ padding: '4px 8px', textAlign: 'right' }}>
@@ -335,8 +338,8 @@ export function MetricsPanel({
                   <td style={{ padding: '4px 8px' }}>m²</td>
                 </tr>
                 {metrics.rooms.map((room) => (
-                  <tr key={room.roomId} style={{ borderTop: '1px solid #f3f4f6' }}>
-                    <td style={{ padding: '4px 8px', color: '#6b7280' }}>Pièce</td>
+                  <tr key={room.roomId} style={{ borderTop: '1px solid var(--border-subtle)' }}>
+                    <td style={{ padding: '4px 8px', color: 'var(--text-secondary)' }}>Pièce</td>
                     <td style={{ padding: '4px 8px' }}>{room.name}</td>
                     <td style={{ padding: '4px 8px', textAlign: 'right', fontWeight: 500 }}>
                       {(room.areaMm2 / 1e6).toFixed(2)}

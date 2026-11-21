@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { RotateCw } from 'lucide-react';
 import type { ComponentType, ComponentFamily } from '@mini-bim/core';
 
 export interface ComponentRibbonProps {
@@ -87,9 +88,12 @@ export function ComponentRibbon({
                 color: '#ffffff',
                 border: 'none',
                 cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
               }}
             >
-              ↻ Pivoter 90°
+              <RotateCw size={14} strokeWidth={1.75} /> Pivoter 90°
             </button>
           )}
           {activeType && (

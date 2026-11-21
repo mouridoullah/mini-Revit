@@ -1,7 +1,55 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Mini-BIM E2E Smoke Tests (Playwright Real Browser)', () => {
-  test('monte l’application, initialise WebGL et Canvas 2D sans erreur console', async ({ page }) => {
+  test('charge en production un IFC exporté par l’application et initialise le WASM', async ({ page }, testInfo) => {
+    const consoleErrors: string[] = [];
+    page.on('response', (response) => {
+      if (response.status() >= 400) consoleErrors.push(`${response.status()} ${response.url()}`);
+    });
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') consoleErrors.push(msg.text());
+    });
+    page.on('pageerror', (err) => consoleErrors.push(err.message));
+
+    await page.goto('/');
+    const ifcWasPreloaded = await page.evaluate(() =>
+      performance.getEntriesByType('resource').some((entry) => entry.name.includes('ifc-domain')),
+    );
+    expect(ifcWasPreloaded).toBe(false);
+    const downloadPromise = page.waitForEvent('download');
+    await page.locator('[data-testid="export-ifc-btn"]').click();
+    const download = await downloadPromise;
+    const ifcPath = testInfo.outputPath('roundtrip.ifc');
+    await download.saveAs(ifcPath);
+
+    await page.locator('[data-testid="ribbon-tab-coordination"]').click();
+    await page.locator('[data-testid="ifc-file-input"]').setInputFiles(ifcPath);
+    await expect(page.locator('[data-testid="federated-ifc-panel"]')).toBeVisible();
+    await expect(page.locator('[data-testid="federated-ifc-panel"]')).toContainText('1');
+    await expect(page.locator('[data-testid="error-banner"]')).toHaveCount(0);
+    expect(consoleErrors).toEqual([]);
+  });
+
+  test('exporte un plan SVG valide pour un niveau encore vide', async ({ page }, testInfo) => {
+    await page.goto('/');
+    await page.locator('[data-testid="ribbon-tab-structure"]').click();
+    await page.locator('[data-testid="add-level-btn"]').click();
+    await expect(page.locator('[data-testid="status-bar"]')).toContainText('Étage 1');
+
+    const downloadPromise = page.waitForEvent('download');
+    await page.locator('[data-testid="export-svg-btn"]').click();
+    const download = await downloadPromise;
+    const svgPath = testInfo.outputPath('empty-level.svg');
+    await download.saveAs(svgPath);
+    const svg = await import('node:fs/promises').then(({ readFile }) => readFile(svgPath, 'utf8'));
+    expect(svg).toContain('<svg');
+    expect(svg).toContain('Étage 1');
+  });
+
+  test('monte l’application, initialise WebGL et Canvas 2D sans erreur console', async ({
+    page,
+  }, testInfo) => {
+    test.setTimeout(90000);
     const consoleErrors: string[] = [];
     page.on('console', (msg) => {
       if (msg.type() === 'error') {
@@ -29,16 +77,51 @@ test.describe('Mini-BIM E2E Smoke Tests (Playwright Real Browser)', () => {
     await expect(statusBar).toBeVisible();
     await expect(statusBar).toContainText('Murs : 4');
 
+    // Layout cockpit, vues et navigation du ruban métier
+    await expect(page.locator('[data-testid="project-browser"]')).toBeVisible();
+    await expect(page.locator('[data-testid="right-dock-panel"]')).toBeVisible();
+    await page.locator('[data-testid="layout-2d-btn"]').click();
+    await expect(canvas2D).toBeVisible();
+    await expect(canvas3D).toBeHidden();
+    await page.locator('[data-testid="layout-split-btn"]').click();
+    await expect(canvas3D).toBeVisible();
+    await page.locator('[data-testid="layout-3d-btn"]').click();
+    await expect(canvas2D).toBeHidden();
+    await expect(canvas3D).toBeVisible();
+    await page.locator('[data-testid="layout-split-btn"]').click();
+    await page
+      .locator('[data-testid="project-browser"] button[aria-label="Réduire Project Browser"]')
+      .click();
+    await expect(page.locator('[data-testid="project-browser"]')).toBeVisible();
+    await page
+      .locator('[data-testid="project-browser"] button[aria-label="Ouvrir Project Browser"]')
+      .click();
+    await page.locator('[data-testid="ribbon-tab-coordination"]').click();
+    await page.locator('[data-testid="load-demo-r4-btn"]').click();
+    await expect(statusBar).toContainText('Murs : 78', { timeout: 60000 });
+    await page.locator('[data-testid="ribbon-tab-architecture"]').click();
+    const closeBannerBtn = page.locator('[data-testid="close-info-banner-btn"]');
+    if (await closeBannerBtn.isVisible()) {
+      await closeBannerBtn.click();
+    }
+    await page.locator('[data-testid="dock-tab-properties"]').click();
+    await page.locator('[data-testid="zoom-fit-3d-btn"]').click();
+    await page.screenshot({ path: testInfo.outputPath('graphite-engineering.png'), fullPage: true });
+
     // 5. Interaction : basculer vers l'outil Mur via le ruban
-    const wallToolBtn = page.locator('button[data-testid="tool-wall-btn"], button[data-testid="tool-btn-wall"]');
-    if (await wallToolBtn.count() > 0) {
+    const wallToolBtn = page.locator(
+      'button[data-testid="tool-wall-btn"], button[data-testid="tool-btn-wall"]',
+    );
+    if ((await wallToolBtn.count()) > 0) {
       await wallToolBtn.click();
       await expect(statusBar).toContainText('Mur');
     }
 
     // 6. Interaction : réactiver l'outil Sélection
-    const selectToolBtn = page.locator('button[data-testid="tool-select-btn"], button[data-testid="tool-btn-select"]');
-    if (await selectToolBtn.count() > 0) {
+    const selectToolBtn = page.locator(
+      'button[data-testid="tool-select-btn"], button[data-testid="tool-btn-select"]',
+    );
+    if ((await selectToolBtn.count()) > 0) {
       await selectToolBtn.click();
       await expect(statusBar).toContainText('Sélection');
     }
@@ -51,19 +134,28 @@ test.describe('Mini-BIM E2E Smoke Tests (Playwright Real Browser)', () => {
     await page.goto('/');
 
     const metricsToggleBtn = page.locator('[data-testid="metrics-toggle-btn"]');
-    if (await metricsToggleBtn.count() > 0) {
+    if ((await metricsToggleBtn.count()) > 0) {
       await metricsToggleBtn.click();
-      const metricsPanel = page.locator('[data-testid="metrics-panel-content"]');
+      const metricsPanel = page.locator('[data-testid="metrics-table"]');
       await expect(metricsPanel).toBeVisible();
     }
   });
 
-  test('modélise un tronçon MEP, l’inspecte dans l’UI et met à jour le rendu 3D sans erreur', async ({ page }) => {
+  test('modélise un tronçon MEP, l’inspecte dans l’UI et met à jour le rendu 3D sans erreur', async ({
+    page,
+  }) => {
     const consoleErrors: string[] = [];
     page.on('console', (msg) => {
+      console.log(`[BROWSER CONSOLE ${msg.type()}] ${msg.text()}`);
       if (msg.type() === 'error') {
         consoleErrors.push(msg.text());
       }
+    });
+    page.on('requestfailed', (req) => {
+      console.log(`[REQUEST FAILED] ${req.url()} ${req.failure()?.errorText}`);
+    });
+    page.on('response', (res) => {
+      if (res.status() >= 400) console.log(`[HTTP ERROR] ${res.status()} ${res.url()}`);
     });
 
     page.on('pageerror', (err) => {
@@ -73,6 +165,7 @@ test.describe('Mini-BIM E2E Smoke Tests (Playwright Real Browser)', () => {
     await page.goto('/');
 
     // 1. Activer l'outil MEP
+    await page.locator('[data-testid="ribbon-tab-mep"]').click();
     const mepToolBtn = page.locator('button[data-testid="tool-mep-btn"]');
     await expect(mepToolBtn).toBeVisible();
     await mepToolBtn.click();
@@ -81,8 +174,6 @@ test.describe('Mini-BIM E2E Smoke Tests (Playwright Real Browser)', () => {
     const mepRibbon = page.locator('[data-testid="mep-ribbon"]');
     await expect(mepRibbon).toBeVisible();
     await expect(page.locator('[data-testid="status-tool-info"]')).toContainText('Réseau MEP');
-    const ribbonBox = await mepRibbon.boundingBox();
-    const ribbonHeight = ribbonBox?.height ?? 37;
 
     // 3. Dessiner un tuyau sur le canvas 2D
     const canvas2D = page.locator('canvas[data-testid="viewport-2d-canvas"]');
@@ -99,8 +190,8 @@ test.describe('Mini-BIM E2E Smoke Tests (Playwright Real Browser)', () => {
     await expect(mepRibbon).toBeHidden();
 
     // 5. Cliquer au milieu du segment sur le canvas 2D pour le sélectionner
-    // Le démontage du ruban MEP recentre le repère monde de ΔH / 2 (Transform2D)
-    const selectY = 120 + ribbonHeight / 2;
+    // Les réglages MEP sont intégrés dans la rangée du ruban ; le viewport ne se déplace pas.
+    const selectY = 120;
     await canvas2D.click({ position: { x: 190, y: selectY } });
 
     // 6. Vérifier l'apparition du panneau MepInspector
@@ -115,7 +206,9 @@ test.describe('Mini-BIM E2E Smoke Tests (Playwright Real Browser)', () => {
     expect(consoleErrors).toEqual([]);
   });
 
-  test('modélise un tracé coudé en L avec raccord paramétrique et bascule d’angle', async ({ page }) => {
+  test('modélise un tracé coudé en L avec raccord paramétrique et bascule d’angle', async ({
+    page,
+  }) => {
     const consoleErrors: string[] = [];
     page.on('console', (msg) => {
       if (msg.type() === 'error') consoleErrors.push(msg.text());
@@ -127,6 +220,7 @@ test.describe('Mini-BIM E2E Smoke Tests (Playwright Real Browser)', () => {
     await page.goto('/');
 
     // 1. Activer l'outil MEP
+    await page.locator('[data-testid="ribbon-tab-mep"]').click();
     const mepToolBtn = page.locator('button[data-testid="tool-mep-btn"]');
     await mepToolBtn.click();
 
@@ -149,7 +243,9 @@ test.describe('Mini-BIM E2E Smoke Tests (Playwright Real Browser)', () => {
     expect(consoleErrors).toEqual([]);
   });
 
-  test('ouvre le panneau de détection des conflits (Clash Detection), lance l’analyse et interagit avec la sélection sans erreur', async ({ page }) => {
+  test('ouvre le panneau de détection des conflits (Clash Detection), lance l’analyse et interagit avec la sélection sans erreur', async ({
+    page,
+  }) => {
     const consoleErrors: string[] = [];
     page.on('console', (msg) => {
       if (msg.type() === 'error') consoleErrors.push(msg.text());
@@ -161,6 +257,7 @@ test.describe('Mini-BIM E2E Smoke Tests (Playwright Real Browser)', () => {
     await page.goto('/');
 
     // 1. Bouton "⚡ Conflits" dans la Toolbar
+    await page.locator('[data-testid="ribbon-tab-coordination"]').click();
     const clashToggleBtn = page.locator('button[data-testid="toggle-clash-panel-btn"]');
     await expect(clashToggleBtn).toBeVisible();
     await clashToggleBtn.click();
@@ -175,13 +272,17 @@ test.describe('Mini-BIM E2E Smoke Tests (Playwright Real Browser)', () => {
     await runClashBtn.click();
 
     // 4. Vérifier que l'analyse aboutit sans erreur console
-    const noClashesOrTable = page.locator('[data-testid="no-clashes-msg"], [data-testid="clash-table"]');
+    const noClashesOrTable = page.locator(
+      '[data-testid="no-clashes-msg"], [data-testid="clash-table"]',
+    );
     await expect(noClashesOrTable).toBeVisible();
 
     expect(consoleErrors).toEqual([]);
   });
 
-  test('ouvre le panneau des maquettes IFC fédérées (Sous-phase 9.5), vérifie les onglets et contrôles sans erreur', async ({ page }) => {
+  test('ouvre le panneau des maquettes IFC fédérées (Sous-phase 9.5), vérifie les onglets et contrôles sans erreur', async ({
+    page,
+  }) => {
     const consoleErrors: string[] = [];
     page.on('console', (msg) => {
       if (msg.type() === 'error') consoleErrors.push(msg.text());
@@ -193,6 +294,7 @@ test.describe('Mini-BIM E2E Smoke Tests (Playwright Real Browser)', () => {
     await page.goto('/');
 
     // 1. Bouton "📁 IFC Réf" dans la Toolbar
+    await page.locator('[data-testid="ribbon-tab-coordination"]').click();
     const fedToggleBtn = page.locator('button[data-testid="toggle-federated-panel-btn"]');
     await expect(fedToggleBtn).toBeVisible();
     await fedToggleBtn.click();

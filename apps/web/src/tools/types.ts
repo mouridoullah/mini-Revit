@@ -92,6 +92,7 @@ export type MoveOpeningToolState =
       readonly openingId: string;
       readonly hostWallId: string;
       readonly initialOffsetAlong: number;
+      readonly initialScreen: Vec2;
       readonly currentOffsetAlong: number;
       readonly width: number;
     };
@@ -286,6 +287,7 @@ export type ToolEvent =
  */
 export type ToolOutput =
   | { readonly kind: 'command'; readonly command: Command }
+  | { readonly kind: 'error'; readonly message: string }
   | { readonly kind: 'selectionChanged'; readonly ids: readonly string[] }
   | { readonly kind: 'preview'; readonly preview: PreviewShape | null }
   | { readonly kind: 'noop' };

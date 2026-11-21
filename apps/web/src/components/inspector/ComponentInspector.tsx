@@ -3,6 +3,7 @@ import {
   type Component,
   type BimState,
 } from '@mini-bim/core';
+import { RotateCw } from 'lucide-react';
 import { DebouncedTextInput, DebouncedNumberInput } from './DebouncedInputs.js';
 
 export interface ComponentInspectorProps {
@@ -225,9 +226,12 @@ export function ComponentInspector({ comp, state, onExecute }: ComponentInspecto
             border: '1px solid #4b5563',
             cursor: 'pointer',
             marginTop: '12px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
           }}
         >
-          ↻ +90°
+          <RotateCw size={14} strokeWidth={1.75} /> +90°
         </button>
       </div>
 

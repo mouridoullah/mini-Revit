@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const port = process.env.PLAYWRIGHT_PORT ?? '4184';
+
 export default defineConfig({
   testDir: './e2e',
   timeout: 30000,
@@ -10,8 +12,12 @@ export default defineConfig({
   retries: 0,
   reporter: 'list',
   use: {
-    baseURL: 'http://localhost:4173',
+    baseURL: `http://127.0.0.1:${port}`,
     headless: true,
+    trace: 'on-first-retry',
+    ...(process.env.PLAYWRIGHT_EXECUTABLE_PATH
+      ? { launchOptions: { executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH } }
+      : {}),
   },
   projects: [
     {
@@ -20,9 +26,9 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'pnpm preview --port 4173',
-    port: 4173,
-    reuseExistingServer: true,
+    command: `node ./node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port ${port} --strictPort`,
+    port: Number(port),
+    reuseExistingServer: !process.env.CI,
     timeout: 30000,
   },
 });

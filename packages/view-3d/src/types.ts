@@ -21,7 +21,7 @@ export interface SceneOptions {
   readonly height: number;
 
   /**
-   * Couleur d'arrière-plan de la scène (défaut : 0xf4f3ef, beige/gris architectural).
+   * Couleur d'arrière-plan de la scène (défaut : 0x262a33, gris studio graphite).
    */
   readonly background?: THREE.ColorRepresentation;
 
@@ -97,7 +97,12 @@ export interface FederatedMeshItem {
   readonly positions: Float32Array;
   readonly normals?: Float32Array;
   readonly indices?: Uint32Array;
-  readonly color?: { readonly r: number; readonly g: number; readonly b: number; readonly a?: number };
+  readonly color?: {
+    readonly r: number;
+    readonly g: number;
+    readonly b: number;
+    readonly a?: number;
+  };
 }
 
 /**
@@ -112,5 +117,3 @@ export interface FederatedModelVisual {
   readonly offset?: { readonly x: number; readonly y: number; readonly z: number };
   readonly visible?: boolean;
 }
-
-

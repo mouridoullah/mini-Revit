@@ -26,11 +26,14 @@ import { useBimDocument } from '../hooks/useBimDocument.js';
 import { useResizeObserver } from '../hooks/useResizeObserver.js';
 
 export interface Viewport3DProps {
+  readonly isWhiteMode?: boolean;
+  readonly onZoomFitReady?: (zoomToFit: () => void) => void;
   readonly selection?: readonly string[];
   readonly onSelectionChanged?: (ids: readonly string[]) => void;
   readonly clashes?: readonly ClashOverlayItem[];
   readonly focusPoint?: { readonly x: number; readonly y: number; readonly z: number } | null;
   readonly federatedModels?: readonly FederatedModelVisual[];
+  readonly federatedSelection?: { readonly modelId: string; readonly expressId: number } | null;
   readonly onSelectFederatedEntity?: (modelId: string | null, expressId: number | null) => void;
 }
 
@@ -40,11 +43,14 @@ export interface Viewport3DProps {
  * Règle d'or 2 : Aucun import direct de @mini-bim/geometry (passe par view-3d).
  */
 export function Viewport3D({
+  isWhiteMode = false,
+  onZoomFitReady,
   selection,
   onSelectionChanged,
   clashes,
   focusPoint,
   federatedModels,
+  federatedSelection,
   onSelectFederatedEntity,
 }: Viewport3DProps = {}) {
   const { state, lastChangedIds } = useBimDocument();
@@ -69,7 +75,7 @@ export function Viewport3D({
     const scene = new Scene3D(canvas, {
       width,
       height,
-      background: 0xf4f3ef, // Beige architectural
+      background: 0x262a33,
       gridSize: 20000,
     });
     sceneRef.current = scene;
@@ -85,6 +91,19 @@ export function Viewport3D({
       windowMaterialRef.current?.dispose();
     };
   }, []); // Monté une seule fois
+
+  useEffect(() => {
+    onZoomFitReady?.(() => {
+      sceneRef.current?.zoomToFit();
+    });
+  }, [onZoomFitReady]);
+
+  useEffect(() => {
+    sceneRef.current?.setBackground(
+      isWhiteMode ? 0xffffff : 0x262a33,
+      isWhiteMode ? [0xd1d5db, 0xe5e7eb] : [0x566070, 0x3a404c],
+    );
+  }, [isWhiteMode]);
 
   // Synchronisation des maillages 3D (murs percés et placeholders d'ouvertures) lors des mutations de state
   useEffect(() => {
@@ -138,7 +157,8 @@ export function Viewport3D({
           for (const otherWall of Object.values(state.walls)) {
             if (otherWall.levelId === wall.levelId && otherWall.id !== wall.id) {
               if (
-                Math.hypot(otherWall.start.x - wall.start.x, otherWall.start.y - wall.start.y) < 50 ||
+                Math.hypot(otherWall.start.x - wall.start.x, otherWall.start.y - wall.start.y) <
+                  50 ||
                 Math.hypot(otherWall.start.x - wall.end.x, otherWall.start.y - wall.end.y) < 50 ||
                 Math.hypot(otherWall.end.x - wall.start.x, otherWall.end.y - wall.end.y) < 50 ||
                 Math.hypot(otherWall.end.x - wall.end.x, otherWall.end.y - wall.end.y) < 50
@@ -156,7 +176,8 @@ export function Viewport3D({
         if (comp?.placement?.hostWallId) dirtyElementIds.add(comp.placement.hostWallId);
 
         // Invalidation ciblée de la grappe MEP connectée (Sous-phase 9.3.3)
-        const mepEl = pipes[id] ?? ducts[id] ?? cableTrays[id] ?? mepFittings[id] ?? mepEquipments[id];
+        const mepEl =
+          pipes[id] ?? ducts[id] ?? cableTrays[id] ?? mepFittings[id] ?? mepEquipments[id];
         if (mepEl && state.mepConnectors) {
           const portIds = new Set(mepEl.ports.map((p) => p.id));
           for (const conn of Object.values(state.mepConnectors)) {
@@ -202,16 +223,22 @@ export function Viewport3D({
 
         // Si un niveau a été modifié, tous ses éléments sont sales
         if (state.levels[id]) {
-          for (const w of Object.values(state.walls)) if (w.levelId === id) dirtyElementIds.add(w.id);
+          for (const w of Object.values(state.walls))
+            if (w.levelId === id) dirtyElementIds.add(w.id);
           for (const s of Object.values(slabs)) if (s.levelId === id) dirtyElementIds.add(s.id);
-          for (const st of Object.values(stairs)) if (st.bottomLevelId === id || st.topLevelId === id) dirtyElementIds.add(st.id);
+          for (const st of Object.values(stairs))
+            if (st.bottomLevelId === id || st.topLevelId === id) dirtyElementIds.add(st.id);
           for (const r of Object.values(roofs)) if (r.levelId === id) dirtyElementIds.add(r.id);
-          for (const c of Object.values(components)) if (c.levelId === id) dirtyElementIds.add(c.id);
+          for (const c of Object.values(components))
+            if (c.levelId === id) dirtyElementIds.add(c.id);
           for (const p of Object.values(pipes)) if (p.levelId === id) dirtyElementIds.add(p.id);
           for (const d of Object.values(ducts)) if (d.levelId === id) dirtyElementIds.add(d.id);
-          for (const ct of Object.values(cableTrays)) if (ct.levelId === id) dirtyElementIds.add(ct.id);
-          for (const ft of Object.values(mepFittings)) if (ft.levelId === id) dirtyElementIds.add(ft.id);
-          for (const eq of Object.values(mepEquipments)) if (eq.levelId === id) dirtyElementIds.add(eq.id);
+          for (const ct of Object.values(cableTrays))
+            if (ct.levelId === id) dirtyElementIds.add(ct.id);
+          for (const ft of Object.values(mepFittings))
+            if (ft.levelId === id) dirtyElementIds.add(ft.id);
+          for (const eq of Object.values(mepEquipments))
+            if (eq.levelId === id) dirtyElementIds.add(eq.id);
         }
         // Si un système MEP est modifié, tous ses éléments sont sales
         if (state.mepSystems?.[id]) {
@@ -221,7 +248,8 @@ export function Viewport3D({
         }
         // Si un type est modifié, toutes ses instances sont sales
         if (state.wallTypes[id]) {
-          for (const w of Object.values(state.walls)) if (w.typeId === id) dirtyElementIds.add(w.id);
+          for (const w of Object.values(state.walls))
+            if (w.typeId === id) dirtyElementIds.add(w.id);
         }
         if (state.slabTypes?.[id]) {
           for (const s of Object.values(slabs)) if (s.slabTypeId === id) dirtyElementIds.add(s.id);
@@ -230,10 +258,12 @@ export function Viewport3D({
           for (const d of Object.values(doors)) if (d.doorTypeId === id) dirtyElementIds.add(d.id);
         }
         if (state.windowTypes?.[id]) {
-          for (const w of Object.values(windows)) if (w.windowTypeId === id) dirtyElementIds.add(w.id);
+          for (const w of Object.values(windows))
+            if (w.windowTypeId === id) dirtyElementIds.add(w.id);
         }
         if (state.stairTypes?.[id]) {
-          for (const st of Object.values(stairs)) if (st.stairTypeId === id) dirtyElementIds.add(st.id);
+          for (const st of Object.values(stairs))
+            if (st.stairTypeId === id) dirtyElementIds.add(st.id);
         }
         if (state.roofTypes?.[id]) {
           for (const r of Object.values(roofs)) if (r.roofTypeId === id) dirtyElementIds.add(r.id);
@@ -252,7 +282,10 @@ export function Viewport3D({
       wallsByLevel.set(wall.levelId, list);
     }
 
-    const resolvedPolygonsByWallId = new Map<string, readonly { readonly x: number; readonly y: number }[]>();
+    const resolvedPolygonsByWallId = new Map<
+      string,
+      readonly { readonly x: number; readonly y: number }[]
+    >();
     for (const [, levelWalls] of wallsByLevel) {
       if (isIncremental && !levelWalls.some((w) => dirtyElementIds.has(w.id))) {
         continue;
@@ -320,7 +353,8 @@ export function Viewport3D({
     // 3. Placeholders 3D des portes (boîte bois)
     const doorMat = doorMaterialRef.current ?? undefined;
     for (const door of Object.values(doors)) {
-      if (isIncremental && !dirtyElementIds.has(door.id) && !dirtyElementIds.has(door.hostWallId)) continue;
+      if (isIncremental && !dirtyElementIds.has(door.id) && !dirtyElementIds.has(door.hostWallId))
+        continue;
       const hostWall = state.walls[door.hostWallId];
       if (!hostWall) continue;
       const resolvedHost = resolveWallGeometry(hostWall, state);
@@ -339,7 +373,10 @@ export function Viewport3D({
         hostWall,
         resolvedHost.zBase,
       );
-      const m = scene.updateMesh(placeholder, doorMat, { ownsMaterial: false, isSharedMaterial: true });
+      const m = scene.updateMesh(placeholder, doorMat, {
+        ownsMaterial: false,
+        isSharedMaterial: true,
+      });
       m.userData.ownsMaterial = false;
       m.userData.isSharedMaterial = true;
     }
@@ -347,7 +384,8 @@ export function Viewport3D({
     // 4. Placeholders 3D des fenêtres (boîte vitrée translucide)
     const winMat = windowMaterialRef.current ?? undefined;
     for (const win of Object.values(windows)) {
-      if (isIncremental && !dirtyElementIds.has(win.id) && !dirtyElementIds.has(win.hostWallId)) continue;
+      if (isIncremental && !dirtyElementIds.has(win.id) && !dirtyElementIds.has(win.hostWallId))
+        continue;
       const hostWall = state.walls[win.hostWallId];
       if (!hostWall) continue;
       const resolvedHost = resolveWallGeometry(hostWall, state);
@@ -366,7 +404,10 @@ export function Viewport3D({
         hostWall,
         resolvedHost.zBase,
       );
-      const m = scene.updateMesh(placeholder, winMat, { ownsMaterial: false, isSharedMaterial: true });
+      const m = scene.updateMesh(placeholder, winMat, {
+        ownsMaterial: false,
+        isSharedMaterial: true,
+      });
       m.userData.ownsMaterial = false;
       m.userData.isSharedMaterial = true;
     }
@@ -595,6 +636,13 @@ export function Viewport3D({
     renderedFedModelIdsRef.current = currentFedIds;
   }, [federatedModels]);
 
+  useEffect(() => {
+    sceneRef.current?.setFederatedSelection(
+      federatedSelection?.modelId ?? null,
+      federatedSelection?.expressId ?? null,
+    );
+  }, [federatedSelection]);
+
   // Écouteur de picking 3D (clic stationnaire raycast)
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -663,27 +711,9 @@ export function Viewport3D({
         width: '100%',
         height: '100%',
         overflow: 'hidden',
-        backgroundColor: '#f4f3ef',
+        backgroundColor: isWhiteMode ? '#ffffff' : '#262a33',
       }}
     >
-      <div
-        style={{
-          position: 'absolute',
-          top: '8px',
-          left: '8px',
-          zIndex: 10,
-          backgroundColor: 'rgba(255, 255, 255, 0.9)',
-          padding: '4px 8px',
-          borderRadius: '4px',
-          fontSize: '12px',
-          fontWeight: 600,
-          color: '#374151',
-          border: '1px solid #e5e7eb',
-          pointerEvents: 'none',
-        }}
-      >
-        Vue 3D Orbitale (Z-up)
-      </div>
       <canvas
         ref={canvasRef}
         data-testid="viewport-3d-canvas"

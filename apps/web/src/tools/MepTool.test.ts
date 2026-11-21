@@ -122,6 +122,23 @@ describe('MepTool (apps/web/src/tools/MepTool.ts — Sous-phase 9.3.2)', () => {
     }
   });
 
+  it('signale explicitement le rejet d’un segment MEP inférieur à 50 mm', () => {
+    tool.handle(
+      { type: 'pointerdown', screen: { x: 400, y: 300 }, button: 0, shift: false, alt: false },
+      ctx,
+    );
+    const output = tool.handle(
+      { type: 'pointerdown', screen: { x: 404, y: 300 }, button: 0, shift: false, alt: false },
+      ctx,
+    );
+
+    expect(output).toEqual({
+      kind: 'error',
+      message: 'SEGMENT_TOO_SHORT : un tronçon MEP doit mesurer au moins 50 mm.',
+    });
+    expect(Object.keys(doc.getState().pipes ?? {})).toHaveLength(0);
+  });
+
   it('permet de tracer une gaine rectangulaire (duct)', () => {
     ctx = {
       ...ctx,

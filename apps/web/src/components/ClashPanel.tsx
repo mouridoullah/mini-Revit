@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
+import { ChevronDown, ChevronUp, Search, Zap } from 'lucide-react';
 import {
   type BimDocument,
   type ClashResult,
@@ -8,6 +9,7 @@ import {
 
 export interface ClashPanelProps {
   readonly doc: BimDocument;
+  readonly embedded?: boolean;
   readonly isCollapsed?: boolean;
   readonly onToggleCollapse?: () => void;
   readonly onSelectClash?: (clash: ClashResult) => void;
@@ -23,6 +25,7 @@ export type DisciplineFilter = 'all' | 'mep-structure' | 'mep-architecture' | 'm
  */
 export function ClashPanel({
   doc,
+  embedded = false,
   isCollapsed = true,
   onToggleCollapse,
   onSelectClash,
@@ -37,12 +40,6 @@ export function ClashPanel({
 
   const collapsed = onToggleCollapse ? isCollapsed : internalCollapsed;
   const toggleCollapse = onToggleCollapse ?? (() => setInternalCollapsed((prev) => !prev));
-
-  // Synchronise le repli interne si la prop isCollapsed change
-  if (onToggleCollapse === undefined && internalCollapsed !== isCollapsed) {
-    // Si la prop externe a changé sans handler, adopter la prop
-    // ou synchroniser via useEffect
-  }
 
   const handleRunDetection = useCallback(() => {
     const results = detectClashes(doc.getState());
@@ -114,21 +111,22 @@ export function ClashPanel({
     <div
       data-testid="clash-panel"
       style={{
-        position: 'fixed',
-        left: '20px',
-        bottom: '36px',
-        width: '520px',
-        maxHeight: collapsed ? '44px' : '460px',
+        position: embedded ? 'relative' : 'fixed',
+        left: embedded ? undefined : '20px',
+        bottom: embedded ? undefined : '36px',
+        width: embedded ? '100%' : '520px',
+        height: embedded && !collapsed ? '100%' : undefined,
+        maxHeight: embedded ? 'none' : collapsed ? '44px' : '460px',
         backgroundColor: '#1f2937',
         color: '#f3f4f6',
-        borderRadius: '8px 8px 0 0',
+        borderRadius: embedded ? 0 : '8px 8px 0 0',
         boxShadow: '0 -4px 16px rgba(0, 0, 0, 0.35)',
-        zIndex: 40,
+        zIndex: embedded ? 'auto' : 40,
         display: 'flex',
         flexDirection: 'column',
         transition: 'max-height 0.25s ease-in-out',
         border: '1px solid #374151',
-        borderBottom: 'none',
+        borderBottom: embedded ? '1px solid #374151' : 'none',
         overflow: 'hidden',
       }}
     >
@@ -148,10 +146,8 @@ export function ClashPanel({
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '15px' }}>⚡</span>
-          <span style={{ fontWeight: 600, fontSize: '13px' }}>
-            Détection des Conflits
-          </span>
+          <Zap size={16} strokeWidth={1.75} />
+          <span style={{ fontWeight: 600, fontSize: '13px' }}>Détection des Conflits</span>
           {hasAnalyzed && (
             <div style={{ display: 'flex', gap: '6px', marginLeft: '6px' }}>
               <span
@@ -184,8 +180,9 @@ export function ClashPanel({
           )}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ fontSize: '12px', color: '#9ca3af' }}>
-            {collapsed ? '▲ Déplier' : '▼ Réduire'}
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#9ca3af' }}>
+            {collapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+            {collapsed ? 'Déplier' : 'Réduire'}
           </span>
         </div>
       </div>
@@ -231,7 +228,7 @@ export function ClashPanel({
                   gap: '6px',
                 }}
               >
-                <span>🔍</span> Analyser
+                <Search size={14} strokeWidth={1.75} /> Analyser
               </button>
 
               {hasAnalyzed && (
@@ -336,7 +333,8 @@ export function ClashPanel({
                   fontSize: '12px',
                 }}
               >
-                Cliquez sur <strong>Analyser</strong> pour lancer la détection des conflits sur le modèle actif.
+                Cliquez sur <strong>Analyser</strong> pour lancer la détection des conflits sur le
+                modèle actif.
               </div>
             ) : filteredClashes.length === 0 ? (
               <div
@@ -382,9 +380,7 @@ export function ClashPanel({
                         }}
                         style={{
                           cursor: 'pointer',
-                          backgroundColor: isSelected
-                            ? '#374151'
-                            : 'transparent',
+                          backgroundColor: isSelected ? '#374151' : 'transparent',
                           borderTop: '1px solid #1f2937',
                           transition: 'background-color 0.1s ease',
                         }}
@@ -415,8 +411,11 @@ export function ClashPanel({
                         <td style={{ padding: '6px 8px', color: '#e5e7eb', fontWeight: 600 }}>
                           {Math.round(c.penetrationDepthMm)} mm
                         </td>
-                        <td style={{ padding: '6px 8px', color: '#9ca3af', fontFamily: 'monospace' }}>
-                          ({Math.round(c.point.x)}, {Math.round(c.point.y)}, {Math.round(c.point.z)})
+                        <td
+                          style={{ padding: '6px 8px', color: '#9ca3af', fontFamily: 'monospace' }}
+                        >
+                          ({Math.round(c.point.x)}, {Math.round(c.point.y)}, {Math.round(c.point.z)}
+                          )
                         </td>
                       </tr>
                     );

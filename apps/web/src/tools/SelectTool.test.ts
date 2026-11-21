@@ -73,6 +73,25 @@ describe('SelectTool (Machine à états pure sans DOM)', () => {
     });
   });
 
+  it('sélectionne une porte dans son ouverture avant le mur hôte', () => {
+    const doorTypeId = Object.keys(doc.getState().doorTypes)[0]!;
+    doc.execute(new Commands.AddDoorCommand({
+      id: 'door_select_test',
+      category: 'door',
+      hostWallId: 'wall_to_select',
+      offsetAlong: 1500,
+      doorTypeId,
+      swing: { side: 'left', direction: 'in' },
+    }));
+
+    const screenPos = transform.worldToScreen({ x: 1950, y: 0 });
+    const output = selectTool.handle({
+      type: 'pointerdown', screen: screenPos, button: 0, shift: false, alt: false,
+    }, ctx);
+
+    expect(output).toEqual({ kind: 'selectionChanged', ids: ['door_select_test'] });
+  });
+
   it('pointerdown dans le vide désélectionne et émet selectionChanged vide', () => {
     // Sélection préalable
     const screenOnWall = transform.worldToScreen({ x: 2000, y: 0 });
