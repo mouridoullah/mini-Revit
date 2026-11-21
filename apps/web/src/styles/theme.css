@@ -23,6 +23,11 @@
   --status-hard: #ef4444;
   --status-warning: #f59e0b;
   --status-ok: #10b981;
+  /* Alias ergonomiques Graphite Engineering */
+  --bg-card: var(--bg-elevated);
+  --accent-warning: var(--status-warning);
+  --accent-danger: var(--status-hard);
+  --accent-success: var(--status-ok);
   font-synthesis: none;
 }
 
