@@ -44,6 +44,92 @@ function hasStructuralOrCrossLevelChanges(
 }
 
 /**
+ * Détecte si au moins une entité modifiée a subi une modification de ses références relationnelles
+ * (ajout/suppression d'élément, changement de typeId, levelId, hostWallId, references, topConstraint).
+ * Si faux, la topologie du DAG (nœuds et arêtes) est strictement invariante.
+ */
+function hasTopologicalChanges(
+  changedIds: readonly ElementId[],
+  oldState: BimState,
+  nextState: BimState,
+): boolean {
+  for (const id of changedIds) {
+    const oldW = oldState.walls?.[id];
+    const newW = nextState.walls?.[id];
+    if (oldW || newW) {
+      if (!oldW || !newW) return true; // Ajout ou suppression
+      if (oldW.typeId !== newW.typeId || oldW.levelId !== newW.levelId) return true;
+      const topOld = oldW.topConstraint;
+      const topNew = newW.topConstraint;
+      const roofIdOld = topOld?.kind === 'roof' ? topOld.roofId : undefined;
+      const roofIdNew = topNew?.kind === 'roof' ? topNew.roofId : undefined;
+      const levelIdOld = topOld?.kind !== 'roof' ? topOld?.levelId : undefined;
+      const levelIdNew = topNew?.kind !== 'roof' ? topNew?.levelId : undefined;
+      const sameTop =
+        (!topOld && !topNew) ||
+        (topOld?.kind === topNew?.kind &&
+          levelIdOld === levelIdNew &&
+          roofIdOld === roofIdNew);
+      if (!sameTop) return true;
+      continue;
+    }
+
+    const oldD = oldState.doors?.[id];
+    const newD = nextState.doors?.[id];
+    if (oldD || newD) {
+      if (!oldD || !newD) return true;
+      if (oldD.hostWallId !== newD.hostWallId || oldD.doorTypeId !== newD.doorTypeId) return true;
+      continue;
+    }
+
+    const oldWin = oldState.windows?.[id];
+    const newWin = nextState.windows?.[id];
+    if (oldWin || newWin) {
+      if (!oldWin || !newWin) return true;
+      if (oldWin.hostWallId !== newWin.hostWallId || oldWin.windowTypeId !== newWin.windowTypeId) return true;
+      continue;
+    }
+
+    const oldDim = oldState.dimensions?.[id];
+    const newDim = nextState.dimensions?.[id];
+    if (oldDim || newDim) {
+      if (!oldDim || !newDim) return true;
+      if (oldDim.references.length !== newDim.references.length) return true;
+      let refsEqual = true;
+      for (let i = 0; i < oldDim.references.length; i++) {
+        if (oldDim.references[i] !== newDim.references[i]) {
+          refsEqual = false;
+          break;
+        }
+      }
+      if (!refsEqual) return true;
+      continue;
+    }
+
+    const oldR = oldState.rooms?.[id];
+    const newR = nextState.rooms?.[id];
+    if (oldR || newR) {
+      if (!oldR || !newR) return true;
+      if (oldR.levelId !== newR.levelId) return true;
+      continue;
+    }
+
+    const oldC = oldState.components?.[id];
+    const newC = nextState.components?.[id];
+    if (oldC || newC) {
+      if (!oldC || !newC) return true;
+      if (oldC.typeId !== newC.typeId || oldC.levelId !== newC.levelId) return true;
+      if (oldC.placement?.hostWallId !== newC.placement?.hostWallId) return true;
+      continue;
+    }
+
+    // Tout autre élément (MEP, niveau, dalle, toiture, escalier, etc.)
+    return true;
+  }
+  return false;
+}
+
+/**
  * Gestionnaire documentaire central du projet Mini-BIM.
  *
  * RÈGLES ARCHITECTURALES :
@@ -243,21 +329,27 @@ export class BimDocument {
 
     // Préparation de dagAfter sans muter this._dag (Garde-fou d'atomicité)
     let nextDag: DependencyGraph;
-    if (hasStructuralOrCrossLevelChanges(directChanged, this.state, nextState as BimState)) {
+    const isTopologicalInvariant = !hasTopologicalChanges(directChanged, this.state, nextState as BimState);
+
+    if (isTopologicalInvariant) {
+      nextDag = this._dag;
+    } else if (hasStructuralOrCrossLevelChanges(directChanged, this.state, nextState as BimState)) {
       nextDag = DependencyGraph.build(nextState as BimState);
     } else {
       nextDag = this._dag.clone();
       nextDag.updateElements(directChanged, this.state, nextState as BimState);
     }
 
-    // Détection de cycle sur la nouvelle configuration DAG
-    const cycleNodes = nextDag.findCycleNodes();
-    if (cycleNodes.length > 0) {
-      throw new BimValidationError(
-        'CYCLE_DETECTED',
-        `Cycle detected in dependency graph involving nodes: ${cycleNodes.join(', ')}`,
-        { offendingIds: cycleNodes },
-      );
+    // Détection de cycle ciblée sur les nœuds modifiés (uniquement si la topologie a changé)
+    if (!isTopologicalInvariant) {
+      const cycleNodes = nextDag.findCycleNodes(directChanged);
+      if (cycleNodes.length > 0) {
+        throw new BimValidationError(
+          'CYCLE_DETECTED',
+          `Cycle detected in dependency graph involving nodes: ${cycleNodes.join(', ')}`,
+          { offendingIds: cycleNodes },
+        );
+      }
     }
 
     // Capture des dépendants transitifs via union des fermetures avant et après
@@ -270,10 +362,12 @@ export class BimDocument {
           allChanged.push(dep);
         }
       }
-      for (const dep of nextDag.getDependents(id)) {
-        if (!seen.has(dep)) {
-          seen.add(dep);
-          allChanged.push(dep);
+      if (!isTopologicalInvariant) {
+        for (const dep of nextDag.getDependents(id)) {
+          if (!seen.has(dep)) {
+            seen.add(dep);
+            allChanged.push(dep);
+          }
         }
       }
     }

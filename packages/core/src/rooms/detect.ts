@@ -1,4 +1,6 @@
-import { type BimState, type ElementId, type Room } from '../types.js';
+import { isDraft, original } from 'immer';
+import { type BimState, type ElementId, type Room, type Wall } from '../types.js';
+import { getOrBuildWallResolutionIndex } from '../walls/index-cache.js';
 import {
   type Vec2,
   computeWallFootprint2d,
@@ -45,12 +47,34 @@ export interface DetectedRoom {
   readonly existingRoomId?: ElementId;
 }
 
+export interface DetectRoomsOptions {
+  /**
+   * Boîte englobante 2D (mm) pour restreindre l'analyse à une zone spatiale locale (ADR-014).
+   * Seuls les murs intersectant cette boîte et les pièces dont le seed est à l'intérieur sont traités.
+   */
+  readonly boundingBox?: {
+    readonly minX: number;
+    readonly maxX: number;
+    readonly minY: number;
+    readonly maxY: number;
+  };
+  /**
+   * Indique qu'aucun mur n'a été ajouté au modèle dans cette transaction (ex: MoveWall, UpdateWall).
+   * Évite l'énumération coûteuse des clés du draft Immer sur 10k entités.
+   */
+  readonly noNewWalls?: boolean;
+  /**
+   * Identifiants des murs mutés dans le draft pour n'accéder aux proxies Immer que pour ceux-ci.
+   */
+  readonly modifiedWallIds?: ReadonlySet<ElementId>;
+}
+
 /**
- * Cache mémoïsé pur indexé par référence immuable d'état (WeakMap) et par niveau.
+ * Cache mémoïsé pur indexé par référence immuable d'état (WeakMap) et par niveau / boîte.
  * Évite les recalculs redondants de clipping de polygones à travers l'application
  * (StatusBar, Viewport2D, MetricsPanel, etc.) sans aucun couplage React.
  */
-const roomsCache = new WeakMap<BimState, Map<ElementId, DetectedRoom[]>>();
+const roomsCache = new WeakMap<BimState, Map<string, DetectedRoom[]>>();
 
 /**
  * Détecte l'ensemble des pièces fermées pour un niveau donné en calculant
@@ -58,26 +82,113 @@ const roomsCache = new WeakMap<BimState, Map<ElementId, DetectedRoom[]>>();
  *
  * Règle d'or : Les pièces sont des éléments dérivés. Aucune géométrie n'est stockée dans BimDocument.
  */
-export function detectRooms(state: BimState, levelId: ElementId): DetectedRoom[] {
+export function detectRooms(
+  state: BimState,
+  levelId: ElementId,
+  options?: DetectRoomsOptions,
+): DetectedRoom[] {
   let levelMap = roomsCache.get(state);
   if (!levelMap) {
-    levelMap = new Map<ElementId, DetectedRoom[]>();
+    levelMap = new Map<string, DetectedRoom[]>();
     roomsCache.set(state, levelMap);
   }
 
-  const cached = levelMap.get(levelId);
+  const cacheKey = options?.boundingBox
+    ? `${levelId}:${options.boundingBox.minX},${options.boundingBox.minY},${options.boundingBox.maxX},${options.boundingBox.maxY}`
+    : levelId;
+
+  const cached = levelMap.get(cacheKey);
   if (cached) {
     return cached;
   }
 
-  const detectedRooms = computeDetectRooms(state, levelId);
-  levelMap.set(levelId, detectedRooms);
+  const detectedRooms = computeDetectRooms(state, levelId, options);
+  levelMap.set(cacheKey, detectedRooms);
   return detectedRooms;
 }
 
-function computeDetectRooms(state: BimState, levelId: ElementId): DetectedRoom[] {
+function computeDetectRooms(
+  state: BimState,
+  levelId: ElementId,
+  options?: DetectRoomsOptions,
+): DetectedRoom[] {
+  const boundingBox = options?.boundingBox;
   // 1. Filtrer les murs appartenant strictement au niveau architectural requis
-  const levelWalls = Object.values(state.walls).filter((w) => w.levelId === levelId);
+  // Lecture optimisée évitant le réveil de 4 000 proxies Immer si state est un draft
+  const isDraftState = isDraft(state);
+  const base = (isDraftState ? (original(state as any) ?? state) : state) as BimState;
+  const levelWalls: Wall[] = [];
+
+  const index = getOrBuildWallResolutionIndex(base);
+  const baseLevelWalls = index.wallsByLevelId.get(levelId) ?? [];
+
+  for (let i = 0; i < baseLevelWalls.length; i++) {
+    const baseW = baseLevelWalls[i]!;
+
+    // Filtrage spatial en amont sur l'objet brut sans réveiller le proxy Immer (ADR-014)
+    if (boundingBox) {
+      const minX = baseW.start.x < baseW.end.x ? baseW.start.x : baseW.end.x;
+      const maxX = baseW.start.x < baseW.end.x ? baseW.end.x : baseW.start.x;
+      const minY = baseW.start.y < baseW.end.y ? baseW.start.y : baseW.end.y;
+      const maxY = baseW.start.y < baseW.end.y ? baseW.end.y : baseW.start.y;
+      if (
+        maxX < boundingBox.minX ||
+        minX > boundingBox.maxX ||
+        maxY < boundingBox.minY ||
+        minY > boundingBox.maxY ||
+        (minX >= boundingBox.maxX - 50 && maxX > boundingBox.maxX + 50) ||
+        (maxX <= boundingBox.minX + 50 && minX < boundingBox.minX - 50) ||
+        (minY >= boundingBox.maxY - 50 && maxY > boundingBox.maxY + 50) ||
+        (maxY <= boundingBox.minY + 50 && minY < boundingBox.minY - 50)
+      ) {
+        continue;
+      }
+    }
+
+    let wall = baseW;
+    if (isDraftState) {
+      if (options?.modifiedWallIds) {
+        if (options.modifiedWallIds.has(baseW.id)) {
+          const draftW = state.walls[baseW.id];
+          if (!draftW) continue;
+          wall = draftW;
+        }
+      } else {
+        const draftW = state.walls[baseW.id];
+        if (!draftW) continue;
+        wall = draftW;
+      }
+    }
+
+    levelWalls.push(wall);
+  }
+
+  // Si de nouveaux murs ont été créés dans le draft (ex: AddWallCommand)
+  if (!options?.noNewWalls && isDraftState && state.walls) {
+    for (const wId in state.walls) {
+      if (base.walls && !(wId in base.walls)) {
+        const wall = state.walls[wId];
+        if (wall && wall.levelId === levelId) {
+          if (boundingBox) {
+            const minX = Math.min(wall.start.x, wall.end.x);
+            const maxX = Math.max(wall.start.x, wall.end.x);
+            const minY = Math.min(wall.start.y, wall.end.y);
+            const maxY = Math.max(wall.start.y, wall.end.y);
+            if (
+              maxX < boundingBox.minX ||
+              minX > boundingBox.maxX ||
+              maxY < boundingBox.minY ||
+              minY > boundingBox.maxY
+            ) {
+              continue;
+            }
+          }
+          levelWalls.push(wall);
+        }
+      }
+    }
+  }
+
   if (levelWalls.length < 3) {
     return [];
   }
@@ -118,9 +229,28 @@ function computeDetectRooms(state: BimState, levelId: ElementId): DetectedRoom[]
   }
 
   // 5. Associer les trous aux Rooms déclarées sur ce niveau
-  const existingRoomsOnLevel = Object.values(state.rooms ?? {}).filter(
-    (r) => r.levelId === levelId,
-  );
+  const existingRoomsOnLevel: Room[] = [];
+  const baseRoomsOnLevel = index.roomsByLevelId.get(levelId) ?? [];
+  for (let i = 0; i < baseRoomsOnLevel.length; i++) {
+    const baseR = baseRoomsOnLevel[i]!;
+    if (
+      boundingBox &&
+      (baseR.seed.x < boundingBox.minX ||
+        baseR.seed.x > boundingBox.maxX ||
+        baseR.seed.y < boundingBox.minY ||
+        baseR.seed.y > boundingBox.maxY)
+    ) {
+      continue;
+    }
+
+    let room = baseR;
+    if (isDraftState && state.rooms) {
+      const draftR = state.rooms[baseR.id];
+      if (!draftR) continue;
+      room = draftR;
+    }
+    existingRoomsOnLevel.push(room);
+  }
   const claimedRoomIds = new Set<ElementId>();
 
   const detectedRooms: DetectedRoom[] = [];

@@ -195,4 +195,4 @@ Les trois anomalies identifiées ont été corrigées et vérifiées :
 **Validation globale :** 118 tests automatisés au vert, pipeline `build`, `typecheck`, `lint`, `format:check` sans avertissement. Le moteur géométrique de jonctions est prêt pour la Phase 1.2 (percement des ouvertures).
 
 > [!NOTE]
-> **Phase 1.2 — Percements et Découpe d'Ouvertures :** Les tests croisés d'ouvertures implantées dans des murs résolus (y compris au ras des têtes en onglet à $45^\circ$) ont été validés avec succès. Voir [OPENINGS_AUDIT.md](file:///c:/Users/bdame/Downloads/mini-Revit/OPENINGS_AUDIT.md) pour le rapport de fin de mission complet.
+> **Phase 1.2 — Percements et Découpe d'Ouvertures :** Les tests croisés d'ouvertures implantées dans des murs résolus (y compris au ras des têtes en onglet à $45^\circ$) ont été validés avec succès. Voir [OPENINGS_AUDIT.md](./OPENINGS_AUDIT.md) pour le rapport de fin de mission complet.

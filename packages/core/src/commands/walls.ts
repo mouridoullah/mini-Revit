@@ -1,9 +1,11 @@
+import { isDraft, original } from 'immer';
 import type { Command } from './base.js';
-import type { Wall, WallType, BimState, ElementId } from '../types.js';
+import type { Wall, WallType, BimState, ElementId, Room } from '../types.js';
 import { validateWall, validateWallType, BimValidationError } from '../rules/index.js';
 import { resolveCascadeDeletions } from '../relations/cascade.js';
 import { detectRooms } from '../rooms/detect.js';
 import { computeDimensionValue } from '../dimensions/index.js';
+import { getOrBuildWallResolutionIndex } from '../walls/index-cache.js';
 import {
   isPointInPolygon,
   computeWallStretch,
@@ -100,47 +102,66 @@ export class UpdateWallCommand implements Command {
     validateWall(updatedWall, draft as BimState);
     draft.walls[this.wallId] = updatedWall;
 
-    // Mise à jour associative des cotations qui référencent ce mur
-    const impacted: ElementId[] = [];
-    if (draft.dimensions) {
-      for (const [dimId, dim] of Object.entries(draft.dimensions)) {
-        if (dim.references.includes(this.wallId)) {
-          const newVal = computeDimensionValue(dim, draft as BimState);
-          draft.dimensions[dimId] = {
-            ...dim,
-            value: newVal,
-          };
-          impacted.push(dimId);
-        }
-      }
-    }
-    this.impactedDimensionIds = impacted.sort();
+    // Vérifier si l'emprise 2D au sol a changé
+    const footprintChanged = Boolean(
+      ('start' in this.patch &&
+        (this.patch.start?.x !== existing.start.x || this.patch.start?.y !== existing.start.y)) ||
+      ('end' in this.patch &&
+        (this.patch.end?.x !== existing.end.x || this.patch.end?.y !== existing.end.y)) ||
+      ('levelId' in this.patch && this.patch.levelId !== existing.levelId) ||
+      ('typeId' in this.patch && this.patch.typeId !== existing.typeId),
+    );
 
-    // Mise à jour associative des pièces de ce niveau (Point B / Phase 7.6.1)
-    const impactedRooms: ElementId[] = [];
-    if (draft.rooms) {
-      const levelRooms = Object.values(draft.rooms).filter((r) => r.levelId === updatedWall.levelId);
-      if (levelRooms.length > 0) {
-        const detected = detectRooms(draft as BimState, updatedWall.levelId);
-        for (const room of levelRooms) {
-          const match = detected.find((d) => isPointInPolygon(room.seed, d.polygon));
-          if (match) {
-            draft.rooms[room.id] = {
-              ...room,
-              status: 'enclosed',
-              area: match.areaMm2 / 1_000_000,
+    if (footprintChanged) {
+      // Mise à jour associative des cotations qui référencent ce mur
+      const impacted: ElementId[] = [];
+      if (draft.dimensions) {
+        for (const dimId in draft.dimensions) {
+          const dim = draft.dimensions[dimId];
+          if (dim && dim.references.includes(this.wallId)) {
+            const newVal = computeDimensionValue(dim, draft as BimState);
+            draft.dimensions[dimId] = {
+              ...dim,
+              value: newVal,
             };
-          } else {
-            draft.rooms[room.id] = {
-              ...room,
-              status: 'unenclosed',
-            };
+            impacted.push(dimId);
           }
-          impactedRooms.push(room.id);
         }
       }
+      this.impactedDimensionIds = impacted.sort();
+
+      // Mise à jour associative des pièces de ce niveau (Point B / Phase 7.6.1)
+      const impactedRooms: ElementId[] = [];
+      if (draft.rooms) {
+        const levelRooms = Object.values(draft.rooms).filter((r) => r.levelId === updatedWall.levelId);
+        if (levelRooms.length > 0) {
+          const detected = detectRooms(draft as BimState, updatedWall.levelId, {
+            noNewWalls: true,
+            modifiedWallIds: new Set([this.wallId]),
+          });
+          for (const room of levelRooms) {
+            const match = detected.find((d) => isPointInPolygon(room.seed, d.polygon));
+            const newStatus = match ? 'enclosed' : 'unenclosed';
+            const newArea = match ? match.areaMm2 / 1_000_000 : 0;
+            const statusChanged = room.status !== newStatus;
+            const areaChanged = Math.abs((room.area ?? 0) - newArea) > 1e-4;
+
+            if (statusChanged || areaChanged) {
+              draft.rooms[room.id] = {
+                ...room,
+                status: newStatus,
+                area: newArea,
+              };
+              impactedRooms.push(room.id);
+            }
+          }
+        }
+      }
+      this.impactedRoomIds = impactedRooms.sort();
+    } else {
+      this.impactedDimensionIds = [];
+      this.impactedRoomIds = [];
     }
-    this.impactedRoomIds = impactedRooms.sort();
   }
 
   public getChangedIds(): readonly ElementId[] {
@@ -197,6 +218,10 @@ export class MoveWallCommand implements Command {
     const stretchNeighbors = this.options.stretchNeighbors !== false;
     const propagateChain = this.options.propagateChain === true;
 
+    // Référence immuable non-proxifiée de base pour accès en lecture rapide et index WeakMap
+    const baseState = (isDraft(draft) ? (original(draft as any) ?? draft) : draft) as BimState;
+    const index = getOrBuildWallResolutionIndex(baseState);
+
     // Déplacement initial du mur cible
     const movedA: Wall = {
       ...wall,
@@ -226,12 +251,12 @@ export class MoveWallCommand implements Command {
         },
       ];
 
+      // Extraction en O(1) des murs du même niveau depuis l'index relationnel
+      const levelWalls = index.wallsByLevelId.get(wall.levelId) ?? [];
+
       while (queue.length > 0) {
         const task = queue.shift();
         if (!task) break;
-        const levelWalls = Object.values(draft.walls).filter(
-          (w) => w.levelId === task.movedWall.levelId,
-        );
 
         const connected = findConnectedWalls(task.movedWall, levelWalls);
 
@@ -285,38 +310,36 @@ export class MoveWallCommand implements Command {
           validateWall(updatedNeighbor, draft as BimState);
           draft.walls[neighborId] = updatedNeighbor;
 
-          // Compensation d'abscisse curviligne des baies (Option β d'ADR-044)
-          if (draft.doors) {
-            for (const [doorId, door] of Object.entries(draft.doors)) {
-              if (door.hostWallId === neighborId) {
-                const newOffset = projectOpeningOffset(
-                  door.offsetAlong,
-                  oldNeighbor,
-                  updatedNeighbor,
-                );
-                draft.doors[doorId] = {
-                  ...door,
-                  offsetAlong: newOffset,
-                };
-                affectedOpeningIds.add(doorId);
-              }
+          // Compensation d'abscisse curviligne des baies en O(1) via l'index relationnel (ADR-044 / Phase 10)
+          const neighborDoors = index.doorsByHostWallId.get(neighborId);
+          if (neighborDoors && draft.doors) {
+            for (const door of neighborDoors) {
+              const newOffset = projectOpeningOffset(
+                door.offsetAlong,
+                oldNeighbor,
+                updatedNeighbor,
+              );
+              draft.doors[door.id] = {
+                ...door,
+                offsetAlong: newOffset,
+              };
+              affectedOpeningIds.add(door.id);
             }
           }
 
-          if (draft.windows) {
-            for (const [winId, win] of Object.entries(draft.windows)) {
-              if (win.hostWallId === neighborId) {
-                const newOffset = projectOpeningOffset(
-                  win.offsetAlong,
-                  oldNeighbor,
-                  updatedNeighbor,
-                );
-                draft.windows[winId] = {
-                  ...win,
-                  offsetAlong: newOffset,
-                };
-                affectedOpeningIds.add(winId);
-              }
+          const neighborWindows = index.windowsByHostWallId.get(neighborId);
+          if (neighborWindows && draft.windows) {
+            for (const win of neighborWindows) {
+              const newOffset = projectOpeningOffset(
+                win.offsetAlong,
+                oldNeighbor,
+                updatedNeighbor,
+              );
+              draft.windows[win.id] = {
+                ...win,
+                offsetAlong: newOffset,
+              };
+              affectedOpeningIds.add(win.id);
             }
           }
 
@@ -332,11 +355,20 @@ export class MoveWallCommand implements Command {
       }
     }
 
-    // Mise à jour associative des cotations impactées
-    if (draft.dimensions) {
-      for (const [dimId, dim] of Object.entries(draft.dimensions)) {
-        const touches = dim.references.some((ref) => modifiedWallIds.has(ref));
-        if (touches) {
+    // Mise à jour associative des cotations impactées en O(1) via l'index relationnel
+    if (draft.dimensions && baseState.dimensions) {
+      const affectedDimIds = new Set<ElementId>();
+      for (const wId of modifiedWallIds) {
+        const dims = index.dimensionsByRefId.get(wId);
+        if (dims) {
+          for (let i = 0; i < dims.length; i++) {
+            affectedDimIds.add(dims[i]!.id);
+          }
+        }
+      }
+      for (const dimId of affectedDimIds) {
+        const dim = baseState.dimensions[dimId];
+        if (dim) {
           const newVal = computeDimensionValue(dim, draft as BimState);
           draft.dimensions[dimId] = {
             ...dim,
@@ -347,26 +379,72 @@ export class MoveWallCommand implements Command {
     }
 
     // Mise à jour non-destructive des pièces du niveau (ADR-039 / ADR-044)
-    if (draft.rooms) {
-      const levelRooms = Object.values(draft.rooms).filter((r) => r.levelId === wall.levelId);
-      if (levelRooms.length > 0) {
-        const detected = detectRooms(draft as BimState, wall.levelId);
-        for (const room of levelRooms) {
+    if (draft.rooms && baseState.rooms) {
+      // Déterminer la boîte englobante locale couvrant positions initiales et déplacées
+      let minX = Infinity;
+      let maxX = -Infinity;
+      let minY = Infinity;
+      let maxY = -Infinity;
+      for (const id of modifiedWallIds) {
+        const wOld = baseState.walls?.[id];
+        if (wOld) {
+          minX = Math.min(minX, wOld.start.x, wOld.end.x);
+          maxX = Math.max(maxX, wOld.start.x, wOld.end.x);
+          minY = Math.min(minY, wOld.start.y, wOld.end.y);
+          maxY = Math.max(maxY, wOld.start.y, wOld.end.y);
+        }
+        const wNew = draft.walls[id];
+        if (wNew) {
+          minX = Math.min(minX, wNew.start.x, wNew.end.x);
+          maxX = Math.max(maxX, wNew.start.x, wNew.end.x);
+          minY = Math.min(minY, wNew.start.y, wNew.end.y);
+          maxY = Math.max(maxY, wNew.start.y, wNew.end.y);
+        }
+      }
+
+      const margin = stretchNeighbors ? 20 : 2_000;
+      const localBox = {
+        minX: minX - margin,
+        maxX: maxX + margin,
+        minY: minY - margin,
+        maxY: maxY + margin,
+      };
+
+      const localRooms: Room[] = [];
+      const baseRoomsOnLevel = index.roomsByLevelId.get(wall.levelId) ?? [];
+      for (let i = 0; i < baseRoomsOnLevel.length; i++) {
+        const r = baseRoomsOnLevel[i]!;
+        if (
+          r.seed.x >= localBox.minX &&
+          r.seed.x <= localBox.maxX &&
+          r.seed.y >= localBox.minY &&
+          r.seed.y <= localBox.maxY
+        ) {
+          localRooms.push(r);
+        }
+      }
+
+      if (localRooms.length > 0) {
+        const detected = detectRooms(draft as BimState, wall.levelId, {
+          boundingBox: localBox,
+          noNewWalls: true,
+          modifiedWallIds,
+        });
+        for (const room of localRooms) {
           const match = detected.find((d) => isPointInPolygon(room.seed, d.polygon));
-          if (match) {
+          const newStatus = match ? 'enclosed' : 'unenclosed';
+          const newArea = match ? match.areaMm2 / 1_000_000 : 0;
+          const statusChanged = room.status !== newStatus;
+          const areaChanged = Math.abs((room.area ?? 0) - newArea) > 1e-4;
+
+          if (statusChanged || areaChanged) {
             draft.rooms[room.id] = {
               ...room,
-              status: 'enclosed',
-              area: match.areaMm2 / 1_000_000,
+              status: newStatus,
+              area: newArea,
             };
-          } else {
-            draft.rooms[room.id] = {
-              ...room,
-              status: 'unenclosed',
-              area: 0,
-            };
+            affectedRoomIds.add(room.id);
           }
-          affectedRoomIds.add(room.id);
         }
       }
     }

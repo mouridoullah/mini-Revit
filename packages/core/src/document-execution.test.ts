@@ -309,6 +309,7 @@ describe('Intégration BimDocument.execute() + DAG Minimal (T-EXEC-01 à 07)', (
           hostWallId: 'wall_inv_1',
           doorTypeId,
           offsetAlong: 9000,
+          swing: { side: 'right', direction: 'in' },
         }),
       );
     }).toThrow();

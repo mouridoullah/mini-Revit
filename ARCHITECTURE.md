@@ -230,13 +230,15 @@ Pour préserver l'intégrité du logiciel sur le long terme, les frontières sui
 
 ---
 
-## 6. Stratégie d'Évolution et Extensibilité
+## 6. Stratégie d'Évolution et Extensibilité (Horizons Saison 3)
 
-L'architecture est dès à présent pensée pour absorber les évolutions sans rupture :
+L'architecture est dès à présent consolidée jusqu'au palier des 10 000 entités (Phase 10 / ADR-014) avec support complet des réseaux MEP (`MepNetworkGraph`), détection de conflits BVH 3D (`ClashEngine`), fédération IFC (`FederatedIfcManager`) et persistance continue IndexedDB (`AutoSaveManager`).
+
+Les perspectives de passage à l'échelle supérieure (Saison 3) s'appuient sur :
 
 - **Régénération en Web Worker (Multi-threading) :**  
-  Le moteur de régénération étant totalement découplé du DOM, son exécution pourra être déportée dans un Web Worker dès que le modèle dépasse 1 000 murs. Les échanges se feront par transfert sans copie de `ArrayBuffer` (`Transferable Objects`).
-- **Support des Réseaux MEP :**  
-  Le système de registre de catégories (`CategoryDef`) permettra d'enregistrer de nouvelles familles d'éléments (tuyaux, gaines, équipements techniques) avec leur propre logique de connecteurs (ports) et de balayage géométrique (`sweep`), sans modifier le noyau architectural central.
-- **Persistance Client-Serveur Hybride :**  
-  Le format de transaction par commandes permet une transition transparente d'un stockage local (SQLite WASM) vers une synchronisation serveur (PostgreSQL) par envoi de flux d'opérations (Event Sourcing / Change Data Capture).
+  Le moteur de régénération étant totalement découplé du DOM et de Three.js, son exécution pourra être déportée dans un Web Worker dédié pour les maquettes excédant 50 000 entités. Les échanges se feront par transfert sans copie de `ArrayBuffer` (`Transferable Objects`).
+- **Pipeline Graphique WebGPU :**  
+  Transition transparente depuis WebGL/Canvas vers un pipeline WebGPU avec rendu instancié multi-matériaux et shaders de coupe analytique temps réel.
+- **Persistance Client-Serveur Hybride & Synchronisation Temps Réel :**  
+  Le format de transaction atomique par commandes typées (`CommandBus`) permet une transition transparente d'un stockage local (IndexedDB) vers une synchronisation serveur distribuée (PostgreSQL / CRDT) par envoi de flux d'opérations (Event Sourcing / Change Data Capture).

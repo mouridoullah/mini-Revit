@@ -3,8 +3,6 @@ import { isPointInPolygon, vec2, type Vec2 } from '@mini-bim/geometry';
 import {
   getOrComputeSlabGeometry,
   getOrBuildWallResolutionIndex,
-  type WallResolutionIndex,
-  type EffectiveSlabGeometry,
 } from './walls/index-cache.js';
 
 export interface ComputeWallEffectiveHeightOptions {

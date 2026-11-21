@@ -112,10 +112,10 @@ La suite de tests Vitest compte désormais **191 tests automatisés** répartis 
 
 Les fichiers 3D standards suivants ont été générés dans `docs/mesh-visuals/` pour inspection directe dans des outils de modélisation 3D (Blender, MeshLab) :
 
-1. [`docs/mesh-visuals/wall-window-3d.obj`](file:///c:/Users/bdame/Downloads/mini-Revit/docs/mesh-visuals/wall-window-3d.obj) : Mur de 4000 mm percé d'une baie de fenêtre (4 sous-maillages solides).
-2. [`docs/mesh-visuals/wall-miter-45.obj`](file:///c:/Users/bdame/Downloads/mini-Revit/docs/mesh-visuals/wall-miter-45.obj) : Mur avec angle biseauté à 45° et ouverture à clearance 50 mm.
-3. [`docs/mesh-visuals/wall-two-openings.obj`](file:///c:/Users/bdame/Downloads/mini-Revit/docs/mesh-visuals/wall-two-openings.obj) : Mur avec porte d'entrée et fenêtre latérale (6 sous-maillages).
-4. [`docs/mesh-visuals/triangulation-topview.svg`](file:///c:/Users/bdame/Downloads/mini-Revit/docs/mesh-visuals/triangulation-topview.svg) : Schéma vectoriel de la triangulation 2D vue du dessus.
+1. [`docs/mesh-visuals/wall-window-3d.obj`](./docs/mesh-visuals/wall-window-3d.obj) : Mur de 4000 mm percé d'une baie de fenêtre (4 sous-maillages solides).
+2. [`docs/mesh-visuals/wall-miter-45.obj`](./docs/mesh-visuals/wall-miter-45.obj) : Mur avec angle biseauté à 45° et ouverture à clearance 50 mm.
+3. [`docs/mesh-visuals/wall-two-openings.obj`](./docs/mesh-visuals/wall-two-openings.obj) : Mur avec porte d'entrée et fenêtre latérale (6 sous-maillages).
+4. [`docs/mesh-visuals/triangulation-topview.svg`](./docs/mesh-visuals/triangulation-topview.svg) : Schéma vectoriel de la triangulation 2D vue du dessus.
 
 ---
 

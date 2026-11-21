@@ -64,12 +64,28 @@ export class UpdateRoomCommand implements Command {
         `Cannot update room: ID "${this.roomId}" not found.`,
       );
     }
-    const updated: Room = {
+    let updated: Room = {
       ...existing,
       ...(this.patch.name !== undefined ? { name: this.patch.name } : {}),
       ...(this.patch.seed !== undefined ? { seed: this.patch.seed } : {}),
     };
     validateRoom(updated, draft as BimState);
+    if (this.patch.seed !== undefined) {
+      const detected = detectRooms(draft as BimState, updated.levelId);
+      const match = detected.find((d) => isPointInPolygon(updated.seed, d.polygon));
+      if (!match) {
+        throw new BimValidationError(
+          'ROOM_SEED_NOT_IN_CLOSED_AREA',
+          `Cannot place room seed at (${updated.seed.x}, ${updated.seed.y}): point is not inside any closed boundary.`,
+          { offendingIds: [this.roomId] },
+        );
+      }
+      updated = {
+        ...updated,
+        area: match.areaMm2 / 1_000_000,
+        status: 'enclosed',
+      };
+    }
     draft.rooms[this.roomId] = updated;
   }
 

@@ -119,6 +119,11 @@ export function getWallLocalHeadroom(
  */
 export function resolveWallGeometry(wall: Wall, state: BimState): ResolvedWall {
   const index = getOrBuildWallResolutionIndex(state);
+  const cached = index.resolvedWallsCache.get(wall.id);
+  if (cached) {
+    return cached;
+  }
+
   const currentLevel = state.levels[wall.levelId];
   const zBase = (currentLevel?.elevation ?? 0) + (wall.baseOffset ?? 0);
   const wallType = state.wallTypes[wall.typeId];
@@ -338,7 +343,7 @@ export function resolveWallGeometry(wall: Wall, state: BimState): ResolvedWall {
 
   const grossAreaMm2 = computeWallPolygonalSideArea(topProfile, zBase);
 
-  return {
+  const result: ResolvedWall = {
     wallId: wall.id,
     zBase,
     zTop,
@@ -351,4 +356,6 @@ export function resolveWallGeometry(wall: Wall, state: BimState): ResolvedWall {
     openings,
     topProfile,
   };
+  index.resolvedWallsCache.set(wall.id, result);
+  return result;
 }

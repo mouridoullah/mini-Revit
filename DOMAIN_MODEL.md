@@ -151,7 +151,7 @@ classDiagram
   - `id: string` (ULID unique).
   - `name: string` (Ex: "Pavillon Résidentiel R+1").
   - `unit: 'mm'` (Unité interne universelle float64).
-  - `schemaVersion: number` (Entier incrémental, actuellement `1`).
+  - `schemaVersion: number` (Entier incrémental, actuellement `2`, avec migration ascendante automatique depuis la v1 via `migrateSchemaV1toV2`).
   - `createdAt: string`, `updatedAt: string` (Timestamps ISO).
 - **Invariants :** L'unité interne est invariablement `mm`. Le schéma version doit correspondre à la version supportée ou déclencher une migration.
 

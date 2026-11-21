@@ -1,8 +1,9 @@
 import type { Wall, WallType, BimState, ElementId } from '../types.js';
-import type { RuleViolation } from './types.js';
+import { type RuleViolation, BimValidationError } from './types.js';
 import { assertNoViolations } from './utils.js';
 import { getComponentObbVertices, doConvexPolygonsIntersect } from './components.js';
 import { computeWallFootprint2d, type WallFootprint2D } from '@mini-bim/geometry';
+import { getOrBuildWallResolutionIndex } from '../walls/index-cache.js';
 
 /**
  * Vérifie les règles métier propres à un mur (longueur, type, niveau).
@@ -42,32 +43,45 @@ export function checkWallViolations(wall: Wall, state: BimState): RuleViolation[
   }
 
   // 4. Détection non-bloquante des interférences avec les composants libres du même niveau (ADR-054 / Warning)
-  // Optimisation Broad-phase AABB (Phase 9.4) : élimine la boucle quadratique O(C * (C + W))
+  // Optimisation Broad-phase spatiale indexée par niveau (Phase 10)
   if (state.components) {
-    const wallType = state.wallTypes[wall.typeId];
-    const halfThick = ((wallType?.thickness ?? 200) * 0.5) + 5;
-    const wallMinX = Math.min(wall.start.x, wall.end.x) - halfThick;
-    const wallMaxX = Math.max(wall.start.x, wall.end.x) + halfThick;
-    const wallMinY = Math.min(wall.start.y, wall.end.y) - halfThick;
-    const wallMaxY = Math.max(wall.start.y, wall.end.y) + halfThick;
+    const index = getOrBuildWallResolutionIndex(state);
+    const levelComps = index.componentsByLevelId.get(wall.levelId);
+    if (levelComps && levelComps.length > 0) {
+      const wallType = state.wallTypes[wall.typeId];
+      const halfThick = ((wallType?.thickness ?? 200) * 0.5) + 5;
+      const wallMinX = Math.min(wall.start.x, wall.end.x) - halfThick;
+      const wallMaxX = Math.max(wall.start.x, wall.end.x) + halfThick;
+      const wallMinY = Math.min(wall.start.y, wall.end.y) - halfThick;
+      const wallMaxY = Math.max(wall.start.y, wall.end.y) + halfThick;
 
-    let wallFp: WallFootprint2D | null = null;
+      let wallFp: WallFootprint2D | null = null;
+      const roughBound = halfThick + 1500; // Rayon englobant maximal pour tout mobilier/sanitaire (1.5 m)
 
-    for (const comp of Object.values(state.components)) {
-      if (comp.levelId !== wall.levelId) continue;
-      if (comp.placement.hostWallId === wall.id) continue;
+      for (const comp of levelComps) {
+        if (comp.placement.hostWallId === wall.id) continue;
 
-      // Broad-phase AABB 2D
-      const ct = state.componentTypes ? state.componentTypes[comp.typeId] : undefined;
-      const maxDim = Math.max(ct?.width ?? 600, ct?.depth ?? 600) * 0.75;
-      if (
-        comp.placement.x + maxDim < wallMinX ||
-        comp.placement.x - maxDim > wallMaxX ||
-        comp.placement.y + maxDim < wallMinY ||
-        comp.placement.y - maxDim > wallMaxY
-      ) {
-        continue;
-      }
+        // Pré-filtrage ultra-rapide O(1) sans résolution de type
+        if (
+          comp.placement.x < wallMinX - roughBound ||
+          comp.placement.x > wallMaxX + roughBound ||
+          comp.placement.y < wallMinY - roughBound ||
+          comp.placement.y > wallMaxY + roughBound
+        ) {
+          continue;
+        }
+
+        // Broad-phase AABB 2D précise
+        const ct = state.componentTypes ? state.componentTypes[comp.typeId] : undefined;
+        const maxDim = Math.max(ct?.width ?? 600, ct?.depth ?? 600) * 0.75;
+        if (
+          comp.placement.x + maxDim < wallMinX ||
+          comp.placement.x - maxDim > wallMaxX ||
+          comp.placement.y + maxDim < wallMinY ||
+          comp.placement.y - maxDim > wallMaxY
+        ) {
+          continue;
+        }
 
       // Narrow-phase : polygones convexes SAT uniquement si AABB se chevauchent
       if (!wallFp) {
@@ -90,6 +104,7 @@ export function checkWallViolations(wall: Wall, state: BimState): RuleViolation[
       }
     }
   }
+}
 
   return violations;
 }
@@ -128,10 +143,39 @@ export function checkWallTypeViolations(wallType: WallType): RuleViolation[] {
 }
 
 /**
- * Valide l'intégrité géométrique et référentielle d'un mur.
+ * Valide l'intégrité géométrique et référentielle d'un mur (règles bloquantes uniquement).
  */
 export function validateWall(wall: Wall, state: BimState): void {
-  assertNoViolations(checkWallViolations(wall, state));
+  // 1. Longueur strictement positive
+  const dx = wall.end.x - wall.start.x;
+  const dy = wall.end.y - wall.start.y;
+  const length = Math.hypot(dx, dy);
+
+  if (!Number.isFinite(length) || length <= 1e-4) {
+    throw new BimValidationError(
+      'INVALID_WALL_LENGTH',
+      `Wall length must be strictly positive (got ${length} mm).`,
+      { offendingIds: [wall.id] },
+    );
+  }
+
+  // 2. Vérification du WallType référencé
+  if (!state.wallTypes[wall.typeId]) {
+    throw new BimValidationError(
+      'UNKNOWN_WALL_TYPE',
+      `Wall refers to non-existent WallType ID: "${wall.typeId}".`,
+      { offendingIds: [wall.id] },
+    );
+  }
+
+  // 3. Vérification du Level référencé
+  if (!state.levels[wall.levelId]) {
+    throw new BimValidationError(
+      'UNKNOWN_LEVEL',
+      `Wall refers to non-existent Level ID: "${wall.levelId}".`,
+      { offendingIds: [wall.id] },
+    );
+  }
 }
 
 /**
