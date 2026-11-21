@@ -33,6 +33,8 @@ export {
   offsetPolygonSimple,
   drawUnderlay,
   drawRooms,
+  drawRoomFills,
+  drawRoomLabels,
   drawDimensions,
   drawOpeningDoor,
   drawOpeningWindow,

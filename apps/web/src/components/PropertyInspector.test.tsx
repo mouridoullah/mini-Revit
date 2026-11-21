@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { BimDocument, Commands, type Wall, type Slab, type Level } from '@mini-bim/core';
 import { PropertyInspector } from './PropertyInspector.js';
@@ -51,7 +51,9 @@ describe('PropertyInspector — Panneau latéral d’inspection et d’édition 
       start: { x: 0, y: 0 },
       end: { x: 4000, y: 0 },
     };
-    doc.execute(new Commands.AddWallCommand(wall));
+    act(() => {
+      doc.execute(new Commands.AddWallCommand(wall));
+    });
 
     render(<PropertyInspector doc={doc} selectedIds={['w-inspect']} />);
 
@@ -277,7 +279,9 @@ describe('PropertyInspector — Panneau latéral d’inspection et d’édition 
       end: { x: 3000, y: 0 },
       baseOffset: 100,
     };
-    doc.execute(new Commands.AddWallCommand(wall));
+    act(() => {
+      doc.execute(new Commands.AddWallCommand(wall));
+    });
 
     render(<PropertyInspector doc={doc} selectedIds={['w-reactive']} />);
 
@@ -420,5 +424,51 @@ describe('PropertyInspector — Panneau latéral d’inspection et d’édition 
 
     fireEvent.click(clearanceCheckbox);
     expect(doc.getState().components?.['comp_table_param']?.showClearanceZone).toBe(true);
+  });
+
+  it('T-INSPECT-EMBEDDED : mode embedded supprime le titre redondant tout en conservant delete-selected-btn fonctionnel', () => {
+    const onDeleteMock = vi.fn();
+    const { rerender } = render(
+      <PropertyInspector
+        doc={doc}
+        selectedIds={[]}
+        embedded={true}
+        onDeleteSelected={onDeleteMock}
+      />,
+    );
+
+    // 1. Sans sélection en mode embedded : aucun titre "Propriétés" ni bouton de suppression
+    expect(screen.queryByText('Propriétés')).toBeNull();
+    expect(screen.queryByTestId('delete-selected-btn')).toBeNull();
+    expect(screen.getByTestId('inspector-no-selection')).toBeDefined();
+
+    // 2. Avec sélection en mode embedded : delete-selected-btn est présent mais le titre "Propriétés" reste masqué
+    const wall: Wall = {
+      id: 'w-embedded-test',
+      category: 'wall',
+      typeId: wallTypeId,
+      levelId: level0Id,
+      start: { x: 0, y: 0 },
+      end: { x: 4000, y: 0 },
+    };
+    act(() => {
+      doc.execute(new Commands.AddWallCommand(wall));
+    });
+
+    rerender(
+      <PropertyInspector
+        doc={doc}
+        selectedIds={['w-embedded-test']}
+        embedded={true}
+        onDeleteSelected={onDeleteMock}
+      />,
+    );
+
+    expect(screen.queryByText('Propriétés')).toBeNull();
+    const deleteBtn = screen.getByTestId('delete-selected-btn');
+    expect(deleteBtn).toBeDefined();
+
+    fireEvent.click(deleteBtn);
+    expect(onDeleteMock).toHaveBeenCalledTimes(1);
   });
 });

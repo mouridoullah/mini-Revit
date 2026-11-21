@@ -32,7 +32,7 @@ import { drawUnderlay } from './underlay.js';
 import { drawStairs } from './stairs.js';
 import { drawRoofs } from './roofs.js';
 import { drawMepElements } from './mep.js';
-import { drawRooms, drawRoomDiagnostics } from './rooms.js';
+import { drawRoomFills, drawRoomLabels, drawRoomDiagnostics } from './rooms.js';
 import { drawDimensions } from './dimensions.js';
 import { drawPreview } from './preview.js';
 import {
@@ -222,9 +222,9 @@ export function renderPlanView(
     );
   }
 
-  // 4. Pièces closes
+  // 4. Fonds pochés des pièces closes (fond de plan sous mobilier, murs et MEP)
+  let visibleRoomIds: Set<string> | null = null;
   if (rooms && rooms.length > 0) {
-    let visibleRoomIds: Set<string> | null = null;
     if (enableCulling) {
       visibleRoomIds = new Set<string>();
       for (const room of rooms) {
@@ -237,7 +237,7 @@ export function renderPlanView(
         }
       }
     }
-    drawRooms(ctx, transform, rooms, mergedConfig.room, visibleRoomIds);
+    drawRoomFills(ctx, transform, rooms, mergedConfig.room, visibleRoomIds);
   }
 
   // 4b. Composants d'aménagement et mobilier
@@ -429,7 +429,12 @@ export function renderPlanView(
     );
   }
 
-  // 6b. Diagnostics visuels des pièces
+  // 6b. Étiquettes de pièces closes (Z-order supérieur avec cartouche blanc au-dessus du mobilier et MEP)
+  if (rooms && rooms.length > 0) {
+    drawRoomLabels(ctx, transform, rooms, mergedConfig.room, visibleRoomIds);
+  }
+
+  // 6c. Diagnostics visuels des pièces
   if (roomDiagnostics && roomDiagnostics.length > 0) {
     drawRoomDiagnostics(ctx, transform, roomDiagnostics);
   }

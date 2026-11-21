@@ -116,12 +116,13 @@ export function generatePlanSvg(doc: DocumentFor2D, options: PlanSvgOptions = {}
 
   // Collecte des SVG fragments
   const roomSvgParts: string[] = [];
+  const roomLabelSvgParts: string[] = [];
   const wallSvgParts: string[] = [];
   const openingSvgParts: string[] = [];
   const dimSvgParts: string[] = [];
 
   // -------------------------------------------------------------------------
-  // 1. Couche Pièces (Rooms)
+  // 1. Couche Pièces (Rooms - Fonds pochés pastel)
   // -------------------------------------------------------------------------
   if (options.rooms && options.rooms.length > 0) {
     for (const room of options.rooms) {
@@ -134,17 +135,29 @@ export function generatePlanSvg(doc: DocumentFor2D, options: PlanSvgOptions = {}
         `    <polygon points="${ptsStr}" fill="rgba(219, 234, 254, 0.45)" stroke="none" />`,
       );
 
-      // Étiquette de pièce
+      // Étiquette de pièce avec cartouche de lisibilité semi-transparent blanc
       const seedX = toSvgX(room.seed.x);
       const seedY = toSvgY(room.seed.y);
       const roomName = escapeXml(room.name ?? 'Pièce');
       const areaM2 = (room.areaMm2 / 1e6).toFixed(2);
+      const areaText = `${areaM2} m²`;
 
-      roomSvgParts.push(
-        `    <text x="${seedX.toFixed(2)}" y="${(seedY - 6).toFixed(2)}" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#1e3a8a" text-anchor="middle">${roomName}</text>`,
+      const nameLen = roomName.length * 6.5;
+      const areaLen = areaText.length * 6;
+      const maxLen = Math.max(nameLen, areaLen);
+      const boxW = maxLen + 14;
+      const boxH = 28;
+      const boxX = seedX - boxW / 2;
+      const boxY = seedY - 15;
+
+      roomLabelSvgParts.push(
+        `    <rect x="${boxX.toFixed(2)}" y="${boxY.toFixed(2)}" width="${boxW.toFixed(2)}" height="${boxH.toFixed(2)}" rx="3" ry="3" fill="rgba(255, 255, 255, 0.85)" stroke="#cbd5e1" stroke-width="0.5" />`,
       );
-      roomSvgParts.push(
-        `    <text x="${seedX.toFixed(2)}" y="${(seedY + 8).toFixed(2)}" font-family="Arial, sans-serif" font-size="10" fill="#2563eb" text-anchor="middle">${areaM2} m²</text>`,
+      roomLabelSvgParts.push(
+        `    <text x="${seedX.toFixed(2)}" y="${(seedY - 4).toFixed(2)}" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#1e3a8a" text-anchor="middle">${roomName}</text>`,
+      );
+      roomLabelSvgParts.push(
+        `    <text x="${seedX.toFixed(2)}" y="${(seedY + 8).toFixed(2)}" font-family="Arial, sans-serif" font-size="10" fill="#2563eb" text-anchor="middle">${areaText}</text>`,
       );
     }
   }
@@ -407,6 +420,9 @@ export function generatePlanSvg(doc: DocumentFor2D, options: PlanSvgOptions = {}
     `  <g id="walls">\n${wallSvgParts.join('\n')}\n  </g>`,
     `  <g id="openings">\n${openingSvgParts.join('\n')}\n  </g>`,
     `  <g id="dimensions">\n${dimSvgParts.join('\n')}\n  </g>`,
+    ...(roomLabelSvgParts.length > 0
+      ? [`  <g id="room-labels">\n${roomLabelSvgParts.join('\n')}\n  </g>`]
+      : []),
     cartoucheSvg,
     `</svg>`,
   ].join('\n');
