@@ -46,12 +46,36 @@ export interface DetectedRoom {
 }
 
 /**
+ * Cache mémoïsé pur indexé par référence immuable d'état (WeakMap) et par niveau.
+ * Évite les recalculs redondants de clipping de polygones à travers l'application
+ * (StatusBar, Viewport2D, MetricsPanel, etc.) sans aucun couplage React.
+ */
+const roomsCache = new WeakMap<BimState, Map<ElementId, DetectedRoom[]>>();
+
+/**
  * Détecte l'ensemble des pièces fermées pour un niveau donné en calculant
  * l'union booléenne des empreintes 2D de tous ses murs.
  *
  * Règle d'or : Les pièces sont des éléments dérivés. Aucune géométrie n'est stockée dans BimDocument.
  */
 export function detectRooms(state: BimState, levelId: ElementId): DetectedRoom[] {
+  let levelMap = roomsCache.get(state);
+  if (!levelMap) {
+    levelMap = new Map<ElementId, DetectedRoom[]>();
+    roomsCache.set(state, levelMap);
+  }
+
+  const cached = levelMap.get(levelId);
+  if (cached) {
+    return cached;
+  }
+
+  const detectedRooms = computeDetectRooms(state, levelId);
+  levelMap.set(levelId, detectedRooms);
+  return detectedRooms;
+}
+
+function computeDetectRooms(state: BimState, levelId: ElementId): DetectedRoom[] {
   // 1. Filtrer les murs appartenant strictement au niveau architectural requis
   const levelWalls = Object.values(state.walls).filter((w) => w.levelId === levelId);
   if (levelWalls.length < 3) {

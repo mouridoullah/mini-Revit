@@ -29,29 +29,32 @@ Le projet est organisé sous la forme d'un monorepo modulaire (pnpm workspaces) 
 
 ```mermaid
 flowchart TD
-    subgraph UI ["Couche Présentation (React / UI)"]
-        ReactUI["Composants React (Inspecteur, Arbre, Menus, Métrés)"]
-        UIStore["Zustand UI Store (Mode outil, sélection active, zoom)"]
+    subgraph UI ["Couche Présentation (React / UI) — Cockpit Graphite (ADR-061)"]
+        ReactUI["Composants React (Inspecteur, Project Browser, Dock Droit, Métrés)"]
+        SplitViews["SplitViewport (Vues synchronisées 2D Plan / 3D Orbitale)"]
+        UIStore["Zustand UI Store (Mode outil, sélection active, calques, snap)"]
     end
 
     subgraph AppLayer ["Couche Application"]
-        Tools["Machines à états des Outils (WallTool, DoorTool, SelectTool)"]
-        Snapping["Moteur d'Accrochage (Snapping Engine - R-Tree)"]
+        Tools["Machines à états des Outils (WallTool, DoorTool, SelectTool, MepTool)"]
+        Snapping["Moteur d'Accrochage (Snapping Engine - R-Tree & BVH)"]
         ToolDispatcher["Gestionnaire d'Outils & Dispatcher d'Intentions"]
     end
 
     subgraph Viewports ["Moteurs de Rendu des Vues (Impératifs)"]
-        View2D["Viewport 2D Plan (Canvas, Cotations, Dalles, Underlay)"]
-        View3D["Viewport 3D (Three.js WebGL, Murs percés, Dalles, Ombres)"]
-        Section2D["Générateur de Coupes Vectorielles 2D (Saison 2)"]
+        View2D["Viewport 2D Plan (Canvas, Cotations, Dalles, Murs, MEP, Underlay)"]
+        View3D["Viewport 3D (Three.js WebGL, Murs percés, Dalles, Toits, MEP, Ombres)"]
+        Federated3D["Gestionnaire Fédéré IFC (Three.js, WebIFC, ADR-060)"]
     end
 
-    subgraph CoreDomain ["Noyau BIM Core (TypeScript Pur)"]
-        Document["BimDocument (Murs, Baies, Pièces, Cotes, Dalles, Niveaux)"]
-        CommandBus["Command Bus Transactionnel & Undo/Redo (Immer)"]
-        DagEngine["Graphe de Dépendances Minimal DAG & Propagation (ADR-041)"]
+    subgraph CoreDomain ["Noyau BIM Core (TypeScript Pur — Zero DOM)"]
+        Document["BimDocument (Murs, Baies, Dalles, Toits, Niveaux, MEP)"]
+        CommandBus["Command Bus Transactionnel & Undo/Redo Déterministe (Immer)"]
+        DagEngine["Graphe de Dépendances Minimal DAG & Invalidation Incrémentale (ADR-041)"]
         RelationsEngine["Moteur de Relations Déclaratives & Cascades (ADR-038)"]
-        RulesEngine["Validateur Métier d'Invariants (BimValidationError)"]
+        MepGraph["MepNetworkGraph (Topologie physique des réseaux, ADR-056)"]
+        ClashCore["Moteur de Clash Detection (BVH 3D, Broad/Narrow Phase, ADR-059)"]
+        RulesEngine["Validateur Métier d'Invariants (BimValidationError / validateDirty)"]
         IFCExporter["Générateur IFC4 ISO 10303-21 Pur TS"]
     end
 
@@ -59,30 +62,36 @@ flowchart TD
         MathUtils["Vecteurs, Matrices, Intersections 2D/3D"]
         WallJunctions["Topologie des Jonctions de Murs (L, T, X, Colinéaire)"]
         SlicingEngine["Découpe d'Ouvertures 2.5D (Conservation de volume)"]
-        RoomDetection["Détection Automatique de Pièces (polygon-clipping)"]
+        RoomDetection["Détection Automatique de Pièces (polygon-clipping mémoïsé)"]
         Triangulation["Triangulation Concave avec Trous & Extrusion (earcut)"]
+        BvhCore["BVH Spatiale 3D AABB & Détection d'Interférences"]
     end
 
-    subgraph Persistence ["Couche Persistance"]
+    subgraph Persistence ["Couche Persistance & Fédération"]
+        AutoSave["AutoSaveManager (IndexedDB Local-First, ADR-048 / ADR-058)"]
         Serializer["Sérialiseur / Désérialiseur JSON Schéma v2"]
-        SQLiteAdapter["Adaptateur SQLite WASM + OPFS"]
+        WebIFCLoader["WebIFC Parser (Modèles de coordination externes, ADR-060)"]
     end
 
     ReactUI --> Tools
     ReactUI --> UIStore
+    SplitViews --> View2D
+    SplitViews --> View3D
+    SplitViews --> Federated3D
     Tools --> Snapping
     Tools --> ToolDispatcher
     ToolDispatcher --> CommandBus
     CommandBus --> Document
     Document --> DagEngine
     Document --> RelationsEngine
+    Document --> MepGraph
+    Document --> ClashCore
     Document --> RulesEngine
     Document --> GeometryKernel
     Document --> Persistence
     Document -.-> View2D
     Document -.-> View3D
-    View2D -.-> Tools
-    View3D -.-> Tools
+    Federated3D -.-> ClashCore
 ```
 
 ---
@@ -100,17 +109,18 @@ flowchart TD
   - Soustraction d'ouvertures par tranches verticales 2.5D.
   - Calculs de polygones : aire signée, périmètre, centroïde, orientation CCW, test point-dans-polygone.
 
-### 3.2 `@mini-bim/core` (Domaine BIM)
+### 3.2 `@mini-bim/core` (Domaine BIM & Coordination)
 
-- **Rôle :** Représentation des concepts architecturaux, cohérence du modèle et cycle de vie des entités.
-- **Dépendances :** `@mini-bim/geometry`. Aucune dépendance graphique.
+- **Rôle :** Représentation des concepts architecturaux, structurels, MEP et coordination spatiale.
+- **Dépendances :** `@mini-bim/geometry`. Aucune dépendance graphique ni DOM.
 - **Responsabilités :**
-  - Modèle de données normalisé Schéma v2 : `Project`, `Building`, `Level`, `Category`, `ElementType`, `ElementInstance`, `Wall`, `WallType`, `Door`, `DoorType`, `Window`, `WindowType`, `Slab`, `SlabType`, `Roof`, `Room`, `Dimension`.
-  - Gestion des identifiants stables (ULID).
-  - Graphe de dépendances dirigé acyclique (DAG minimal, ADR-041) et registre de relations déclaratives (`RELATIONS_REGISTRY`, ADR-038).
-  - Moteur de cascade et propagation d'invalidations (`getChangedIds`).
-  - Post-condition universelle d'intégrité transactionnelle (`validateDirty(draft, changedIds)`) exécutée dans `execute()` avant empilement dans l'historique Undo/Redo.
-  - Calcul des métriques et quantités (surfaces brutes/nettes, volumes, longueurs de linéaire, détection de doublons `redundant`).
+  - Modèle de données normalisé Schéma v2 (25 catégories d'entités) : `Project`, `Building`, `Level`, `Wall`, `Door`, `Window`, `Slab`, `Roof`, `Stair`, `Component`, `Room`, `Dimension`, et le graphe technique MEP (`Pipe`, `Duct`, `CableTray`, `MepFitting`, `MepEquipment`, `MepSystem`, `MepConnector`).
+  - Graphe de dépendances acyclique DAG minimal (ADR-041) avec invalidation réactive et maintenance incrémentale différentielle.
+  - Réseau topologique MEP (`MepNetworkGraph`, ADR-056) découplé du DAG d'invalidation hiérarchique.
+  - Moteur de détection de conflits (`ClashEngine`, `BvhSpatialIndex`, `ClashMatrix`, ADR-059) avec classification sémantique (Hard, Soft, Clearance, Contact légitime).
+  - Caches purs mémoïsés par `WeakMap` indexés sur les références immuables `BimState` et `Slab` (`detectRooms`, `resolveWallGeometry`, polygones effectifs de dalles).
+  - Validation transactionnelle différentielle d'invariants (`validateDirty(draft, changedIds)`).
+  - Calcul des métriques et quantités (surfaces brutes/nettes, volumes, linéaires, détection de doublons `redundant`).
 
 ### 3.3 Couche Application & Outils (`apps/web/src/tools` & CommandBus)
 
@@ -118,37 +128,38 @@ flowchart TD
 - **Dépendances :** `@mini-bim/core`, `@mini-bim/geometry`.
 - **Responsabilités :**
   - Bus de commandes : `execute(command)`, `undo()`, `redo()`.
-  - Commandes transactionnelles typées : `AddWallCommand`, `MoveWallCommand`, `MoveOpeningCommand`, `AddDoorCommand`, etc.
+  - Commandes transactionnelles typées : `AddWallCommand`, `MoveWallCommand`, `MoveOpeningCommand`, `AddDoorCommand`, `MepToolCommand`, etc.
   - Machines à états des outils pures (`Tool`) :
-    - `WallTool` : clic de départ, fantôme temps réel, accrochage, clic de fin, émission de commande.
-    - `DoorTool` / `WindowTool` : détection du mur hôte sous le curseur, calcul de la projection le long de l'axe, validation des marges, prévisualisation, émission de commande.
-    - `SelectTool` : sélection mono/multi-éléments, boîte de sélection élastique, manipulation de poignées (gizmos/grips).
-    - `MoveWallTool` : translation de mur avec étirement élastique des murs incidents connectés (Wall Stretching & Joint Tracking).
-  - Moteur d'accrochage (`SnappingEngine`) : détection des extrémités, milieux, alignements orthogonaux (axes X/Y) et intersections en pixels écran.
+    - `WallTool`, `DoorTool`, `WindowTool`, `SlabTool`, `RoofTool`, `StairTool`, `ComponentTool`.
+    - `MepTool` : tracé de segments fluides/aérauliques/électriques, auto-routage géométrique coudes/tés (ADR-058), connexion sur ports.
+    - `SelectTool` : sélection mono/multi-éléments, boîte élastique, gizmos et translation différentielle.
+  - Moteur d'accrochage (`SnappingEngine`) : détection des extrémités, milieux, alignements et ports MEP en pixels écran.
 
-### 3.4 `@mini-bim/view-2d` & `@mini-bim/view-3d` (Moteurs de Vues)
+### 3.4 `@mini-bim/view-2d` & `@mini-bim/view-3d` (Moteurs de Vues & Coordination)
 
 - **Rôle :** Affichage optimisé et capture des interactions de bas niveau.
-- **Dépendances :** Types géométriques neutres (`@mini-bim/geometry`), Three.js (uniquement pour 3D), Canvas 2D natif (pour 2D). **Zéro dépendance vers `@mini-bim/core`** (conformément à l'ADR-023 et l'ADR-029).
-- **Règle fondamentale :** Ces modules sont instanciés de façon **impérative** et montés sur des éléments `<canvas>`. Ils reçoivent leurs données sous forme de structures géométriques découplées (`WallFor2D`, `RawMeshData`), garantissant une étanchéité totale par rapport au modèle documentaire.
+- **Dépendances :** Types géométriques neutres (`@mini-bim/geometry`), Three.js (uniquement pour 3D), Canvas 2D natif (pour 2D). **Zéro dépendance vers l'état mutable de `@mini-bim/core`**.
+- **Règle fondamentale :** Ces modules sont instanciés de façon **impérative** et montés sur des éléments `<canvas>`.
 - **Responsabilités 3D :**
   - Scène Three.js avec repère Z-up orienté via groupe racine inversé.
-  - Matériaux architecturaux sobres, arêtes nettes (`LineSegments` + `EdgesGeometry`).
-  - Accélération du raycasting par BVH (`three-mesh-bvh`).
-  - Prise en charge des plans de coupe dynamiques (Section Box).
+  - Rendu architectural et réseaux MEP unifiés avec matériaux d'ingénierie sobres et arêtes nettes.
+  - Gestionnaire de maquettes fédérées externes (`FederatedIfcManager`, ADR-060) alimenté par WebIFC sans polluer le modèle natif.
+  - Visualisation des boîtes de collision de clashs (volumes d'interférence et sphères d'impact).
 - **Responsabilités 2D :**
   - Rendu en plan horizontal interactif au niveau de coupe standard (1,20 m au-dessus du niveau actif).
-  - Affichage des pochés de murs, symboles normalisés d'ouverture (arcs de débattement de portes), étiquettes de pièces et cotations.
-  - Tracé vectoriel optimisé de l'Underlay via cache mondial `Path2D`.
+  - Indexation spatiale par niveau avec frustum culling 2D garantissant $P_{95} < 16,67\text{ ms}$ (ADR-057).
+  - Tracé vectoriel optimisé des murs, pièces, dalles, cotations, symboles MEP et Underlay N-1.
 
 ### 3.5 Persistance et Échange (`apps/web/src/persistence` & `@mini-bim/core/ifc`)
 
-- **Rôle :** Sauvegarde, restauration, validation et conversion.
+- **Rôle :** Sauvegarde locale continue, restauration, validation et conversion.
 - **Dépendances :** `@mini-bim/core`.
 - **Responsabilités :**
+  - Persistance automatique réactive par `AutoSaveManager` dans IndexedDB (ADR-048 / ADR-058), avec détection de conflits et restauration déterministe.
   - Import/Export de snapshots JSON versionnés (`schemaVersion: 2`).
   - Migration ascendante sans perte `migrateSchemaV1toV2` (ADR-043).
   - Générateur IFC4 STEP ISO 10303-21 natif pur TypeScript (`IfcWall`, `IfcDoor`, `IfcWindow`, `IfcSlab`, `IfcSpace`, `IfcBuildingStorey`).
+  - Importation et inspection fédérée de maquettes IFC externes via `web-ifc` (ADR-060).
 
 ---
 

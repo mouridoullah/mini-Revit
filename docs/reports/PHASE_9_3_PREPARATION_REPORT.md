@@ -4,7 +4,7 @@
 - **Branche :** `refactor/pre-9-3-views-and-culling`
 - **Auteurs :** Équipe Mini-BIM & Architecture Moteur
 - **Statut :** Validé sans réserve — Prêt pour fusion sur `master`
-- **Décision d'architecture associée :** [`ADR-057`](file:///c:/Users/bdame/Downloads/mini-Revit/docs/adr/ADR-057-view2d-spatial-indexing-and-views-modularization.md)
+- **Décision d'architecture associée :** [`ADR-057`](../../docs/adr/ADR-057-view2d-spatial-indexing-and-views-modularization.md)
 
 ---
 
@@ -27,11 +27,11 @@ Ce mandat visait quatre objectifs prioritaires :
 
 ### 2.1. Étape 1 — CRUD MEP Polymorphique & Clarification Taxonomique
 
-- **Commandes transactionnelles polymorphiques ([`packages/core/src/mep/commands.ts`](file:///c:/Users/bdame/Downloads/mini-Revit/packages/core/src/mep/commands.ts)) :**
+- **Commandes transactionnelles polymorphiques ([`packages/core/src/mep/commands.ts`](../../packages/core/src/mep/commands.ts)) :**
   - Introduction de `DeleteMepElementCommand` : prend en charge uniformément `pipe`, `duct`, `cable_tray`, `fitting` et `equipment`. Supprime l'élément, détache en cascade l'ensemble des connecteurs incidents (`mepConnectors`) et purge les références associées dans les `MepSystem`. Réversibilité bit-à-bit sous `produceWithPatches` (Immer).
   - Introduction de `UpdateMepElementCommand` : met à jour polymorphiquement les propriétés spécifiques de chaque catégorie MEP via délégation interne transparente aux commandes spécialisées (`UpdatePipeCommand`, `UpdateDuctCommand`, etc.).
   - Introduction de `getMepElementKind` : utilitaire pur inspectant le type d'une entité MEP sans couplage.
-- **Clarification dans [`DOMAIN_MODEL.md`](file:///c:/Users/bdame/Downloads/mini-Revit/DOMAIN_MODEL.md) :**
+- **Clarification dans [`DOMAIN_MODEL.md`](../../DOMAIN_MODEL.md) :**
   - Section 3.13 harmonisée et clarifiée : distinction physique rigoureuse entre :
     - **Conduits fermés sous pression ou gravitaires (Tuyauteries et Gaines) :** éléments transportant des fluides étanches (eau, air, gaz, fluide frigorigène) soumis aux lois thermo-hydrauliques et aérauliques.
     - **Chemins de câbles électriques et de données :** réceptacles ouverts de guidage et de support mécanique ne transportant aucun fluide, exempts de contraintes d'étanchéité ou de pression.
@@ -41,50 +41,50 @@ Ce mandat visait quatre objectifs prioritaires :
 
 ### 2.2. Étape 2 — Chantier C : Modularisation du Générateur 3D
 
-Le monolithe historique `packages/view-3d/src/mesh-generator.ts` (1 568 lignes) a été entièrement découpé en un ensemble de sous-modules de domaine étanches logés sous [`packages/view-3d/src/mesh-generator/`](file:///c:/Users/bdame/Downloads/mini-Revit/packages/view-3d/src/mesh-generator/) :
+Le monolithe historique `packages/view-3d/src/mesh-generator.ts` (1 568 lignes) a été entièrement découpé en un ensemble de sous-modules de domaine étanches logés sous [`packages/view-3d/src/mesh-generator/`](../../packages/view-3d/src/mesh-generator/) :
 
 | Fichier sous-module | Lignes de code | Responsabilité de domaine |
 |---|---|---|
-| [`types.ts`](file:///c:/Users/bdame/Downloads/mini-Revit/packages/view-3d/src/mesh-generator/types.ts) | 102 | Interfaces neutres `RawMeshData`, `MeshGeneratorOptions`, structures d'entrée |
-| [`walls.ts`](file:///c:/Users/bdame/Downloads/mini-Revit/packages/view-3d/src/mesh-generator/walls.ts) | 336 | Génération des maillages de murs percés, linteaux, allèges et biseautages de toit |
-| [`openings.ts`](file:///c:/Users/bdame/Downloads/mini-Revit/packages/view-3d/src/mesh-generator/openings.ts) | 72 | Placeholders 3D géométriques de portes (bois) et fenêtres (vitrage translucide) |
-| [`rooms.ts`](file:///c:/Users/bdame/Downloads/mini-Revit/packages/view-3d/src/mesh-generator/rooms.ts) | 26 | Dalles minces 3D au sol pour la visualisation des pièces |
-| [`slabs.ts`](file:///c:/Users/bdame/Downloads/mini-Revit/packages/view-3d/src/mesh-generator/slabs.ts) | 215 | Planchers et dalles horizontales avec trémies et ouvertures découpées |
-| [`stairs.ts`](file:///c:/Users/bdame/Downloads/mini-Revit/packages/view-3d/src/mesh-generator/stairs.ts) | 305 | Marches pleines, contremarches et limons porteurs d'escaliers droits |
-| [`roofs.ts`](file:///c:/Users/bdame/Downloads/mini-Revit/packages/view-3d/src/mesh-generator/roofs.ts) | 436 | Toitures plates, monopentes, à deux pans et à croupe avec découpe de baies |
-| [`index.ts`](file:///c:/Users/bdame/Downloads/mini-Revit/packages/view-3d/src/mesh-generator/index.ts) | 7 | Barrel export interne |
+| [`types.ts`](../../packages/view-3d/src/mesh-generator/types.ts) | 102 | Interfaces neutres `RawMeshData`, `MeshGeneratorOptions`, structures d'entrée |
+| [`walls.ts`](../../packages/view-3d/src/mesh-generator/walls.ts) | 336 | Génération des maillages de murs percés, linteaux, allèges et biseautages de toit |
+| [`openings.ts`](../../packages/view-3d/src/mesh-generator/openings.ts) | 72 | Placeholders 3D géométriques de portes (bois) et fenêtres (vitrage translucide) |
+| [`rooms.ts`](../../packages/view-3d/src/mesh-generator/rooms.ts) | 26 | Dalles minces 3D au sol pour la visualisation des pièces |
+| [`slabs.ts`](../../packages/view-3d/src/mesh-generator/slabs.ts) | 215 | Planchers et dalles horizontales avec trémies et ouvertures découpées |
+| [`stairs.ts`](../../packages/view-3d/src/mesh-generator/stairs.ts) | 305 | Marches pleines, contremarches et limons porteurs d'escaliers droits |
+| [`roofs.ts`](../../packages/view-3d/src/mesh-generator/roofs.ts) | 436 | Toitures plates, monopentes, à deux pans et à croupe avec découpe de baies |
+| [`index.ts`](../../packages/view-3d/src/mesh-generator/index.ts) | 7 | Barrel export interne |
 
-La façade publique [`packages/view-3d/src/mesh-generator.ts`](file:///c:/Users/bdame/Downloads/mini-Revit/packages/view-3d/src/mesh-generator.ts) a été réduite à **8 lignes de ré-export**, assurant une compatibilité binaire et d'importation à 100% avec l'ensemble du monorepo.
+La façade publique [`packages/view-3d/src/mesh-generator.ts`](../../packages/view-3d/src/mesh-generator.ts) a été réduite à **8 lignes de ré-export**, assurant une compatibilité binaire et d'importation à 100% avec l'ensemble du monorepo.
 
 ---
 
 ### 2.3. Étape 3 — Chantier B : Modularisation du Renderer 2D Canvas
 
-Le fichier `packages/view-2d/src/renderer.ts` (1 946 lignes) a été scindé en 12 modules spécialisés sous [`packages/view-2d/src/renderer/`](file:///c:/Users/bdame/Downloads/mini-Revit/packages/view-2d/src/renderer/) :
+Le fichier `packages/view-2d/src/renderer.ts` (1 946 lignes) a été scindé en 12 modules spécialisés sous [`packages/view-2d/src/renderer/`](../../packages/view-2d/src/renderer/) :
 
 | Fichier sous-module | Lignes | Rôle & Fonctionnalité |
 |---|---|---|
-| [`config.ts`](file:///c:/Users/bdame/Downloads/mini-Revit/packages/view-2d/src/renderer/config.ts) | 88 | Configurations par défaut (couleurs, épaisseurs, styles de traits) |
-| [`grid.ts`](file:///c:/Users/bdame/Downloads/mini-Revit/packages/view-2d/src/renderer/grid.ts) | 84 | Nettoyage canvas (`clearCanvas`), grille millimétrique mineure/majeure et axes X/Y |
-| [`walls.ts`](file:///c:/Users/bdame/Downloads/mini-Revit/packages/view-2d/src/renderer/walls.ts) | 134 | Tracé individuel (`drawWall`) et résolution topologique ciblée (`drawWalls`) |
-| [`openings.ts`](file:///c:/Users/bdame/Downloads/mini-Revit/packages/view-2d/src/renderer/openings.ts) | 148 | Évidement de poché, ébrasements, battements de portes et double vitrage |
-| [`slabs.ts`](file:///c:/Users/bdame/Downloads/mini-Revit/packages/view-2d/src/renderer/slabs.ts) | 130 | Projection en plan des dalles et trémies |
-| [`stairs.ts`](file:///c:/Users/bdame/Downloads/mini-Revit/packages/view-2d/src/renderer/stairs.ts) | 185 | Projection des marches, ligne de foulée, flèche de montée et ligne de coupure |
-| [`roofs.ts`](file:///c:/Users/bdame/Downloads/mini-Revit/packages/view-2d/src/renderer/roofs.ts) | 145 | Emprise de toiture, lignes d'égout, faîtage et arêtiers |
-| [`rooms.ts`](file:///c:/Users/bdame/Downloads/mini-Revit/packages/view-2d/src/renderer/rooms.ts) | 85 | Poché pastel des pièces closes et libellés centrés (`drawRooms`) |
-| [`dimensions.ts`](file:///c:/Users/bdame/Downloads/mini-Revit/packages/view-2d/src/renderer/dimensions.ts) | 70 | Lignes d'attache, ligne de cote, ticks à 45° et texte millimétrique |
-| [`underlay.ts`](file:///c:/Users/bdame/Downloads/mini-Revit/packages/view-2d/src/renderer/underlay.ts) | 26 | Rendu de la vue fantôme (Path2D compilé en gris feutré) |
-| [`preview.ts`](file:///c:/Users/bdame/Downloads/mini-Revit/packages/view-2d/src/renderer/preview.ts) | 65 | Formes de prévisualisation interactives élastiques (rubber-band) |
-| [`plan-view.ts`](file:///c:/Users/bdame/Downloads/mini-Revit/packages/view-2d/src/renderer/plan-view.ts) | 338 | Orchestrateur unifié `renderPlanView` intégrant le Culling spatial et le filtrage |
-| [`index.ts`](file:///c:/Users/bdame/Downloads/mini-Revit/packages/view-2d/src/renderer/index.ts) | 20 | Barrel export public |
+| [`config.ts`](../../packages/view-2d/src/renderer/config.ts) | 88 | Configurations par défaut (couleurs, épaisseurs, styles de traits) |
+| [`grid.ts`](../../packages/view-2d/src/renderer/grid.ts) | 84 | Nettoyage canvas (`clearCanvas`), grille millimétrique mineure/majeure et axes X/Y |
+| [`walls.ts`](../../packages/view-2d/src/renderer/walls.ts) | 134 | Tracé individuel (`drawWall`) et résolution topologique ciblée (`drawWalls`) |
+| [`openings.ts`](../../packages/view-2d/src/renderer/openings.ts) | 148 | Évidement de poché, ébrasements, battements de portes et double vitrage |
+| [`slabs.ts`](../../packages/view-2d/src/renderer/slabs.ts) | 130 | Projection en plan des dalles et trémies |
+| [`stairs.ts`](../../packages/view-2d/src/renderer/stairs.ts) | 185 | Projection des marches, ligne de foulée, flèche de montée et ligne de coupure |
+| [`roofs.ts`](../../packages/view-2d/src/renderer/roofs.ts) | 145 | Emprise de toiture, lignes d'égout, faîtage et arêtiers |
+| [`rooms.ts`](../../packages/view-2d/src/renderer/rooms.ts) | 85 | Poché pastel des pièces closes et libellés centrés (`drawRooms`) |
+| [`dimensions.ts`](../../packages/view-2d/src/renderer/dimensions.ts) | 70 | Lignes d'attache, ligne de cote, ticks à 45° et texte millimétrique |
+| [`underlay.ts`](../../packages/view-2d/src/renderer/underlay.ts) | 26 | Rendu de la vue fantôme (Path2D compilé en gris feutré) |
+| [`preview.ts`](../../packages/view-2d/src/renderer/preview.ts) | 65 | Formes de prévisualisation interactives élastiques (rubber-band) |
+| [`plan-view.ts`](../../packages/view-2d/src/renderer/plan-view.ts) | 338 | Orchestrateur unifié `renderPlanView` intégrant le Culling spatial et le filtrage |
+| [`index.ts`](../../packages/view-2d/src/renderer/index.ts) | 20 | Barrel export public |
 
-La façade [`packages/view-2d/src/renderer.ts`](file:///c:/Users/bdame/Downloads/mini-Revit/packages/view-2d/src/renderer.ts) conserve la totalité des signatures historiques en ré-export (8 lignes).
+La façade [`packages/view-2d/src/renderer.ts`](../../packages/view-2d/src/renderer.ts) conserve la totalité des signatures historiques en ré-export (8 lignes).
 
 ---
 
 ### 2.4. Étape 4 — Chantier A : Filtrage par Niveau & Frustum Culling 2D
 
-L'infrastructure spatiale a été implantée sous [`packages/view-2d/src/spatial/`](file:///c:/Users/bdame/Downloads/mini-Revit/packages/view-2d/src/spatial/) :
+L'infrastructure spatiale a été implantée sous [`packages/view-2d/src/spatial/`](../../packages/view-2d/src/spatial/) :
 1. **`SpatialGrid2D` (Uniform Hash Grid 2D) :**
    - Grille spatiale cartésienne découpant l'espace mondial (en millimètres) en cellules carrées régulières de 5 000 mm.
    - Insertion/suppression en $\mathcal{O}(k)$ (où $k \le 4$ cellules dans la majorité des cas d'éléments architecturaux).
@@ -106,7 +106,7 @@ L'infrastructure spatiale a été implantée sous [`packages/view-2d/src/spatial
 
 ## 3. Résultats Métrologiques et Benchmarks de Scalabilité
 
-Les mesures ont été exécutées de manière déterministe par la suite de benchmarking [`packages/view-2d/src/perf/view2d-scalability.test.ts`](file:///c:/Users/bdame/Downloads/mini-Revit/packages/view-2d/src/perf/view2d-scalability.test.ts) sur les maquettes synthétiques de référence produites par `generateSyntheticBimModel` ($N \in \{100, 1\,000, 10\,000\}$).
+Les mesures ont été exécutées de manière déterministe par la suite de benchmarking [`packages/view-2d/src/perf/view2d-scalability.test.ts`](../../packages/view-2d/src/perf/view2d-scalability.test.ts) sur les maquettes synthétiques de référence produites par `generateSyntheticBimModel` ($N \in \{100, 1\,000, 10\,000\}$).
 
 ### Tableau Métrologique Consolidé
 
@@ -150,7 +150,7 @@ Trois architectures d'indexation spatiale ont été évaluées :
 
 ## 5. Couverture de Tests & Non-Régression
 
-### 5.1. Suite Dédiée de Non-Régression ([`culling-non-regression.test.ts`](file:///c:/Users/bdame/Downloads/mini-Revit/packages/view-2d/src/culling-non-regression.test.ts))
+### 5.1. Suite Dédiée de Non-Régression ([`culling-non-regression.test.ts`](../../packages/view-2d/src/culling-non-regression.test.ts))
 
 Cinq tests automatisés couvrent exhaustivement les exigences de qualification :
 1. **Élimination complète hors champ :** Un mur situé à 50 mètres du viewport est 100% éliminé de la liste de tracé.

@@ -330,6 +330,43 @@ De plus, deux façades polymorphiques sont disponibles pour l'interface utilisat
 - `UpdateMepElementCommand(elementId, patch)` : met à jour n'importe quel élément MEP quel que soit son type de collection.
 - `DeleteMepElementCommand(elementId)` : supprime l'élément cible, détache en cascade ses connecteurs incidents et assainit les systèmes techniques rattachés.
 
+### 3.14 Détection de Conflits BIM & Coordination Spatiale (Phase 9.4 / ADR-059)
+
+- **Raison d'être :** Identifier les interférences physiques et non-conformités d'espaces libres entre corps d'état (Structure, Architecture, MEP).
+- **Architecture Broad-Phase & Narrow-Phase :**
+  - **Broad-Phase :** Index spatial 3D BVH (`BvhSpatialIndex`) partitionnant les boîtes englobantes AABB alignées sur les axes. Réduction de la complexité de $\mathcal{O}(N^2)$ à $\mathcal{O}(N \log N)$.
+  - **Narrow-Phase :** Calculs géométriques fins d'intersection (polyèdres, cylindres, OBB).
+- **Classification Sémantique et Matrice de Clash (`ClashMatrix`) :**
+  - **`hard` (Collision physique destructrice) :** Deux solides occupent le même volume (ex. gaine traversant un poteau sans réservation).
+  - **`soft` (Tolérance de garde / dégagement) :** Deux éléments sont plus proches que la distance minimale réglementaire de maintenance ou sécurité.
+  - **`clearance` (Accès fonctionnel) :** Empiétement sur un volume de passage ou débattement.
+  - **Contact légitime / Exception :** Contact tangentiel normal (ex. bride sur vanne, tuyau supporté sur rail, mur reposant sur dalle) filtré et requalifié sans fausse alerte.
+- **Entité `ClashResult` :**
+  - `id: string` (ULID).
+  - `elementAId: string`, `elementBId: string`.
+  - `kind: 'hard' | 'soft' | 'clearance'`.
+  - `distance: number` (Pénétration ou distance de garde en mm).
+  - `intersectionPoint: Vec3`, `boundingBox: Box3`.
+
+### 3.15 Maquettes Fédérées Externes IFC (Phase 9.5 / ADR-060)
+
+- **Raison d'être :** Superposer, inspecter et confronter des maquettes IFC externes (structure béton, réseaux CVC importés) sans convertir ces entités en objets éditables du modèle natif.
+- **Principe d'isolation stricte de `BimState` :**
+  - Le modèle natif `BimState` reste pur et ne stocke aucune géométrie externe.
+  - Les maquettes externes sont gérées par `FederatedIfcManager` au niveau Three.js / WebIFC.
+  - Chaque maquette dispose de ses calques, couleurs d'accentuation, opacité, visibilité et arbre sémantique (`FederatedElement`).
+  - La coordination spatiale inter-modèles est assurée en alimentant le moteur de clash (`ClashEngine`) avec les BVH externes et natifs.
+
+### 3.16 Mécanismes d'Accélération et Caches Purs Mémoïsés (Phase 10 / ADR-014)
+
+- **Périmètre :** Maintien d'une réactivité garantie (< 16 ms en 2D, < 50 ms par transaction à 10 000 entités).
+- **Pureté fonctionnelle via `WeakMap` :**
+  - Caches indexés sur les références immuables d'état `WeakMap<BimState, T>` :
+    - `detectRooms` : `WeakMap<BimState, Map<ElementId, DetectedRoom[]>>` éliminant les recalculs répétés d'unions de polygones.
+    - `resolveWallGeometry` : `WeakMap<BimState, WallResolutionIndex>` indexant en $\mathcal{O}(1)$ les réservations par mur hôte, les dalles par niveau et les AABB de toitures.
+  - Cache intrinsèque de dalles `WeakMap<Slab, EffectiveSlabResult>` réutilisant les contours CSG tant que la dalle n'a pas été mutée (partage structurel Immer).
+- **Maintenance incrémentale du DAG :**
+  - `BimDocument` conserve son instance persistante `DependencyGraph` et n'applique que les modifications différentielles sur les identifiants modifiés par la transaction (`cmd.getChangedIds()`), avec rollback atomique garanti en cas de rejet `validateDirty`.
 
 ---
 
