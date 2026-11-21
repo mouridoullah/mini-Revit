@@ -6,7 +6,10 @@ import type {
 } from '../types.js';
 import { DEFAULT_ROOM_RENDER_CONFIG } from './config.js';
 
-export function drawRooms(
+/**
+ * 1. Première passe : Remplissage des fonds pochés de pièces (sous les murs, mobilier et MEP).
+ */
+export function drawRoomFills(
   ctx: CanvasRenderingContext2D,
   transform: Transform2D,
   rooms: readonly DetectedRoomFor2D[],
@@ -58,24 +61,88 @@ export function drawRooms(
 
     ctx.fillStyle = room.color ?? config.fillColor;
     ctx.fill('evenodd');
+    ctx.restore();
+  }
+}
 
-    // 3. Libellé textuel de la pièce (Nom + Surface en m²) au point de repère (seed)
+/**
+ * 2. Deuxième passe : Étiquettes de pièces en première couche Z-order (au-dessus du mobilier et MEP).
+ * Avec cartouche/halo semi-transparent blanc (rgba(255, 255, 255, 0.82)) pour une lisibilité immédiate.
+ */
+export function drawRoomLabels(
+  ctx: CanvasRenderingContext2D,
+  transform: Transform2D,
+  rooms: readonly DetectedRoomFor2D[],
+  config: RoomRenderConfig = DEFAULT_ROOM_RENDER_CONFIG,
+  visibleRoomIds?: ReadonlySet<string> | null,
+): void {
+  if (rooms.length === 0) return;
+
+  for (const room of rooms) {
+    if (visibleRoomIds && room.id && !visibleRoomIds.has(room.id)) continue;
+    if (room.polygon.length < 3) continue;
+
+    ctx.save();
+
     const screenSeed = transform.worldToScreen(room.seed);
     const roomName = room.name ?? 'Pièce';
     const areaM2 = (room.areaMm2 / 1e6).toFixed(2);
+    const areaText = `${areaM2} m²`;
 
+    ctx.font = config.font;
+    const nameWidth =
+      typeof ctx.measureText === 'function' ? ctx.measureText(roomName).width : roomName.length * 7;
+    ctx.font = config.subFont;
+    const areaWidth =
+      typeof ctx.measureText === 'function' ? ctx.measureText(areaText).width : areaText.length * 6;
+    const maxTextWidth = Math.max(nameWidth, areaWidth);
+    const padX = 6;
+    const padY = 3;
+    const boxW = maxTextWidth + padX * 2;
+    const boxH = 26 + padY * 2;
+    const boxX = screenSeed.x - boxW / 2;
+    const boxY = screenSeed.y - boxH / 2;
+
+    // Cartouche / halo de lisibilité semi-transparent blanc
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.82)';
+    if (typeof ctx.roundRect === 'function') {
+      ctx.beginPath();
+      ctx.roundRect(boxX, boxY, boxW, boxH, 4);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(203, 213, 225, 0.6)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    } else {
+      ctx.fillRect(boxX, boxY, boxW, boxH);
+    }
+
+    // Tracé des textes
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.font = config.font;
     ctx.fillStyle = config.textColor;
-    ctx.fillText(roomName, screenSeed.x, screenSeed.y - 7);
+    ctx.fillText(roomName, screenSeed.x, screenSeed.y - 6);
 
     ctx.font = config.subFont;
     ctx.fillStyle = config.subTextColor;
-    ctx.fillText(`${areaM2} m²`, screenSeed.x, screenSeed.y + 7);
+    ctx.fillText(areaText, screenSeed.x, screenSeed.y + 7);
 
     ctx.restore();
   }
+}
+
+/**
+ * Rendu combiné des pièces (poché + étiquettes), conservé pour rétro-compatibilité.
+ */
+export function drawRooms(
+  ctx: CanvasRenderingContext2D,
+  transform: Transform2D,
+  rooms: readonly DetectedRoomFor2D[],
+  config: RoomRenderConfig = DEFAULT_ROOM_RENDER_CONFIG,
+  visibleRoomIds?: ReadonlySet<string> | null,
+): void {
+  drawRoomFills(ctx, transform, rooms, config, visibleRoomIds);
+  drawRoomLabels(ctx, transform, rooms, config, visibleRoomIds);
 }
 
 /**

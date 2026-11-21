@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { X } from 'lucide-react';
 import { BimDocumentProvider } from './context/BimDocumentContext.js';
 import { useBimDocument } from './hooks/useBimDocument.js';
@@ -6,7 +6,7 @@ import { Toolbar } from './components/Toolbar.js';
 import { StatusBar } from './components/StatusBar.js';
 import { MetricsPanel } from './components/MetricsPanel.js';
 import { ClashPanel } from './components/ClashPanel.js';
-import { FederatedIfcPanel, type FederatedModelOptions } from './components/FederatedIfcPanel.js';
+import { FederatedIfcPanel } from './components/FederatedIfcPanel.js';
 import { PropertyInspector } from './components/PropertyInspector.js';
 import { ComponentRibbon } from './components/ComponentRibbon.js';
 import { MepRibbon } from './components/MepRibbon.js';
@@ -20,21 +20,16 @@ import { useActiveTool } from './tools/useActiveTool.js';
 import { ComponentTool } from './tools/ComponentTool.js';
 import { MepTool, DEFAULT_MEP_CONFIG } from './tools/MepTool.js';
 import { type MepToolConfig } from './tools/types.js';
-import { exportToFile, importFromFile } from './persistence/jsonIO.js';
-import { AutoSaveManager, loadFromIndexedDB } from './persistence/autoSave.js';
 import {
   BimDocument,
-  exportToIfc,
-  detectRooms,
   Commands,
   generateId,
-  createComplexVillaDocument,
   type ClashResult,
-  type FederatedModel,
-  type FederatedEntity,
-  type FederatedClashCandidate,
 } from '@mini-bim/core';
-import { generatePlanSvg } from '@mini-bim/view-2d';
+import { useBimPersistence } from './hooks/useBimPersistence.js';
+import { useBimExport } from './hooks/useBimExport.js';
+import { useFederatedIfc } from './hooks/useFederatedIfc.js';
+import { useBimShortcuts } from './hooks/useBimShortcuts.js';
 
 export interface AppProps {
   readonly initialDoc?: BimDocument;
@@ -82,154 +77,39 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
     setRightDockTab('properties');
   }, []);
 
-  // Maquettes IFC externes fédérées en lecture seule (Sous-phase 9.5)
-  const [federatedModels, setFederatedModels] = useState<Map<string, FederatedModel>>(new Map());
-  const [federatedOptions, setFederatedOptions] = useState<Map<string, FederatedModelOptions>>(
-    new Map(),
-  );
-  const [isFederatedPanelOpen, setIsFederatedPanelOpen] = useState(false);
-  const [selectedFederatedEntity, setSelectedFederatedEntity] = useState<{
-    modelId: string;
-    entity: FederatedEntity;
-  } | null>(null);
-  const [federatedClashes, setFederatedClashes] = useState<readonly FederatedClashCandidate[]>([]);
+  // 1. Hook de Fédération IFC (Sous-phase 9.5)
+  const {
+    federatedModels,
+    federatedOptions,
+    isFederatedPanelOpen,
+    setIsFederatedPanelOpen,
+    selectedFederatedEntity,
+    setSelectedFederatedEntity,
+    federatedClashes,
+    federatedVisuals,
+    handleLoadFederatedIfc,
+    handleUnloadFederatedModel,
+    handleUpdateFederatedOptions,
+    handleCheckFederatedClashes,
+    handleSelectFederatedEntity,
+    handleTargetFederatedClash,
+  } = useFederatedIfc({
+    doc,
+    setSelectedIds,
+    setClashFocusPoint,
+    setRightDockTab,
+    setInfoMessage,
+    setErrorMessage,
+  });
 
-  const handleLoadFederatedIfc = useCallback(async (file: File) => {
-    try {
-      const buffer = await file.arrayBuffer();
-      const Federation = await import('@mini-bim/core/federation');
-      const model = await Federation.loadFederatedIfc(buffer, {
-        modelId: `fed_${generateId()}`,
-        name: file.name,
-        wasmPath: '/',
-      });
-
-      setFederatedModels((prev) => {
-        const next = new Map(prev);
-        next.set(model.id, model);
-        return next;
-      });
-
-      setFederatedOptions((prev) => {
-        const next = new Map(prev);
-        next.set(model.id, {
-          visible: true,
-          opacity: 0.35,
-          wireframe: false,
-          offset: { x: 0, y: 0, z: 0 },
-        });
-        return next;
-      });
-
-      setIsFederatedPanelOpen(true);
-      setRightDockTab('ifc');
-      setInfoMessage(
-        `Maquette IFC "${file.name}" chargée en référence (${model.entityCount} entités).`,
-      );
-    } catch (err) {
-      setErrorMessage(`Échec du chargement du fichier IFC : ${(err as Error).message}`);
-    }
-  }, []);
-
-  const handleUnloadFederatedModel = useCallback((modelId: string) => {
-    setFederatedModels((prev) => {
-      const next = new Map(prev);
-      next.delete(modelId);
-      return next;
-    });
-    setFederatedOptions((prev) => {
-      const next = new Map(prev);
-      next.delete(modelId);
-      return next;
-    });
-    setSelectedFederatedEntity((curr) => (curr?.modelId === modelId ? null : curr));
-    setFederatedClashes([]);
-  }, []);
-
-  const handleUpdateFederatedOptions = useCallback(
-    (modelId: string, patch: Partial<FederatedModelOptions>) => {
-      setFederatedOptions((prev) => {
-        const next = new Map(prev);
-        const existing = next.get(modelId) ?? {
-          visible: true,
-          opacity: 0.35,
-          wireframe: false,
-          offset: { x: 0, y: 0, z: 0 },
-        };
-        next.set(modelId, { ...existing, ...patch });
-        return next;
-      });
+  const handlePlanSelectionChanged = useCallback(
+    (ids: readonly string[]) => {
+      setSelectedIds(ids);
+      setSelectedFederatedEntity(null);
     },
-    [],
+    [setSelectedFederatedEntity],
   );
 
-  const handleCheckFederatedClashes = useCallback(
-    async (modelId: string) => {
-      const model = federatedModels.get(modelId);
-      if (!model) return;
-      const opts = federatedOptions.get(modelId);
-      const Federation = await import('@mini-bim/core/federation');
-      const results = Federation.detectFederatedClashes(doc.getState(), model, {
-        offset: opts?.offset,
-      });
-      setFederatedClashes(results);
-    },
-    [doc, federatedModels, federatedOptions],
-  );
-
-  const handleSelectFederatedEntity = useCallback(
-    (modelId: string | null, expressId: number | null) => {
-      if (!modelId || expressId === null) {
-        setSelectedFederatedEntity(null);
-        return;
-      }
-      const model = federatedModels.get(modelId);
-      const entity = model?.entities[expressId];
-      if (entity) {
-        setSelectedFederatedEntity({ modelId, entity });
-        setIsFederatedPanelOpen(true);
-      } else {
-        setSelectedFederatedEntity(null);
-      }
-    },
-    [federatedModels],
-  );
-
-  const handlePlanSelectionChanged = useCallback((ids: readonly string[]) => {
-    setSelectedIds(ids);
-    setSelectedFederatedEntity(null);
-  }, []);
-
-  const handleTargetFederatedClash = useCallback(
-    (clash: FederatedClashCandidate) => {
-      const model = federatedModels.get(clash.modelId);
-      const entity = model?.entities[clash.expressId];
-      setSelectedIds([clash.nativeId, `ifc:${clash.modelId}:${clash.expressId}`]);
-      setSelectedFederatedEntity(entity ? { modelId: clash.modelId, entity } : null);
-      setClashFocusPoint(clash.point);
-      setRightDockTab('properties');
-    },
-    [federatedModels],
-  );
-
-  const federatedVisuals = useMemo(() => {
-    return Array.from(federatedModels.values()).map((m) => {
-      const opts = federatedOptions.get(m.id) ?? {
-        visible: true,
-        opacity: 0.35,
-        wireframe: false,
-        offset: { x: 0, y: 0, z: 0 },
-      };
-      return {
-        id: m.id,
-        name: m.name,
-        items: m.meshes,
-        ...opts,
-      };
-    });
-  }, [federatedModels, federatedOptions]);
-
-  const autoSaveManagerRef = useRef<AutoSaveManager | null>(null);
   const zoomFitRef = useRef<() => void>(() => undefined);
   const zoomFit3DRef = useRef<() => void>(() => undefined);
   const setZoomFit = useCallback((zoomFit: () => void) => {
@@ -238,92 +118,48 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
   const setZoomFit3D = useCallback((zoomFit: () => void) => {
     zoomFit3DRef.current = zoomFit;
   }, []);
-  if (!autoSaveManagerRef.current) {
-    autoSaveManagerRef.current = new AutoSaveManager(500);
-  }
 
-  const hasRestoredRef = useRef(false);
+  // 2. Hook de Persistance (IndexedDB, AutoSave réactif & flush beforeunload)
+  useBimPersistence({
+    doc,
+    hasInitialDoc,
+    setDocument,
+    setActiveLevelId,
+    setInfoMessage,
+  });
 
-  // Restauration automatique au montage initial depuis IndexedDB (S2-8 / ADR-051 §D4) ou chargement démo ?demo=roof
-  useEffect(() => {
-    if (hasInitialDoc || hasRestoredRef.current) {
-      return;
-    }
-    hasRestoredRef.current = true;
+  // 3. Hook d'Export & Import (JSON, IFC4, SVG, Démo R+4)
+  const {
+    handleSave,
+    handleExportIfc,
+    handleExportSvg,
+    handleLoadFile,
+    handleLoadR4Demo,
+  } = useBimExport({
+    doc,
+    activeLevelId,
+    resetActiveTool: () => activeTool.reset(),
+    setSelectedIds,
+    setDrawingLength,
+    setDocument,
+    setActiveLevelId,
+    setActiveToolKind,
+    setErrorMessage,
+    setInfoMessage,
+  });
 
-    let isCancelled = false;
-    async function restoreProject() {
-      try {
-        if (typeof window !== 'undefined') {
-          const params = new URLSearchParams(window.location.search);
-          const demoParam = params.get('demo');
-          if (demoParam === 'villa' || demoParam === 'villa-complexe') {
-            if (!isCancelled) {
-              setDocument(createComplexVillaDocument());
-              setInfoMessage('Villa Contemporaine Complexe chargée avec succès.');
-              return;
-            }
-          }
-          if (demoParam === 'r4' || demoParam === 'immeuble-r4') {
-            const resp = await fetch('/demo-immeuble-r4.json');
-            if (resp.ok) {
-              const text = await resp.text();
-              if (!isCancelled) {
-                const r4Doc = BimDocument.fromJSON(text);
-                setDocument(r4Doc);
-                setActiveLevelId('level_r0');
-                setInfoMessage('Immeuble R+4 complet chargé avec succès !');
-                return;
-              }
-            }
-          }
-          if (params.get('demo') === 'roof') {
-            const resp = await fetch('/demo-roof-plan.json');
-            if (resp.ok) {
-              const text = await resp.text();
-              if (!isCancelled) {
-                const roofDoc = BimDocument.fromJSON(text);
-                setDocument(roofDoc);
-                setInfoMessage('Démo Toitures & Biseautage chargée');
-                return;
-              }
-            }
-          }
-        }
-
-        const result = await loadFromIndexedDB();
-        if (result && !isCancelled) {
-          const restoredDoc = BimDocument.fromJSON(result.json);
-          setDocument(restoredDoc);
-          setInfoMessage('Projet restauré depuis la sauvegarde automatique');
-        }
-      } catch (err) {
-        console.warn('[AutoSave] Impossible de charger la sauvegarde automatique :', err);
-      }
-    }
-
-    void restoreProject();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [hasInitialDoc, setDocument]);
-
-  // Sauvegarde automatique réactive à chaque mutation documentaire (S2-8)
-  useEffect(() => {
-    const unsubscribe = doc.subscribe(() => {
-      autoSaveManagerRef.current?.scheduleSave(doc);
-    });
-    return () => {
-      unsubscribe();
-      autoSaveManagerRef.current?.cancelScheduledSave();
-    };
-  }, [doc]);
-
-  // Flush avant déchargement de page (S2-8)
-  useEffect(() => {
-    return autoSaveManagerRef.current?.attachBeforeUnload(doc);
-  }, [doc]);
+  // 4. Hook de Raccourcis Clavier Globaux (Undo, Redo, Escape)
+  useBimShortcuts({
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    selectedIds,
+    onClearSelection: () => {
+      setSelectedIds([]);
+      setSelectedFederatedEntity(null);
+    },
+  });
 
   // Disparition temporisée du bandeau d'information
   useEffect(() => {
@@ -350,123 +186,6 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
     }
   }, [doc, activeLevelId]);
 
-  // Raccourcis clavier globaux (Undo, Redo, Escape)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const activeTag = (document.activeElement?.tagName || '').toLowerCase();
-      if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') {
-        return;
-      }
-
-      const isMac =
-        typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.userAgent);
-      const isCtrlOrCmd = isMac ? e.metaKey : e.ctrlKey;
-
-      // 1. Annulation (Undo : Ctrl+Z / Cmd+Z sans Shift)
-      if (isCtrlOrCmd && (e.key === 'z' || e.key === 'Z') && !e.shiftKey) {
-        e.preventDefault();
-        if (canUndo()) {
-          undo();
-        }
-        return;
-      }
-
-      // 2. Rétablissement (Redo : Ctrl+Shift+Z / Cmd+Shift+Z ou Ctrl+Y sous Windows)
-      const isRedoShortcut =
-        (isCtrlOrCmd && (e.key === 'z' || e.key === 'Z') && e.shiftKey) ||
-        (!isMac && e.ctrlKey && (e.key === 'y' || e.key === 'Y'));
-
-      if (isRedoShortcut) {
-        e.preventDefault();
-        if (canRedo()) {
-          redo();
-        }
-        return;
-      }
-
-      // 3. Désélection globale (Escape)
-      if (e.key === 'Escape' && selectedIds.length > 0) {
-        setSelectedIds([]);
-        setSelectedFederatedEntity(null);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [undo, redo, canUndo, canRedo, selectedIds]);
-
-  const handleSave = useCallback(() => {
-    exportToFile(doc, 'project.mbim.json');
-  }, [doc]);
-
-  const handleExportIfc = useCallback(() => {
-    try {
-      const ifcContent = exportToIfc(doc.getState(), {
-        projectName: 'Projet Mini-BIM',
-        filename: 'mini-bim-model.ifc',
-        author: 'Mini-BIM Architect',
-      });
-      const blob = new Blob([ifcContent], { type: 'model/ifc;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'mini-bim-model.ifc';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : 'Erreur lors de l’exportation IFC4.');
-    }
-  }, [doc]);
-
-  const handleExportSvg = useCallback(
-    (scale: 50 | 100 | 200) => {
-      try {
-        const docState = doc.getState();
-        const targetLevelId =
-          activeLevelId && docState.levels[activeLevelId]
-            ? activeLevelId
-            : (Object.keys(docState.levels)[0] ?? '');
-        const levelName = targetLevelId ? docState.levels[targetLevelId]?.name : 'Étage';
-        const detected = targetLevelId ? detectRooms(docState, targetLevelId) : [];
-        const roomsForSvg = detected.map((d) => ({
-          polygon: d.polygon,
-          areaMm2: d.areaMm2,
-          seed: d.seed,
-          name: (d.existingRoomId && docState.rooms[d.existingRoomId]?.name) || 'Pièce',
-        }));
-
-        const svgContent = generatePlanSvg(doc, {
-          scale,
-          title: `Plan d’Étage - ${levelName}`,
-          project: 'Projet Mini-BIM',
-          author: 'Mini-BIM Architect',
-          levelId: targetLevelId,
-          rooms: roomsForSvg,
-        });
-
-        const blob = new Blob([svgContent], { type: 'image/svg+xml;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `plan-etage-1-${scale}.svg`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        setInfoMessage('Plan SVG exporté.');
-      } catch (err) {
-        setErrorMessage(
-          err instanceof Error ? err.message : 'Erreur lors de l’exportation du plan SVG.',
-        );
-      }
-    },
-    [doc, activeLevelId],
-  );
-
   const handleAddLevel = useCallback(() => {
     const sorted = Object.values(doc.getState().levels).sort((a, b) => a.elevation - b.elevation);
     const topLevel = sorted[sorted.length - 1];
@@ -482,50 +201,6 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
     );
     setActiveLevelId(newLevelId);
   }, [doc]);
-
-  const handleLoadFile = useCallback(
-    async (file: File) => {
-      try {
-        activeTool.reset();
-        setSelectedIds([]);
-        setDrawingLength(null);
-        const newDoc = await importFromFile(file);
-        setDocument(newDoc);
-        setActiveLevelId(Object.keys(newDoc.getState().levels)[0] ?? '');
-        setActiveToolKind('select');
-        setErrorMessage(null);
-      } catch (err) {
-        setErrorMessage(
-          err instanceof Error
-            ? err.message
-            : 'Erreur lors du chargement du fichier JSON architectural.',
-        );
-      }
-    },
-    [activeTool, setDocument, setActiveToolKind],
-  );
-
-  const handleLoadR4Demo = useCallback(async () => {
-    try {
-      activeTool.reset();
-      setSelectedIds([]);
-      setDrawingLength(null);
-      const resp = await fetch('/demo-immeuble-r4.json');
-      if (!resp.ok) {
-        throw new Error(`Échec du téléchargement (/demo-immeuble-r4.json: ${resp.status})`);
-      }
-      const text = await resp.text();
-      const r4Doc = BimDocument.fromJSON(text);
-      setDocument(r4Doc);
-      setActiveLevelId('level_r0');
-      setInfoMessage('Immeuble R+4 complet chargé avec succès !');
-      setErrorMessage(null);
-    } catch (err) {
-      setErrorMessage(
-        err instanceof Error ? err.message : 'Erreur lors du chargement de la démo R+4.',
-      );
-    }
-  }, [activeTool, setDocument]);
 
   const handleDeleteSelected = useCallback(() => {
     if (selectedIds.length !== 1) return;
@@ -790,6 +465,7 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
               selectedIds={selectedIds}
               isCollapsed={false}
               onDeleteSelected={handleDeleteSelected}
+              embedded
             />
           }
           clashes={

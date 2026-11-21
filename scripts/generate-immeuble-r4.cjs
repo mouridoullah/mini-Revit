@@ -8,7 +8,10 @@ const fs = require('fs');
 const path = require('path');
 const ulid = () => '01M7' + Math.random().toString(36).substring(2, 11).toUpperCase() + Math.random().toString(36).substring(2, 11).toUpperCase();
 
-const raw = fs.readFileSync('immeuble-rplus5.json', 'utf8');
+const baseFile = fs.existsSync('immeuble-rplus5.json')
+  ? 'immeuble-rplus5.json'
+  : path.join('apps', 'web', 'public', 'demo-immeuble-r4.json');
+const raw = fs.readFileSync(baseFile, 'utf8');
 const model = JSON.parse(raw);
 
 // 1. Mise à jour des Niveaux (Immeuble R+4 avec Toiture Terrasse)
@@ -271,7 +274,7 @@ for (let i = 0; i < floorLevels.length; i++) {
 }
 
 // 5. Génération du Réseau Électrique (Chemins de Câbles / Cable Trays)
-// Colonne en X = 2300, Y = -300
+// Colonne en X = 2000, Y = -500 (gainée dans la circulation intérieure, sans débord extérieur)
 for (let i = 0; i < floorLevels.length; i++) {
   const lvl = floorLevels[i];
   const zFloor = lvl.zBase;
@@ -290,13 +293,13 @@ for (let i = 0; i < floorLevels.length; i++) {
     name: `Câbles - Colonne montante ${lvl.id}`,
     width: 200,
     height: 60,
-    start: { x: 2300, y: -300, z: zFloor + 100 },
-    end: { x: 2300, y: -300, z: zFloor + 2900 },
+    start: { x: 2000, y: -500, z: zFloor + 100 },
+    end: { x: 2000, y: -500, z: zFloor + 2700 },
     ports: [
       {
         id: t0Id,
         elementId: riserTrayId,
-        position: { x: 2300, y: -300, z: zFloor + 100 },
+        position: { x: 2000, y: -500, z: zFloor + 100 },
         direction: { x: 0, y: 0, z: -1 },
         domain: 'electrical',
         systemType: 'power',
@@ -309,7 +312,7 @@ for (let i = 0; i < floorLevels.length; i++) {
       {
         id: t1Id,
         elementId: riserTrayId,
-        position: { x: 2300, y: -300, z: zFloor + 2900 },
+        position: { x: 2000, y: -500, z: zFloor + 2700 },
         direction: { x: 0, y: 0, z: 1 },
         domain: 'electrical',
         systemType: 'power',
@@ -323,7 +326,7 @@ for (let i = 0; i < floorLevels.length; i++) {
   };
   model.mepSystems['sys_elec'].elementIds.push(riserTrayId);
 
-  // Distribution horizontale vers le palier
+  // Distribution horizontale vers la circulation du palier intérieur
   const branchTrayId = `tray_branch_${i}`;
   const bt0Id = ulid();
   const bt1Id = ulid();
@@ -336,14 +339,14 @@ for (let i = 0; i < floorLevels.length; i++) {
     name: `Câbles - Distribution palier ${lvl.id}`,
     width: 150,
     height: 50,
-    start: { x: 2300, y: -300, z: zTray },
-    end: { x: 3500, y: -300, z: zTray },
+    start: { x: 2000, y: -500, z: zTray },
+    end: { x: 1200, y: -500, z: zTray },
     ports: [
       {
         id: bt0Id,
         elementId: branchTrayId,
-        position: { x: 2300, y: -300, z: zTray },
-        direction: { x: -1, y: 0, z: 0 },
+        position: { x: 2000, y: -500, z: zTray },
+        direction: { x: 1, y: 0, z: 0 },
         domain: 'electrical',
         systemType: 'power',
         shape: 'rectangular',
@@ -355,8 +358,8 @@ for (let i = 0; i < floorLevels.length; i++) {
       {
         id: bt1Id,
         elementId: branchTrayId,
-        position: { x: 3500, y: -300, z: zTray },
-        direction: { x: 1, y: 0, z: 0 },
+        position: { x: 1200, y: -500, z: zTray },
+        direction: { x: -1, y: 0, z: 0 },
         domain: 'electrical',
         systemType: 'power',
         shape: 'rectangular',
@@ -381,12 +384,12 @@ for (let i = 0; i < floorLevels.length; i++) {
     fittingType: 'tee',
     levelId: lvl.id,
     systemId: 'sys_elec',
-    position: { x: 2300, y: -300, z: zTray },
+    position: { x: 2000, y: -500, z: zTray },
     ports: [
       {
         id: tt0,
         elementId: trayTeeId,
-        position: { x: 2300, y: -300, z: zTray - 50 },
+        position: { x: 2000, y: -500, z: zTray - 50 },
         direction: { x: 0, y: 0, z: -1 },
         domain: 'electrical',
         systemType: 'power',
@@ -397,7 +400,7 @@ for (let i = 0; i < floorLevels.length; i++) {
       {
         id: tt1,
         elementId: trayTeeId,
-        position: { x: 2300, y: -300, z: zTray + 50 },
+        position: { x: 2000, y: -500, z: zTray + 50 },
         direction: { x: 0, y: 0, z: 1 },
         domain: 'electrical',
         systemType: 'power',
@@ -408,8 +411,8 @@ for (let i = 0; i < floorLevels.length; i++) {
       {
         id: tt2,
         elementId: trayTeeId,
-        position: { x: 2300, y: -300, z: zTray },
-        direction: { x: 1, y: 0, z: 0 },
+        position: { x: 2000, y: -500, z: zTray },
+        direction: { x: -1, y: 0, z: 0 },
         domain: 'electrical',
         systemType: 'power',
         shape: 'rectangular',
@@ -457,7 +460,7 @@ model.dimensions['dim_facade_nord_rdc'] = {
   levelId: 'level_r0',
   type: 'linear',
   references: ['wall_0_north'],
-  offset: 800,
+  offset: -800,
   value: 10000,
 };
 
@@ -477,7 +480,7 @@ model.dimensions['dim_facade_est_rdc'] = {
   levelId: 'level_r0',
   type: 'linear',
   references: ['wall_0_east'],
-  offset: 800,
+  offset: -800,
   value: 10500,
 };
 

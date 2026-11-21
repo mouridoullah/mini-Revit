@@ -19,6 +19,7 @@ export interface PropertyInspectorProps {
   readonly isCollapsed?: boolean;
   readonly onToggleCollapse?: () => void;
   readonly onDeleteSelected?: () => void;
+  readonly embedded?: boolean;
 }
 
 /**
@@ -33,6 +34,7 @@ export function PropertyInspector({
   isCollapsed: controlledCollapsed,
   onToggleCollapse,
   onDeleteSelected,
+  embedded = false,
 }: PropertyInspectorProps) {
   const [internalCollapsed, setInternalCollapsed] = useState(false);
   const [, setTick] = useState(0);
@@ -198,44 +200,53 @@ export function PropertyInspector({
     return <div style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>Élément sélectionné : {id}</div>;
   };
 
+  const showHeader = !embedded || (selectedIds.length === 1 && Boolean(onDeleteSelected));
+  const showTitle = !embedded;
+
   return (
     <aside
       data-testid="property-inspector"
       style={{
-        width: '280px',
+        width: embedded ? '100%' : '280px',
         height: '100%',
         backgroundColor: 'var(--bg-canvas-chrome)',
-        borderLeft: '1px solid var(--border-subtle)',
+        borderLeft: embedded ? 'none' : '1px solid var(--border-subtle)',
         display: 'flex',
         flexDirection: 'column',
         userSelect: 'none',
         overflowY: 'auto',
       }}
     >
-      <header
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '10px 14px',
-          borderBottom: '1px solid var(--border-subtle)',
-          backgroundColor: 'var(--bg-card)',
-        }}
-      >
-        <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>Propriétés</span>
-        {selectedIds.length === 1 && onDeleteSelected && (
-          <button
-            type="button"
-            data-testid="delete-selected-btn"
-            aria-label="Supprimer l’élément sélectionné"
-            title="Supprimer l’élément sélectionné"
-            onClick={onDeleteSelected}
-            style={{ background: 'transparent', border: 0, color: 'var(--accent-danger)', cursor: 'pointer' }}
-          >
-            <Trash2 size={16} strokeWidth={1.75} />
-          </button>
-        )}
-      </header>
+      {showHeader && (
+        <header
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: showTitle ? 'space-between' : 'flex-end',
+            padding: embedded ? '8px 14px' : '10px 14px',
+            borderBottom: '1px solid var(--border-subtle)',
+            backgroundColor: 'var(--bg-card)',
+          }}
+        >
+          {showTitle && (
+            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>
+              Propriétés
+            </span>
+          )}
+          {selectedIds.length === 1 && onDeleteSelected && (
+            <button
+              type="button"
+              data-testid="delete-selected-btn"
+              aria-label="Supprimer l’élément sélectionné"
+              title="Supprimer l’élément sélectionné"
+              onClick={onDeleteSelected}
+              style={{ background: 'transparent', border: 0, color: 'var(--accent-danger)', cursor: 'pointer' }}
+            >
+              <Trash2 size={16} strokeWidth={1.75} />
+            </button>
+          )}
+        </header>
+      )}
 
       <div style={{ padding: '14px', flex: 1 }}>{renderContent()}</div>
     </aside>
