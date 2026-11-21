@@ -12,8 +12,36 @@ import { HistoryStack } from './history.js';
 import { toJSON, fromJSON } from './serialization.js';
 import { generateId } from './ids.js';
 import { DependencyGraph } from './dag/DependencyGraph.js';
-import { validateDirty } from './rules.js';
+import { validateDirty, BimValidationError } from './rules.js';
 import { createDefaultComponentTypes } from './components/catalog.js';
+
+/**
+ * Détermine si un ensemble d'identifiants modifiés touche à la structure d'étages
+ * ou aux relations inter-niveaux grossières (ADR-041 & ADR-048).
+ */
+function hasStructuralOrCrossLevelChanges(
+  changedIds: readonly ElementId[],
+  oldState: BimState,
+  nextState: BimState,
+): boolean {
+  for (const id of changedIds) {
+    if (
+      (oldState.levels && id in oldState.levels) ||
+      (nextState.levels && id in nextState.levels) ||
+      (oldState.slabs && id in oldState.slabs) ||
+      (nextState.slabs && id in nextState.slabs) ||
+      (oldState.roofs && id in oldState.roofs) ||
+      (nextState.roofs && id in nextState.roofs) ||
+      (oldState.stairs && id in oldState.stairs) ||
+      (nextState.stairs && id in nextState.stairs) ||
+      (oldState.wallTypes && id in oldState.wallTypes) ||
+      (nextState.wallTypes && id in nextState.wallTypes)
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
 
 /**
  * Gestionnaire documentaire central du projet Mini-BIM.
@@ -25,12 +53,14 @@ import { createDefaultComponentTypes } from './components/catalog.js';
  */
 export class BimDocument {
   private state: BimState;
+  private _dag: DependencyGraph;
   private readonly history: HistoryStack;
   private readonly subscribers: Set<DocumentListener> = new Set();
 
   public constructor(initialState?: BimState) {
     this.state = initialState ?? BimDocument.createEmptyState();
     this.history = new HistoryStack();
+    this._dag = DependencyGraph.build(this.state);
   }
 
   /**
@@ -194,6 +224,13 @@ export class BimDocument {
   }
 
   /**
+   * Retourne l'instance active du graphe de dépendances (ADR-041).
+   */
+  public getDependencyGraph(): DependencyGraph {
+    return this._dag;
+  }
+
+  /**
    * Exécute une commande transactionnelle, applique les patchs et notifie les écouteurs.
    */
   public execute(cmd: Command): CommandResult {
@@ -201,11 +238,29 @@ export class BimDocument {
       cmd.apply(draft as BimState);
     });
 
-    // Capture des dépendants transitifs via DAG minimal (ADR-041 / Option B)
-    const dagBefore = DependencyGraph.build(this.state);
-    const dagAfter = DependencyGraph.build(nextState as BimState);
     const directChanged = cmd.getChangedIds();
+    const dagBefore = this._dag;
 
+    // Préparation de dagAfter sans muter this._dag (Garde-fou d'atomicité)
+    let nextDag: DependencyGraph;
+    if (hasStructuralOrCrossLevelChanges(directChanged, this.state, nextState as BimState)) {
+      nextDag = DependencyGraph.build(nextState as BimState);
+    } else {
+      nextDag = this._dag.clone();
+      nextDag.updateElements(directChanged, this.state, nextState as BimState);
+    }
+
+    // Détection de cycle sur la nouvelle configuration DAG
+    const cycleNodes = nextDag.findCycleNodes();
+    if (cycleNodes.length > 0) {
+      throw new BimValidationError(
+        'CYCLE_DETECTED',
+        `Cycle detected in dependency graph involving nodes: ${cycleNodes.join(', ')}`,
+        { offendingIds: cycleNodes },
+      );
+    }
+
+    // Capture des dépendants transitifs via union des fermetures avant et après
     const allChanged: ElementId[] = [...directChanged];
     const seen = new Set<ElementId>(directChanged);
     for (const id of directChanged) {
@@ -215,7 +270,7 @@ export class BimDocument {
           allChanged.push(dep);
         }
       }
-      for (const dep of dagAfter.getDependents(id)) {
+      for (const dep of nextDag.getDependents(id)) {
         if (!seen.has(dep)) {
           seen.add(dep);
           allChanged.push(dep);
@@ -225,9 +280,12 @@ export class BimDocument {
     const changed = allChanged;
 
     // Post-Condition Universelle Différentielle (ADR-041 §6 / Phase 6.0b)
+    // Si validateDirty lève une exception, this.state et this._dag restent strictement intouchés !
     validateDirty(nextState as BimState, changed, this.state);
 
+    // Commit atomique de l'état et du DAG synchronisé
     this.state = nextState as BimState;
+    this._dag = nextDag;
 
     // Enregistrer la transaction dans l'historique
     this.history.push({
@@ -253,7 +311,16 @@ export class BimDocument {
     const result = this.history.undo(this.state);
     if (!result) return false;
 
+    const prevState = this.state;
     this.state = result.nextState;
+
+    // Synchronisation incrémentale du graphe de dépendances sur annulation
+    if (hasStructuralOrCrossLevelChanges(result.changed, prevState, this.state)) {
+      this._dag = DependencyGraph.build(this.state);
+    } else {
+      this._dag.updateElements(result.changed, prevState, this.state);
+    }
+
     this.notifySubscribers(result.changed);
     return true;
   }
@@ -265,7 +332,16 @@ export class BimDocument {
     const result = this.history.redo(this.state);
     if (!result) return false;
 
+    const prevState = this.state;
     this.state = result.nextState;
+
+    // Synchronisation incrémentale du graphe de dépendances sur rétablissement
+    if (hasStructuralOrCrossLevelChanges(result.changed, prevState, this.state)) {
+      this._dag = DependencyGraph.build(this.state);
+    } else {
+      this._dag.updateElements(result.changed, prevState, this.state);
+    }
+
     this.notifySubscribers(result.changed);
     return true;
   }

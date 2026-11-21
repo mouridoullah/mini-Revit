@@ -39,8 +39,20 @@ export class DependencyGraph {
    * Supprime une arête orientée existante.
    */
   public removeEdge(parent: ElementId, child: ElementId): void {
-    this.forward.get(parent)?.delete(child);
-    this.backward.get(child)?.delete(parent);
+    const children = this.forward.get(parent);
+    if (children) {
+      children.delete(child);
+      if (children.size === 0) {
+        this.forward.delete(parent);
+      }
+    }
+    const parents = this.backward.get(child);
+    if (parents) {
+      parents.delete(parent);
+      if (parents.size === 0) {
+        this.backward.delete(child);
+      }
+    }
   }
 
   /**
@@ -50,7 +62,13 @@ export class DependencyGraph {
     const children = this.forward.get(id);
     if (children) {
       for (const child of children) {
-        this.backward.get(child)?.delete(id);
+        const parents = this.backward.get(child);
+        if (parents) {
+          parents.delete(id);
+          if (parents.size === 0) {
+            this.backward.delete(child);
+          }
+        }
       }
       this.forward.delete(id);
     }
@@ -58,9 +76,200 @@ export class DependencyGraph {
     const parents = this.backward.get(id);
     if (parents) {
       for (const parent of parents) {
-        this.forward.get(parent)?.delete(id);
+        const cSet = this.forward.get(parent);
+        if (cSet) {
+          cSet.delete(id);
+          if (cSet.size === 0) {
+            this.forward.delete(parent);
+          }
+        }
       }
       this.backward.delete(id);
+    }
+  }
+
+  /**
+   * Clone en mémoire le graphe de dépendances (arêtes forward et backward).
+   */
+  public clone(): DependencyGraph {
+    const copy = new DependencyGraph();
+    for (const [parent, children] of this.forward) {
+      copy.forward.set(parent, new Set(children));
+    }
+    for (const [child, parents] of this.backward) {
+      copy.backward.set(child, new Set(parents));
+    }
+    return copy;
+  }
+
+  /**
+   * Compare bit-à-bit deux graphes de dépendances.
+   */
+  public equals(other: DependencyGraph): boolean {
+    if (this.forward.size !== other.forward.size || this.backward.size !== other.backward.size) {
+      return false;
+    }
+    for (const [parent, children] of this.forward) {
+      const otherChildren = other.forward.get(parent);
+      if (!otherChildren || otherChildren.size !== children.size) return false;
+      for (const c of children) {
+        if (!otherChildren.has(c)) return false;
+      }
+    }
+    for (const [child, parents] of this.backward) {
+      const otherParents = other.backward.get(child);
+      if (!otherParents || otherParents.size !== parents.size) return false;
+      for (const p of parents) {
+        if (!otherParents.has(p)) return false;
+      }
+    }
+    return true;
+  }
+
+  public getForwardMap(): ReadonlyMap<ElementId, ReadonlySet<ElementId>> {
+    return this.forward;
+  }
+
+  public getBackwardMap(): ReadonlyMap<ElementId, ReadonlySet<ElementId>> {
+    return this.backward;
+  }
+
+  /**
+   * Met à jour différentiellement les dépendances pour un ensemble d'identifiants modifiés.
+   */
+  public updateElements(
+    changedIds: readonly ElementId[],
+    _oldState: BimState,
+    nextState: BimState,
+  ): void {
+    for (const id of changedIds) {
+      // 1. Purger les anciennes relations parents pour ce nœud
+      const parents = this.backward.get(id);
+      if (parents) {
+        for (const p of Array.from(parents)) {
+          this.removeEdge(p, id);
+        }
+      }
+
+      // Si l'élément a été complètement supprimé dans nextState :
+      // On retire également toutes ses arêtes incidentes.
+      const existsInNext =
+        (nextState.walls && id in nextState.walls) ||
+        (nextState.doors && id in nextState.doors) ||
+        (nextState.windows && id in nextState.windows) ||
+        (nextState.components && id in nextState.components) ||
+        (nextState.dimensions && id in nextState.dimensions) ||
+        (nextState.pipes && id in nextState.pipes) ||
+        (nextState.ducts && id in nextState.ducts) ||
+        (nextState.cableTrays && id in nextState.cableTrays) ||
+        (nextState.mepFittings && id in nextState.mepFittings) ||
+        (nextState.mepEquipments && id in nextState.mepEquipments) ||
+        (nextState.mepConnectors && id in nextState.mepConnectors) ||
+        (nextState.slabs && id in nextState.slabs) ||
+        (nextState.roofs && id in nextState.roofs) ||
+        (nextState.stairs && id in nextState.stairs) ||
+        (nextState.levels && id in nextState.levels) ||
+        (nextState.wallTypes && id in nextState.wallTypes) ||
+        (nextState.doorTypes && id in nextState.doorTypes) ||
+        (nextState.windowTypes && id in nextState.windowTypes);
+
+      if (!existsInNext) {
+        this.removeNode(id);
+        continue;
+      }
+
+      // 2. Reconstituer les nouvelles arêtes parent -> id selon la catégorie de l'élément dans nextState
+      if (nextState.doors && id in nextState.doors) {
+        const d = nextState.doors[id];
+        if (d) {
+          if (d.hostWallId) this.addEdge(d.hostWallId, d.id);
+          if (d.doorTypeId) this.addEdge(d.doorTypeId, d.id);
+        }
+      } else if (nextState.windows && id in nextState.windows) {
+        const w = nextState.windows[id];
+        if (w) {
+          if (w.hostWallId) this.addEdge(w.hostWallId, w.id);
+          if (w.windowTypeId) this.addEdge(w.windowTypeId, w.id);
+        }
+      } else if (nextState.walls && id in nextState.walls) {
+        const w = nextState.walls[id];
+        if (w) {
+          if (w.typeId) this.addEdge(w.typeId, w.id);
+          if (w.levelId) this.addEdge(w.levelId, w.id);
+          if (w.topConstraint?.kind === 'roof' && w.topConstraint.roofId) {
+            this.addEdge(w.topConstraint.roofId, w.id);
+          } else if (w.topConstraint?.levelId) {
+            this.addEdge(w.topConstraint.levelId, w.id);
+            if (nextState.slabs) {
+              for (const sid in nextState.slabs) {
+                const s = nextState.slabs[sid];
+                if (s && s.levelId === w.topConstraint.levelId) {
+                  this.addEdge(s.id, w.id);
+                }
+              }
+            }
+          } else if (!w.topConstraint && nextState.roofs) {
+            for (const rid in nextState.roofs) {
+              const r = nextState.roofs[rid];
+              if (r && isWallCoveredByRoof(w, r)) {
+                this.addEdge(r.id, w.id);
+              }
+            }
+          }
+        }
+      } else if (nextState.dimensions && id in nextState.dimensions) {
+        const dim = nextState.dimensions[id];
+        if (dim && dim.references) {
+          for (let i = 0; i < dim.references.length; i++) {
+            const refId = dim.references[i];
+            if (refId) this.addEdge(refId, dim.id);
+          }
+        }
+      } else if (nextState.components && id in nextState.components) {
+        const comp = nextState.components[id];
+        if (comp) {
+          if (comp.typeId) this.addEdge(comp.typeId, comp.id);
+          if (comp.levelId) this.addEdge(comp.levelId, comp.id);
+          if (comp.placement?.hostWallId) {
+            this.addEdge(comp.placement.hostWallId, comp.id);
+          }
+        }
+      } else if (nextState.pipes && id in nextState.pipes) {
+        const p = nextState.pipes[id];
+        if (p) {
+          if (p.levelId) this.addEdge(p.levelId, p.id);
+          if (p.systemId) this.addEdge(p.systemId, p.id);
+        }
+      } else if (nextState.ducts && id in nextState.ducts) {
+        const d = nextState.ducts[id];
+        if (d) {
+          if (d.levelId) this.addEdge(d.levelId, d.id);
+          if (d.systemId) this.addEdge(d.systemId, d.id);
+        }
+      } else if (nextState.cableTrays && id in nextState.cableTrays) {
+        const ct = nextState.cableTrays[id];
+        if (ct) {
+          if (ct.levelId) this.addEdge(ct.levelId, ct.id);
+          if (ct.systemId) this.addEdge(ct.systemId, ct.id);
+        }
+      } else if (nextState.mepFittings && id in nextState.mepFittings) {
+        const f = nextState.mepFittings[id];
+        if (f) {
+          if (f.levelId) this.addEdge(f.levelId, f.id);
+          if (f.systemId) this.addEdge(f.systemId, f.id);
+        }
+      } else if (nextState.mepEquipments && id in nextState.mepEquipments) {
+        const eq = nextState.mepEquipments[id];
+        if (eq) {
+          if (eq.levelId) this.addEdge(eq.levelId, eq.id);
+          if (eq.systemId) this.addEdge(eq.systemId, eq.id);
+        }
+      } else if (nextState.mepConnectors && id in nextState.mepConnectors) {
+        const c = nextState.mepConnectors[id];
+        if (c) {
+          if (c.systemId) this.addEdge(c.systemId, c.id);
+        }
+      }
     }
   }
 
