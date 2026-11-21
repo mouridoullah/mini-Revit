@@ -167,6 +167,18 @@ export class FederatedIfcManager {
     }
   }
 
+  public setSelectedEntity(modelId: string | null, expressId: number | null): void {
+    for (const model of this.models.values()) {
+      for (const mesh of model.meshes) {
+        const material = mesh.material as THREE.MeshStandardMaterial;
+        material.emissive.setHex(
+          model.id === modelId && mesh.userData.expressId === expressId ? 0x3b82f6 : 0x000000,
+        );
+        material.emissiveIntensity = model.id === modelId && mesh.userData.expressId === expressId ? 0.7 : 0;
+      }
+    }
+  }
+
   /**
    * Intersection par raycast sur les entités fédérées uniquement.
    */

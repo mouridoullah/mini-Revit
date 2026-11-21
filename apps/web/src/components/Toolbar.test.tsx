@@ -40,4 +40,24 @@ describe('Toolbar (apps/web/src/components/Toolbar.tsx — Audit P0.4)', () => {
     fireEvent.keyDown(window, { key: 'w', altKey: true });
     expect(onSelectTool).not.toHaveBeenCalled();
   });
+
+  it('affiche les contrôles de niveaux uniquement dans l’onglet Structure', () => {
+    const { getByTestId, queryByTestId } = render(
+      <Toolbar
+        activeToolKind="select"
+        onSelectTool={vi.fn()}
+        canUndo={false}
+        canRedo={false}
+        onUndo={vi.fn()}
+        onRedo={vi.fn()}
+        onSave={vi.fn()}
+        onLoadFile={vi.fn()}
+        onAddLevel={vi.fn()}
+      />,
+    );
+
+    expect(queryByTestId('add-level-btn')).toBeNull();
+    fireEvent.click(getByTestId('ribbon-tab-structure'));
+    expect(getByTestId('add-level-btn')).toBeDefined();
+  });
 });

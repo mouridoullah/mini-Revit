@@ -33,7 +33,7 @@ describe('Viewport3D React Wrapper (apps/web)', () => {
   it('monte le composant, instancie Scene3D et ajoute les maillages initiaux (murs percés et placeholders)', () => {
     const doc = createDemoDocument();
 
-    const { getByTestId } = render(
+    const { getByTestId, getByText } = render(
       <BimDocumentProvider initialDoc={doc}>
         <Viewport3D />
       </BimDocumentProvider>,
@@ -41,6 +41,8 @@ describe('Viewport3D React Wrapper (apps/web)', () => {
 
     const canvas = getByTestId('viewport-3d-canvas');
     expect(canvas).toBeDefined();
+
+    expect(() => getByText('Vue 3D Orbitale (Z-up)')).toThrow();
 
     // 1. Décompte d'appels :
     // - wall_south (avec 1 porte) : 3 pièces solides (2 pleines + 1 linteau)
@@ -84,6 +86,46 @@ describe('Viewport3D React Wrapper (apps/web)', () => {
       expect(meshData.normals.length).toBe(meshData.positions.length);
       expect(['full', 'sill', 'lintel']).toContain(meshData.role);
     }
+  });
+
+  it('applique le thème de fond transmis à la vue 3D', () => {
+    const doc = BimDocument.createDefaultProject();
+    const setBackgroundSpy = vi.spyOn(Scene3DModule.Scene3D.prototype, 'setBackground');
+
+    const { rerender } = render(
+      <BimDocumentProvider initialDoc={doc}>
+        <Viewport3D isWhiteMode={false} />
+      </BimDocumentProvider>,
+    );
+
+    rerender(
+      <BimDocumentProvider initialDoc={doc}>
+        <Viewport3D isWhiteMode />
+      </BimDocumentProvider>,
+    );
+    expect(setBackgroundSpy).toHaveBeenLastCalledWith(0xffffff, [0xd1d5db, 0xe5e7eb]);
+
+    rerender(
+      <BimDocumentProvider initialDoc={doc}>
+        <Viewport3D isWhiteMode={false} />
+      </BimDocumentProvider>,
+    );
+    expect(setBackgroundSpy).toHaveBeenLastCalledWith(0x262a33, [0x566070, 0x3a404c]);
+  });
+
+  it('expose une action de cadrage 3D qui appelle Scene3D.zoomToFit', () => {
+    const doc = BimDocument.createDefaultProject();
+    const zoomToFitSpy = vi.spyOn(Scene3DModule.Scene3D.prototype, 'zoomToFit');
+    let zoomToFit: (() => void) | undefined;
+
+    render(
+      <BimDocumentProvider initialDoc={doc}>
+        <Viewport3D onZoomFitReady={(callback) => (zoomToFit = callback)} />
+      </BimDocumentProvider>,
+    );
+
+    zoomToFit?.();
+    expect(zoomToFitSpy).toHaveBeenCalledOnce();
   });
 
   it('RÈGLE D’OR 3 : un re-render React ne recrée PAS l’instance de Scene3D', () => {

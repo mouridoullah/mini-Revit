@@ -1,0 +1,221 @@
+.header {
+  height: 76px;
+  flex: 0 0 76px;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  user-select: none;
+}
+.topRow {
+  height: 36px;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.topRow::-webkit-scrollbar {
+  display: none;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  letter-spacing: 0.06em;
+  flex: 0 0 auto;
+}
+.logo {
+  display: grid;
+  place-items: center;
+  width: 23px;
+  height: 23px;
+  border-radius: 5px;
+  color: #bfdbfe;
+  background: rgba(59, 130, 246, 0.18);
+}
+.version {
+  padding: 2px 5px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  color: var(--text-muted);
+  font-size: 10px;
+  letter-spacing: 0;
+}
+.tabs {
+  display: flex;
+  flex: 0 0 auto;
+  align-self: stretch;
+  align-items: stretch;
+  gap: 2px;
+}
+.tab {
+  padding: 0 11px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.tab:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+.tabActive {
+  color: var(--text-primary);
+  border-bottom-color: var(--accent-primary);
+}
+.globalActions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  min-width: 0;
+}
+.action,
+.iconAction {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 7px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 10px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.action:hover,
+.iconAction:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+.iconAction {
+  width: 27px;
+  padding: 0;
+}
+.iconAction:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.divider {
+  height: 18px;
+  border-left: 1px solid var(--border-strong);
+  margin: 0 3px;
+}
+.exportGroup {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.exportGroup select,
+.levelPicker select {
+  max-width: 118px;
+  height: 25px;
+  padding: 0 5px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  font-size: 10px;
+}
+.toolRow {
+  height: 40px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 10px;
+}
+.tools,
+.quickControls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.contextMepControls {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+.tools::-webkit-scrollbar {
+  display: none;
+}
+.tool {
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 11px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.tool:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+.tool:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.active,
+.tool[aria-pressed='true'] {
+  color: #fff;
+  background: var(--accent-primary);
+  border-color: #5794f4;
+}
+.tool kbd {
+  padding: 1px 4px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 3px;
+  color: #dbeafe;
+  font-size: 9px;
+  background: rgba(0, 0, 0, 0.16);
+}
+.quickControls {
+  border-left: 1px solid var(--border-subtle);
+  margin-left: 6px;
+  padding-left: 7px;
+}
+.levelPicker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  font-size: 10px;
+}
+.levelPicker select {
+  max-width: 190px;
+}
+@media (max-width: 1200px) {
+  .action {
+    padding: 0 5px;
+    font-size: 9px;
+  }
+  .topRow {
+    gap: 8px;
+  }
+  .tab {
+    padding: 0 7px;
+  }
+}

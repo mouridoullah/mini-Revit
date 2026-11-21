@@ -5,7 +5,7 @@ import { View2D } from '@mini-bim/view-2d';
 import * as view2dModule from '@mini-bim/view-2d';
 import { Scene3D } from '@mini-bim/view-3d';
 import * as Scene3DModule from '@mini-bim/view-3d';
-import { BimDocument, AddWallCommand, Commands, resolveWallGeometry, computeLevelMetrics, exportToIfc } from '@mini-bim/core';
+import { BimDocument, AddWallCommand, Commands, resolveWallGeometry, computeLevelMetrics, exportToIfc, createPipe } from '@mini-bim/core';
 import { App } from './App.js';
 import { createDemoDocument } from './demo/demoDocument.js';
 import { exportToJSON } from './persistence/jsonIO.js';
@@ -43,6 +43,56 @@ describe('App Integration & Squelette Double Viewport (apps/web)', () => {
     // 4. Aucune erreur console React
     expect(consoleErrorSpy).not.toHaveBeenCalled();
 
+    cleanup();
+  });
+
+  it('supprime le mur sélectionné depuis le panneau Propriétés', () => {
+    vi.spyOn(Scene3D.prototype, 'raycast').mockReturnValue('wall_south');
+    const { getByTestId } = render(<App />);
+    const canvas3D = getByTestId('viewport-3d-canvas');
+
+    act(() => {
+      fireEvent.pointerDown(canvas3D, { clientX: 200, clientY: 150, button: 0 });
+      fireEvent.pointerUp(canvas3D, { clientX: 200, clientY: 150, button: 0 });
+    });
+
+    expect(getByTestId('inspector-wall-panel')).toBeDefined();
+    act(() => fireEvent.click(getByTestId('delete-selected-btn')));
+    expect(document.querySelector('footer')?.textContent).toContain('Murs : 3');
+    cleanup();
+  });
+
+  it('supprime un élément MEP sélectionné depuis le bouton de suppression général', () => {
+    const doc = createDemoDocument();
+    const levelId = Object.keys(doc.getState().levels)[0];
+    if (!levelId) throw new Error('Le document de test doit avoir un niveau.');
+    const pipe = createPipe({
+      id: 'pipe_delete_from_general_action',
+      levelId,
+      start: { x: 500, y: 500, z: 1000 },
+      end: { x: 1500, y: 500, z: 1000 },
+      diameter: 50,
+    });
+    doc.execute(new Commands.AddPipeCommand(pipe));
+    vi.spyOn(Scene3D.prototype, 'raycast').mockReturnValue(pipe.id);
+    const { getByTestId } = render(<App initialDoc={doc} />);
+
+    act(() => {
+      fireEvent.pointerDown(getByTestId('viewport-3d-canvas'), {
+        clientX: 200,
+        clientY: 150,
+        button: 0,
+      });
+      fireEvent.pointerUp(getByTestId('viewport-3d-canvas'), {
+        clientX: 200,
+        clientY: 150,
+        button: 0,
+      });
+    });
+
+    expect(getByTestId('inspector-mep-panel')).toBeDefined();
+    act(() => fireEvent.click(getByTestId('delete-selected-btn')));
+    expect(doc.getState().pipes?.[pipe.id]).toBeUndefined();
     cleanup();
   });
 
@@ -957,6 +1007,7 @@ describe('App Integration & Squelette Double Viewport (apps/web)', () => {
     );
 
     const { getByTestId } = render(<App initialDoc={doc} />);
+    act(() => fireEvent.click(getByTestId('ribbon-tab-structure')));
     const levelSelect = getByTestId('level-selector') as HTMLSelectElement;
     const underlayBtn = getByTestId('underlay-toggle-btn') as HTMLButtonElement;
 
@@ -986,6 +1037,7 @@ describe('App Integration & Squelette Double Viewport (apps/web)', () => {
     );
 
     const { getByTestId } = render(<App initialDoc={doc} />);
+    act(() => fireEvent.click(getByTestId('ribbon-tab-structure')));
     const levelSelect = getByTestId('level-selector') as HTMLSelectElement;
     const underlayBtn = getByTestId('underlay-toggle-btn') as HTMLButtonElement;
 

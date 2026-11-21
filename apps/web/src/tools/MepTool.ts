@@ -424,7 +424,10 @@ export class MepTool implements Tool {
           if (length < 50) {
             // Distance trop courte pour constituer un segment physique valide
             this.reset();
-            return { kind: 'preview', preview: null };
+            return {
+              kind: 'error',
+              message: 'SEGMENT_TOO_SHORT : un tronçon MEP doit mesurer au moins 50 mm.',
+            };
           }
 
           let command: Command;

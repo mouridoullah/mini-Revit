@@ -155,6 +155,54 @@ describe('Scene3D — Gestionnaire de scène 3D Three.js impératif', () => {
     scene3d.dispose();
   });
 
+  it('modifie le fond et éclaircit la grille en mode fond blanc', () => {
+    const scene3d = new Scene3D(canvas, { width: 800, height: 600 });
+    const scene = scene3d.getScene();
+    const grid = scene.children.find((child) => child instanceof THREE.GridHelper);
+
+    scene3d.setBackground(0xffffff, [0xd1d5db, 0xe5e7eb]);
+
+    expect((scene.background as THREE.Color).getHex()).toBe(0xffffff);
+    expect(grid).toBeInstanceOf(THREE.GridHelper);
+    if (grid instanceof THREE.GridHelper) {
+      const colors = grid.geometry.getAttribute('color');
+      const expectedColors = [new THREE.Color(0xd1d5db), new THREE.Color(0xe5e7eb)];
+      const actualColors = Array.from({ length: colors.count }, (_, index) =>
+        new THREE.Color().setRGB(colors.getX(index), colors.getY(index), colors.getZ(index)),
+      );
+      for (const expected of expectedColors) {
+        expect(
+          actualColors.some(
+            (actual) =>
+              Math.hypot(actual.r - expected.r, actual.g - expected.g, actual.b - expected.b) <
+              0.0001,
+          ),
+        ).toBe(true);
+      }
+    }
+
+    scene3d.dispose();
+  });
+
+  it('cadre les maillages présents sans déplacer la caméra si la scène est vide', () => {
+    const scene3d = new Scene3D(canvas, { width: 800, height: 600 });
+    const initialTarget = scene3d.getControls().target.clone();
+
+    expect(scene3d.zoomToFit()).toBe(false);
+    expect(scene3d.getControls().target.equals(initialTarget)).toBe(true);
+
+    scene3d.addMesh(createSampleRawMesh('fit_test'));
+    expect(scene3d.zoomToFit()).toBe(true);
+    expect(scene3d.getControls().target.x).toBeCloseTo(500, 3);
+    expect(scene3d.getControls().target.y).toBeCloseTo(100, 3);
+    expect(scene3d.getControls().target.z).toBeCloseTo(1400, 3);
+    expect(scene3d.getCamera().position.distanceTo(scene3d.getControls().target)).toBeGreaterThan(
+      2000,
+    );
+
+    scene3d.dispose();
+  });
+
   it('intégrité Three.js : seul WebGLRenderer est mocké, Scene, Mesh, Camera et BufferGeometry sont les vraies classes Three.js', () => {
     const scene3d = new Scene3D(canvas, { width: 800, height: 600 });
     const rawData = createSampleRawMesh('w_real');
@@ -253,6 +301,24 @@ describe('Scene3D — Gestionnaire de scène 3D Three.js impératif', () => {
     expect(scene3d.getMeshes('wall_to_remove')).toHaveLength(0);
     expect(disposeSpy).toHaveBeenCalledTimes(1);
 
+    scene3d.dispose();
+  });
+
+  it('ajoute des arêtes architecturales aux murs et les libère avec le maillage', () => {
+    const scene3d = new Scene3D(canvas, { width: 1024, height: 768 });
+    const mesh = scene3d.addMesh({
+      ...createSampleRawMesh('wall_edges'),
+      userData: { category: 'wall' },
+    });
+    const edges = mesh.children[0] as THREE.LineSegments;
+    const geometryDispose = vi.spyOn(edges.geometry, 'dispose');
+    const materialDispose = vi.spyOn(edges.material as THREE.Material, 'dispose');
+
+    expect(edges).toBeInstanceOf(THREE.LineSegments);
+    scene3d.removeMesh('wall_edges');
+
+    expect(geometryDispose).toHaveBeenCalledTimes(1);
+    expect(materialDispose).toHaveBeenCalledTimes(1);
     scene3d.dispose();
   });
 
@@ -441,11 +507,10 @@ describe('Scene3D — Gestionnaire de scène 3D Three.js impératif', () => {
     const disposeSpy = vi.spyOn(sharedMat, 'dispose');
 
     for (let i = 0; i < 10; i++) {
-      scene3d.updateMesh(
-        createSampleRawMesh('door_shared_1', 'full'),
-        sharedMat,
-        { ownsMaterial: false, isSharedMaterial: true },
-      );
+      scene3d.updateMesh(createSampleRawMesh('door_shared_1', 'full'), sharedMat, {
+        ownsMaterial: false,
+        isSharedMaterial: true,
+      });
       expect(scene3d.getMeshes('door_shared_1')).toHaveLength(1);
       scene3d.removeMesh('door_shared_1');
       expect(scene3d.getMeshes('door_shared_1')).toHaveLength(0);
@@ -559,6 +624,17 @@ describe('Scene3D — Gestionnaire de scène 3D Three.js impératif', () => {
     const dist = camera.position.distanceTo(controls.target);
     expect(Math.round(dist)).toBe(1000);
 
+    scene3d.dispose();
+  });
+
+  it('T-CLASH-OVERLAY-03 — le ciblage par défaut laisse du recul pour voir l’interférence', () => {
+    const scene3d = new Scene3D(canvas, { width: 800, height: 600 });
+    const controls = scene3d.getControls();
+    const camera = scene3d.getCamera();
+
+    scene3d.focusOnPoint({ x: 1500, y: 2000, z: 2700 });
+
+    expect(camera.position.distanceTo(controls.target)).toBeCloseTo(6500, 0);
     scene3d.dispose();
   });
 

@@ -9,6 +9,8 @@ import { SelectTool } from '../tools/SelectTool.js';
 import { DoorTool } from '../tools/DoorTool.js';
 import { MoveWallTool } from '../tools/MoveWallTool.js';
 import { Commands } from '@mini-bim/core';
+import type { Tool } from '../tools/types.js';
+import { DEFAULT_MEP_CONFIG } from '../tools/MepTool.js';
 
 describe('Viewport2D React Wrapper & Tools Integration (apps/web)', () => {
   const disposeSpy = vi.spyOn(View2DModule.View2D.prototype, 'dispose');
@@ -64,7 +66,7 @@ describe('Viewport2D React Wrapper & Tools Integration (apps/web)', () => {
   it('monte le composant, instancie View2D et déclenche le rendu initial', () => {
     const doc = BimDocument.createDefaultProject();
 
-    const { getByTestId } = render(
+    const { getByTestId, getByText } = render(
       <BimDocumentProvider initialDoc={doc}>
         <Viewport2D />
       </BimDocumentProvider>,
@@ -73,6 +75,45 @@ describe('Viewport2D React Wrapper & Tools Integration (apps/web)', () => {
     const canvas = getByTestId('viewport-2d-canvas');
     expect(canvas).toBeDefined();
     expect(renderSpy).toHaveBeenCalled();
+
+    expect(() => getByText('Plan 2D (Y-up)')).toThrow();
+  });
+
+  it('met à jour la configuration outil sans réinitialiser les écouteurs ni perdre leur contexte', () => {
+    const doc = BimDocument.createDefaultProject();
+    const seenConfigs: unknown[] = [];
+    const tool: Tool = {
+      kind: 'mep',
+      getState: () => ({ kind: 'idle' }),
+      handle: (_event, context) => {
+        seenConfigs.push(context.mepConfig);
+        return { kind: 'noop' };
+      },
+      reset: vi.fn(),
+    };
+    const initialConfig = { ...DEFAULT_MEP_CONFIG, diameter: 25 };
+    const updatedConfig = { ...DEFAULT_MEP_CONFIG, diameter: 50 };
+    const { getByTestId, rerender } = render(
+      <BimDocumentProvider initialDoc={doc}>
+        <Viewport2D tool={tool} mepConfig={initialConfig} />
+      </BimDocumentProvider>,
+    );
+
+    rerender(
+      <BimDocumentProvider initialDoc={doc}>
+        <Viewport2D tool={tool} mepConfig={updatedConfig} />
+      </BimDocumentProvider>,
+    );
+
+    expect(tool.reset).not.toHaveBeenCalled();
+    act(() =>
+      fireEvent.pointerDown(getByTestId('viewport-2d-canvas'), {
+        clientX: 120,
+        clientY: 80,
+        button: 0,
+      }),
+    );
+    expect(seenConfigs.at(-1)).toBe(updatedConfig);
   });
 
   it('laisse View2D dériver la trémie d’escalier dans la dalle du niveau supérieur', () => {

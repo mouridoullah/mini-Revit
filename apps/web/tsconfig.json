@@ -6,7 +6,10 @@
     "outDir": "./dist",
     "tsBuildInfoFile": "./dist/.tsbuildinfo",
     "jsx": "react-jsx",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"]
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "paths": {
+      "@mini-bim/core/federation": ["../../packages/core/dist/federation/index.d.ts"]
+    }
   },
   "references": [
     { "path": "../../packages/core" },

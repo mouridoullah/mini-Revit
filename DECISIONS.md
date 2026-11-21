@@ -1,7 +1,7 @@
 # REGISTRE DES DÉCISIONS D'ARCHITECTURE (ADR) — MINI-BIM
 
 **Statut global :** Registre Officiel de Décisions Techniques  
-**Dernière mise à jour :** 13 novembre 2026
+**Dernière mise à jour :** 20 novembre 2026
 
 ---
 
@@ -69,6 +69,7 @@
 | **ADR-058** | Routage Géométrique Déterministe 3D et Insertion Paramétrique des Raccords MEP (Phase 9.3.3)    | **Accepté**  | 19/11/2026 |
 | **ADR-059** | Moteur de Détection des Conflits 3D, Index Spatial BVH et Qualification Sémantique (Phase 9.4)  | **Accepté**  | 20/11/2026 |
 | **ADR-060** | Modèle de Référence Fédéré IFC en Lecture Seule & Coordination Spatiale Inter-Maquettes (Phase 9.5) | **Accepté**  | 20/11/2026 |
+| **ADR-061** | Design System Graphite Engineering, CSS Modules et Icônes Lucide | **Accepté**  | 20/11/2026 |
 
 ---
 

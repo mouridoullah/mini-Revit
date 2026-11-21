@@ -25,6 +25,7 @@ export interface Viewport2DProps {
   readonly activeComponentTypeId?: string;
   readonly mepConfig?: MepToolConfig;
   readonly mepDisplayMode?: 'single-line' | 'double-line';
+  readonly onZoomFitReady?: (zoomFit: () => void) => void;
 }
 
 /**
@@ -44,11 +45,38 @@ export function Viewport2D({
   activeComponentTypeId: activeComponentTypeIdProp,
   mepConfig: mepConfigProp,
   mepDisplayMode: mepDisplayModeProp,
+  onZoomFitReady,
 }: Viewport2DProps = {}) {
   const { doc, state } = useBimDocument();
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const viewRef = useRef<View2D | null>(null);
+  const toolOptionsRef = useRef({
+    activeLevelId: activeLevelIdProp,
+    underlayLevelId: underlayLevelIdProp,
+    snapToUnderlay: snapToUnderlayProp,
+    activeComponentTypeId: activeComponentTypeIdProp,
+    mepConfig: mepConfigProp,
+  });
+  toolOptionsRef.current = {
+    activeLevelId: activeLevelIdProp,
+    underlayLevelId: underlayLevelIdProp,
+    snapToUnderlay: snapToUnderlayProp,
+    activeComponentTypeId: activeComponentTypeIdProp,
+    mepConfig: mepConfigProp,
+  };
+  const hasInitialFitRef = useRef(false);
+  const lastAutoFitScaleRef = useRef<number | null>(null);
+  const zoomToFit = () => {
+    const view = viewRef.current;
+    if (!view) return;
+    view.zoomToFit(60);
+    lastAutoFitScaleRef.current = view.getTransform().scale;
+  };
+
+  useEffect(() => {
+    if (viewRef.current) onZoomFitReady?.(zoomToFit);
+  }, [onZoomFitReady]);
 
   // Instanciation impérative unique
   useEffect(() => {
@@ -70,9 +98,10 @@ export function Viewport2D({
       enableInternalSelection: !tool,
     });
     viewRef.current = view;
+    onZoomFitReady?.(zoomToFit);
 
     view.setDocument(doc);
-    view.zoomToFit(60);
+    zoomToFit();
 
     return () => {
       view.dispose();
@@ -87,7 +116,7 @@ export function Viewport2D({
     if (lastDocRef.current !== doc && viewRef.current) {
       lastDocRef.current = doc;
       viewRef.current.setDocument(doc);
-      viewRef.current.zoomToFit(60);
+      zoomToFit();
     }
   }, [doc]);
 
@@ -103,6 +132,7 @@ export function Viewport2D({
     if (viewRef.current) {
       viewRef.current.setActiveLevelId(activeLevelIdProp ?? null);
       viewRef.current.invalidateUnderlayCache();
+      zoomToFit();
     }
   }, [activeLevelIdProp]);
 
@@ -175,7 +205,17 @@ export function Viewport2D({
   // Adaptation responsive de la taille du canvas
   useResizeObserver(containerRef, (width, height) => {
     if (viewRef.current) {
+      const previousScale = viewRef.current.getTransform().scale;
+      const preserveAutoFit =
+        lastAutoFitScaleRef.current !== null &&
+        Math.abs(previousScale - lastAutoFitScaleRef.current) < 1e-9;
       viewRef.current.resize(width, height);
+      if (!hasInitialFitRef.current) {
+        hasInitialFitRef.current = true;
+        zoomToFit();
+      } else if (preserveAutoFit) {
+        zoomToFit();
+      }
     }
   });
 
@@ -198,7 +238,8 @@ export function Viewport2D({
 
       const toolEvent = convertPointerEvent(e, canvas);
       const docState = doc.getState();
-      const currentLevelId = resolveActiveLevelId(docState, activeLevelIdProp);
+      const options = toolOptionsRef.current;
+      const currentLevelId = resolveActiveLevelId(docState, options.activeLevelId);
       const activeWallTypeId = Object.keys(docState.wallTypes)[0] ?? '';
       const activeSlabTypeId = Object.keys(docState.slabTypes ?? {})[0] ?? '';
       const ctx: ToolContext = {
@@ -207,10 +248,10 @@ export function Viewport2D({
         activeLevelId: currentLevelId,
         activeWallTypeId,
         activeSlabTypeId,
-        activeComponentTypeId: activeComponentTypeIdProp,
-        underlayLevelId: underlayLevelIdProp ?? null,
-        snapToUnderlay: snapToUnderlayProp,
-        mepConfig: mepConfigProp,
+        activeComponentTypeId: options.activeComponentTypeId,
+        underlayLevelId: options.underlayLevelId ?? null,
+        snapToUnderlay: options.snapToUnderlay,
+        mepConfig: options.mepConfig,
       };
 
       const output = tool.handle(toolEvent, ctx);
@@ -224,6 +265,9 @@ export function Viewport2D({
           onErrorChange?.(err instanceof Error ? err.message : String(err));
         }
         onDrawingLengthChange?.(null);
+      } else if (output.kind === 'error') {
+        view.setPreview(null);
+        onErrorChange?.(output.message);
       } else if (output.kind === 'preview') {
         view.setPreview(output.preview);
         if (output.preview && (output.preview.kind === 'line' || output.preview.kind === 'mep')) {
@@ -251,7 +295,8 @@ export function Viewport2D({
       if (!toolEvent) return;
 
       const docState = doc.getState();
-      const activeLevelId = resolveActiveLevelId(docState, activeLevelIdProp);
+      const options = toolOptionsRef.current;
+      const activeLevelId = resolveActiveLevelId(docState, options.activeLevelId);
       const activeWallTypeId = Object.keys(docState.wallTypes)[0] ?? '';
       const activeSlabTypeId = Object.keys(docState.slabTypes ?? {})[0] ?? '';
       const ctx: ToolContext = {
@@ -260,9 +305,10 @@ export function Viewport2D({
         activeLevelId,
         activeWallTypeId,
         activeSlabTypeId,
-        activeComponentTypeId: activeComponentTypeIdProp,
-        underlayLevelId: underlayLevelIdProp ?? null,
-        snapToUnderlay: snapToUnderlayProp,
+        activeComponentTypeId: options.activeComponentTypeId,
+        underlayLevelId: options.underlayLevelId ?? null,
+        snapToUnderlay: options.snapToUnderlay,
+        mepConfig: options.mepConfig,
       };
 
       const output = tool.handle(toolEvent, ctx);
@@ -276,6 +322,9 @@ export function Viewport2D({
           onErrorChange?.(err instanceof Error ? err.message : String(err));
         }
         onDrawingLengthChange?.(null);
+      } else if (output.kind === 'error') {
+        view.setPreview(null);
+        onErrorChange?.(output.message);
       } else if (output.kind === 'preview') {
         view.setPreview(output.preview);
         onDrawingLengthChange?.(null);
@@ -290,7 +339,8 @@ export function Viewport2D({
       if (!view) return;
       const rect = canvas.getBoundingClientRect();
       const docState = doc.getState();
-      const currentLevelId = resolveActiveLevelId(docState, activeLevelIdProp);
+      const options = toolOptionsRef.current;
+      const currentLevelId = resolveActiveLevelId(docState, options.activeLevelId);
       const activeWallTypeId = Object.keys(docState.wallTypes)[0] ?? '';
       const activeSlabTypeId = Object.keys(docState.slabTypes ?? {})[0] ?? '';
       const ctx: ToolContext = {
@@ -299,9 +349,10 @@ export function Viewport2D({
         activeLevelId: currentLevelId,
         activeWallTypeId,
         activeSlabTypeId,
-        activeComponentTypeId: activeComponentTypeIdProp,
-        underlayLevelId: underlayLevelIdProp ?? null,
-        snapToUnderlay: snapToUnderlayProp,
+        activeComponentTypeId: options.activeComponentTypeId,
+        underlayLevelId: options.underlayLevelId ?? null,
+        snapToUnderlay: options.snapToUnderlay,
+        mepConfig: options.mepConfig,
       };
 
       const toolEvent: ToolEvent = {
@@ -344,10 +395,6 @@ export function Viewport2D({
     onDrawingLengthChange,
     onSelectionChanged,
     onErrorChange,
-    activeLevelIdProp,
-    activeComponentTypeIdProp,
-    underlayLevelIdProp,
-    snapToUnderlayProp,
   ]);
 
   return (
@@ -362,24 +409,6 @@ export function Viewport2D({
         backgroundColor: '#ffffff',
       }}
     >
-      <div
-        style={{
-          position: 'absolute',
-          top: '8px',
-          left: '8px',
-          zIndex: 10,
-          backgroundColor: 'rgba(255, 255, 255, 0.9)',
-          padding: '4px 8px',
-          borderRadius: '4px',
-          fontSize: '12px',
-          fontWeight: 600,
-          color: '#374151',
-          border: '1px solid #e5e7eb',
-          pointerEvents: 'none',
-        }}
-      >
-        Plan 2D (Y-up)
-      </div>
       <canvas
         ref={canvasRef}
         data-testid="viewport-2d-canvas"

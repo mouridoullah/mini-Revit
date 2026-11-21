@@ -17,6 +17,7 @@
     "@mini-bim/core": "workspace:*",
     "@mini-bim/view-2d": "workspace:*",
     "@mini-bim/view-3d": "workspace:*",
+    "lucide-react": "^1.76.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
