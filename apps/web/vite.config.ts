@@ -33,9 +33,9 @@ export default defineConfig({
   },
   build: {
     target: 'esnext',
-    // Sur environnement hôte Windows, le verrouillage de fichiers temporaires esbuild (Access is denied sur Temp\esbuild-*)
-    // impose minify: false pour le build local (le tree-shaking Rollup et les manualChunks restent actifs).
-    minify: false,
+    // Sur runner CI / Linux, minification esbuild maximale. Sur Windows local, désactivé pour parer
+    // aux verrous de fichiers temporaires OS (EPERM / Access is denied sur AppData\Local\Temp\esbuild-*).
+    minify: process.env.CI || process.platform !== 'win32' ? 'esbuild' : false,
     rollupOptions: {
       output: {
         manualChunks(id) {
