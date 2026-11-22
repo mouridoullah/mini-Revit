@@ -1,12 +1,5 @@
-import {
-  computeWallFootprint2d,
-  solveWallJunctions,
-  type WallInput,
-  type Vec2,
-  GEOM_CONFIG,
-} from '@tabax/geometry';
-import { type DocumentFor2D, type DimensionFor2D, type DetectedRoomFor2D } from './types.js';
-import { resolveDimensionPoints } from './renderer/dimensions.js';
+import type { DocumentFor2D, DetectedRoomFor2D, DimensionFor2D } from './types.js';
+import { computePlanScene } from './plan-scene/computePlanScene.js';
 
 /**
  * Options d'exportation de plan vectoriel imprimable (SVG).
@@ -48,6 +41,7 @@ function escapeXml(unsafe: string): string {
  * Génère un document SVG vectoriel haute fidélité prêt pour l'impression à échelle normalisée.
  *
  * Conforme aux normes de dessin technique d'architecture :
+ * - S'appuie sur le modèle intermédiaire PlanScene pour garantir la cohérence absolue avec DXF et PDF
  * - Poché et arêtes des murs coupés
  * - Baies et battements de portes à 90°
  * - Vitrages de fenêtres
@@ -62,7 +56,6 @@ export function generatePlanSvg(doc: DocumentFor2D, options: PlanSvgOptions = {}
   const project = options.project ?? 'Projet Tabax';
   const author = options.author ?? 'Tabax Architect';
   const dateStr = options.date ?? new Date().toLocaleDateString('fr-FR');
-  const levelFilter = options.levelId;
 
   // Dimensions papier en mm (Landscape)
   // 1 mm papier = 3.779527559 pixels à 96 DPI
@@ -74,29 +67,18 @@ export function generatePlanSvg(doc: DocumentFor2D, options: PlanSvgOptions = {}
   const heightPx = Math.round(paperHeightMm * PX_PER_MM_PAPER);
 
   // Échelle du modèle vers le papier :
-  // À 1:100, 1000 mm modèle = 10 mm papier = 10 * 3.779527559 px
   const pxPerMmModel = (1 / scaleRatio) * PX_PER_MM_PAPER;
 
-  const state = doc.getState();
-  const allWalls = Object.values(state.walls).filter(
-    (w) => !levelFilter || !w.levelId || w.levelId === levelFilter,
-  );
+  // Calcul du modèle intermédiaire unifié
+  const scene = computePlanScene(doc, {
+    levelId: options.levelId,
+    includeHatches: false,
+    rooms: options.rooms,
+    dimensions: options.dimensions,
+  });
 
-  // Calcul de la boîte englobante du bâtiment
-  let minX = 0;
-  let minY = 0;
-  let maxX = 6000;
-  let maxY = 4000;
-
-  if (allWalls.length > 0) {
-    minX = Math.min(...allWalls.flatMap((w) => [w.start.x, w.end.x]));
-    maxX = Math.max(...allWalls.flatMap((w) => [w.start.x, w.end.x]));
-    minY = Math.min(...allWalls.flatMap((w) => [w.start.y, w.end.y]));
-    maxY = Math.max(...allWalls.flatMap((w) => [w.start.y, w.end.y]));
-  }
-
-  const modelCenterX = (minX + maxX) / 2;
-  const modelCenterY = (minY + maxY) / 2;
+  const modelCenterX = (scene.bounds.minX + scene.bounds.maxX) / 2;
+  const modelCenterY = (scene.bounds.minY + scene.bounds.maxY) / 2;
 
   // Le centre du plan architectural est positionné au centre de la zone utile (hors cartouche)
   const marginPx = 20 * PX_PER_MM_PAPER;
@@ -122,217 +104,96 @@ export function generatePlanSvg(doc: DocumentFor2D, options: PlanSvgOptions = {}
   const openingSvgParts: string[] = [];
   const dimSvgParts: string[] = [];
 
-  // -------------------------------------------------------------------------
   // 1. Couche Pièces (Rooms - Fonds pochés pastel)
-  // -------------------------------------------------------------------------
-  if (options.rooms && options.rooms.length > 0) {
-    for (const room of options.rooms) {
-      if (room.polygon.length < 3) continue;
-      const ptsStr = room.polygon
-        .map((p) => `${toSvgX(p.x).toFixed(2)},${toSvgY(p.y).toFixed(2)}`)
-        .join(' ');
+  for (const room of scene.rooms) {
+    if (room.polygon.length < 3) continue;
+    const ptsStr = room.polygon
+      .map((p) => `${toSvgX(p.x).toFixed(2)},${toSvgY(p.y).toFixed(2)}`)
+      .join(' ');
 
-      roomSvgParts.push(
-        `    <polygon points="${ptsStr}" fill="rgba(219, 234, 254, 0.45)" stroke="none" />`,
-      );
+    roomSvgParts.push(
+      `    <polygon points="${ptsStr}" fill="rgba(219, 234, 254, 0.45)" stroke="none" />`,
+    );
 
-      // Étiquette de pièce avec cartouche de lisibilité semi-transparent blanc
-      const seedX = toSvgX(room.seed.x);
-      const seedY = toSvgY(room.seed.y);
-      const roomName = escapeXml(room.name ?? 'Pièce');
-      const areaM2 = (room.areaMm2 / 1e6).toFixed(2);
-      const areaText = `${areaM2} m²`;
+    // Étiquette de pièce avec cartouche de lisibilité semi-transparent blanc
+    const seedX = toSvgX(room.labelPosition.x);
+    const seedY = toSvgY(room.labelPosition.y);
+    const roomName = escapeXml(room.name ?? 'Pièce');
+    const areaM2 = room.areaM2.toFixed(2);
+    const areaText = `${areaM2} m²`;
 
-      const nameLen = roomName.length * 6.5;
-      const areaLen = areaText.length * 6;
-      const maxLen = Math.max(nameLen, areaLen);
-      const boxW = maxLen + 14;
-      const boxH = 28;
-      const boxX = seedX - boxW / 2;
-      const boxY = seedY - 15;
+    const nameLen = roomName.length * 6.5;
+    const areaLen = areaText.length * 6;
+    const maxLen = Math.max(nameLen, areaLen);
+    const boxW = maxLen + 14;
+    const boxH = 28;
+    const boxX = seedX - boxW / 2;
+    const boxY = seedY - 15;
 
-      roomLabelSvgParts.push(
-        `    <rect x="${boxX.toFixed(2)}" y="${boxY.toFixed(2)}" width="${boxW.toFixed(2)}" height="${boxH.toFixed(2)}" rx="3" ry="3" fill="rgba(255, 255, 255, 0.85)" stroke="#cbd5e1" stroke-width="0.5" />`,
-      );
-      roomLabelSvgParts.push(
-        `    <text x="${seedX.toFixed(2)}" y="${(seedY - 4).toFixed(2)}" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#1e3a8a" text-anchor="middle">${roomName}</text>`,
-      );
-      roomLabelSvgParts.push(
-        `    <text x="${seedX.toFixed(2)}" y="${(seedY + 8).toFixed(2)}" font-family="Arial, sans-serif" font-size="10" fill="#2563eb" text-anchor="middle">${areaText}</text>`,
-      );
-    }
+    roomLabelSvgParts.push(
+      `    <rect x="${boxX.toFixed(2)}" y="${boxY.toFixed(2)}" width="${boxW.toFixed(2)}" height="${boxH.toFixed(2)}" rx="3" ry="3" fill="rgba(255, 255, 255, 0.85)" stroke="#cbd5e1" stroke-width="0.5" />`,
+    );
+    roomLabelSvgParts.push(
+      `    <text x="${seedX.toFixed(2)}" y="${(seedY - 4).toFixed(2)}" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#1e3a8a" text-anchor="middle">${roomName}</text>`,
+    );
+    roomLabelSvgParts.push(
+      `    <text x="${seedX.toFixed(2)}" y="${(seedY + 8).toFixed(2)}" font-family="Arial, sans-serif" font-size="10" fill="#2563eb" text-anchor="middle">${areaText}</text>`,
+    );
   }
 
-  // -------------------------------------------------------------------------
-  // 2. Couche Murs (Walls) avec jonctions résolues
-  // -------------------------------------------------------------------------
-  const wallInputs: WallInput[] = [];
-  for (const wall of allWalls) {
-    const wallType = wall.typeId ? state.wallTypes[wall.typeId] : undefined;
-    const thickness = wallType?.thickness ?? 200;
-    const len = Math.hypot(wall.end.x - wall.start.x, wall.end.y - wall.start.y);
-    if (len > GEOM_CONFIG.EPSILON_DISTANCE && thickness > 0) {
-      wallInputs.push({
-        id: wall.id,
-        start: wall.start,
-        end: wall.end,
-        thickness,
-        locationLine: 'center',
-      });
-    }
-  }
-
-  const resolvedPolygons = new Map<string, readonly Vec2[]>();
-  if (wallInputs.length > 0) {
-    try {
-      const solution = solveWallJunctions(wallInputs);
-      for (const rw of solution.walls) {
-        resolvedPolygons.set(rw.id, rw.polygon);
-      }
-    } catch {
-      // Fallback silencieux sur l'emprise nominale
-    }
-  }
-
-  for (const wall of allWalls) {
-    const wallType = wall.typeId ? state.wallTypes[wall.typeId] : undefined;
-    const thickness = wallType?.thickness ?? 200;
-
-    const footprint = computeWallFootprint2d({
-      start: wall.start,
-      end: wall.end,
-      thickness,
-      locationLine: 'center',
-    });
-    const vertices = resolvedPolygons.get(wall.id) ?? footprint.vertices;
-    const ptsStr = vertices
+  // 2. Couche Murs (Walls)
+  for (const wall of scene.walls) {
+    const ptsStr = wall.footprint
       .map((p) => `${toSvgX(p.x).toFixed(2)},${toSvgY(p.y).toFixed(2)}`)
       .join(' ');
 
     wallSvgParts.push(
       `    <polygon id="${escapeXml(wall.id)}" points="${ptsStr}" fill="#d1d5db" stroke="#111827" stroke-width="1.5" stroke-linejoin="round" />`,
     );
+
+    // 3. Couche Ouvertures sur ce mur
+    for (const op of wall.openings) {
+      if (op.kind === 'door') {
+        const cutPts = [op.jamb1[0], op.jamb2[0], op.jamb2[1], op.jamb1[1]]
+          .map((p) => `${toSvgX(p.x).toFixed(2)},${toSvgY(p.y).toFixed(2)}`)
+          .join(' ');
+        openingSvgParts.push(`    <polygon points="${cutPts}" fill="#ffffff" stroke="none" />`);
+
+        if (op.arc && op.leafLine) {
+          const sHingeX = toSvgX(op.arc.center.x);
+          const sHingeY = toSvgY(op.arc.center.y);
+          const sLeafX = toSvgX(op.leafLine[1].x);
+          const sLeafY = toSvgY(op.leafLine[1].y);
+          const radiusPx = op.arc.radius * pxPerMmModel;
+          openingSvgParts.push(
+            `    <path d="M ${sHingeX.toFixed(2)} ${sHingeY.toFixed(2)} L ${sLeafX.toFixed(2)} ${sLeafY.toFixed(2)} A ${radiusPx.toFixed(2)} ${radiusPx.toFixed(2)} 0 0 1 ${sHingeX.toFixed(2)} ${(sHingeY - radiusPx).toFixed(2)} Z" fill="rgba(243, 244, 246, 0.5)" stroke="#111827" stroke-width="1" stroke-dasharray="3,2" />`,
+          );
+        }
+      } else if (op.kind === 'window') {
+        if (op.glassLine) {
+          const sStartX = toSvgX(op.glassLine[0].x);
+          const sStartY = toSvgY(op.glassLine[0].y);
+          const sEndX = toSvgX(op.glassLine[1].x);
+          const sEndY = toSvgY(op.glassLine[1].y);
+          openingSvgParts.push(
+            `    <line x1="${sStartX.toFixed(2)}" y1="${sStartY.toFixed(2)}" x2="${sEndX.toFixed(2)}" y2="${sEndY.toFixed(2)}" stroke="#3b82f6" stroke-width="2" />`,
+          );
+        }
+      }
+    }
   }
 
-  // -------------------------------------------------------------------------
-  // 3. Couche Ouvertures (Doors & Windows)
-  // -------------------------------------------------------------------------
-  const doors = Object.values(state.doors ?? {});
-  const windows = Object.values(state.windows ?? {});
-
-  for (const door of doors) {
-    const host = state.walls[door.hostWallId];
-    if (!host) continue;
-
-    const dx = host.end.x - host.start.x;
-    const dy = host.end.y - host.start.y;
-    const len = Math.hypot(dx, dy);
-    if (len < 1e-4) continue;
-
-    const ux = dx / len;
-    const uy = dy / len;
-    const nx = -uy;
-    const ny = ux;
-
-    // Position de feuillure
-    const dt = door.doorTypeId ? state.doorTypes?.[door.doorTypeId] : undefined;
-    const doorWidth = dt?.width ?? 900;
-    const hingeX = host.start.x + ux * door.offsetAlong;
-    const hingeY = host.start.y + uy * door.offsetAlong;
-    const endX = host.start.x + ux * (door.offsetAlong + doorWidth);
-    const endY = host.start.y + uy * (door.offsetAlong + doorWidth);
-
-    const sHingeX = toSvgX(hingeX);
-    const sHingeY = toSvgY(hingeY);
-    const sEndX = toSvgX(endX);
-    const sEndY = toSvgY(endY);
-
-    // Évidement blanc pour l'ouverture
-    const wallType = host.typeId ? state.wallTypes[host.typeId] : undefined;
-    const thick = (wallType?.thickness ?? 200) * 1.05;
-    const cutP1 = { x: hingeX + nx * (thick / 2), y: hingeY + ny * (thick / 2) };
-    const cutP2 = { x: endX + nx * (thick / 2), y: endY + ny * (thick / 2) };
-    const cutP3 = { x: endX - nx * (thick / 2), y: endY - ny * (thick / 2) };
-    const cutP4 = { x: hingeX - nx * (thick / 2), y: hingeY - ny * (thick / 2) };
-    const cutPts = [cutP1, cutP2, cutP3, cutP4]
-      .map((p) => `${toSvgX(p.x).toFixed(2)},${toSvgY(p.y).toFixed(2)}`)
-      .join(' ');
-
-    openingSvgParts.push(`    <polygon points="${cutPts}" fill="#ffffff" stroke="none" />`);
-
-    // Battement de porte à 90° (arc de cercle)
-    const radiusPx = doorWidth * pxPerMmModel;
-    const sweepFlag = door.swing.direction === 'in' ? 1 : 0;
-    openingSvgParts.push(
-      `    <path d="M ${sHingeX.toFixed(2)} ${sHingeY.toFixed(2)} L ${sEndX.toFixed(2)} ${sEndY.toFixed(2)} A ${radiusPx.toFixed(2)} ${radiusPx.toFixed(2)} 0 0 ${sweepFlag} ${sHingeX.toFixed(2)} ${(sHingeY - radiusPx).toFixed(2)} Z" fill="rgba(243, 244, 246, 0.5)" stroke="#111827" stroke-width="1" stroke-dasharray="3,2" />`,
-    );
-  }
-
-  for (const win of windows) {
-    const host = state.walls[win.hostWallId];
-    if (!host) continue;
-
-    const dx = host.end.x - host.start.x;
-    const dy = host.end.y - host.start.y;
-    const len = Math.hypot(dx, dy);
-    if (len < 1e-4) continue;
-
-    const ux = dx / len;
-    const uy = dy / len;
-    const wt = win.windowTypeId ? state.windowTypes?.[win.windowTypeId] : undefined;
-    const winWidth = wt?.width ?? 1200;
-    const startX = host.start.x + ux * win.offsetAlong;
-    const startY = host.start.y + uy * win.offsetAlong;
-    const endX = host.start.x + ux * (win.offsetAlong + winWidth);
-    const endY = host.start.y + uy * (win.offsetAlong + winWidth);
-
-    const sStartX = toSvgX(startX);
-    const sStartY = toSvgY(startY);
-    const sEndX = toSvgX(endX);
-    const sEndY = toSvgY(endY);
-
-    openingSvgParts.push(
-      `    <line x1="${sStartX.toFixed(2)}" y1="${sStartY.toFixed(2)}" x2="${sEndX.toFixed(2)}" y2="${sEndY.toFixed(2)}" stroke="#3b82f6" stroke-width="2" />`,
-    );
-  }
-
-  // -------------------------------------------------------------------------
   // 4. Couche Cotations (Dimensions)
-  // -------------------------------------------------------------------------
-  const dimsToDraw: readonly DimensionFor2D[] =
-    options.dimensions ?? (state.dimensions ? Object.values(state.dimensions) : []);
+  for (const dim of scene.dimensions) {
+    const sp1X = toSvgX(dim.witness1[0].x);
+    const sp1Y = toSvgY(dim.witness1[0].y);
+    const sd1X = toSvgX(dim.witness1[1].x);
+    const sd1Y = toSvgY(dim.witness1[1].y);
 
-  for (const dim of dimsToDraw) {
-    if (levelFilter && dim.levelId && dim.levelId !== levelFilter) continue;
-
-    const pts = resolveDimensionPoints(dim, state.walls);
-    if (!pts) continue;
-    const { p1, p2 } = pts;
-
-    const dx = p2.x - p1.x;
-    const dy = p2.y - p1.y;
-    const len = Math.hypot(dx, dy);
-    if (len < 1e-4) continue;
-
-    const ux = dx / len;
-    const uy = dy / len;
-    const nx = -uy;
-    const ny = ux;
-
-    const ox = nx * dim.offset;
-    const oy = ny * dim.offset;
-
-    const d1World = { x: p1.x + ox, y: p1.y + oy };
-    const d2World = { x: p2.x + ox, y: p2.y + oy };
-
-    const sp1X = toSvgX(p1.x);
-    const sp1Y = toSvgY(p1.y);
-    const sp2X = toSvgX(p2.x);
-    const sp2Y = toSvgY(p2.y);
-    const sd1X = toSvgX(d1World.x);
-    const sd1Y = toSvgY(d1World.y);
-    const sd2X = toSvgX(d2World.x);
-    const sd2Y = toSvgY(d2World.y);
+    const sp2X = toSvgX(dim.witness2[0].x);
+    const sp2Y = toSvgY(dim.witness2[0].y);
+    const sd2X = toSvgX(dim.witness2[1].x);
+    const sd2Y = toSvgY(dim.witness2[1].y);
 
     // Lignes de rappel
     dimSvgParts.push(
@@ -356,9 +217,7 @@ export function generatePlanSvg(doc: DocumentFor2D, options: PlanSvgOptions = {}
     );
 
     // Valeur textuelle
-    const valText =
-      dim.customLabel ??
-      (dim.value >= 1000 ? `${(dim.value / 1000).toFixed(2)} m` : `${Math.round(dim.value)} mm`);
+    const valText = dim.value >= 1000 ? `${(dim.value / 1000).toFixed(2)} m` : `${Math.round(dim.value)} mm`;
     const midX = (sd1X + sd2X) / 2;
     const midY = (sd1Y + sd2Y) / 2;
 
@@ -367,9 +226,7 @@ export function generatePlanSvg(doc: DocumentFor2D, options: PlanSvgOptions = {}
     );
   }
 
-  // -------------------------------------------------------------------------
   // 5. Cadre de feuille et Cartouche architectural réglementaire
-  // -------------------------------------------------------------------------
   const cadreMargin = marginPx;
   const cadreWidth = widthPx - 2 * cadreMargin;
   const cadreHeight = heightPx - 2 * cadreMargin;

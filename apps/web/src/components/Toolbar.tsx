@@ -146,6 +146,9 @@ export interface ToolbarProps {
   readonly federatedModelCount?: number;
   readonly onOpenDockTab?: (tab: DockTab) => void;
   readonly mepControls?: ReactNode;
+  readonly wallTypes?: Record<string, { readonly id: string; readonly name?: string; readonly thickness: number }>;
+  readonly activeWallTypeId?: string;
+  readonly onSelectWallType?: (typeId: string) => void;
 }
 export function Toolbar({
   activeToolKind,
@@ -178,6 +181,9 @@ export function Toolbar({
   federatedModelCount = 0,
   onOpenDockTab,
   mepControls,
+  wallTypes,
+  activeWallTypeId,
+  onSelectWallType,
 }: ToolbarProps) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [scale, setScale] = useState<50 | 100 | 200>(100);
@@ -411,6 +417,23 @@ export function Toolbar({
                 <Sparkles size={16} />
                 Coter Étage
               </button>
+            </div>
+          )}
+          {tab === 'Architecture' && activeToolKind === 'wall' && wallTypes && Object.keys(wallTypes).length > 0 && (
+            <div className={styles.quickControls}>
+              <select
+                data-testid="wall-type-selector"
+                className={styles.levelDropdown}
+                value={activeWallTypeId ?? Object.keys(wallTypes)[0]}
+                onChange={(e) => onSelectWallType?.(e.target.value)}
+                title="Type de mur actif"
+              >
+                {Object.values(wallTypes).map((wt) => (
+                  <option key={wt.id} value={wt.id}>
+                    {wt.name ?? `${wt.thickness} mm`} ({wt.thickness} mm)
+                  </option>
+                ))}
+              </select>
             </div>
           )}
           {tab === 'Structure' && (

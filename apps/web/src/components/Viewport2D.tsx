@@ -20,6 +20,8 @@ export interface Viewport2DProps {
   readonly onDrawingLengthChange?: (length: number | null) => void;
   readonly onErrorChange?: (error: string | null) => void;
   readonly activeLevelId?: string;
+  readonly activeWallTypeId?: string;
+  readonly activeSlabTypeId?: string;
   readonly underlayLevelId?: string | null;
   readonly snapToUnderlay?: boolean;
   readonly activeComponentTypeId?: string;
@@ -40,6 +42,8 @@ export function Viewport2D({
   onDrawingLengthChange,
   onErrorChange,
   activeLevelId: activeLevelIdProp,
+  activeWallTypeId: activeWallTypeIdProp,
+  activeSlabTypeId: activeSlabTypeIdProp,
   underlayLevelId: underlayLevelIdProp,
   snapToUnderlay: snapToUnderlayProp = true,
   activeComponentTypeId: activeComponentTypeIdProp,
@@ -53,6 +57,8 @@ export function Viewport2D({
   const viewRef = useRef<View2D | null>(null);
   const toolOptionsRef = useRef({
     activeLevelId: activeLevelIdProp,
+    activeWallTypeId: activeWallTypeIdProp,
+    activeSlabTypeId: activeSlabTypeIdProp,
     underlayLevelId: underlayLevelIdProp,
     snapToUnderlay: snapToUnderlayProp,
     activeComponentTypeId: activeComponentTypeIdProp,
@@ -60,6 +66,8 @@ export function Viewport2D({
   });
   toolOptionsRef.current = {
     activeLevelId: activeLevelIdProp,
+    activeWallTypeId: activeWallTypeIdProp,
+    activeSlabTypeId: activeSlabTypeIdProp,
     underlayLevelId: underlayLevelIdProp,
     snapToUnderlay: snapToUnderlayProp,
     activeComponentTypeId: activeComponentTypeIdProp,
@@ -240,8 +248,8 @@ export function Viewport2D({
       const docState = doc.getState();
       const options = toolOptionsRef.current;
       const currentLevelId = resolveActiveLevelId(docState, options.activeLevelId);
-      const activeWallTypeId = Object.keys(docState.wallTypes)[0] ?? '';
-      const activeSlabTypeId = Object.keys(docState.slabTypes ?? {})[0] ?? '';
+      const activeWallTypeId = options.activeWallTypeId || Object.keys(docState.wallTypes)[0] || '';
+      const activeSlabTypeId = options.activeSlabTypeId || Object.keys(docState.slabTypes ?? {})[0] || '';
       const ctx: ToolContext = {
         doc,
         transform: view.getTransform(),
@@ -297,8 +305,8 @@ export function Viewport2D({
       const docState = doc.getState();
       const options = toolOptionsRef.current;
       const activeLevelId = resolveActiveLevelId(docState, options.activeLevelId);
-      const activeWallTypeId = Object.keys(docState.wallTypes)[0] ?? '';
-      const activeSlabTypeId = Object.keys(docState.slabTypes ?? {})[0] ?? '';
+      const activeWallTypeId = options.activeWallTypeId || Object.keys(docState.wallTypes)[0] || '';
+      const activeSlabTypeId = options.activeSlabTypeId || Object.keys(docState.slabTypes ?? {})[0] || '';
       const ctx: ToolContext = {
         doc,
         transform: view.getTransform(),
@@ -341,8 +349,8 @@ export function Viewport2D({
       const docState = doc.getState();
       const options = toolOptionsRef.current;
       const currentLevelId = resolveActiveLevelId(docState, options.activeLevelId);
-      const activeWallTypeId = Object.keys(docState.wallTypes)[0] ?? '';
-      const activeSlabTypeId = Object.keys(docState.slabTypes ?? {})[0] ?? '';
+      const activeWallTypeId = options.activeWallTypeId || Object.keys(docState.wallTypes)[0] || '';
+      const activeSlabTypeId = options.activeSlabTypeId || Object.keys(docState.slabTypes ?? {})[0] || '';
       const ctx: ToolContext = {
         doc,
         transform: view.getTransform(),

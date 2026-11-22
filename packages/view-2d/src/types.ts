@@ -283,6 +283,8 @@ export interface DocumentFor2D {
   };
 }
 
+export type StateFor2D = ReturnType<DocumentFor2D['getState']>;
+
 export interface SectionCutFor2D {
   readonly id: string;
   readonly category?: 'sectionCut' | undefined;

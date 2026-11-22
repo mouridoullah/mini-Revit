@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { produceWithPatches } from 'immer';
 import { vec2 } from '@tabax/geometry';
-import { HistoryStack } from './history.js';
+import { HistoryStack, type HistoryEntry } from './history.js';
 import { type BimState, type Wall, type Door, type Window, type Room } from './types.js';
 import { BimDocument } from './document.js';
 import * as Commands from './commands.js';
@@ -381,5 +381,37 @@ describe('Gestionnaire d’Historique Transactionnel (history.ts)', () => {
 
     expect(doc.getState().walls['w_hist_w']).toBeUndefined();
     expect(doc.getState().rooms['room_hist_cascade']?.status).toBe('unenclosed');
+  });
+
+  it('T-HIST-BOUNDED-01 : HistoryStack borne sa capacité maximale avec éviction FIFO', () => {
+    const stack = new HistoryStack(3);
+    expect(stack.maxCapacity).toBe(3);
+
+    const dummyEntry = (id: string): HistoryEntry => ({
+      patches: [{ op: 'add', path: ['walls', id], value: {} }],
+      inversePatches: [{ op: 'remove', path: ['walls', id] }],
+      changed: [id],
+    });
+
+    stack.push(dummyEntry('w1'));
+    stack.push(dummyEntry('w2'));
+    stack.push(dummyEntry('w3'));
+    expect(stack.getUndoCount()).toBe(3);
+
+    // 4ème push : doit évincer w1 et conserver w2, w3, w4
+    stack.push(dummyEntry('w4'));
+    expect(stack.getUndoCount()).toBe(3);
+
+    const res4 = stack.undo({ walls: {} } as any);
+    expect(res4?.changed).toEqual(['w4']);
+
+    const res3 = stack.undo({ walls: {} } as any);
+    expect(res3?.changed).toEqual(['w3']);
+
+    const res2 = stack.undo({ walls: {} } as any);
+    expect(res2?.changed).toEqual(['w2']);
+
+    // Plus rien dans la pile (w1 a été évincé)
+    expect(stack.canUndo()).toBe(false);
   });
 });
