@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
-import { BimDocument, Commands } from '@mini-bim/core';
+import { BimDocument, Commands } from '@tabax/core';
 import { MetricsPanel, generateMetricsCsv } from './MetricsPanel.js';
 import { createDemoDocument } from '../demo/demoDocument.js';
 
@@ -270,7 +270,7 @@ describe('Composant <MetricsPanel /> (Tableau de Métrés & Surfaces)', () => {
   });
 
   it('MetricsPanel synchronise son niveau avec activeLevelId (P1.1)', () => {
-    const level2: import('@mini-bim/core').Level = {
+    const level2: import('@tabax/core').Level = {
       id: 'lvl_etage1',
       name: 'Étage 1',
       elevation: 3000,

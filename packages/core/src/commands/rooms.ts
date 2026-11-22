@@ -2,7 +2,7 @@ import type { Command } from './base.js';
 import type { Room, BimState, ElementId } from '../types.js';
 import { validateRoom, BimValidationError } from '../rules/index.js';
 import { detectRooms } from '../rooms/detect.js';
-import { isPointInPolygon } from '@mini-bim/geometry';
+import { isPointInPolygon } from '@tabax/geometry';
 
 export class AddRoomCommand implements Command {
   public readonly name = 'AddRoom';

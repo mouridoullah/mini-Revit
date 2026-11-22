@@ -1,5 +1,5 @@
 /**
- * @mini-bim/web/tools/MepTool
+ * @tabax/web/tools/MepTool
  *
  * Outil interactif de dessin et modélisation MEP (Sous-phase 9.3.2).
  * Machine à états pure : Idle -> AwaitingStart -> Drawing -> Committed.
@@ -19,7 +19,7 @@ import {
 import {
   type Vec2,
   type PreviewShape,
-} from '@mini-bim/view-2d';
+} from '@tabax/view-2d';
 
 const vec2 = (x: number, y: number): Vec2 => ({ x, y });
 import {
@@ -47,7 +47,7 @@ import {
   type RouteEndpoint,
   type MepDomain,
   type MepSystemType,
-} from '@mini-bim/core';
+} from '@tabax/core';
 import { evaluateMepPortSnap, evaluateMepSegmentBodySnap } from './mepSnap.js';
 import { snapAngle45 } from './snap.js';
 

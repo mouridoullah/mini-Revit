@@ -233,7 +233,7 @@ export function drawTitleBlock(
     size: 9.5,
     color: [0.05, 0.1, 0.2],
   });
-  content.text('MINI-BIM CAD & ENGINEERING', xPt + wPt - 4 * MM_TO_PT, yPt + hPt - 8.5 * MM_TO_PT, {
+  content.text('TABAX BIM & ENGINEERING', xPt + wPt - 4 * MM_TO_PT, yPt + hPt - 8.5 * MM_TO_PT, {
     size: 7,
     align: 'right',
     color: [0.4, 0.45, 0.55],

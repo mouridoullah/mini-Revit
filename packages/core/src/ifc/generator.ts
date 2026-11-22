@@ -10,7 +10,7 @@ import { detectRooms } from '../rooms/detect.js';
 import { computeStairGeometry } from '../stairs.js';
 import { computeRoofSlopes } from '../roofs/slopes.js';
 import { resolveWallGeometry } from '../walls/resolve.js';
-import { isPointInPolygon, signedArea, type Vec2 } from '@mini-bim/geometry';
+import { isPointInPolygon, signedArea, type Vec2 } from '@tabax/geometry';
 import { createIfcGuid, escapeIfcString } from './guid.js';
 import { getComponentEffectiveDimensions } from '../components/dimensions.js';
 
@@ -71,9 +71,9 @@ class StepWriter {
 export function exportToIfc(state: BimState, options: IfcExportOptions = {}): string {
   const writer = new StepWriter();
 
-  const projectName = escapeIfcString(options.projectName || 'Mini-BIM Project');
-  const author = escapeIfcString(options.author || 'Mini-BIM Architect');
-  const org = escapeIfcString(options.organization || 'Mini-BIM Team');
+  const projectName = escapeIfcString(options.projectName || 'Tabax Project');
+  const author = escapeIfcString(options.author || 'Tabax Architect');
+  const org = escapeIfcString(options.organization || 'Tabax Studio');
   const filename = escapeIfcString(options.filename || 'export.ifc');
   const timestamp = options.timestamp !== undefined ? options.timestamp : 1700000000;
   const now = new Date(timestamp * 1000).toISOString();
@@ -84,7 +84,7 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
   const person = writer.add(`IFCPERSON($,'${author}',$,$,$,$,$,$)`);
   const organization = writer.add(`IFCORGANIZATION($,'${org}',$,$,$)`);
   const personAndOrg = writer.add(`IFCPERSONANDORGANIZATION(#${person},#${organization},$)`);
-  const application = writer.add(`IFCAPPLICATION(#${organization},'1.0.0','Mini-BIM','mini-bim')`);
+  const application = writer.add(`IFCAPPLICATION(#${organization},'1.0.0','Tabax','tabax')`);
   const ownerHistory = writer.add(
     `IFCOWNERHISTORY(#${personAndOrg},#${application},$,.ADDED.,$,$,$,${timestamp})`,
   );
@@ -1100,7 +1100,7 @@ export function exportToIfc(state: BimState, options: IfcExportOptions = {}): st
   // -------------------------------------------------------------------------
   const header = [
     `FILE_DESCRIPTION(('ViewDefinition [CoordinationView]'),'2;1');`,
-    `FILE_NAME('${filename}','${now}',('${author}'),('${org}'),'Mini-BIM IFC4 Generator','Mini-BIM','');`,
+    `FILE_NAME('${filename}','${now}',('${author}'),('${org}'),'Tabax IFC4 Generator','Tabax','');`,
     `FILE_SCHEMA(('IFC4'));`,
   ].join('\n');
 

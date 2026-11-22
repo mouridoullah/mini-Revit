@@ -19,7 +19,7 @@ export interface BoundingBox3D {
 
 /**
  * Structure de maillage brut typé et neutre, prête pour instanciation directe
- * en THREE.BufferGeometry dans le package @mini-bim/view-3d.
+ * en THREE.BufferGeometry dans le package @tabax/view-3d.
  *
  * Indépendante de Three.js, React et du DOM.
  */

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/react';
-import { BimDocument, Commands, type Wall, type Level } from '@mini-bim/core';
+import { BimDocument, Commands, type Wall, type Level } from '@tabax/core';
 import { BimDocumentProvider } from '../context/BimDocumentContext.js';
 import { StatusBar } from './StatusBar.js';
 

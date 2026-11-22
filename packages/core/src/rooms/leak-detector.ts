@@ -7,7 +7,7 @@ import {
   intersectSegments,
   projectPointOnSegment,
   isPointInPolygon,
-} from '@mini-bim/geometry';
+} from '@tabax/geometry';
 import { detectRooms } from './detect.js';
 
 export interface LeakGap {

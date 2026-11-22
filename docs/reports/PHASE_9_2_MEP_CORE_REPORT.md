@@ -13,7 +13,7 @@
 ## 1. Contexte & Périmètre Contractuel
 
 Conformément aux arbitrages méthodologiques de la Phase 9.1 et à l'**ADR-009** (*Extensibilité du Modèle pour les Réseaux MEP*), la **Sous-phase 9.2** a été engagée avec un périmètre rigoureusement délimité :
-- **Objectif prioritaire :** Établir le modèle sémantique typé et le système de connectivité topologique des réseaux techniques fluides et électriques dans `@mini-bim/core`.
+- **Objectif prioritaire :** Établir le modèle sémantique typé et le système de connectivité topologique des réseaux techniques fluides et électriques dans `@tabax/core`.
 - **Frontières explicites respectées :** Aucun développement prématuré d'algorithmes de routage géométrique automatique, de génération 3D de coudes/tés, d'outils interactifs de dessin 2D/3D, d'interférences solides 3D (BVH/OBB) ou de calculs de pertes de charge hydrauliques. Tout ce périmètre aval reste assigné aux Sous-phases 9.3 et 9.4.
 
 ---

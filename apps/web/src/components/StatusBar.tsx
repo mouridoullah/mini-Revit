@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useBimDocument } from '../hooks/useBimDocument.js';
 import { type ToolKind } from '../tools/types.js';
-import { detectRooms } from '@mini-bim/core';
+import { detectRooms } from '@tabax/core';
 
 export interface StatusBarProps {
   readonly activeToolKind?: ToolKind;

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as THREE from 'three';
-import { type RawMeshData } from '@mini-bim/geometry';
+import { type RawMeshData } from '@tabax/geometry';
 import { Scene3D } from './Scene3D.js';
 import { type FederatedModelVisual } from './types.js';
 

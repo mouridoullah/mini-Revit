@@ -1,4 +1,4 @@
-import type { SectionScene } from '@mini-bim/core';
+import type { SectionScene } from '@tabax/core';
 
 export interface SectionSvgOptions {
   /** Échelle architecturale normalisée : 50 (1:50), 100 (1:100) ou 200 (1:200). Défaut : 100 */
@@ -27,8 +27,8 @@ export function generateSectionSvg(scene: SectionScene, options: SectionSvgOptio
   const scaleRatio = options.scale ?? 100;
   const paper = options.paperSize ?? 'A4';
   const title = options.title ?? scene.cutName;
-  const project = options.project ?? 'Projet Mini-BIM';
-  const author = options.author ?? 'Mini-BIM CAD Engine';
+  const project = options.project ?? 'Projet Tabax';
+  const author = options.author ?? 'Tabax CAD Engine';
   const date = options.date ?? new Date().toLocaleDateString('fr-FR');
 
   // Dimensions papier en mm (paysage)

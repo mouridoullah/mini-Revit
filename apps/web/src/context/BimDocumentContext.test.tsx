@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
-import { BimDocument, Commands } from '@mini-bim/core';
+import { BimDocument, Commands } from '@tabax/core';
 import { createDemoDocument } from '../demo/demoDocument.js';
 import { BimDocumentProvider } from './BimDocumentContext.js';
 import { useBimDocument } from '../hooks/useBimDocument.js';

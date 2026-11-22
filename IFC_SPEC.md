@@ -3,7 +3,7 @@
 **Statut :** Spécification de Référence  
 **Date :** 2026-11-14  
 **Auteur :** Antigravity (Lead Software Architect & Computational Geometry Engineer)  
-**Package d'implémentation :** `@mini-bim/core` (`packages/core/src/ifc/`)
+**Package d'implémentation :** `@tabax/core` (`packages/core/src/ifc/`)
 
 ---
 

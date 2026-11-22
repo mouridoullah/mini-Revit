@@ -4,7 +4,7 @@ import {
   vec2,
   type RawMeshData,
   type Vec2,
-} from '@mini-bim/geometry';
+} from '@tabax/geometry';
 import type { SlabGeometryParams, SlabTypeGeometryParams } from './types.js';
 
 /**

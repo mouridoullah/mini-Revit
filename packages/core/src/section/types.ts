@@ -1,4 +1,4 @@
-import type { Vec2 } from '@mini-bim/geometry';
+import type { Vec2 } from '@tabax/geometry';
 import type { ElementId } from '../types.js';
 
 export type SectionHatchType = 'concrete' | 'masonry' | 'insulation' | 'solid' | 'metal';

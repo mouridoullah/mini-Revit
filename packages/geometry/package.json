@@ -1,7 +1,7 @@
 {
-  "name": "@mini-bim/geometry",
+  "name": "@tabax/geometry",
   "version": "0.1.0",
-  "description": "Noyau mathématique et géométrique 2D/3D pur pour Mini-BIM",
+  "description": "Noyau mathématique et géométrique 2D/3D pur pour Tabax",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

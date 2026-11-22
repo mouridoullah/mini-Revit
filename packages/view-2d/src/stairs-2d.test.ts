@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { vec2 } from '@mini-bim/geometry';
+import { vec2 } from '@tabax/geometry';
 import { Transform2D } from './transform.js';
 import {
   drawStair,
@@ -134,7 +134,7 @@ describe('Phase 6.4 — Rendu 2D des Escaliers (packages/view-2d/src/stairs-2d.t
 
   it('T-STAIR-SHAFT-UNIFIED-01 : View2D dérive la trémie via computeStairShaft avec useHeadroomCutoff: true', async () => {
     const { View2D } = await import('./View2D.js');
-    const { computeStairShaft } = await import('@mini-bim/core');
+    const { computeStairShaft } = await import('@tabax/core');
     const { canvas } = createMockCanvas(800, 600);
     const view2d = new View2D(canvas, { activeLevelId: 'lvl_1' });
 
@@ -192,7 +192,7 @@ describe('Phase 6.4 — Rendu 2D des Escaliers (packages/view-2d/src/stairs-2d.t
   });
 
   it('T-STAIR-SHAFT-UNIFIED-02 : Le polygone de trémie 2D et 3D partagent la même géométrie CCW et le même cutoff', async () => {
-    const { computeStairShaft } = await import('@mini-bim/core');
+    const { computeStairShaft } = await import('@tabax/core');
     const state: any = {
       levels: {
         lvl_0: { id: 'lvl_0', elevation: 0 },

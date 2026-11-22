@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { vec2 } from '@mini-bim/geometry';
+import { vec2 } from '@tabax/geometry';
 import { type BimState, type Wall, type Roof, type GableRoofType, type WallType, type Level } from '../types.js';
 import { computeWallTopProfile } from './top-profile.js';
 

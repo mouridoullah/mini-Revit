@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { vec2 } from '@mini-bim/geometry';
+import { vec2 } from '@tabax/geometry';
 import { Transform2D } from './transform.js';
 import { drawSlab, DEFAULT_SLAB_RENDER_CONFIG } from './renderer.js';
 import { type SlabFor2D, type SlabTypeFor2D } from './types.js';

@@ -1,12 +1,12 @@
 /**
- * @mini-bim/web/tools/mepSnap
+ * @tabax/web/tools/mepSnap
  *
  * Accrochage magnétique intelligent (magnetic port snapping) sur les connecteurs ouverts MEP.
  * Conforme à l'ADR-047 (tolérance en pixels écran proportionnelle au zoom).
  */
 
-import { type Vec2, findMepPortAtScreen, type Transform2D } from '@mini-bim/view-2d';
-import type { BimDocument } from '@mini-bim/core';
+import { type Vec2, findMepPortAtScreen, type Transform2D } from '@tabax/view-2d';
+import type { BimDocument } from '@tabax/core';
 import type { MepToolConfig, SnappedPortTarget, SnappedSegmentBodyTarget } from './types.js';
 
 export interface EvaluateMepPortSnapOptions {

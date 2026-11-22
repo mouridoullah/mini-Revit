@@ -1,5 +1,5 @@
-import { Commands, generateId } from '@mini-bim/core';
-import { findWallAtScreen, type Vec2, type PreviewShape } from '@mini-bim/view-2d';
+import { Commands, generateId } from '@tabax/core';
+import { findWallAtScreen, type Vec2, type PreviewShape } from '@tabax/view-2d';
 import { snapToStep } from './snap.js';
 import {
   type Tool,

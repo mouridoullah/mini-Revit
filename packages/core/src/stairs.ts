@@ -1,4 +1,4 @@
-import { vec2, type Vec2 } from '@mini-bim/geometry';
+import { vec2, type Vec2 } from '@tabax/geometry';
 import type { BimState, Stair, StairType } from './types.js';
 
 /**

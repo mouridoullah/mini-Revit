@@ -1,4 +1,4 @@
-# SPÉCIFICATION TECHNIQUE — PACKAGE `@mini-bim/view-2d`
+# SPÉCIFICATION TECHNIQUE — PACKAGE `@tabax/view-2d`
 
 ## Moteur de Visualisation en Plan 2D Impératif (Canvas 2D API) pour Mini-BIM
 
@@ -11,14 +11,14 @@
 
 ## 1. Principes Fondamentaux et Règles d'Or
 
-Le package `@mini-bim/view-2d` constitue le visualiseur et moteur de dessin en plan bidimensionnel de l'application Mini-BIM. Il respecte cinq axiomes stricts :
+Le package `@tabax/view-2d` constitue le visualiseur et moteur de dessin en plan bidimensionnel de l'application Mini-BIM. Il respecte cinq axiomes stricts :
 
 1. **Indépendance Totale envers React, Three.js et Frameworks UI :**  
-   `@mini-bim/view-2d` n'importe **aucun** composant ou hook React (`react`, `react-dom`), ni aucun module Three.js. Il s'agit d'une couche impérative pure exploitant la standard Canvas 2D API native du navigateur (`HTMLCanvasElement`, `CanvasRenderingContext2D`). L'intégration dans l'interface web (composant `<Viewport2D />`) relève des couches supérieures (`apps/web` en Phase 2.2).
+   `@tabax/view-2d` n'importe **aucun** composant ou hook React (`react`, `react-dom`), ni aucun module Three.js. Il s'agit d'une couche impérative pure exploitant la standard Canvas 2D API native du navigateur (`HTMLCanvasElement`, `CanvasRenderingContext2D`). L'intégration dans l'interface web (composant `<Viewport2D />`) relève des couches supérieures (`apps/web` en Phase 2.2).
 2. **RÈGLE D'OR : Non-Mutation du Document (`BimDocument`) :**  
    `View2D` ne mute **JAMAIS** directement le document BIM. Pour toute modification sollicitée (tracé, déplacement, suppression), il émet une intention sous forme d'instance de `Command` via le callback `onCommandRequested(cb)`. Le contrôleur applicatif est seul habilité à invoquer `doc.execute(command)`.
-3. **Consommation Obligatoire du Noyau Géométrique (`@mini-bim/geometry`) :**  
-   Le visualiseur ne réimplémente aucun calcul d'emprise de mur. Il délègue le tracé du poché et des arêtes vues/coupées à la fonction pure `computeWallFootprint2d` de `@mini-bim/geometry`.
+3. **Consommation Obligatoire du Noyau Géométrique (`@tabax/geometry`) :**  
+   Le visualiseur ne réimplémente aucun calcul d'emprise de mur. Il délègue le tracé du poché et des arêtes vues/coupées à la fonction pure `computeWallFootprint2d` de `@tabax/geometry`.
 4. **Convention d'Axe Vertical Tranchée (ADR-021) :**
    - **Monde architectural :** repère cartésien en millimètres (mm) avec **axe Y vers le haut (Y-up)**, où $+X$ va vers l'Est, $+Y$ vers le Nord, et $Z$ est l'élévation.
    - **Écran Canvas :** repère en pixels avec **axe Y vers le bas (Y-down)**, où $(0,0)$ est le coin supérieur gauche.
@@ -32,18 +32,18 @@ Le package `@mini-bim/view-2d` constitue le visualiseur et moteur de dessin en p
 
 ```mermaid
 flowchart TD
-    subgraph Core ["@mini-bim/core"]
+    subgraph Core ["@tabax/core"]
         BD["BimDocument<br/>(Source unique de vérité)"]
         CMD["Command Pattern<br/>(AddWall, UpdateWall, etc.)"]
     end
 
-    subgraph Geometry ["@mini-bim/geometry"]
+    subgraph Geometry ["@tabax/geometry"]
         VEC["Vec2 (Algèbre vectorielle)"]
         FP["computeWallFootprint2d()<br/>(Emprise 2D, axes, faces)"]
         DIST["distancePointToSegment()"]
     end
 
-    subgraph View2D ["@mini-bim/view-2d"]
+    subgraph View2D ["@tabax/view-2d"]
         T2D["Transform2D<br/>- worldToScreen (Y-up -> Y-down)<br/>- screenToWorld (Inversion)<br/>- zoomAt(point) & panByScreen()"]
         REND["renderer.ts (Fonctions pures)<br/>- clearCanvas()<br/>- drawGrid() (Adaptive)<br/>- drawWall() (Poché + Contour + Axe)<br/>- renderPlanView()"]
         HIT["hit-test.ts (Module Découplé)<br/>- findWallAtScreen()<br/>- hitTestWall()<br/>- isPointInsideOrNearFootprint()"]
@@ -200,7 +200,7 @@ export type PreviewShape =
 Conformément aux principes de modularité, la logique de détection de clic est extraite dans un module pur et indépendant (`hit-test.ts`), exporté par l'API publique du package pour être directement réutilisé par les outils interactifs (`WallTool`) en Phase 2.2 sans aucune duplication de code.
 
 La détection combine deux critères géométriques rigoureux :
-1. **Distance au segment d'axe :** Calcul via `distancePointToSegment` de `@mini-bim/geometry`. Le clic est pré-sélectionné si $\text{dist} \le \frac{e}{2} + \text{toleranceMm}$.
+1. **Distance au segment d'axe :** Calcul via `distancePointToSegment` de `@tabax/geometry`. Le clic est pré-sélectionné si $\text{dist} \le \frac{e}{2} + \text{toleranceMm}$.
 2. **Inclusion dans l'emprise polygonale (Poché) :** Test des 4 demi-plans CCW formés par les sommets $[V_0, V_1, V_2, V_3]$ du rectangle d'emprise issu de `computeWallFootprint2d`.
 3. **Ordre de parcours :** Les murs sont testés en ordre inverse de création (du plus récent au plus ancien) pour sélectionner l'élément visible au premier plan.
 

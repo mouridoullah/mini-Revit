@@ -1,5 +1,5 @@
 /**
- * @mini-bim/web/components/inspector/MepInspector
+ * @tabax/web/components/inspector/MepInspector
  *
  * Inspecteur de propriétés pour les éléments et réseaux techniques MEP (Sous-phase 9.3.2).
  * Tuyauteries, gaines aérauliques, chemins de câbles, raccords et équipements.
@@ -15,7 +15,7 @@ import {
   type CableTray,
   type MepFitting,
   type MepEquipment,
-} from '@mini-bim/core';
+} from '@tabax/core';
 import { DebouncedTextInput, DebouncedNumberInput } from './DebouncedInputs.js';
 
 export interface MepInspectorProps {

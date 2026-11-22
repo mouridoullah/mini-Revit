@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { generatePlanSvg } from './svg-exporter.js';
-import { vec2 } from '@mini-bim/geometry';
+import { vec2 } from '@tabax/geometry';
 import { type DocumentFor2D } from './types.js';
 
 describe('Générateur de Plans SVG Imprimables (packages/view-2d/svg-exporter)', () => {

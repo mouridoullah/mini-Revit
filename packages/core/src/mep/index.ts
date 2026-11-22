@@ -1,5 +1,5 @@
 /**
- * @mini-bim/core/mep
+ * @tabax/core/mep
  *
  * Module des réseaux techniques MEP (Mechanical, Electrical & Plumbing).
  * Conforme à l'ADR-009, l'ADR-056 et aux standards buildingSMART IFC4.

@@ -1,5 +1,5 @@
-import { Commands, generateId } from '@mini-bim/core';
-import { findWallAtScreen, type Vec2 } from '@mini-bim/view-2d';
+import { Commands, generateId } from '@tabax/core';
+import { findWallAtScreen, type Vec2 } from '@tabax/view-2d';
 import { snapToStep } from './snap.js';
 import {
   type Tool,
@@ -22,7 +22,7 @@ export const MIN_WINDOW_CLEARANCE = 50;
  * - hovering : curseur au-dessus d'un mur valide, prévisualisation active avec snap 50 mm.
  * - placed : fenêtre créée et commande émise.
  *
- * Ne dépend ni de React, ni de Three.js, ni du DOM, ni de @mini-bim/geometry.
+ * Ne dépend ni de React, ni de Three.js, ni du DOM, ni de @tabax/geometry.
  */
 export class WindowTool implements Tool {
   public readonly kind = 'window' as const;

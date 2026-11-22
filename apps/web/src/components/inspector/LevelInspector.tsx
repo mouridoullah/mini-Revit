@@ -6,7 +6,7 @@ import {
   getSortedLevels,
   getLevelStoryHeight,
   setStoryHeight,
-} from '@mini-bim/core';
+} from '@tabax/core';
 import { DebouncedTextInput, DebouncedNumberInput } from './DebouncedInputs.js';
 
 export interface LevelInspectorProps {

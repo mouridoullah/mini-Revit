@@ -1,4 +1,4 @@
-import type { SectionScene } from '@mini-bim/core';
+import type { SectionScene } from '@tabax/core';
 
 export interface SectionRenderOptions {
   readonly width: number;

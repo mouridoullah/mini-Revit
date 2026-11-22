@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, cleanup, fireEvent, act, waitFor } from '@testing-library/react';
 import { StrictMode } from 'react';
-import { View2D } from '@mini-bim/view-2d';
-import * as view2dModule from '@mini-bim/view-2d';
-import { Scene3D } from '@mini-bim/view-3d';
-import * as Scene3DModule from '@mini-bim/view-3d';
-import { BimDocument, AddWallCommand, Commands, resolveWallGeometry, computeLevelMetrics, exportToIfc, createPipe } from '@mini-bim/core';
+import { View2D } from '@tabax/view-2d';
+import * as view2dModule from '@tabax/view-2d';
+import { Scene3D } from '@tabax/view-3d';
+import * as Scene3DModule from '@tabax/view-3d';
+import { BimDocument, AddWallCommand, Commands, resolveWallGeometry, computeLevelMetrics, exportToIfc, createPipe } from '@tabax/core';
 import { App } from './App.js';
 import { createDemoDocument } from './demo/demoDocument.js';
 import { exportToJSON } from './persistence/jsonIO.js';
@@ -403,7 +403,7 @@ describe('App Integration & Squelette Double Viewport (apps/web)', () => {
 
     expect(createObjectURLMock).toHaveBeenCalledTimes(1);
     expect(clickSpy).toHaveBeenCalledTimes(1);
-    expect(capturedDownloadName).toBe('mini-bim-model.ifc');
+    expect(capturedDownloadName).toBe('tabax-model.ifc');
     expect(capturedBlob).toBeDefined();
 
     cleanup();
@@ -445,7 +445,7 @@ describe('App Integration & Squelette Double Viewport (apps/web)', () => {
 
   it('permet de changer de niveau actif et l’export SVG cible fidèlement le niveau actif sélectionné (P1.1)', async () => {
     const doc = BimDocument.createDefaultProject();
-    const level1: import('@mini-bim/core').Level = {
+    const level1: import('@tabax/core').Level = {
       id: 'lvl_etage_sup',
       name: 'Étage 1 (R+1)',
       elevation: 3000,

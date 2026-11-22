@@ -1,6 +1,6 @@
 # RAPPORT D'AUDIT TECHNIQUE ET DE QUALIFICATION — PHASE 1.3
 
-## Génération des Maillages 3D (`WallMeshBuilder`) — `@mini-bim/geometry`
+## Génération des Maillages 3D (`WallMeshBuilder`) — `@tabax/geometry`
 
 **Date :** 13 Novembre 2026  
 **Auteur :** Lead Software Architect & Computational Geometry Engineer  
@@ -19,14 +19,14 @@ La Phase 1.3 accomplit la transition géométrique du domaine 2.5D vers la 3D vo
 - Triangulation 2D hybride ultra-rapide : Fan $\mathcal{O}(n)$ pour les polygones convexes, Ear Clipping (_earcut_) pour les géométries concaves.
 - Attribution de normales franches (non-lissées) orthogonales aux faces (+Z dessus, -Z dessous, normales horizontales unitaires extérieures sur les flancs).
 - Triangles orientés CCW vus de l'extérieur du solide.
-- Fourniture d'une structure de données neutre (`RawMeshData`) composée de `Float32Array` et `Uint32Array`, directement consommable par Three.js dans le futur package `@mini-bim/view-3d`.
-- **Règle d'or respectée à 100% : ZÉRO import de `three`, `react` ou `react-dom` dans `@mini-bim/geometry`.**
+- Fourniture d'une structure de données neutre (`RawMeshData`) composée de `Float32Array` et `Uint32Array`, directement consommable par Three.js dans le futur package `@tabax/view-3d`.
+- **Règle d'or respectée à 100% : ZÉRO import de `three`, `react` ou `react-dom` dans `@tabax/geometry`.**
 
 ---
 
 ## 2. Vérification Statique et Règle d'Or (Sorties Brutes)
 
-### A. Règle d'or : absence d'import UI / 3D dans `@mini-bim/geometry`
+### A. Règle d'or : absence d'import UI / 3D dans `@tabax/geometry`
 
 ```bash
 Get-ChildItem -Path packages/geometry -Recurse -Include *.ts,*.tsx,*.js,*.json | Select-String -Pattern "from\s+['\"](three|react|react-dom)['\"]"
@@ -128,7 +128,7 @@ Les fichiers 3D standards suivants ont été générés dans `docs/mesh-visuals/
 3. **Triangulation de contours avec trous intérieurs (îlots) :**
    Dans le modèle 2.5D actuel, les tranches de murs ne possèdent pas d'îlots polygonaux internes (les réservations de portes et fenêtres sont découpées par tranches longitudinales ouvertes). La triangulation d'îlots libres avec trous sera introduite si nécessaire en Phase 6 (dalles et planchers percés de trémies d'escaliers).
 4. **Périmètre du package :**
-   `@mini-bim/geometry` produit des buffers typés neutres (`RawMeshData`). L'instanciation de `THREE.BufferGeometry`, l'application de shaders et l'intégration dans le graphe de scène Three.js relèvent du package `@mini-bim/view-3d` (livré en Phase 1.4).
+   `@tabax/geometry` produit des buffers typés neutres (`RawMeshData`). L'instanciation de `THREE.BufferGeometry`, l'application de shaders et l'intégration dans le graphe de scène Three.js relèvent du package `@tabax/view-3d` (livré en Phase 1.4).
 
 ---
 
@@ -138,9 +138,9 @@ Les fichiers 3D standards suivants ont été générés dans `docs/mesh-visuals/
 > Le moteur géométrique dispose désormais de la chaîne complète :  
 > _Saisie 2D $\to$ Résolution de jonctions étanches (1.1) $\to$ Découpage d'ouvertures 2.5D (1.2) $\to$ Extrusion 3D en buffers fermés 2-manifold (1.3)._
 
-### Prochaine étape recommandée : Phase 1.4 — Package `@mini-bim/view-3d` (Visualisation Three.js)
+### Prochaine étape recommandée : Phase 1.4 — Package `@tabax/view-3d` (Visualisation Three.js)
 
-1. Initialisation du package `@mini-bim/view-3d` dans le monorepo.
+1. Initialisation du package `@tabax/view-3d` dans le monorepo.
 2. Implémentation du pont `MeshAdapter` : conversion de `RawMeshData` vers `THREE.BufferGeometry`.
 3. Configuration de la scène 3D (caméra orbitale, éclairage directionnel architectural, plan de sol).
 4. Synchronisation réactive : mise à jour instantanée du maillage 3D lors du déplacement d'un mur ou d'une ouverture.

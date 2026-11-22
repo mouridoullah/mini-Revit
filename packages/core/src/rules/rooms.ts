@@ -1,7 +1,7 @@
 import type { Room, BimState } from '../types.js';
 import type { RuleViolation } from './types.js';
 import { assertNoViolations } from './utils.js';
-import { isPointInPolygon } from '@mini-bim/geometry';
+import { isPointInPolygon } from '@tabax/geometry';
 import { detectRooms } from '../rooms/detect.js';
 
 /**

@@ -1,4 +1,4 @@
-import { vec2 } from '@mini-bim/geometry';
+import { vec2 } from '@tabax/geometry';
 import type { Transform2D } from './transform.js';
 import type { ComponentFor2D, ComponentTypeFor2D } from './types.js';
 

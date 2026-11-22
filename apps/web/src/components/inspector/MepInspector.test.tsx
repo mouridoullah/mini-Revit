@@ -9,7 +9,7 @@ import {
   DeleteMepElementCommand,
   AddPipeCommand,
   type BimState,
-} from '@mini-bim/core';
+} from '@tabax/core';
 import { MepInspector } from './MepInspector.js';
 import { PropertyInspector } from '../PropertyInspector.js';
 

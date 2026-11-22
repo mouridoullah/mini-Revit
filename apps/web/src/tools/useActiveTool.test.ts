@@ -8,8 +8,8 @@ import { WindowTool } from './WindowTool.js';
 import { MoveWallTool } from './MoveWallTool.js';
 import { MoveOpeningTool } from './MoveOpeningTool.js';
 import { SlabTool } from './SlabTool.js';
-import { BimDocument } from '@mini-bim/core';
-import { Transform2D } from '@mini-bim/view-2d';
+import { BimDocument } from '@tabax/core';
+import { Transform2D } from '@tabax/view-2d';
 import { type ToolContext } from './types.js';
 
 describe('useActiveTool Hook', () => {

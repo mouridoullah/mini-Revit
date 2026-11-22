@@ -28,7 +28,7 @@ Toute géométrie altimétrique de mur et toute position d'ouverture hébergée 
 ```typescript
 function resolveWallGeometry(wall: Wall, state: BimState): ResolvedWall;
 ```
-Située dans `packages/core/src/walls/resolve.ts` et réexportée à la racine de `@mini-bim/core`.
+Située dans `packages/core/src/walls/resolve.ts` et réexportée à la racine de `@tabax/core`.
 
 ### 2. D2 — Modèle de Données Dérivé (`ResolvedWall` & `ResolvedOpening`)
 
@@ -67,6 +67,6 @@ export interface ResolvedWall {
 
 Zéro occurrence de `wallType.height` en dehors de `resolve.ts` (et de son délégué `walls.ts`, ou de la validation de validité intrinsèque du type `wallType.height > 0`) dans le code de production.
 
-### 5. D5 — Découplage de `@mini-bim/view-3d`
+### 5. D5 — Découplage de `@tabax/view-3d`
 
-Le package `@mini-bim/view-3d` reste strictement découplé de `@mini-bim/core`. Il ne dépend pas du résolveur mais accepte un paramètre géométrique neutre `height?: number` sur `WallWithOpeningsParams` et `createWallMesh`. C'est le consommateur applicatif (`Viewport3D.tsx`) qui fait le pont en appelant `resolveWallGeometry` et en passant `resolved.zBase` et `resolved.height`.
+Le package `@tabax/view-3d` reste strictement découplé de `@tabax/core`. Il ne dépend pas du résolveur mais accepte un paramètre géométrique neutre `height?: number` sur `WallWithOpeningsParams` et `createWallMesh`. C'est le consommateur applicatif (`Viewport3D.tsx`) qui fait le pont en appelant `resolveWallGeometry` et en passant `resolved.zBase` et `resolved.height`.

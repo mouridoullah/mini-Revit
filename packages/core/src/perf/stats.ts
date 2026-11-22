@@ -1,5 +1,5 @@
 /**
- * @mini-bim/core
+ * @tabax/core
  * Module d'instrumentation statistique pour les bancs de performance et de scalabilité.
  */
 

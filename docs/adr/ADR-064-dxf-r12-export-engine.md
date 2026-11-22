@@ -20,7 +20,7 @@ Nous implémentons un moteur DXF autonome pur TypeScript (`packages/view-2d/src/
 
 ### 2. Primitives Géométriques & Hachures Linéaires
 - **Contours fermés** : Tracés via l'entité `POLYLINE` suivie d'une séquence de `VERTEX` et terminée par `SEQEND`, avec le drapeau `70 = 1` (fermé).
-- **Hachures analytiques en primitives `LINE`** : L'entité complexe `HATCH` n'existant qu'à partir de la R14/R2000, le module `hatch.ts` génère des segments de hachures linéaires `LINE` découpés analytiquement à 45° via `sliceSegmentWithPolygonWithHoles` de `@mini-bim/geometry`. Ces segments sont isolés sur des calques dédiés (`ARCH-HATCH`, `SECTION-HATCH`), ce qui permet aux projeteurs CAO de masquer ou régler leur transparence en un clic.
+- **Hachures analytiques en primitives `LINE`** : L'entité complexe `HATCH` n'existant qu'à partir de la R14/R2000, le module `hatch.ts` génère des segments de hachures linéaires `LINE` découpés analytiquement à 45° via `sliceSegmentWithPolygonWithHoles` de `@tabax/geometry`. Ces segments sont isolés sur des calques dédiés (`ARCH-HATCH`, `SECTION-HATCH`), ce qui permet aux projeteurs CAO de masquer ou régler leur transparence en un clic.
 - **Arcs et Cercles** : Entités `CIRCLE` et `ARC` (angles en degrés trigonométriques anti-horaires 0–360°).
 - **Textes** : Entités `TEXT` normalisées avec échappement AutoCAD universel (`cleanDxfText` : `%%c` pour Ø, `%%d` pour °, `%%p` pour ±, `m2` pour m²).
 

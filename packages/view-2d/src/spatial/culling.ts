@@ -1,4 +1,4 @@
-import { vec2 } from '@mini-bim/geometry';
+import { vec2 } from '@tabax/geometry';
 import type {
   BoundingBox2D,
   WallFor2D,

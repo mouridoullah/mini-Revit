@@ -1,4 +1,4 @@
-# SPÉCIFICATION TECHNIQUE — PACKAGE `@mini-bim/view-3d`
+# SPÉCIFICATION TECHNIQUE — PACKAGE `@tabax/view-3d`
 
 ## Moteur de Visualisation 3D Impératif Three.js pour Mini-BIM
 
@@ -11,12 +11,12 @@
 
 ## 1. Principes Fondamentaux et Règle d'Or
 
-Le package `@mini-bim/view-3d` constitue la couche de visualisation tridimensionnelle du moteur architectural Mini-BIM. Il est fondé sur quatre axiomes stricts :
+Le package `@tabax/view-3d` constitue la couche de visualisation tridimensionnelle du moteur architectural Mini-BIM. Il est fondé sur quatre axiomes stricts :
 
 1. **Indépendance Totale envers React et le DOM applicatif :**  
-   `@mini-bim/view-3d` n'importe **aucun** composant ou hook React (`react`, `react-dom`). Il s'agit d'une couche impérative pure qui pilote Three.js. L'intégration dans l'interface utilisateur web (composant `<Viewport3D />`) est déléguée aux applications de niveau supérieur (`apps/web` en Phase 2+). Cette séparation permet d'utiliser le visualiseur dans des workers, des scripts Node headless (avec contextes mockés) ou d'autres frontaux.
+   `@tabax/view-3d` n'importe **aucun** composant ou hook React (`react`, `react-dom`). Il s'agit d'une couche impérative pure qui pilote Three.js. L'intégration dans l'interface utilisateur web (composant `<Viewport3D />`) est déléguée aux applications de niveau supérieur (`apps/web` en Phase 2+). Cette séparation permet d'utiliser le visualiseur dans des workers, des scripts Node headless (avec contextes mockés) ou d'autres frontaux.
 2. **Consommation Neutre de Buffers Géométriques :**  
-   Il dépend exclusivement de `@mini-bim/geometry` pour l'interface de données `RawMeshData`. Il ne recalculera jamais les normales de sommets ni les boîtes englobantes : il consomme directement les `Float32Array` et `Uint32Array` générés en amont.
+   Il dépend exclusivement de `@tabax/geometry` pour l'interface de données `RawMeshData`. Il ne recalculera jamais les normales de sommets ni les boîtes englobantes : il consomme directement les `Float32Array` et `Uint32Array` générés en amont.
 3. **Rendu à la Demande (_Demand-Driven Rendering_) :**  
    Pour économiser drastiquement le CPU et le GPU, aucune boucle d'animation continue `requestAnimationFrame` (60 fps inconditionnel) n'est démarrée au repos. La scène est rendue uniquement lors des mutations de modèle (`addMesh`, `updateMesh`, `removeMesh`, `resize`) ou lors des manipulations interactives de caméra (`OrbitControls` `'change'`).
 4. **Convention Altimétrique Z-up :**  
@@ -28,13 +28,13 @@ Le package `@mini-bim/view-3d` constitue la couche de visualisation tridimension
 
 ```
 ┌────────────────────────────────────────────────────────┐
-│                   @mini-bim/geometry                   │
+│                   @tabax/geometry                   │
 │       Produit RawMeshData (positions, normales, uvs)   │
 └───────────────────────────┬────────────────────────────┘
                             │ RawMeshData (Typed Arrays)
                             ▼
 ┌────────────────────────────────────────────────────────┐
-│                   @mini-bim/view-3d                    │
+│                   @tabax/view-3d                    │
 │                                                        │
 │   ┌───────────────────┐        ┌───────────────────┐   │
 │   │    MeshAdapter    │───────▶│  BufferGeometry   │   │
@@ -203,7 +203,7 @@ Contrairement aux moteurs de jeu (Unity, Unreal) qui bouclent à 60 ou 120 fps e
 
 ## 6. Générateur de Maillages Découplé (`mesh-generator.ts` — Phase 2.2)
 
-Pour permettre aux applications frontales (`apps/web`) d'instancier des géométries 3D sans violer la règle d'isolation (interdiction d'importer `@mini-bim/geometry`), `view-3d` exporte un générateur de maillages basé sur des interfaces neutres (ADR-023) :
+Pour permettre aux applications frontales (`apps/web`) d'instancier des géométries 3D sans violer la règle d'isolation (interdiction d'importer `@tabax/geometry`), `view-3d` exporte un générateur de maillages basé sur des interfaces neutres (ADR-023) :
 
 ```typescript
 export interface WallGeometryParams {
@@ -224,7 +224,7 @@ export function createWallMesh(
 ): RawMeshData | null;
 ```
 
-Ce module ne dépend d'aucun modèle métier (`@mini-bim/core` est absent des dépendances). Les applications fournissent directement leurs entités en exploitant le typage structurel de TypeScript.
+Ce module ne dépend d'aucun modèle métier (`@tabax/core` est absent des dépendances). Les applications fournissent directement leurs entités en exploitant le typage structurel de TypeScript.
 
 ### Limites Connues et Périmètre de Phase 3
 

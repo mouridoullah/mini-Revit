@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { createDefaultComponentTypes } from '@mini-bim/core';
+import { createDefaultComponentTypes } from '@tabax/core';
 import { ComponentRibbon } from './ComponentRibbon.js';
 
 describe('ComponentRibbon (apps/web/src/components/ComponentRibbon.tsx — Phase 8.3)', () => {

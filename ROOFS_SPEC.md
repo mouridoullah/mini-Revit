@@ -17,7 +17,7 @@ Ce document définit les spécifications formelles, les conventions géométriqu
 
 ---
 
-## 2. Modèle de Données Déclaratif (`@mini-bim/core`)
+## 2. Modèle de Données Déclaratif (`@tabax/core`)
 
 ### 2.1 Types TypeScript & Discriminated Union (ADR-053 / D1)
 
@@ -100,14 +100,14 @@ $$u_{\text{ridge}} = L \cdot \frac{s_0}{s_0 - s_1}$$
 
 ## 4. Rendu 2D & Rendu 3D
 
-### 4.1 Rendu 2D (`@mini-bim/view-2d`)
+### 4.1 Rendu 2D (`@tabax/view-2d`)
 - **Empreinte nominale (`footprint`) :** Trait continu noir.
 - **Ligne de débord (`overhang`) :** Polygone étendu tracé en tiretés bleus (`strokeDasharray: [6, 4]`).
 - **Axe de faîtage (`ridgeAxis`) :** Trait fort (`lineWidth: 3`) avec cercles d'extrémités.
 - **Trémies de toit (`roofOpenings`) :** Découpe avec croix diagonale et contour pointillé.
 - **Sélection :** Halo cyan semi-transparent avec surbrillance.
 
-### 4.2 Rendu 3D (`@mini-bim/view-3d`)
+### 4.2 Rendu 3D (`@tabax/view-3d`)
 - **Toiture 2 pans :** Polyèdre étanche de genre 0, vérifiant la relation d'Euler-Poincaré :
   $$V - E + F = 2$$
 - **Volume analytique exact :**

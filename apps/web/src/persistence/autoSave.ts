@@ -1,4 +1,4 @@
-import { type BimDocument, type BimState } from '@mini-bim/core';
+import { type BimDocument, type BimState } from '@tabax/core';
 
 export const AUTOSAVE_DB_NAME = 'mini_bim_autosave';
 export const AUTOSAVE_STORE_NAME = 'projects';

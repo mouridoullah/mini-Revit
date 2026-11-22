@@ -5,7 +5,7 @@ import {
   type FederatedModel,
   type FederatedEntity,
   type FederatedClashCandidate,
-} from '@mini-bim/core';
+} from '@tabax/core';
 import type { FederatedModelOptions } from '../components/FederatedIfcPanel.js';
 import type { DockTab } from '../components/RightDockPanel.js';
 
@@ -50,7 +50,7 @@ export function useFederatedIfc({
     async (file: File) => {
       try {
         const buffer = await file.arrayBuffer();
-        const Federation = await import('@mini-bim/core/federation');
+        const Federation = await import('@tabax/core/federation');
         const model = await Federation.loadFederatedIfc(buffer, {
           modelId: `fed_${generateId()}`,
           name: file.name,
@@ -123,7 +123,7 @@ export function useFederatedIfc({
       const model = federatedModels.get(modelId);
       if (!model) return;
       const opts = federatedOptions.get(modelId);
-      const Federation = await import('@mini-bim/core/federation');
+      const Federation = await import('@tabax/core/federation');
       const results = Federation.detectFederatedClashes(doc.getState(), model, {
         offset: opts?.offset,
       });

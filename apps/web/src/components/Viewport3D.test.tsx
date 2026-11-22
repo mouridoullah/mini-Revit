@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, fireEvent, act } from '@testing-library/react';
-import * as Scene3DModule from '@mini-bim/view-3d';
+import * as Scene3DModule from '@tabax/view-3d';
 import {
   BimDocument,
   Commands,
@@ -13,7 +13,7 @@ import {
   AddMepFittingCommand,
   ConnectPortsCommand,
   UpdateMepElementCommand,
-} from '@mini-bim/core';
+} from '@tabax/core';
 import { createDemoDocument } from '../demo/demoDocument.js';
 import { BimDocumentProvider } from '../context/BimDocumentContext.js';
 import { Viewport3D } from './Viewport3D.js';

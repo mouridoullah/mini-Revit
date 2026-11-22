@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
-import { vec2, type Vec2 } from '@mini-bim/geometry';
+import { vec2, type Vec2 } from '@tabax/geometry';
 import { BimDocument } from './document.js';
 import {
   AddSlabTypeCommand,

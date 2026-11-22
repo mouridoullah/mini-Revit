@@ -4,7 +4,7 @@ import {
   type BimState,
   type Level,
   type SectionCut,
-} from '@mini-bim/core';
+} from '@tabax/core';
 import { PdfWriter } from './PdfWriter.js';
 import { renderCoverPage, type SheetEntry } from './render-cover-page.js';
 import {

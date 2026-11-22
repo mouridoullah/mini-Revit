@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { BimDocument, Commands } from '@mini-bim/core';
-import { Transform2D } from '@mini-bim/view-2d';
+import { BimDocument, Commands } from '@tabax/core';
+import { Transform2D } from '@tabax/view-2d';
 import { DimensionTool, MIN_DIMENSION_LENGTH, DEFAULT_DIMENSION_OFFSET } from './DimensionTool.js';
 import { type ToolContext } from './types.js';
 

@@ -1,5 +1,5 @@
 /**
- * @mini-bim/web/components/MepRibbon
+ * @tabax/web/components/MepRibbon
  *
  * Bandeau d'options contextuel pour la modélisation MEP (Sous-phase 9.3.2).
  * Sélection de catégorie, fluide/système, dimensions nominales et bascule Unifilaire/Bifilaire.

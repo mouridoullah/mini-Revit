@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { BimDocument, Commands } from '@mini-bim/core';
+import { BimDocument, Commands } from '@tabax/core';
 import {
   saveToIndexedDB,
   loadFromIndexedDB,

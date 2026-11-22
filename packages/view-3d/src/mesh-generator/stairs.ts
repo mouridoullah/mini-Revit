@@ -3,7 +3,7 @@ import {
   triangulatePolygonWithHoles,
   type RawMeshData,
   type Vec2,
-} from '@mini-bim/geometry';
+} from '@tabax/geometry';
 import type { StairGeometryParams, StairTypeGeometryParams } from './types.js';
 
 /**

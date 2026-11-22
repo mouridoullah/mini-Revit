@@ -8,7 +8,7 @@ import {
   type WallPiece,
   type OpeningInput,
   type Vec2,
-} from '@mini-bim/geometry';
+} from '@tabax/geometry';
 import type {
   WallGeometryParams,
   WallTypeGeometryParams,
@@ -320,7 +320,7 @@ function buildBeveledWallMeshes(
  * Génère l'ensemble des maillages 3D bruts (RawMeshData[]) correspondant aux tranches
  * solides d'un mur percé d'ouvertures (allèges, linteaux, tranches pleines) ou biseauté sous toiture.
  *
- * Découplé : prend des paramètres géométriques neutres sans importer @mini-bim/core.
+ * Découplé : prend des paramètres géométriques neutres sans importer @tabax/core.
  * Garantit que chaque RawMeshData.elementId === wall.id pour la cohérence du picking 3D.
  */
 export function createWallMeshWithOpenings(params: WallWithOpeningsParams): RawMeshData[] {

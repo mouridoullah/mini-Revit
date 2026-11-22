@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
-import { BimDocument, exportToIfc, detectRooms } from '@mini-bim/core';
-import { generatePlanSvg, generatePlanDxf, generatePdfBook, type PdfBookOptions } from '@mini-bim/view-2d';
+import { BimDocument, exportToIfc, detectRooms } from '@tabax/core';
+import { generatePlanSvg, generatePlanDxf, generatePdfBook, type PdfBookOptions } from '@tabax/view-2d';
 import { exportToFile, importFromFile } from '../persistence/jsonIO.js';
 import type { ToolKind } from '../tools/types.js';
 
@@ -53,15 +53,15 @@ export function useBimExport({
   const handleExportIfc = useCallback(() => {
     try {
       const ifcContent = exportToIfc(doc.getState(), {
-        projectName: 'Projet Mini-BIM',
-        filename: 'mini-bim-model.ifc',
-        author: 'Mini-BIM Architect',
+        projectName: 'Projet Tabax',
+        filename: 'tabax-model.ifc',
+        author: 'Tabax Architect',
       });
       const blob = new Blob([ifcContent], { type: 'model/ifc;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'mini-bim-model.ifc';
+      a.download = 'tabax-model.ifc';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -91,8 +91,8 @@ export function useBimExport({
         const svgContent = generatePlanSvg(doc, {
           scale,
           title: `Plan d’Étage - ${levelName}`,
-          project: 'Projet Mini-BIM',
-          author: 'Mini-BIM Architect',
+          project: 'Projet Tabax',
+          author: 'Tabax Architect',
           levelId: targetLevelId,
           rooms: roomsForSvg,
         });

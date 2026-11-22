@@ -12,8 +12,8 @@ L’interface `apps/web` accumule des styles inline divergents, une barre d’ou
 1. Adopter des variables CSS centralisées dans `apps/web/src/styles/theme.css` et des CSS Modules pour les composants du cockpit. Ne pas ajouter Tailwind.
 2. Ajouter `lucide-react` comme unique dépendance d’icônes de l’interface et remplacer les emojis par des icônes vectorielles homogènes.
 3. Organiser l’interface en ruban métier à onglets, navigateur projet gauche, vues 2D/3D à disposition et partage redimensionnable, dock droit à onglets et tiroir de métrés.
-4. Limiter les arêtes Three.js à un effet de rendu dans `@mini-bim/view-3d`, les attacher aux maillages architecturaux et disposer leurs ressources avec les maillages.
-5. Garder `@mini-bim/core` et `@mini-bim/geometry` inchangés. `apps/web` ne doit pas importer directement `@mini-bim/geometry`.
+4. Limiter les arêtes Three.js à un effet de rendu dans `@tabax/view-3d`, les attacher aux maillages architecturaux et disposer leurs ressources avec les maillages.
+5. Garder `@tabax/core` et `@tabax/geometry` inchangés. `apps/web` ne doit pas importer directement `@tabax/geometry`.
 
 ## Conséquences
 

@@ -1,5 +1,5 @@
-import { type BimDocument, type Command } from '@mini-bim/core';
-import { type Transform2D, type PreviewShape, type Vec2 } from '@mini-bim/view-2d';
+import { type BimDocument, type Command } from '@tabax/core';
+import { type Transform2D, type PreviewShape, type Vec2 } from '@tabax/view-2d';
 
 /**
  * Identifiant du type d'outil interactif actif.

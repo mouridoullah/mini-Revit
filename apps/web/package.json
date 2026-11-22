@@ -1,7 +1,7 @@
 {
-  "name": "@mini-bim/web",
+  "name": "@tabax/web",
   "version": "0.1.0",
-  "description": "Application web et interface de double modélisation 2D/3D pour Mini-BIM",
+  "description": "Application web et interface de modélisation architecturale et d'ingénierie BIM pour Tabax",
   "private": true,
   "type": "module",
   "scripts": {
@@ -14,9 +14,9 @@
     "typecheck": "tsc --noEmit -p tsconfig.test.json"
   },
   "dependencies": {
-    "@mini-bim/core": "workspace:*",
-    "@mini-bim/view-2d": "workspace:*",
-    "@mini-bim/view-3d": "workspace:*",
+    "@tabax/core": "workspace:*",
+    "@tabax/view-2d": "workspace:*",
+    "@tabax/view-3d": "workspace:*",
     "lucide-react": "^1.76.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"

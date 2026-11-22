@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { vec2 } from '@mini-bim/geometry';
-import { BimDocument, Commands, toJSON } from '@mini-bim/core';
+import { vec2 } from '@tabax/geometry';
+import { BimDocument, Commands, toJSON } from '@tabax/core';
 import { View2D } from './View2D.js';
 import { createMockCanvas } from './test-utils.js';
 

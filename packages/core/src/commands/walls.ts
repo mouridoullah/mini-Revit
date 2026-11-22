@@ -13,7 +13,7 @@ import {
   findConnectedWalls,
   WallStretchError,
   type Vec2,
-} from '@mini-bim/geometry';
+} from '@tabax/geometry';
 
 export class AddWallCommand implements Command {
   public readonly name = 'AddWall';

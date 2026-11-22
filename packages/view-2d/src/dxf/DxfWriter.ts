@@ -1,4 +1,4 @@
-import type { Vec2 } from '@mini-bim/geometry';
+import type { Vec2 } from '@tabax/geometry';
 
 /**
  * Définition d'un calque DXF R12.

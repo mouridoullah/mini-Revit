@@ -27,7 +27,7 @@ import {
   Commands,
   generateId,
   type ClashResult,
-} from '@mini-bim/core';
+} from '@tabax/core';
 import { useBimPersistence } from './hooks/useBimPersistence.js';
 import { useBimExport } from './hooks/useBimExport.js';
 import { useFederatedIfc } from './hooks/useFederatedIfc.js';

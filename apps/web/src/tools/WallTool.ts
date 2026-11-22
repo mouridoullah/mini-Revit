@@ -1,4 +1,4 @@
-import { Commands, generateId } from '@mini-bim/core';
+import { Commands, generateId } from '@tabax/core';
 import { snapAngle45, snapPoint, collectSnapCandidates } from './snap.js';
 import {
   type Tool,
@@ -10,7 +10,7 @@ import {
 
 /**
  * Seuil ergonomique UX de longueur minimale pour le tracé interactif (100 mm).
- * Note d'architecture : Ne pas confondre avec le seuil métier de @mini-bim/core
+ * Note d'architecture : Ne pas confondre avec le seuil métier de @tabax/core
  * (validateWall exige len > 1e-4 mm pour l'intégrité topologique).
  * MIN_WALL_LENGTH sert exclusivement à éliminer les clics parasites sans intention de glisser.
  */

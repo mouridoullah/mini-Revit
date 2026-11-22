@@ -10,7 +10,7 @@ import {
   type WindowType,
 } from './types.js';
 import { type DetectedRoom, detectRooms } from './rooms/detect.js';
-import { isPointInPolygon } from '@mini-bim/geometry';
+import { isPointInPolygon } from '@tabax/geometry';
 import { resolveWallGeometry } from './walls/resolve.js';
 
 /**

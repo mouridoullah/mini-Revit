@@ -1,4 +1,4 @@
-import { computeEffectiveSlabPolygon, type Vec2 } from '@mini-bim/geometry';
+import { computeEffectiveSlabPolygon, type Vec2 } from '@tabax/geometry';
 import { isDraft, original, type Draft } from 'immer';
 import type {
   BimState,

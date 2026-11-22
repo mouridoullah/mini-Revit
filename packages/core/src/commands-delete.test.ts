@@ -9,7 +9,7 @@ import {
   AddRoomCommand,
 } from './commands.js';
 import type { Door, Window, Dimension, Room } from './types.js';
-import { vec2 } from '@mini-bim/geometry';
+import { vec2 } from '@tabax/geometry';
 import { diagnoseRoomLeaks } from './rooms/leak-detector.js';
 
 describe('DeleteWallCommand Refactoré — Équivalence Comportementale (T-CMD-01 à 08)', () => {

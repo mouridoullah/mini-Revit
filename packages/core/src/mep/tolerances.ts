@@ -1,5 +1,5 @@
 /**
- * @mini-bim/core/mep/tolerances
+ * @tabax/core/mep/tolerances
  *
  * Tolérances numériques et géométriques centralisées pour les réseaux techniques MEP.
  * Évite toute disparité de seuils et les bruits d'arrondi machine IEEE 754 float64.

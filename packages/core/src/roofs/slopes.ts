@@ -1,4 +1,4 @@
-import { type Vec2, vec2 } from '@mini-bim/geometry';
+import { type Vec2, vec2 } from '@tabax/geometry';
 import { type BimState, type Roof, type GableRoofType, type FlatRoofType } from '../types.js';
 
 export interface RoofPlane3D {

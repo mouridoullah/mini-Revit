@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { vec2 } from '@mini-bim/geometry';
+import { vec2 } from '@tabax/geometry';
 import { BimDocument } from './document.js';
 import * as Commands from './commands.js';
 import { type Wall, type WallType, type Level, type Door, type Window } from './types.js';

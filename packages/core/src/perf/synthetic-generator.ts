@@ -1,5 +1,5 @@
 /**
- * @mini-bim/core
+ * @tabax/core
  * Générateur synthétique déterministe de maquettes architecturales multi-catégories.
  * Conçu pour les bancs de performance et d'échelle (Phase 9.1).
  *

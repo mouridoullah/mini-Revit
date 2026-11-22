@@ -1,4 +1,4 @@
-import { BimDocument, BimValidationError } from '@mini-bim/core';
+import { BimDocument, BimValidationError } from '@tabax/core';
 
 /**
  * Sérialise un BimDocument en chaîne JSON standard indentée (pretty-printed).

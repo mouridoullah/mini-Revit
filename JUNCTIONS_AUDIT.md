@@ -1,16 +1,16 @@
-# RAPPORT D'AUDIT APPROFONDI DU MOTEUR DE JONCTIONS DE MURS (@mini-bim/geometry)
+# RAPPORT D'AUDIT APPROFONDI DU MOTEUR DE JONCTIONS DE MURS (@tabax/geometry)
 
 **Statut :** Rapport d'Audit & Validation des Correctifs Option B Validés  
 **Date d'audit :** 13 novembre 2026  
 **Auditeur :** Ingénieur Principal Spécialiste en Géométrie Computationnelle, CAO et BIM  
-**Version logicielle :** `@mini-bim/geometry` v0.1.1  
+**Version logicielle :** `@tabax/geometry` v0.1.1  
 **Couverture de tests :** 11 fichiers de tests, 118 tests unitaires et de propriétés automatisés (100% de réussite)
 
 ---
 
 ## 1. Synthèse Exécutive de l'Audit
 
-Le moteur de jonctions de murs de `@mini-bim/geometry` a été soumis à une campagne rigoureuse d'audit géométrique, analytique et de tests aux limites. Cette campagne a analysé :
+Le moteur de jonctions de murs de `@tabax/geometry` a été soumis à une campagne rigoureuse d'audit géométrique, analytique et de tests aux limites. Cette campagne a analysé :
 
 1. La validité topologique des polygones produits (simplicité de Jordan, orientation CCW stricte, absence d'arêtes dégénérées).
 2. Le comportement aux angles extrêmes ($10^\circ \le \theta \le 170^\circ$).

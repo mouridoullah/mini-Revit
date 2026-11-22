@@ -2,7 +2,7 @@ import {
   Commands,
   type Component,
   type BimState,
-} from '@mini-bim/core';
+} from '@tabax/core';
 import { RotateCw } from 'lucide-react';
 import { DebouncedTextInput, DebouncedNumberInput } from './DebouncedInputs.js';
 

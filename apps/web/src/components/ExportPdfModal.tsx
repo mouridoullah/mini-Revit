@@ -1,6 +1,6 @@
 import { useState, type ReactElement } from 'react';
 import { BookOpen, Download, X } from 'lucide-react';
-import type { PaperSize, ScaleOption, PdfBookOptions } from '@mini-bim/view-2d';
+import type { PaperSize, ScaleOption, PdfBookOptions } from '@tabax/view-2d';
 import styles from './ExportPdfModal.module.css';
 
 export interface ExportPdfModalProps {

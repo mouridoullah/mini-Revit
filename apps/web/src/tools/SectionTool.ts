@@ -1,5 +1,5 @@
-import { Commands, generateId, type SectionCut } from '@mini-bim/core';
-import { type Vec2 } from '@mini-bim/view-2d';
+import { Commands, generateId, type SectionCut } from '@tabax/core';
+import { type Vec2 } from '@tabax/view-2d';
 import { snapAngle45, snapPoint, collectSnapCandidates } from './snap.js';
 import {
   type Tool,
@@ -59,7 +59,7 @@ function generateNextSectionLabelAndName(existingCuts?: Record<string, SectionCu
  * - Inversion de la direction de vue (1 vs -1) par appui sur la barre d'espace (Space).
  * - Annulation propre par Escape.
  * - Validation finale émettant AddSectionCutCommand.
- * - Zéro import direct de @mini-bim/geometry (ADR-022, ADR-024).
+ * - Zéro import direct de @tabax/geometry (ADR-022, ADR-024).
  */
 export class SectionTool implements Tool {
   public readonly kind = 'section' as const;

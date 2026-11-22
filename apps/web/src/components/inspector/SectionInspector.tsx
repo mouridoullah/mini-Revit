@@ -1,4 +1,4 @@
-import { Commands, type SectionCut, type BimState } from '@mini-bim/core';
+import { Commands, type SectionCut, type BimState } from '@tabax/core';
 import { ArrowLeftRight, Scissors } from 'lucide-react';
 import { DebouncedNumberInput, DebouncedTextInput } from './DebouncedInputs.js';
 

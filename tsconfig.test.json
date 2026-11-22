@@ -11,10 +11,10 @@
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "baseUrl": ".",
     "paths": {
-      "@mini-bim/geometry": ["./packages/geometry/src/index.ts"],
-      "@mini-bim/core": ["./packages/core/src/index.ts"],
-      "@mini-bim/view-2d": ["./packages/view-2d/src/index.ts"],
-      "@mini-bim/view-3d": ["./packages/view-3d/src/index.ts"]
+      "@tabax/geometry": ["./packages/geometry/src/index.ts"],
+      "@tabax/core": ["./packages/core/src/index.ts"],
+      "@tabax/view-2d": ["./packages/view-2d/src/index.ts"],
+      "@tabax/view-3d": ["./packages/view-3d/src/index.ts"]
     }
   },
   "include": [

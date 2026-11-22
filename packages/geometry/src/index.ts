@@ -1,5 +1,5 @@
 /**
- * @mini-bim/geometry
+ * @tabax/geometry
  * Noyau mathématique et algorithmique géométrique 2D/3D pur pour Mini-BIM.
  *
  * Aucune dépendance vers Three.js, React ou l'environnement DOM.

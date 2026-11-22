@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
-import { computeSectionScene } from '@mini-bim/core';
-import { renderSectionView, generateSectionSvg, generateSectionDxf } from '@mini-bim/view-2d';
+import { computeSectionScene } from '@tabax/core';
+import { renderSectionView, generateSectionSvg, generateSectionDxf } from '@tabax/view-2d';
 import { Download, Scissors, Eye, EyeOff, ZoomIn } from 'lucide-react';
 import { useBimDocument } from '../hooks/useBimDocument.js';
 import { useResizeObserver } from '../hooks/useResizeObserver.js';
@@ -74,7 +74,7 @@ export function SectionViewport({
       const svgContent = generateSectionSvg(scene, {
         paperSize: 'A4',
         scale: 100,
-        project: 'Mini-BIM Project',
+        project: 'Tabax Project',
       });
       const blob = new Blob([svgContent], { type: 'image/svg+xml;charset=utf-8' });
       const url = URL.createObjectURL(blob);
@@ -92,7 +92,7 @@ export function SectionViewport({
     if (!scene) return;
     try {
       const dxfContent = generateSectionDxf(scene, {
-        projectTitle: 'Mini-BIM Project',
+        projectTitle: 'Tabax Project',
         includeHatches: true,
       });
       const blob = new Blob([dxfContent], { type: 'application/dxf;charset=utf-8' });

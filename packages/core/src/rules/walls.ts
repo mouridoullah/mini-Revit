@@ -2,7 +2,7 @@ import type { Wall, WallType, BimState, ElementId } from '../types.js';
 import { type RuleViolation, BimValidationError } from './types.js';
 import { assertNoViolations } from './utils.js';
 import { getComponentObbVertices, doConvexPolygonsIntersect } from './components.js';
-import { computeWallFootprint2d, type WallFootprint2D } from '@mini-bim/geometry';
+import { computeWallFootprint2d, type WallFootprint2D } from '@tabax/geometry';
 import { getOrBuildWallResolutionIndex } from '../walls/index-cache.js';
 
 /**

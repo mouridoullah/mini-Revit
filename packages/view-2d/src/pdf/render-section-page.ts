@@ -1,4 +1,4 @@
-import type { SectionScene } from '@mini-bim/core';
+import type { SectionScene } from '@tabax/core';
 import { generateHatchLines } from '../dxf/hatch.js';
 import type { PdfPageContent } from './PdfWriter.js';
 import {
@@ -203,13 +203,13 @@ export function renderSectionPage(
   const scaleText = isAuto ? `Auto (1:${scaleRatio})` : `1:${scaleRatio}`;
 
   drawTitleBlock(content, format, {
-    projectTitle: options.projectTitle ?? 'PROJET MINI-BIM',
+    projectTitle: options.projectTitle ?? 'PROJET TABAX',
     sheetTitle: `${scene.cutName.toUpperCase()} - ${kindLabel}`,
     sheetNumber: `PL-${String(sheetIndex).padStart(2, '0')} / ${String(totalPages).padStart(2, '0')}`,
     scaleLabel: scaleText,
     scaleRatio,
     date: options.date ?? new Date().toLocaleDateString('fr-FR'),
-    author: options.author ?? 'Mini-BIM Engine',
+    author: options.author ?? 'Tabax Engine',
     revision: options.revision ?? 'INDICE 0',
     showNorthArrow: false, // Pas de flèche Nord en coupe
   });

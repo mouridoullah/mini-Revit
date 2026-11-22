@@ -162,10 +162,10 @@ Cinq tests automatisés couvrent exhaustivement les exigences de qualification :
 ### 5.2. Bilan Global du Monorepo
 
 - **Tests unitaires et d'intégration Vitest :** **1 069 tests passants** sur 107 fichiers de test (100% verts).
-  - `@mini-bim/geometry` : 222 tests
-  - `@mini-bim/core` : 459 tests (dont 19 tests MEP)
-  - `@mini-bim/view-3d` : 65 tests
-  - `@mini-bim/view-2d` : 116 tests (dont 5 tests de non-régression et 1 banc de scalabilité)
+  - `@tabax/geometry` : 222 tests
+  - `@tabax/core` : 459 tests (dont 19 tests MEP)
+  - `@tabax/view-3d` : 65 tests
+  - `@tabax/view-2d` : 116 tests (dont 5 tests de non-régression et 1 banc de scalabilité)
   - `apps/web` : 207 tests
 - **Tests End-to-End Playwright :** **2/2 tests passants** sur Chromium headless sous `vite preview`.
 - **TypeScript strict (`pnpm typecheck`) :** **0 erreur**.

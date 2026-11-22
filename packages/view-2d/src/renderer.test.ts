@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { vec2 } from '@mini-bim/geometry';
-import { BimDocument, Commands, type Wall, type WallType } from '@mini-bim/core';
+import { vec2 } from '@tabax/geometry';
+import { BimDocument, Commands, type Wall, type WallType } from '@tabax/core';
 import { Transform2D } from './transform.js';
 import {
   clearCanvas,

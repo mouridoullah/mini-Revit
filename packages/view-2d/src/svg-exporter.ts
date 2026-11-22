@@ -4,7 +4,7 @@ import {
   type WallInput,
   type Vec2,
   GEOM_CONFIG,
-} from '@mini-bim/geometry';
+} from '@tabax/geometry';
 import { type DocumentFor2D, type DimensionFor2D, type DetectedRoomFor2D } from './types.js';
 import { resolveDimensionPoints } from './renderer/dimensions.js';
 
@@ -59,8 +59,8 @@ export function generatePlanSvg(doc: DocumentFor2D, options: PlanSvgOptions = {}
   const scaleRatio = options.scale ?? 100; // 1:100
   const paper = options.paperSize ?? 'A4';
   const title = options.title ?? 'Plan d’Étage';
-  const project = options.project ?? 'Projet Mini-BIM';
-  const author = options.author ?? 'Mini-BIM Architect';
+  const project = options.project ?? 'Projet Tabax';
+  const author = options.author ?? 'Tabax Architect';
   const dateStr = options.date ?? new Date().toLocaleDateString('fr-FR');
   const levelFilter = options.levelId;
 

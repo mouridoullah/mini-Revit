@@ -44,18 +44,18 @@ export const GEOM_CONFIG = {
 - Le seuil de $10^{-4}\text{ mm}$ ($100\text{ nm}$) est situé **$450\,000$ fois au-dessus du bruit d'arrondi machine**, ce qui élimine toute instabilité numérique due à l'annulation catastrophique.
 - Parallèlement, $10^{-4}\text{ mm}$ est **$1\,000$ fois plus précis que le dixième de millimètre** ($0.1\text{ mm}$), qui est la tolérance physique la plus fine de l'industrie du bâtiment. Cela garantit qu'aucun point distinct constructif n'est confondu à tort.
 
-#### Proscription Formelle de l'Arrondi Systématique à 1 mm dans `@mini-bim/geometry`
+#### Proscription Formelle de l'Arrondi Systématique à 1 mm dans `@tabax/geometry`
 
 - **Démonstration de la défaillance de l'arrondi prématuré :**  
   Considérons un mur orienté à $45^\circ$ d'épaisseur $200\text{ mm}$. Le demi-décalage normal exact vaut $(-100 \sin 45^\circ, 100 \cos 45^\circ) \approx (-70.710678..., 70.710678...)$.  
   Si ces coordonnées sont arrondies à $(-71, 71)$, l'épaisseur calculée devient $2 \times \sqrt{71^2 + 71^2} \approx 200.818\text{ mm}$, soit une distorsion de **$+0.82\text{ mm}$** sur l'épaisseur du mur.  
   Pour deux segments sécants avec un angle aigu ($5^\circ$), arrondir les sommets au millimètre entier peut déplacer leur point d'intersection calculé de **plusieurs centimètres**, voire intervertir l'ordre topologique de points voisins !
-- **Règle absolue :** Toutes les opérations du package `@mini-bim/geometry` opèrent en espace continu `float64` sans aucune quantification. L'arrondi au millimètre est réservé exclusivement à l'affichage dans l'UI ou à la quantification interne requise par des moteurs booléens spécifiques (comme Clipper2 avec scaling entier).
+- **Règle absolue :** Toutes les opérations du package `@tabax/geometry` opèrent en espace continu `float64` sans aucune quantification. L'arrondi au millimètre est réservé exclusivement à l'affichage dans l'UI ou à la quantification interne requise par des moteurs booléens spécifiques (comme Clipper2 avec scaling entier).
 
 #### Rôle et Isolement de `VERTEX_MERGE_TOLERANCE = 1.0 mm`
 
-- `VERTEX_MERGE_TOLERANCE` n'est **jamais** utilisé dans les calculs vectoriels bas niveau de `@mini-bim/geometry`.
-- Ce seuil est réservé à la couche applicative (`@mini-bim/core` / `BimDocument`) pour regrouper les extrémités de murs dessinées à la souris au sein d'un même nœud topologique. Appliquer $1\text{ mm}$ au niveau vectoriel pur déformerait les angles des petits segments (sur un mur de $50\text{ mm}$, une variation de $1\text{ mm}$ génère un écart angulaire de $\arcsin(1/50) \approx 1.15^\circ$).
+- `VERTEX_MERGE_TOLERANCE` n'est **jamais** utilisé dans les calculs vectoriels bas niveau de `@tabax/geometry`.
+- Ce seuil est réservé à la couche applicative (`@tabax/core` / `BimDocument`) pour regrouper les extrémités de murs dessinées à la souris au sein d'un même nœud topologique. Appliquer $1\text{ mm}$ au niveau vectoriel pur déformerait les angles des petits segments (sur un mur de $50\text{ mm}$, une variation de $1\text{ mm}$ génère un écart angulaire de $\arcsin(1/50) \approx 1.15^\circ$).
 
 ### 1.3 Repères et Transformations
 
@@ -461,7 +461,7 @@ Dans cette configuration :
 
 ## 9.1 Objectif Architectural
 
-La Phase 1.3 transforme les pièces paramétriques 2.5D (`WallPiece`) produites par le découpeur d'ouvertures (Phase 1.2) en maillages 3D polygonaux fermés (`RawMeshData`), consommables directement par les moteurs de rendu temps réel (`THREE.BufferGeometry` dans `@mini-bim/view-3d`) sans qu'aucune dépendance Three.js ne soit introduite dans le package géométrique `@mini-bim/geometry`.
+La Phase 1.3 transforme les pièces paramétriques 2.5D (`WallPiece`) produites par le découpeur d'ouvertures (Phase 1.2) en maillages 3D polygonaux fermés (`RawMeshData`), consommables directement par les moteurs de rendu temps réel (`THREE.BufferGeometry` dans `@tabax/view-3d`) sans qu'aucune dépendance Three.js ne soit introduite dans le package géométrique `@tabax/geometry`.
 
 ## 9.2 Structure de Données Neutre (`RawMeshData`)
 

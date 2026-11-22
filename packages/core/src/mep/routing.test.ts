@@ -1,5 +1,5 @@
 /**
- * @mini-bim/core/mep/routing.test
+ * @tabax/core/mep/routing.test
  *
  * Tests de qualification du solveur de routage géométrique déterministe MEP
  * et des commandes transactionnelles d'assemblage paramétrique (Sous-phase 9.3.3).

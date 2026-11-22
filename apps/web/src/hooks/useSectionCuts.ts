@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import type { BimDocument, SectionCut } from '@mini-bim/core';
+import type { BimDocument, SectionCut } from '@tabax/core';
 
 export interface UseSectionCutsResult {
   readonly activeSectionCutId: string | null;

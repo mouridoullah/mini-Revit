@@ -1,4 +1,4 @@
-import { vec2 } from '@mini-bim/geometry';
+import { vec2 } from '@tabax/geometry';
 import type { Transform2D } from '../transform.js';
 import type { GridConfig } from '../types.js';
 import { DEFAULT_GRID_CONFIG } from './config.js';

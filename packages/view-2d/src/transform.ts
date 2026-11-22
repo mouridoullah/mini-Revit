@@ -1,4 +1,4 @@
-import { type Vec2, vec2 } from '@mini-bim/geometry';
+import { type Vec2, vec2 } from '@tabax/geometry';
 import { type Transform2DOptions, type BoundingBox2D } from './types.js';
 
 /**

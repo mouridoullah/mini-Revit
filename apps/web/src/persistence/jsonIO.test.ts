@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { BimDocument, BimValidationError } from '@mini-bim/core';
+import { BimDocument, BimValidationError } from '@tabax/core';
 import { createDemoDocument } from '../demo/demoDocument.js';
 import { exportToJSON, exportToFile, importFromFile } from './jsonIO.js';
 

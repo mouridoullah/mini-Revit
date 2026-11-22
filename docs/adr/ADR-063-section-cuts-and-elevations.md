@@ -3,7 +3,7 @@
 **Statut :** Accepté  
 **Date :** 22 novembre 2026  
 **Auteurs :** Ingénieur Principal & Direction Technique  
-**Périmètre :** `@mini-bim/core`, `@mini-bim/geometry`, `@mini-bim/view-2d`, `@mini-bim/view-3d`, `apps/web`
+**Périmètre :** `@tabax/core`, `@tabax/geometry`, `@tabax/view-2d`, `@tabax/view-3d`, `apps/web`
 
 ---
 
@@ -21,7 +21,7 @@ Mini-BIM nécessitait un moteur dynamique capable de couper et projeter tous les
 
 ## Décisions Clés
 
-### D1 — Contrat Unifié `SectionCut` & Repère Local de Coupe (`@mini-bim/core`, `@mini-bim/geometry`)
+### D1 — Contrat Unifié `SectionCut` & Repère Local de Coupe (`@tabax/core`, `@tabax/geometry`)
 - Une coupe ou élévation est formalisée par l'interface `SectionCut` :
   - `id: ElementId`, `category: 'sectionCut'`, `name: string`, `label: string`.
   - `kind: 'section' | 'elevation'` : distinction sémantique de la nature de la vue.
@@ -30,16 +30,16 @@ Mini-BIM nécessitait un moteur dynamique capable de couper et projeter tous les
   - `depth: number` : profondeur de champ maximale observée en millimètres (0 à +$\infty$).
   - `zMin?: number`, `zMax?: number` : écrêtage altimétrique optionnel.
 - Règle d'or ADR-001 respectée : aucune géométrie dérivée n'est persistée dans `BimState` ; les coupes sont générées à la volée.
-- `SectionFrame2D` dans `@mini-bim/geometry` assure la projection orthonormée $P(x, y) \to (s, d)$ avec $s \in [0, L]$ et $d \in [0, \text{depth}]$.
+- `SectionFrame2D` dans `@tabax/geometry` assure la projection orthonormée $P(x, y) \to (s, d)$ avec $s \in [0, L]$ et $d \in [0, \text{depth}]$.
 - Algorithme analytique `sliceSegmentWithPolygon` calculant l'intervalle d'intersection exact avec les polygones 2D (murs, dalles, toitures) sans instabilités booléennes.
 
-### D2 — Assemblage Neutre `computeSectionScene` (`@mini-bim/core`)
+### D2 — Assemblage Neutre `computeSectionScene` (`@tabax/core`)
 - Fonction fonctionnelle pure découplée de tout moteur de rendu produisant une `SectionScene` normalisée :
   - `cutItems` : polygones traversés par le plan sécant, associés à leurs motifs de pochés réglementaires (maçonnerie, béton, isolant, solide MEP).
   - `projectedItems` : polygones situés dans l'intervalle de profondeur $d \in ]0, \text{depth}]$, projetés en traits fins d'arrière-plan.
   - Prise en compte rigoureuse des baies (allèges, linteaux), des trémies de dalles et cages d'escaliers (ADR-048), du biseautage de tête sous toiture (ADR-053), et des réseaux MEP (traversées de tuyaux/gaines en pastilles colorées selon leur système).
 
-### D3 — Moteur de Rendu Canvas 2D & Export Vectoriel SVG (`@mini-bim/view-2d`)
+### D3 — Moteur de Rendu Canvas 2D & Export Vectoriel SVG (`@tabax/view-2d`)
 - Rendu Canvas 2D `renderSectionView` :
   - Poché des coupes fortes (traits de contour 2 px, hachures normalisées).
   - Tracé des éléments projetés fins (traits gris 1 px).
@@ -51,7 +51,7 @@ Mini-BIM nécessitait un moteur dynamique capable de couper et projeter tous les
   - Cartouche normalisé conforme aux standards ISO 128 / BIM avec titre, échelle, date et projet.
 - Représentation normalisée du symbole de coupe sur plan 2D (`drawSectionCuts`) avec trait mixte fort, flèches d'orientation et pastilles de repère $A-A'$.
 
-### D4 — Synchronisation 3D Three.js & Filtrage Raycasting (`@mini-bim/view-3d`)
+### D4 — Synchronisation 3D Three.js & Filtrage Raycasting (`@tabax/view-3d`)
 - Activation du clipping local Three.js via `renderer.localClippingEnabled = true`.
 - Construction du plan sécant analytique `THREE.Plane(normal, constant)` en repère Z-up :
   $$\vec{n} = \text{viewDirection} \cdot (-u_y, u_x, 0), \quad c = -(n_x \cdot x_1 + n_y \cdot y_1)$$
@@ -63,7 +63,7 @@ Mini-BIM nécessitait un moteur dynamique capable de couper et projeter tous les
 - Détection et sélection de lignes de coupe sur plan 2D via `findSectionCutAtScreen` intégré dans `SelectTool`.
 - Inspecteur dédié `SectionInspector` dans le volet latéral `PropertyInspector` (édition du nom, du repère, du type, de la profondeur et inversion de sens).
 - Intégration complète dans le cockpit : sous-dossier « Coupes & Élévations » dans `ProjectBrowser`, mode de vue plein écran « Coupe » dans `SplitViewport`, et composant `SectionViewport` avec toggle « Synchro 3D » et export SVG.
-- Règle d'or #2 respectée : zéro import direct de `@mini-bim/geometry` dans `apps/web`.
+- Règle d'or #2 respectée : zéro import direct de `@tabax/geometry` dans `apps/web`.
 
 ---
 

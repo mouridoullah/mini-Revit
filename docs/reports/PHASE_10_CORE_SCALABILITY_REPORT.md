@@ -90,10 +90,10 @@ Les benchmarks officiels définis par l'**ADR-014** ont été exécutés sur une
 
 | Package / Espace de travail | Fichiers de test | Nombre de tests | Résultat |
 | :--- | :---: | :---: | :---: |
-| `@mini-bim/geometry` | 19 suites | 222 tests | **100% Passant** (0 échec) |
-| `@mini-bim/core` | 47 suites | 527 tests | **100% Passant** (0 échec) |
-| `@mini-bim/view-3d` | 9 suites | 90 tests | **100% Passant** (0 échec) |
-| `@mini-bim/view-2d` | 15 suites | 128 tests | **100% Passant** (0 échec) |
+| `@tabax/geometry` | 19 suites | 222 tests | **100% Passant** (0 échec) |
+| `@tabax/core` | 47 suites | 527 tests | **100% Passant** (0 échec) |
+| `@tabax/view-3d` | 9 suites | 90 tests | **100% Passant** (0 échec) |
+| `@tabax/view-2d` | 15 suites | 128 tests | **100% Passant** (0 échec) |
 | `apps/web` | 35 suites | 253 tests | **100% Passant** (0 échec) |
 | **Total Général Monorepo** | **125 suites** | **1 220 tests** | **100% Passant** |
 
