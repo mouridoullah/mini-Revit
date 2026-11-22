@@ -123,7 +123,8 @@ function computeDetectRooms(
   const baseLevelWalls = index.wallsByLevelId.get(levelId) ?? [];
 
   for (let i = 0; i < baseLevelWalls.length; i++) {
-    const baseW = baseLevelWalls[i]!;
+    const baseW = baseLevelWalls[i];
+    if (!baseW) continue;
 
     // Filtrage spatial en amont sur l'objet brut sans réveiller le proxy Immer (ADR-014)
     if (boundingBox) {
@@ -232,7 +233,8 @@ function computeDetectRooms(
   const existingRoomsOnLevel: Room[] = [];
   const baseRoomsOnLevel = index.roomsByLevelId.get(levelId) ?? [];
   for (let i = 0; i < baseRoomsOnLevel.length; i++) {
-    const baseR = baseRoomsOnLevel[i]!;
+    const baseR = baseRoomsOnLevel[i];
+    if (!baseR) continue;
     if (
       boundingBox &&
       (baseR.seed.x < boundingBox.minX ||

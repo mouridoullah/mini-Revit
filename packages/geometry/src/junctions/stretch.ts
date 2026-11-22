@@ -244,7 +244,8 @@ export function findConnectedWalls(
   const targetMaxY = (tStartY < tEndY ? tEndY : tStartY) + tolerance;
 
   for (let i = 0; i < allWalls.length; i++) {
-    const w = allWalls[i]!;
+    const w = allWalls[i];
+    if (!w) continue;
     if (w.id === targetWall.id) continue;
     if (targetWall.levelId && w.levelId && targetWall.levelId !== w.levelId) {
       continue;

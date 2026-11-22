@@ -346,7 +346,8 @@ class LazyWallResolutionIndex implements WallResolutionIndex {
             let minY = Infinity;
             let maxY = -Infinity;
             for (let i = 0; i < fp.length; i++) {
-              const p = fp[i]!;
+              const p = fp[i];
+              if (!p) continue;
               if (p.x < minX) minX = p.x;
               if (p.x > maxX) maxX = p.x;
               if (p.y < minY) minY = p.y;

@@ -362,7 +362,10 @@ export class MoveWallCommand implements Command {
         const dims = index.dimensionsByRefId.get(wId);
         if (dims) {
           for (let i = 0; i < dims.length; i++) {
-            affectedDimIds.add(dims[i]!.id);
+            const dimRef = dims[i];
+            if (dimRef) {
+              affectedDimIds.add(dimRef.id);
+            }
           }
         }
       }
@@ -412,7 +415,8 @@ export class MoveWallCommand implements Command {
       const localRooms: Room[] = [];
       const baseRoomsOnLevel = index.roomsByLevelId.get(wall.levelId) ?? [];
       for (let i = 0; i < baseRoomsOnLevel.length; i++) {
-        const r = baseRoomsOnLevel[i]!;
+        const r = baseRoomsOnLevel[i];
+        if (!r) continue;
         // Rayon d'influence estimé de la pièce basé sur sa surface connue ou distance standard
         const roomAreaMm2 = (r.area ?? 25) * 1_000_000; // Défaut ~25 m²
         const approxRadius = Math.max(12_000, Math.sqrt(roomAreaMm2) * 1.5);
@@ -452,7 +456,8 @@ export class MoveWallCommand implements Command {
         // causé par un mur d'enceinte lointain exclu de la boîte locale.
         let fallbackDone = false;
         for (let i = 0; i < localRooms.length; i++) {
-          const room = localRooms[i]!;
+          const room = localRooms[i];
+          if (!room) continue;
           const match = detected.find((d) => isPointInPolygon(room.seed, d.polygon));
           if (!match && room.status === 'enclosed' && !fallbackDone) {
             detected = detectRooms(draft as BimState, wall.levelId, {
@@ -465,7 +470,8 @@ export class MoveWallCommand implements Command {
         }
 
         for (let i = 0; i < localRooms.length; i++) {
-          const room = localRooms[i]!;
+          const room = localRooms[i];
+          if (!room) continue;
           const match = detected.find((d) => isPointInPolygon(room.seed, d.polygon));
           const newStatus = match ? 'enclosed' : 'unenclosed';
           const newArea = match ? match.areaMm2 / 1_000_000 : 0;
