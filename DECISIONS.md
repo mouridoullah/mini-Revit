@@ -79,6 +79,7 @@
 | **ADR-068** | Consolidation de la Fiabilité, Modèle Intermédiaire PlanScene, Découpage MEP et Préparation Étape 5 (Phase C) | **Accepté**  | 22/11/2026 |
 | **ADR-069** | Coupes Multiples Automatiques, Élévations Vectorielles Opaques & Cotations Verticales Normalisées (Saison 3 - Étape 5) | **Accepté**  | 22/11/2026 |
 | **ADR-070** | Résilience d'Exploitation — Verrou Multi-Onglets (Web Locks), Atomicité DAG sur Annulation/Rétablissement & Audit Passif au Chargement (Saison 3 - Étape 6 Volet A) | **Accepté**  | 22/11/2026 |
+| **ADR-071** | Fidélité IFC4 Exacte (Toitures Inclinées, Escaliers Crénelés & MEP Natif), Déterminisme Absolu des GUIDs & Précision Métier du Moteur de Clash (Saison 3 - Étape 6 Volet B) | **Accepté**  | 22/11/2026 |
 
 ---
 
@@ -2857,4 +2858,32 @@ Lors des audits d'architecture et de sécurité opérationnelle conduits à la f
 - Zéro écrasement accidentel en multi-onglets, migration transparente des sauvegardes existantes.
 - Atomicité transactionnelle absolue et zéro auto-réparation destructive non sollicitée.
 - Couverture : 1 330 tests unitaires/intégration sur 141 fichiers de test, 14 / 14 tests Playwright E2E réels, 0 erreur TypeScript, 0 warning ESLint.
+
+---
+
+## ADR-071 : Fidélité IFC4 Exacte (Toitures Inclinées, Escaliers Crénelés & MEP Natif), Déterminisme Absolu des GUIDs & Précision Métier du Moteur de Clash (Saison 3 - Étape 6 Volet B)
+
+### Contexte
+
+L'interopérabilité OpenBIM industrielle requiert une conformité rigoureuse aux standards ISO 16739 (IFC4) et ISO 10303-21 (STEP). Avant l'Étape 6 Volet B :
+1. `generator.ts` était monolithique (> 1 110 lignes) et recourait à `Math.random()`, rompant la reproductibilité binaire des exports.
+2. Les toitures inclinées et escaliers crénelés n'avaient pas de géométrie 3D exacte sous les visionneuses certifiées (WebIFC C++/WASM, Solibri, BlenderBIM).
+3. Les réseaux techniques MEP n'étaient pas exportés en IFC4 natif.
+4. Le moteur de Clash Detection générait des faux positifs lorsque des conduits traversaient des baies ouvertes ou des trémies de dalles.
+
+### Décisions
+
+1. **D1 — Découpage Modulaire du Générateur IFC (`packages/core/src/ifc/`) :** Scission en 11 sous-modules étanches (`step-writer.ts`, `guid.ts`, `walls.ts`, `openings.ts`, `slabs.ts`, `roofs.ts`, `stairs.ts`, `mep.ts`, `spaces.ts`, `components.ts`, `types.ts`).
+2. **D2 — Déterminisme Absolu des GUIDs & Échappement STEP ISO 10303-21 :** Suppression de tout appel `Math.random()`, hash FNV 128-bit stable, et encodage `\X2\...\X0\` avec apostrophes doublées `''`.
+3. **D3 — Géométries IFC4 Exactes :** Toitures avec repère local `IfcAxis2Placement3D` selon la normale inclinée $N$ et extrusion orthogonale, escaliers avec profil crémaillère $(u, z)$ complet (girons, contremarches, paillasse), et trémies de dalles dérivées (`computeStairShaft`) intégrées dans `IfcArbitraryProfileDefWithVoids`.
+4. **D4 — Export MEP Natif IFC4 :** Support complet des tuyauteries (`IfcPipeSegment`), gaines (`IfcDuctSegment`), chemins de câbles (`IfcCableCarrierSegment`), raccords, équipements et sous-systèmes fluides (`IfcDistributionSystem` + `IfcRelAssignsToGroup`).
+5. **D5 — Zéro Faux Positif dans le Moteur de Clash :** Découpage des murs percés en tranches solides effectives via `sliceWallWithOpenings` (0 faux positif en baie libre, clash en linteau/trumeau), vérification des réservations et trémies de dalles (`isMepPassingThroughSlabVoid`), et primitives de toitures (`createRoofPrimitives`).
+
+### Conséquences
+
+- Reproductibilité binaire bit-à-bit stricte (`ifc1 === ifc2`).
+- 100% des faux positifs légitimes éliminés en traversée de baie ou trémie.
+- Validation industrielle par re-parsing WebIFC C++/WASM sur Villa Complexe et Immeuble R+4.
+- Couverture : **1 336 tests Vitest passés avec succès** sur 141 fichiers, 14 / 14 Playwright E2E réels, 0 erreur TS, 0 warning ESLint.
+
 

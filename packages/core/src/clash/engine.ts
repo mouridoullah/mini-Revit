@@ -1,4 +1,4 @@
-import type { BimState, ElementId } from '../types.js';
+import type { BimState, ElementId, Door, Window } from '../types.js';
 import type {
   ClashResult,
   ClashDetectionOptions,
@@ -11,7 +11,8 @@ import { BVHTree } from './spatial/bvh.js';
 import { testOBBVsOBB } from './narrow-phase/sat.js';
 import { testCylinderVsCylinder, testCylinderVsOBB } from './narrow-phase/cylinder.js';
 import {
-  createWallPrimitive,
+  createWallPrimitives,
+  createRoofPrimitives,
   createSlabPrimitive,
   createComponentPrimitive,
   createStairPrimitive,
@@ -54,8 +55,8 @@ export function detectClashes(
   }
 
   // 2. Construction de l'index spatial 3D (Broad-phase BVH)
-  const spatialItems: SpatialItem<IndexedElement>[] = elements.map((elem) => ({
-    id: elem.id,
+  const spatialItems: SpatialItem<IndexedElement>[] = elements.map((elem, idx) => ({
+    id: `${elem.id}#${idx}`,
     aabb: elem.primitive.aabb,
     data: elem,
   }));
@@ -72,6 +73,11 @@ export function detectClashes(
   for (const [itemA, itemB] of candidatePairs) {
     const elemA = itemA.data;
     const elemB = itemB.data;
+
+    // Ignorer les collisions internes entre fragments d'un même élément
+    if (elemA.id === elemB.id) {
+      continue;
+    }
 
     // Filtre optionnel de matrice de disciplines (ex. MEP vs Structure uniquement)
     if (options?.disciplinePairs && options.disciplinePairs.length > 0) {
@@ -104,20 +110,23 @@ export function detectClashes(
         const idSecond = idFirst === elemA ? elemB : elemA;
         const clashId = `${idFirst.id}__${idSecond.id}__hard`;
 
-        resultsMap.set(clashId, {
-          id: clashId,
-          elementA: idFirst.id,
-          elementB: idSecond.id,
-          categoryA: idFirst.category,
-          categoryB: idSecond.category,
-          disciplineA: idFirst.discipline,
-          disciplineB: idSecond.discipline,
-          severity: 'hard',
-          penetrationDepthMm: Number(narrowRes.penetrationDepthMm.toFixed(2)),
-          intersectionBox: narrowRes.intersectionBox,
-          point: narrowRes.point,
-          description: `Collision solide (${idFirst.category} ↔ ${idSecond.category}) : pénétration de ${narrowRes.penetrationDepthMm.toFixed(1)} mm.`,
-        });
+        const existing = resultsMap.get(clashId);
+        if (!existing || narrowRes.penetrationDepthMm > existing.penetrationDepthMm) {
+          resultsMap.set(clashId, {
+            id: clashId,
+            elementA: idFirst.id,
+            elementB: idSecond.id,
+            categoryA: idFirst.category,
+            categoryB: idSecond.category,
+            disciplineA: idFirst.discipline,
+            disciplineB: idSecond.discipline,
+            severity: 'hard',
+            penetrationDepthMm: Number(narrowRes.penetrationDepthMm.toFixed(2)),
+            intersectionBox: narrowRes.intersectionBox,
+            point: narrowRes.point,
+            description: `Collision solide (${idFirst.category} ↔ ${idSecond.category}) : pénétration de ${narrowRes.penetrationDepthMm.toFixed(1)} mm.`,
+          });
+        }
       }
     } else if (checkClearance) {
       // Test de proximité pour violation de zone de dégagement ('clearance')
@@ -180,16 +189,65 @@ export function extractIndexedElements(
 
   const shouldInclude = (id: ElementId) => !filterSet || filterSet.has(id);
 
+  // Pré-indexation des ouvertures par mur hôte O(D + W) pour éviter un O(N * (D + W))
+  const doorsByWall = new Map<ElementId, Door[]>();
+  if (state.doors) {
+    for (const d of Object.values(state.doors)) {
+      let dList = doorsByWall.get(d.hostWallId);
+      if (!dList) {
+        dList = [];
+        doorsByWall.set(d.hostWallId, dList);
+      }
+      dList.push(d);
+    }
+  }
+
+  const windowsByWall = new Map<ElementId, Window[]>();
+  if (state.windows) {
+    for (const win of Object.values(state.windows)) {
+      let wList = windowsByWall.get(win.hostWallId);
+      if (!wList) {
+        wList = [];
+        windowsByWall.set(win.hostWallId, wList);
+      }
+      wList.push(win);
+    }
+  }
+
   // Murs
   if (state.walls) {
     for (const wall of Object.values(state.walls)) {
       if (!shouldInclude(wall.id)) continue;
-      list.push({
-        id: wall.id,
-        category: 'wall',
-        discipline: 'structure',
-        primitive: createWallPrimitive(wall, state),
-      });
+      const wallPrims = createWallPrimitives(
+        wall,
+        state,
+        doorsByWall.get(wall.id),
+        windowsByWall.get(wall.id),
+      );
+      for (const prim of wallPrims) {
+        list.push({
+          id: wall.id,
+          category: 'wall',
+          discipline: 'structure',
+          primitive: prim,
+        });
+      }
+    }
+  }
+
+  // Toitures
+  if (state.roofs) {
+    for (const roof of Object.values(state.roofs)) {
+      if (!shouldInclude(roof.id)) continue;
+      const roofPrims = createRoofPrimitives(roof, state);
+      for (const prim of roofPrims) {
+        list.push({
+          id: roof.id,
+          category: 'roof',
+          discipline: 'architecture',
+          primitive: prim,
+        });
+      }
     }
   }
 

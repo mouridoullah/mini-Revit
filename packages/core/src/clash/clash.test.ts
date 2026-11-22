@@ -473,4 +473,278 @@ describe('Moteur de Détection des Conflits Géométriques BIM (Clash Detection 
     expect(clashesExcessive).toHaveLength(1);
     expect(clashesExcessive[0]!.severity).toBe('hard');
   });
+
+  it('T-CLASH-11 (ADR-071) : Passage d\'un conduit à travers une baie ouverte (0 clash) vs linteau/trumeau (1 clash)', () => {
+    const wall: Wall = {
+      id: 'wall_with_door',
+      category: 'wall',
+      typeId: 'wt_200',
+      levelId: 'lvl_0',
+      start: { x: 0, y: 0 },
+      end: { x: 4000, y: 0 },
+    };
+
+    const door: Door = {
+      id: 'door_passage',
+      category: 'door',
+      doorTypeId: 'dt_std', // 830 x 2040 mm
+      hostWallId: 'wall_with_door',
+      offsetAlong: 1500,
+      swing: { side: 'right', direction: 'in' },
+    };
+
+    // 1. Tuyau traversant pile au centre de la baie ouverte (x = 1900 mm, z = 1000 mm < 2040 mm)
+    const pipeThroughOpening = createPipe({
+      id: 'pipe_through_opening',
+      levelId: 'lvl_0',
+      start: { x: 1900, y: -500, z: 1000 },
+      end: { x: 1900, y: 500, z: 1000 },
+      diameter: 80,
+      systemType: 'domestic_cold_water',
+    });
+
+    const stateOpening: BimState = {
+      ...baseState,
+      walls: { wall_with_door: wall },
+      doors: { door_passage: door },
+      pipes: { pipe_through_opening: pipeThroughOpening },
+    };
+
+    // Pas de clash avec le mur car la baie découpe le mur en morceaux solides réels
+    const clashesOpening = detectClashes(stateOpening, { hardToleranceMm: 2.0 });
+    const wallClashes = clashesOpening.filter(
+      (c) => (c.elementA === 'wall_with_door' || c.elementB === 'wall_with_door') &&
+             (c.elementA === 'pipe_through_opening' || c.elementB === 'pipe_through_opening'),
+    );
+    expect(wallClashes).toHaveLength(0);
+
+    // 2. Tuyau déplacé dans le linteau (x = 1900 mm, z = 2400 mm > 2040 mm)
+    const pipeInLintel = createPipe({
+      id: 'pipe_in_lintel',
+      levelId: 'lvl_0',
+      start: { x: 1900, y: -500, z: 2400 },
+      end: { x: 1900, y: 500, z: 2400 },
+      diameter: 80,
+      systemType: 'domestic_cold_water',
+    });
+
+    const stateLintel: BimState = {
+      ...baseState,
+      walls: { wall_with_door: wall },
+      doors: { door_passage: door },
+      pipes: { pipe_in_lintel: pipeInLintel },
+    };
+
+    const clashesLintel = detectClashes(stateLintel, { hardToleranceMm: 2.0 });
+    const wallLintelClashes = clashesLintel.filter(
+      (c) => (c.elementA === 'wall_with_door' || c.elementB === 'wall_with_door') &&
+             (c.elementA === 'pipe_in_lintel' || c.elementB === 'pipe_in_lintel'),
+    );
+    expect(wallLintelClashes).toHaveLength(1);
+    expect(wallLintelClashes[0]!.severity).toBe('hard');
+
+    // 3. Tuyau déplacé dans le trumeau latéral (x = 500 mm < 1500 mm, z = 1000 mm)
+    const pipeInJamb = createPipe({
+      id: 'pipe_in_jamb',
+      levelId: 'lvl_0',
+      start: { x: 500, y: -500, z: 1000 },
+      end: { x: 500, y: 500, z: 1000 },
+      diameter: 80,
+      systemType: 'domestic_cold_water',
+    });
+
+    const stateJamb: BimState = {
+      ...baseState,
+      walls: { wall_with_door: wall },
+      doors: { door_passage: door },
+      pipes: { pipe_in_jamb: pipeInJamb },
+    };
+
+    const clashesJamb = detectClashes(stateJamb, { hardToleranceMm: 2.0 });
+    const wallJambClashes = clashesJamb.filter(
+      (c) => (c.elementA === 'wall_with_door' || c.elementB === 'wall_with_door') &&
+             (c.elementA === 'pipe_in_jamb' || c.elementB === 'pipe_in_jamb'),
+    );
+    expect(wallJambClashes).toHaveLength(1);
+    expect(wallJambClashes[0]!.severity).toBe('hard');
+  });
+
+  it('T-CLASH-12 (ADR-071) : Colonne montante traversant une réservation de dalle (0 clash) vs pleine dalle (1 clash)', () => {
+    // Dalle avec réservation (trou) centré en (2000, 2000)
+    const slabWithVoid: Slab = {
+      id: 'slab_void',
+      category: 'slab',
+      slabTypeId: 'st_200',
+      levelId: 'lvl_1',
+      boundary: [
+        { x: 0, y: 0 },
+        { x: 4000, y: 0 },
+        { x: 4000, y: 4000 },
+        { x: 0, y: 4000 },
+      ],
+      holes: [
+        [
+          { x: 1800, y: 1800 },
+          { x: 2200, y: 1800 },
+          { x: 2200, y: 2200 },
+          { x: 1800, y: 2200 },
+        ],
+      ],
+      openings: [],
+    };
+
+    // 1. Colonne passant en (2000, 2000) à travers le trou -> 0 clash
+    const pipeThroughVoid = createPipe({
+      id: 'pipe_through_void',
+      levelId: 'lvl_0',
+      start: { x: 2000, y: 2000, z: 1000 },
+      end: { x: 2000, y: 2000, z: 4500 },
+      diameter: 100,
+      systemType: 'drainage_waste',
+    });
+
+    const stateVoid: BimState = {
+      ...baseState,
+      slabs: { slab_void: slabWithVoid },
+      pipes: { pipe_through_void: pipeThroughVoid },
+    };
+
+    const clashesVoid = detectClashes(stateVoid);
+    expect(clashesVoid).toHaveLength(0);
+
+    // 2. Colonne décalée en pleine dalle en (1000, 1000) -> 1 clash
+    const pipeInSolidSlab = createPipe({
+      id: 'pipe_in_solid_slab',
+      levelId: 'lvl_0',
+      start: { x: 1000, y: 1000, z: 1000 },
+      end: { x: 1000, y: 1000, z: 4500 },
+      diameter: 100,
+      systemType: 'drainage_waste',
+    });
+
+    const stateSolid: BimState = {
+      ...baseState,
+      slabs: { slab_void: slabWithVoid },
+      pipes: { pipe_in_solid_slab: pipeInSolidSlab },
+    };
+
+    const clashesSolid = detectClashes(stateSolid);
+    expect(clashesSolid).toHaveLength(1);
+    expect(clashesSolid[0]!.severity).toBe('hard');
+    expect(clashesSolid[0]!.elementA).toBe('pipe_in_solid_slab');
+    expect(clashesSolid[0]!.elementB).toBe('slab_void');
+  });
+
+  it('T-CLASH-13 (ADR-071) : Colonne montante dans trémie d\'escalier dérivée -> 0 clash', () => {
+    const stair = {
+      id: 'stair_main',
+      category: 'stair' as const,
+      stairTypeId: 'stair_type_1',
+      bottomLevelId: 'lvl_0',
+      topLevelId: 'lvl_1',
+      start: { x: 2000, y: 1000 },
+      end: { x: 2000, y: 3500 },
+      widthOverride: 1000,
+    };
+
+    const slabNoManualHoles: Slab = {
+      id: 'slab_arrival',
+      category: 'slab',
+      slabTypeId: 'st_200',
+      levelId: 'lvl_1',
+      boundary: [
+        { x: 0, y: 0 },
+        { x: 5000, y: 0 },
+        { x: 5000, y: 5000 },
+        { x: 0, y: 5000 },
+      ],
+      holes: [],
+      openings: [],
+    };
+
+    // Colonne traversant la dalle au niveau de la tête de l'escalier (x = 2000, y = 3400)
+    const pipeInStairShaft = createPipe({
+      id: 'pipe_in_shaft',
+      levelId: 'lvl_0',
+      start: { x: 2000, y: 3400, z: 1000 },
+      end: { x: 2000, y: 3400, z: 4500 },
+      diameter: 100,
+      systemType: 'drainage_waste',
+    });
+
+    const stateShaft: BimState = {
+      ...baseState,
+      stairTypes: {
+        stair_type_1: {
+          id: 'stair_type_1',
+          name: 'Escalier Béton',
+          width: 1000,
+        },
+      },
+      stairs: { stair_main: stair },
+      slabs: { slab_arrival: slabNoManualHoles },
+      pipes: { pipe_in_shaft: pipeInStairShaft },
+    };
+
+    // La trémie dérivée computeStairShaft autorise le passage sans clash avec la dalle
+    const clashes = detectClashes(stateShaft);
+    const slabClashes = clashes.filter(
+      (c) => c.elementA === 'slab_arrival' || c.elementB === 'slab_arrival',
+    );
+    expect(slabClashes).toHaveLength(0);
+  });
+
+  it('T-CLASH-14 (ADR-071) : Détection de clash entre un conduit MEP et un pan de toiture', () => {
+    const roof = {
+      id: 'roof_main',
+      category: 'roof' as const,
+      roofTypeId: 'rt_gable',
+      levelId: 'lvl_1',
+      footprint: [
+        { x: 0, y: 0 },
+        { x: 4000, y: 0 },
+        { x: 4000, y: 4000 },
+        { x: 0, y: 4000 },
+      ],
+      ridgeAxis: {
+        start: { x: 2000, y: 0 },
+        end: { x: 2000, y: 4000 },
+      },
+    };
+
+    // Conduit horizontal traversant le pan de toiture à z = 4000 mm
+    const duct = createDuct({
+      id: 'duct_in_roof',
+      levelId: 'lvl_1',
+      start: { x: 1000, y: -500, z: 4000 },
+      end: { x: 1000, y: 2000, z: 4000 },
+      shape: 'rectangular',
+      width: 400,
+      height: 300,
+      systemType: 'supply_air',
+    });
+
+    const stateRoof: BimState = {
+      ...baseState,
+      roofTypes: {
+        rt_gable: {
+          id: 'rt_gable',
+          name: 'Toit 2 Pans 30°',
+          category: 'roofType',
+          family: 'gable',
+          thickness: 200,
+          slopeDeg: 30,
+          overhangMm: 200,
+        },
+      },
+      roofs: { roof_main: roof },
+      ducts: { duct_in_roof: duct },
+    };
+
+    const clashes = detectClashes(stateRoof);
+    expect(clashes).toHaveLength(1);
+    expect(clashes[0]!.severity).toBe('hard');
+    expect(clashes[0]!.elementA).toBe('duct_in_roof');
+    expect(clashes[0]!.elementB).toBe('roof_main');
+  });
 });

@@ -606,6 +606,27 @@ flowchart LR
   - Rédaction et enregistrement officiel d'`ADR-070` dans `DECISIONS.md`.
 - **Métriques Officielles :** **1 330 tests Vitest passants** sur 141 suites (100% verts), **14/14 tests Playwright E2E** réels, 0 erreur TypeScript, 0 warning ESLint. Consigné dans `ADR-070`.
 
+### Étape 6 — Volet B : Fidélité IFC4, Toitures 3D, Escaliers Crénelés, Export MEP Natif & Précision du Moteur de Clash [LIVRÉ & QUALIFIÉ]
+- **Axe 1 — Découpage Modulaire d'IFC4, GUIDs Déterministes & Échappement STEP ISO 10303-21 :**
+  - Scission préalable de `packages/core/src/ifc/generator.ts` (> 1 110 LOC) en 11 sous-modules étanches (`step-writer.ts`, `guid.ts`, `walls.ts`, `openings.ts`, `slabs.ts`, `roofs.ts`, `stairs.ts`, `mep.ts`, `spaces.ts`, `components.ts`, `types.ts`).
+  - Déterminisme absolu des GUIDs 128-bit sans aucun `Math.random()` : identité binaire bit-à-bit garantie sur deux exports consécutifs (`ifc1 === ifc2`).
+  - Échappement STEP conforme ISO 10303-21 : apostrophes doublées `''` et encodage hexadécimal UTF-16 `\X2\...\X0\` pour caractères accentués / Unicode.
+- **Axe 2 — Géométrie IFC4 Exacte (Toitures Inclinées, Escaliers Crénelés & Trémies Dérivées) :**
+  - Toitures 2 pans et terrasses (`IfcRoof` + `IfcSlab.ROOF.`) : repère local 3D `IfcAxis2Placement3D` orienté selon la normale inclinée $N$ ($n_z = \cos(\text{pente}) < 1$) et extrusion orthogonale exacte sur `thickness`.
+  - Escaliers crénelés paramétriques (`IfcStair` + `IfcStairFlight`) : profil en crémaillère $(u, z)$ complet (girons, contremarches, paillasse) avec attributs `NumberOfRiser`, `NumberOfTreads`, `RiserHeight`, `TreadLength`.
+  - Trémies d'escalier dérivées (`computeStairShaft`) répercutées automatiquement dans la dalle supérieure via `IfcArbitraryProfileDefWithVoids`.
+- **Axe 3 — Export MEP Natif IFC4 (`packages/core/src/ifc/mep.ts`) :**
+  - Traduction des réseaux techniques dans les classes IFC4 spécialisées : `IfcPipeSegment`, `IfcDuctSegment`, `IfcCableCarrierSegment`, raccords (`IfcPipeFitting`, `IfcDuctFitting`, `IfcCableCarrierFitting`), équipements (`IfcDistributionFlowElement`) et systèmes fluides (`IfcDistributionSystem` avec `IfcRelAssignsToGroup`).
+- **Axe 4 — Fidélité Géométrique du Moteur de Clash & Zéro Faux Positif :**
+  - Découpage des murs percés en solides réels OBB via `sliceWallWithOpenings` (`createWallPrimitives`) : 0 faux positif lors du passage d'un conduit à travers une baie libre, collision solide détectée en linteau ou trumeau.
+  - Traversée des dalles et trémies (`isMepPassingThroughSlabVoid`) : détection des passages de colonnes montantes par réservations manuelles (`slab.holes`), trémies géométriques (`slab.openings`) et trémies d'escalier (`computeStairShaft`) comme contacts exclus / légitimes (`LEGITIMATE_CONTACT`).
+  - Primitives OBB de toiture intégrées dans le BVH spatial (`createRoofPrimitives`).
+- **Axe 5 — Qualification Réelle WebIFC C++/WASM & Gouvernance :**
+  - Banc de qualification étalon Villa Complexe (toitures inclinées, marches crénelées, trémies) et Immeuble R+4 (285 tuyaux, 12 gaines, 12 chemins de câbles, 7 systèmes MEP, déterminisme strict).
+  - Rédaction de la spécification de référence `IFC_SPEC.md` mise à jour et enregistrement d'`ADR-071` dans `DECISIONS.md`.
+- **Métriques Officielles :** **1 336 tests Vitest passants** sur 141 suites (100% verts, +6 tests unitaires/intégration), **14/14 tests Playwright E2E** réels, 0 erreur TypeScript, 0 warning ESLint. Consigné dans `ADR-071`.
+
+
 
 
 

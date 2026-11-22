@@ -3,7 +3,7 @@
  *
  * Un GUID IFC (IfcGloballyUniqueId) est la représentation compacte en base64 de 22 caractères
  * d'un UUID 128 bits selon la spécification officielle buildingSMART :
- * 1. Génération de 16 octets aléatoires (UUID v4 RFC 4122).
+ * 1. Génération de 16 octets (dérivés de manière déterministe depuis un seed ou hash 128-bit).
  * 2. Préfixage de 2 octets nuls [0, 0] pour alignement sur 18 octets (144 bits).
  * 3. Encodage base64 standard (24 caractères) dont les 2 premiers caractères d'alignement ('AA') sont omis.
  * 4. Transcodage vers l'alphabet IFC buildingSMART :
@@ -11,6 +11,8 @@
  *
  * Propriété fondamentale : le 1er caractère est obligatoirement dans '0', '1', '2', '3'.
  */
+
+// GUIDs déterministes conformes ISO 10303-21 / ISO 16739 buildingSMART
 
 const STD_BASE64_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 const IFC_BASE64_ALPHABET = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_$';
@@ -66,10 +68,22 @@ export function hashStringTo16Bytes(str: string): Uint8Array {
   return bytes;
 }
 
+let deterministicFallbackSequence = 0;
+
+/**
+ * Réinitialise le compteur de séquence déterministe pour les tests.
+ */
+export function resetDeterministicIfcGuidSequence(): void {
+  deterministicFallbackSequence = 0;
+}
+
 /**
  * Génère un GUID IFC officiel conforme buildingSMART (22 caractères).
  * Si une chaîne de graine (seed) est fournie, la génération est 100% déterministe
  * et préserve la reproductibilité octet par octet des exports IFC.
+ *
+ * Même si aucun argument n'est fourni, une dérivation déterministe basée sur une séquence
+ * stable remplace tout aléa (ADR-071) afin de garantir la stricte reproductibilité.
  *
  * @param source Graine textuelle (ex: identifiant ULID d'élément) ou octets 128-bit.
  */
@@ -80,14 +94,9 @@ export function createIfcGuid(source?: string | Uint8Array): string {
   } else if (source instanceof Uint8Array) {
     bytes = new Uint8Array(source);
   } else {
-    bytes = new Uint8Array(16);
-    if (typeof globalThis !== 'undefined' && globalThis.crypto?.getRandomValues) {
-      globalThis.crypto.getRandomValues(bytes);
-    } else {
-      for (let i = 0; i < 16; i++) {
-        bytes[i] = Math.floor(Math.random() * 256);
-      }
-    }
+    // Dérivation déterministe par séquence (zéro Math.random)
+    deterministicFallbackSequence++;
+    bytes = hashStringTo16Bytes(`fallback-guid-seq-${deterministicFallbackSequence}`);
   }
 
   // Bits UUID v4 (RFC 4122)
@@ -120,14 +129,4 @@ export function createIfcGuid(source?: string | Uint8Array): string {
   }
 
   return ifcGuid;
-}
-
-/**
- * Échappe une chaîne pour le format STEP ISO 10303-21.
- * - Les apostrophes simples sont doublées (' -> '')
- * - Les antislashs sont doublés (\ -> \\)
- */
-export function escapeIfcString(str: string): string {
-  if (!str) return '';
-  return str.replace(/\\/g, '\\\\').replace(/'/g, "''");
 }

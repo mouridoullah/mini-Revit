@@ -1,8 +1,11 @@
 import type {
   Wall,
   Slab,
+  Door,
+  Window,
   Component,
   Stair,
+  Roof,
   BimState,
   ElementId,
 } from '../../types.js';
@@ -16,6 +19,8 @@ import type {
 import type { Primitive3D, OBB3D, Cylinder3D, Vec3 } from '../types.js';
 import { obbToAABB } from './sat.js';
 import { createAABB } from '../spatial/aabb.js';
+import { sliceWallWithOpenings, computeWallFootprint2d, type OpeningInput } from '@tabax/geometry';
+import { computeRoofSlopes } from '../../roofs/slopes.js';
 
 export function createWallPrimitive(wall: Wall, state: BimState): Primitive3D {
   const level = state.levels[wall.levelId];
@@ -49,6 +54,182 @@ export function createWallPrimitive(wall: Wall, state: BimState): Primitive3D {
     obb,
     aabb: obbToAABB(obb),
   };
+}
+
+/**
+ * Découpe un mur percé d'ouvertures en tranches solides effectives (Sutherland-Hodgman / ADR-071).
+ * Élimine les faux positifs lorsqu'un conduit MEP traverse une baie ouverte.
+ */
+export function createWallPrimitives(
+  wall: Wall,
+  state: BimState,
+  doorsForWall?: readonly Door[],
+  windowsForWall?: readonly Window[],
+): Primitive3D[] {
+  const doors = doorsForWall ?? (state.doors ? Object.values(state.doors).filter((d) => d.hostWallId === wall.id) : []);
+  const windows = windowsForWall ?? (state.windows ? Object.values(state.windows).filter((win) => win.hostWallId === wall.id) : []);
+
+  if (doors.length === 0 && windows.length === 0) {
+    return [createWallPrimitive(wall, state)];
+  }
+
+  const level = state.levels[wall.levelId];
+  const wallType = state.wallTypes[wall.typeId];
+  const zBase = (level?.elevation ?? 0) + (wall.baseOffset ?? 0);
+  const height = wall.heightOverride ?? wallType?.height ?? level?.height ?? 2800;
+  const thickness = wallType?.thickness ?? 200;
+
+  const dx = wall.end.x - wall.start.x;
+  const dy = wall.end.y - wall.start.y;
+  const len = Math.hypot(dx, dy);
+  if (len < 1.0) {
+    return [createWallPrimitive(wall, state)];
+  }
+
+  const u: Vec3 = { x: dx / len, y: dy / len, z: 0 };
+  const v: Vec3 = { x: -dy / len, y: dx / len, z: 0 };
+  const w: Vec3 = { x: 0, y: 0, z: 1 };
+
+  const openings: OpeningInput[] = [];
+  for (const d of doors) {
+    const dt = state.doorTypes?.[d.doorTypeId];
+    const width = dt?.width ?? 900;
+    const h = dt?.height ?? 2100;
+    openings.push({
+      id: d.id,
+      hostWallId: wall.id,
+      kind: 'door',
+      u: d.offsetAlong + width * 0.5,
+      width,
+      height: h,
+      sillZ: 0,
+    });
+  }
+  for (const win of windows) {
+    const wt = state.windowTypes?.[win.windowTypeId];
+    const width = wt?.width ?? 1200;
+    const h = wt?.height ?? 1400;
+    const sillZ = win.sillHeight ?? wt?.defaultSillHeight ?? 900;
+    openings.push({
+      id: win.id,
+      hostWallId: wall.id,
+      kind: 'window',
+      u: win.offsetAlong + width * 0.5,
+      width,
+      height: h,
+      sillZ,
+    });
+  }
+
+  try {
+    const footprint = computeWallFootprint2d({
+      start: wall.start,
+      end: wall.end,
+      thickness,
+      locationLine: 'center',
+    });
+
+    const sliced = sliceWallWithOpenings(
+      {
+        id: wall.id,
+        start: wall.start,
+        end: wall.end,
+        thickness,
+        height,
+        polygon: footprint.vertices,
+      },
+      openings,
+    );
+
+    const halfT = thickness * 0.5;
+    const prims: Primitive3D[] = [];
+    for (const piece of sliced.pieces) {
+      if (piece.role !== 'full' && piece.role !== 'sill' && piece.role !== 'lintel') continue;
+      const [u0, u1] = piece.uInterval;
+      const pieceLen = u1 - u0;
+      const pieceHeight = piece.z1 - piece.z0;
+      if (pieceLen < 1.0 || pieceHeight < 1.0) continue;
+
+      const uMid = (u0 + u1) * 0.5;
+      const center: Vec3 = {
+        x: wall.start.x + u.x * uMid,
+        y: wall.start.y + u.y * uMid,
+        z: zBase + (piece.z0 + piece.z1) * 0.5,
+      };
+
+      const obb: OBB3D = {
+        center,
+        halfExtents: { x: pieceLen * 0.5, y: halfT, z: pieceHeight * 0.5 },
+        axes: [u, v, w],
+      };
+
+      prims.push({
+        kind: 'obb',
+        obb,
+        aabb: obbToAABB(obb),
+      });
+    }
+
+    if (prims.length > 0) {
+      return prims;
+    }
+  } catch {
+    // Repli sécurisé en cas d'erreur de découpage
+  }
+
+  return [createWallPrimitive(wall, state)];
+}
+
+/**
+ * Crée les primitives OBB pour chaque versant d'une toiture (ADR-071).
+ */
+export function createRoofPrimitives(roof: Roof, state: BimState): Primitive3D[] {
+  const roofType = state.roofTypes?.[roof.roofTypeId];
+  const thickness = roofType?.thickness ?? 200;
+  const slopes = computeRoofSlopes(roof, state);
+  const prims: Primitive3D[] = [];
+
+  for (const slope of slopes) {
+    if (!slope.polygon || slope.polygon.length < 3) continue;
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minY = Infinity;
+    let maxY = -Infinity;
+    for (const p of slope.polygon) {
+      if (p.x < minX) minX = p.x;
+      if (p.x > maxX) maxX = p.x;
+      if (p.y < minY) minY = p.y;
+      if (p.y > maxY) maxY = p.y;
+    }
+    const minZ = Math.min(slope.zEave, slope.zRidge) - thickness;
+    const maxZ = Math.max(slope.zEave, slope.zRidge) + thickness;
+    const center: Vec3 = {
+      x: (minX + maxX) * 0.5,
+      y: (minY + maxY) * 0.5,
+      z: (minZ + maxZ) * 0.5,
+    };
+    const halfExtents = {
+      x: (maxX - minX) * 0.5,
+      y: (maxY - minY) * 0.5,
+      z: (maxZ - minZ) * 0.5,
+    };
+    const obb: OBB3D = {
+      center,
+      halfExtents,
+      axes: [
+        { x: 1, y: 0, z: 0 },
+        { x: 0, y: 1, z: 0 },
+        { x: 0, y: 0, z: 1 },
+      ],
+    };
+    prims.push({
+      kind: 'obb',
+      obb,
+      aabb: obbToAABB(obb),
+    });
+  }
+
+  return prims;
 }
 
 export function createSlabPrimitive(slab: Slab, state: BimState): Primitive3D {
