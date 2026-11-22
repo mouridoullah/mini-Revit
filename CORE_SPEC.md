@@ -2,16 +2,16 @@
 
 ## Noyau Métier, Modèle Documentaire BIM & CommandBus Transactionnel
 
-**Version :** 2.0.0 (Saison 2 / Phase 6 Préparation)  
-**Date :** 15 Novembre 2026  
+**Version :** 1.0.0 (Tabax v1.0.0 / 22 Novembre 2026)  
+**Date :** 22 Novembre 2026  
 **Auteur :** Lead Software Architect & Computational Geometry Engineer  
-**Statut :** Spécification de Référence Alignée (ADR-041 à ADR-043)
+**Statut :** Spécification de Référence Alignée (ADR-041 à ADR-071)
 
 ---
 
 ## 1. Vision et Règles d'Or Architecturales
 
-Le package `@tabax/core` constitue la source unique de vérité (_Single Source of Truth_) du modèle d'information du bâtiment dans Mini-BIM. Il est régi par trois règles d'or absolues :
+Le package `@tabax/core` constitue la source unique de vérité (_Single Source of Truth_) du modèle d'information du bâtiment dans Tabax. Il est régi par trois règles d'or absolues :
 
 1. **Indépendance Totale de l'Infrastructure Visuelle :**  
    `@tabax/core` n'importe **aucun** composant ou hook React, aucune classe Three.js, et aucun élément de l'API DOM (`window`, `document`, `HTMLElement`). Il est consommable de manière identique dans un worker Web, un processus Node.js, ou un client web.

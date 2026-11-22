@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Mini-BIM E2E Smoke Tests (Playwright Real Browser)', () => {
+test.describe('Tabax E2E Smoke Tests (Playwright Real Browser)', () => {
   test('charge en production un IFC exporté par l’application et initialise le WASM', async ({ page }, testInfo) => {
     const consoleErrors: string[] = [];
     page.on('response', (response) => {
