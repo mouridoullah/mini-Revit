@@ -210,91 +210,95 @@ export function SectionViewport({
         backgroundColor: '#1e293b',
       }}
     >
-      {/* Barre d'outils de coupe supérieure */}
+      {/* 1. Pilule d'information de la coupe (En haut à gauche) */}
       <div
         style={{
           position: 'absolute',
           top: 10,
           left: 10,
-          right: 280,
           zIndex: 4,
-          display: 'flex',
+          display: 'inline-flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
+          gap: '8px',
           padding: '6px 12px',
           borderRadius: '6px',
-          backgroundColor: 'rgba(15, 23, 42, 0.85)',
+          backgroundColor: 'rgba(15, 23, 42, 0.88)',
           backdropFilter: 'blur(8px)',
           border: '1px solid var(--border-subtle)',
           color: 'var(--text-primary)',
           fontSize: '12px',
+          maxWidth: 'calc(100% - 360px)',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.25)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {sectionCut.kind === 'elevation' ? (
-            <Building2 size={15} color="var(--accent-primary)" />
-          ) : (
-            <Scissors size={15} color="var(--accent-primary)" />
-          )}
-          <strong data-testid="section-active-title">{sectionCut.name}</strong>
-          <span
-            style={{
-              padding: '2px 6px',
-              borderRadius: '4px',
-              backgroundColor: 'var(--bg-elevated)',
-              fontSize: '10px',
-              color: 'var(--text-secondary)',
-            }}
-          >
-            Repère {sectionCut.label}
-          </span>
-          <span
-            style={{
-              padding: '2px 6px',
-              borderRadius: '4px',
-              backgroundColor: 'var(--bg-elevated)',
-              fontSize: '10px',
-              color: 'var(--text-secondary)',
-            }}
-          >
-            Profondeur {sectionCut.depth} mm
-          </span>
-        </div>
+        {sectionCut.kind === 'elevation' ? (
+          <Building2 size={15} color="var(--accent-primary)" style={{ flexShrink: 0 }} />
+        ) : (
+          <Scissors size={15} color="var(--accent-primary)" style={{ flexShrink: 0 }} />
+        )}
+        <strong
+          data-testid="section-active-title"
+          style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+        >
+          {sectionCut.name}
+        </strong>
+        <span
+          style={{
+            padding: '2px 6px',
+            borderRadius: '4px',
+            backgroundColor: 'var(--bg-elevated)',
+            fontSize: '10px',
+            color: 'var(--text-secondary)',
+            flexShrink: 0,
+          }}
+        >
+          Repère {sectionCut.label}
+        </span>
+        <span
+          style={{
+            padding: '2px 6px',
+            borderRadius: '4px',
+            backgroundColor: 'var(--bg-elevated)',
+            fontSize: '10px',
+            color: 'var(--text-secondary)',
+            flexShrink: 0,
+          }}
+        >
+          Profondeur {sectionCut.depth} mm
+        </span>
+      </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {onToggle3dSynchro && (
-            <button
-              type="button"
-              data-testid="toggle-3d-synchro-btn"
-              onClick={onToggle3dSynchro}
-              title={
-                is3dSynchroEnabled
-                  ? 'Désactiver le plan de coupe 3D synchronisé'
-                  : 'Activer le plan de coupe 3D synchronisé'
-              }
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px',
-                padding: '4px 8px',
-                fontSize: '11px',
-                borderRadius: '4px',
-                backgroundColor: is3dSynchroEnabled ? 'var(--accent-primary)' : 'var(--bg-elevated)',
-                color: is3dSynchroEnabled ? '#ffffff' : 'var(--text-primary)',
-                border: '1px solid var(--border-subtle)',
-                cursor: 'pointer',
-              }}
-            >
-              {is3dSynchroEnabled ? <Eye size={13} /> : <EyeOff size={13} />}
-              Synchro 3D
-            </button>
-          )}
-
+      {/* 2. Barre d'actions d'export & synchro de la coupe (En haut à droite, sous le sélecteur de vue) */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 50,
+          right: 12,
+          zIndex: 4,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          padding: '4px 6px',
+          borderRadius: '6px',
+          backgroundColor: 'rgba(15, 23, 42, 0.88)',
+          backdropFilter: 'blur(8px)',
+          border: '1px solid var(--border-subtle)',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.25)',
+        }}
+      >
+        {onToggle3dSynchro && (
           <button
             type="button"
-            data-testid="export-section-svg-btn"
-            onClick={handleExportSvg}
-            title="Exporter la coupe en SVG vectoriel normalisé"
+            data-testid="toggle-3d-synchro-btn"
+            onClick={onToggle3dSynchro}
+            title={
+              is3dSynchroEnabled
+                ? 'Désactiver le plan de coupe 3D synchronisé'
+                : 'Activer le plan de coupe 3D synchronisé'
+            }
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -302,127 +306,156 @@ export function SectionViewport({
               padding: '4px 8px',
               fontSize: '11px',
               borderRadius: '4px',
-              backgroundColor: 'var(--bg-elevated)',
-              color: 'var(--text-primary)',
+              backgroundColor: is3dSynchroEnabled ? 'var(--accent-primary)' : 'var(--bg-elevated)',
+              color: is3dSynchroEnabled ? '#ffffff' : 'var(--text-primary)',
               border: '1px solid var(--border-subtle)',
               cursor: 'pointer',
             }}
           >
-            <Download size={13} />
-            SVG
+            {is3dSynchroEnabled ? <Eye size={13} /> : <EyeOff size={13} />}
+            Synchro 3D
           </button>
+        )}
 
-          <button
-            type="button"
-            data-testid="export-section-dxf-btn"
-            onClick={handleExportDxf}
-            title="Exporter la coupe en DXF R12 1:1"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '5px',
-              padding: '4px 8px',
-              fontSize: '11px',
-              borderRadius: '4px',
-              backgroundColor: 'var(--bg-elevated)',
-              color: 'var(--text-primary)',
-              border: '1px solid var(--border-subtle)',
-              cursor: 'pointer',
-            }}
-          >
-            <Download size={13} />
-            DXF
-          </button>
+        <button
+          type="button"
+          data-testid="export-section-svg-btn"
+          onClick={handleExportSvg}
+          title="Exporter la coupe en SVG vectoriel normalisé"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '5px',
+            padding: '4px 8px',
+            fontSize: '11px',
+            borderRadius: '4px',
+            backgroundColor: 'var(--bg-elevated)',
+            color: 'var(--text-primary)',
+            border: '1px solid var(--border-subtle)',
+            cursor: 'pointer',
+          }}
+        >
+          <Download size={13} />
+          SVG
+        </button>
 
-          {/* Contrôles de Zoom et Cadrage */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '2px',
-              backgroundColor: 'var(--bg-elevated)',
-              borderRadius: '4px',
-              border: '1px solid var(--border-subtle)',
-              padding: '2px 4px',
-            }}
-          >
-            <button
-              type="button"
-              data-testid="zoom-out-section-btn"
-              onClick={handleZoomOut}
-              title="Zoom Arrière"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '22px',
-                height: '22px',
-                borderRadius: '3px',
-                backgroundColor: 'transparent',
-                color: 'var(--text-primary)',
-                border: 'none',
-                cursor: 'pointer',
-              }}
-            >
-              <ZoomOut size={13} />
-            </button>
-            <span
-              data-testid="zoom-level-text"
-              style={{
-                fontSize: '11px',
-                fontWeight: 600,
-                minWidth: '38px',
-                textAlign: 'center',
-                color: 'var(--text-secondary)',
-                userSelect: 'none',
-              }}
-            >
-              {Math.round(zoomFactor * 100)}%
-            </span>
-            <button
-              type="button"
-              data-testid="zoom-in-section-btn"
-              onClick={handleZoomIn}
-              title="Zoom Avant"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '22px',
-                height: '22px',
-                borderRadius: '3px',
-                backgroundColor: 'transparent',
-                color: 'var(--text-primary)',
-                border: 'none',
-                cursor: 'pointer',
-              }}
-            >
-              <ZoomIn size={13} />
-            </button>
-            <button
-              type="button"
-              data-testid="zoom-fit-section-btn"
-              onClick={handleZoomFit}
-              title="Ajuster la vue à la coupe (Cadrer)"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                padding: '3px 8px',
-                marginLeft: '3px',
-                fontSize: '11px',
-                borderRadius: '3px',
-                backgroundColor: 'var(--bg-canvas-chrome)',
-                color: 'var(--text-primary)',
-                border: '1px solid var(--border-subtle)',
-                cursor: 'pointer',
-              }}
-            >
-              <Maximize2 size={12} />
-              Cadrer
-            </button>
-          </div>
-        </div>
+        <button
+          type="button"
+          data-testid="export-section-dxf-btn"
+          onClick={handleExportDxf}
+          title="Exporter la coupe en DXF R12 1:1"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '5px',
+            padding: '4px 8px',
+            fontSize: '11px',
+            borderRadius: '4px',
+            backgroundColor: 'var(--bg-elevated)',
+            color: 'var(--text-primary)',
+            border: '1px solid var(--border-subtle)',
+            cursor: 'pointer',
+          }}
+        >
+          <Download size={13} />
+          DXF
+        </button>
+      </div>
+
+      {/* 3. Barre de zoom et cadrage de la coupe (En bas à gauche, comme vue 2D et 3D) */}
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 12,
+          left: 12,
+          zIndex: 4,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '2px',
+          backgroundColor: 'rgba(15, 23, 42, 0.90)',
+          backdropFilter: 'blur(8px)',
+          borderRadius: '6px',
+          border: '1px solid var(--border-subtle)',
+          padding: '3px 6px',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.25)',
+        }}
+      >
+        <button
+          type="button"
+          data-testid="zoom-out-section-btn"
+          onClick={handleZoomOut}
+          title="Zoom Arrière"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '24px',
+            height: '24px',
+            borderRadius: '3px',
+            backgroundColor: 'transparent',
+            color: 'var(--text-primary)',
+            border: 'none',
+            cursor: 'pointer',
+          }}
+        >
+          <ZoomOut size={13} />
+        </button>
+        <span
+          data-testid="zoom-level-text"
+          style={{
+            fontSize: '11px',
+            fontWeight: 600,
+            minWidth: '38px',
+            textAlign: 'center',
+            color: 'var(--text-secondary)',
+            userSelect: 'none',
+          }}
+        >
+          {Math.round(zoomFactor * 100)}%
+        </span>
+        <button
+          type="button"
+          data-testid="zoom-in-section-btn"
+          onClick={handleZoomIn}
+          title="Zoom Avant"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '24px',
+            height: '24px',
+            borderRadius: '3px',
+            backgroundColor: 'transparent',
+            color: 'var(--text-primary)',
+            border: 'none',
+            cursor: 'pointer',
+          }}
+        >
+          <ZoomIn size={13} />
+        </button>
+        <button
+          type="button"
+          data-testid="zoom-fit-section-btn"
+          onClick={handleZoomFit}
+          title="Ajuster la vue à la coupe (Cadrer)"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            padding: '4px 8px',
+            marginLeft: '4px',
+            fontSize: '11px',
+            borderRadius: '4px',
+            backgroundColor: 'var(--bg-canvas-chrome)',
+            color: 'var(--text-primary)',
+            border: '1px solid var(--border-subtle)',
+            cursor: 'pointer',
+            fontWeight: 500,
+          }}
+        >
+          <Maximize2 size={12} />
+          Cadrer
+        </button>
       </div>
 
       {/* Canvas 2D de rendu de coupe avec support Zoom Molette & Pan Glisser */}

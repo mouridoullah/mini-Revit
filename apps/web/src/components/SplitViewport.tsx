@@ -8,7 +8,7 @@ export function SplitViewport({
   threeD,
   section,
   levelName,
-  activeSectionName,
+  activeSectionName: _activeSectionName,
   mode: controlledMode,
   onModeChange,
   onZoomFit,
@@ -156,9 +156,6 @@ export function SplitViewport({
           className={styles.viewportFrame}
           style={{ flex: '1 1 100%' }}
         >
-          <div className={`${styles.viewportLabel} ${styles.viewport2dLabel}`}>
-            Coupe 2D — {activeSectionName ?? 'Vue de coupe'}
-          </div>
           {section}
         </section>
       )}
