@@ -17,9 +17,9 @@ Tabax combine un noyau paramétrique performant capable de traiter 10 000+ entit
 
 Tabax s'exécute intégralement côté client dans le navigateur (zéro backend requis) :
 
-- 🏢 **[Démo en direct — Immeuble R+4 Complet (Architecture & MEP)](https://mouridoullah.github.io/mini-Revit/?demo=r4)**
-- 🏡 **[Démo en direct — Villa Contemporaine](https://mouridoullah.github.io/mini-Revit/?demo=villa)**
-- 📐 **[Démo en direct — Toitures Inclinées & Biseautage 3D](https://mouridoullah.github.io/mini-Revit/?demo=roof)**
+- **[Démo en direct — Immeuble R+4 Complet (Architecture & MEP)](https://mouridoullah.github.io/mini-Revit/?demo=r4)**
+- **[Démo en direct — Villa Contemporaine](https://mouridoullah.github.io/mini-Revit/?demo=villa)**
+- **[Démo en direct — Toitures Inclinées & Biseautage 3D](https://mouridoullah.github.io/mini-Revit/?demo=roof)**
 
 ---
 
