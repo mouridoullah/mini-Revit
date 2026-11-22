@@ -367,4 +367,52 @@ test.describe('Mini-BIM E2E Smoke Tests (Playwright Real Browser)', () => {
 
     expect(consoleErrors).toEqual([]);
   });
+
+  test('exporte un carnet de plans multi-pages PDF vectoriel conforme ISO 32000-1 via la modale', async ({
+    page,
+  }, testInfo) => {
+    const consoleErrors: string[] = [];
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') consoleErrors.push(msg.text());
+    });
+    page.on('pageerror', (err) => consoleErrors.push(err.message));
+
+    await page.goto('/');
+
+    // 1. Bouton "Carnet PDF" dans la Toolbar
+    const pdfBookBtn = page.locator('[data-testid="export-pdf-book-btn"]');
+    await expect(pdfBookBtn).toBeVisible();
+    await pdfBookBtn.click();
+
+    // 2. Modale de configuration
+    const modal = page.locator('[data-testid="export-pdf-modal"]');
+    await expect(modal).toBeVisible();
+    await expect(modal).toContainText('Carnet de Plans Vectoriel');
+
+    // 3. Configuration des paramètres (Format A3, Échelle 1:100, Titre)
+    await page.locator('[data-testid="pdf-paper-size-select"]').selectOption('A3');
+    await page.locator('[data-testid="pdf-scale-select"]').selectOption('100');
+    await page.locator('[data-testid="pdf-project-title-input"]').fill('Projet E2E Graphite');
+
+    // 4. Déclenchement du téléchargement
+    const downloadPromise = page.waitForEvent('download');
+    await page.locator('[data-testid="pdf-confirm-export-btn"]').click();
+    const download = await downloadPromise;
+
+    // 5. Vérification du fichier binaire téléchargé
+    const pdfPath = testInfo.outputPath('carnet-e2e.pdf');
+    await download.saveAs(pdfPath);
+
+    const pdfBuffer = await import('node:fs/promises').then(({ readFile }) => readFile(pdfPath));
+    expect(pdfBuffer.length).toBeGreaterThan(15000);
+
+    const header = pdfBuffer.subarray(0, 8).toString('latin1');
+    expect(header).toBe('%PDF-1.4');
+
+    const tail = pdfBuffer.subarray(pdfBuffer.length - 30).toString('latin1');
+    expect(tail).toContain('%%EOF');
+
+    await expect(modal).toBeHidden();
+    expect(consoleErrors).toEqual([]);
+  });
 });

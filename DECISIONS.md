@@ -72,6 +72,8 @@
 | **ADR-061** | Design System Graphite Engineering, CSS Modules et Icônes Lucide | **Accepté**  | 20/11/2026 |
 | **ADR-062** | Scalabilité du Noyau 10k — Indexation Paresseuse O(1), Partage Structurel CSG et DAG Incrémental Différentiel (Phase 10) | **Accepté**  | 21/11/2026 |
 | **ADR-063** | Coupes 2D Dynamiques, Élévations de Façade, Plans de Coupe 3D et Export Vectoriel SVG Normalisé (Saison 3 - Étape 2) | **Accepté**  | 22/11/2026 |
+| **ADR-064** | Moteur d'Exportation DXF R12 Pur TypeScript (AC1009) sans Dépendance (Saison 3 - Étape 3 Lot A) | **Accepté**  | 22/11/2026 |
+| **ADR-065** | Moteur de Mise en Page & Carnet de Plans PDF Multi-Pages Vectoriel Pur (Saison 3 - Étape 3 Lot B) | **Accepté**  | 22/11/2026 |
 
 ---
 
@@ -2543,8 +2545,79 @@ Mini-BIM nécessitait un moteur dynamique capable de couper et projeter tous les
    - Intégration dans `ProjectBrowser` (sous-dossier « Coupes & Élévations »), onglet dédié `SplitViewport` (`Coupe`), et composant `SectionViewport` avec toggle Synchro 3D et bouton d'export SVG.
    - Respect absolu de la Règle d'or #2 : zéro import direct de `@mini-bim/geometry` dans `apps/web`.
 
+---
 
+## ADR-064 : Moteur d'Exportation DXF R12 Pur TypeScript (AC1009) sans Dépendance
 
+### Contexte
 
+La Saison 3 de Mini-BIM introduit l'interopérabilité CAO professionnelle 2D via l'exportation native de fichiers DXF pour les plans d'étages et les coupes/élévations analytiques (ADR-063).
+
+Deux options techniques se présentaient pour le format pivot DXF :
+1. **DXF R2000+ (`AC1015`)** : Format moderne supportant l'entité native `HATCH`, `LWPOLYLINE`, les dictionnaires `OBJECTS`, `CLASSES`, et les métadonnées étendues. Cependant, il impose des contraintes syntaxiques draconiennes (identifiants uniques hexadécimaux `5`, sous-classes `AcDbEntity` code `100`, pointeurs hiérarchiques vers `ModelSpace` code `330`). La moindre incohérence de handle ou de dictionnaire entraîne le rejet pur et simple du fichier ou une invite d'erreur de récupération dans AutoCAD, LibreCAD ou QCAD.
+2. **DXF R12 (`AC1009`)** : Format standard universellement reconnu par 100% des logiciels de CAO/BIM du marché. Il est minimaliste, déterministe, ne nécessite ni dictionnaires, ni handles, ni sous-classes, tout en offrant une fidélité géométrique absolue.
+
+### Décisions Clés
+
+1. **D1 — Ciblage Strict de DXF R12 (`AC1009`) :**
+   - Implémentation d'un moteur DXF autonome pur TypeScript (`packages/view-2d/src/dxf/`), sans aucune dépendance logicielle externe.
+   - Entête normalisé : `$ACADVER = AC1009`, `$MEASUREMENT = 1` (système métrique en mm).
+   - Repère ModelSpace 1:1 en mm : 1 unité DXF = 1 mm réel dans l'espace modèle, sans inversion d'axe Y ni échelle papier.
+   - Limites d'emprise dynamiques `$EXTMIN` et `$EXTMAX` pour centrage immédiat via la commande *Zoom Étendu* (`ZOOM E`) à l'ouverture.
+
+2. **D2 — Primitives Géométriques & Hachures Linéaires :**
+   - Contours fermés tracés via `POLYLINE` suivie d'une séquence de `VERTEX` et terminée par `SEQEND`, avec le drapeau `70 = 1`.
+   - Hachures analytiques en primitives `LINE` générées par `hatch.ts` et découpées analytiquement à 45° via `sliceSegmentWithPolygonWithHoles` de `@mini-bim/geometry`. Segments isolés sur des calques dédiés (`ARCH-HATCH`, `SECTION-HATCH`).
+   - Arcs et Cercles via entités `CIRCLE` et `ARC` (angles en degrés trigonométriques anti-horaires 0–360°).
+   - Textes normalisés avec échappement AutoCAD universel (`cleanDxfText` : `%%c` pour Ø, `%%d` pour °, `%%p` pour ±, `m2` pour m²).
+
+3. **D3 — Charte des Calques Normalisée (ACI Standards) :**
+   - Déclaration exhaustive de tous les calques dans la table `LAYER` de la section `TABLES` avant utilisation dans `ENTITIES`.
+   - Calques normalisés : `ARCH-WALLS` (7), `ARCH-HATCH` (8), `ARCH-OPENINGS` (4), `ARCH-DOOR-SWINGS` (8), `ARCH-SLABS` (3), `ARCH-ROOFS` (2), `ARCH-STAIRS` (7), `ARCH-FURNITURE` (9), `ARCH-ROOMS` (5), `ARCH-DIMS` (6), `ARCH-SECTIONS` (6), `SECTION-CUT` (7), `SECTION-HATCH` (8), `SECTION-PROJ` (9), `SECTION-LEVELS` (6), `SECTION-GROUND` (8), `SECTION-MEP-CUT` (4), `SECTION-MEP-PROJ` (5), `SECTION-ANNOTATIONS` (7), calques MEP par système (`MEP-SUPPLY`, `MEP-RETURN`, `MEP-DRAINAGE`, `MEP-VENTILATION`, `MEP-ELECTRICAL`).
+
+4. **D4 — Rigueur Syntaxique et Validation Automatisée (ADR-014) :**
+   - Fin de ligne stricte CRLF (`\r\n`), nombre pair de lignes garanti, terminaison canonique `0\r\nEOF\r\n`.
+   - Validateur strict de syntaxe (`dxf.test.ts`) vérifiant l'absence absolue de `NaN`, l'intégrité référentielle des calques et la conformité dimensionnelle à $10^{-3}$ mm près.
+
+---
+
+## ADR-065 : Moteur de Mise en Page & Carnet de Plans PDF Multi-Pages Vectoriel Pur
+
+### Contexte
+
+La Saison 3 de Mini-BIM vise à doter la plateforme d'une chaîne complète d'édition et de diffusion de livrables architecturaux professionnels. Après le moteur d'exportation DXF R12 1:1 (ADR-064), les maîtres d'œuvre, bureaux d'études et architectes doivent pouvoir générer un dossier de plans complet multi-pages imprimable et diffusable, intégrant page de garde, plans d'étages, coupes transversales, élévations et synthèse des métrés.
+
+Dans le respect strict des principes fondateurs de Mini-BIM (local-first, zéro-dépendance externe lourde, performance temps réel et indépendance vis-à-vis de services cloud ou de bibliothèques tierces avec filigrane comme jsPDF ou PDFKit), nous devions concevoir un moteur d'assemblage et de rendu vectoriel PDF 1.4 natif en pur TypeScript.
+
+### Décisions Clés
+
+1. **D1 — Moteur Vectoriel PDF 1.4 Pur TypeScript (`PdfWriter`) :**
+   - Générateur vectoriel PDF 1.4 autonome dans `packages/view-2d/src/pdf/`.
+   - Conversion métrique exacte : $1\text{ mm papier} = \frac{72}{25.4}\text{ pt} \approx 2.83464567\text{ pt}$.
+   - Repère géométrique natif Y-up : origine (0, 0) en bas à gauche de la page, parfaitement alignée avec le repère cartésien BIM et CAO.
+   - Primitives vectorielles élémentaires du flux PDF Content Stream : déplacements et tracés (`m`, `l`, `c`, `h`), styles et couleurs (`RG`, `rg`, `w`, `d`), opérateurs de rendu (`S`, `f`, `B`), masquage et isolation (`q x y w h re W n ... Q`).
+   - Polices Type 1 standard `/Helvetica` et `/Helvetica-Bold` avec `/Encoding /WinAnsiEncoding`.
+   - Encodage Windows-1252 mono-octet (`win-ansi.ts`) pour la préservation intégrale des accents et symboles français (`é`, `è`, `à`, `ç`, `ê`, `ù`, `î`, `ô`, `€`, `’`, `°`, `±`, `²`, `³`, `Ø`).
+   - Table `xref` binaire stricte (ISO 32000-1) calculée en octets réels sur `Uint8Array`, avec entrées de 20 octets fixes (`0000000015 00000 n \n`), section `trailer`, `startxref` et `%%EOF`.
+
+2. **D2 — Composition et Mise en Page Normalisée :**
+   - Formats standard A4 Paysage ($297 \times 210$ mm) et A3 Paysage ($420 \times 297$ mm).
+   - Cadre extérieur double fort et filet fin, zone de dessin protégée par découpage géométrique (`clipRect`).
+   - Cartouche architectural normalisé ($155 \times 40$ mm) avec titre du projet, intitulé de planche, indice et révision, date et auteur, numérotation `PL-XX / N`, échelle numérique, échelle graphique graduée alternée (0–1m–2m–5m) et flèche Nord bicolore.
+
+3. **D3 — Ordonnancement des 4 Types de Planches :**
+   - `PL-01` : Page de garde & Sommaire général (synthèse des 9 indicateurs clés du bâtiment et table des matières).
+   - `PL-02..k` : Planches Plans d'Étages (murs résolus avec poché gris et hachures 45°, portes, fenêtres, dalles, escaliers, réseaux MEP, cotations violettes avec ticks 45°, symboles de coupe ISO, pastilles de pièces sur fond blanc).
+   - `PL-(k+1)..m` : Planches Coupes & Élévations (rendu vectoriel analytique issu de `SectionScene`, ligne de sol $Z=0$ hachurée, symboles altimétriques, projections fines, coupes fortes et réseaux MEP).
+   - `PL-N` : Planche Synthèse des Métrés & Surfaces (3 tableaux normalisés : synthèse par niveau avec total général, détail des pièces habitables, récapitulatif des réseaux MEP par système).
+
+4. **D4 — Interface Cockpit Graphite & Expérience Utilisateur :**
+   - Bouton **Carnet PDF** intégré dans la barre d'outils supérieure (`Toolbar.tsx`).
+   - Modale interactive `ExportPdfModal.tsx` aux tokens sombres Graphite permettant de configurer le format, l'échelle, les options de contenu et les métadonnées de cartouche.
+   - Téléchargement instantané via `useBimExport.ts` sans aucun passage par un serveur distant.
+
+5. **D5 — Qualification Métrologique & Validation Automatisée (ADR-014) :**
+   - Validateur strict de syntaxe PDF 1.4 (`pdf.test.ts`) testant l'absence de `NaN`, la validité de la table `xref`, la conformité dimensionnelle et l'arborescence des pages sur synthétique, Villa Complexe et Immeuble R+4 complet (> 45 Ko vectoriel pur).
+   - Test E2E Playwright Chromium (`smoke.spec.ts`) validant le cycle complet d'exportation UI jusqu'au téléchargement binaire.
 
 

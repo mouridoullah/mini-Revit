@@ -82,4 +82,26 @@ describe('Toolbar (apps/web/src/components/Toolbar.tsx — Audit P0.4)', () => {
     fireEvent.click(btn);
     expect(onExportPlanDxf).toHaveBeenCalledTimes(1);
   });
+
+  it('déclenche le callback d’ouverture du carnet PDF au clic sur le bouton Carnet PDF', () => {
+    const onExportPdfBook = vi.fn();
+    const { getByTestId } = render(
+      <Toolbar
+        activeToolKind="select"
+        onSelectTool={vi.fn()}
+        canUndo={false}
+        canRedo={false}
+        onUndo={vi.fn()}
+        onRedo={vi.fn()}
+        onSave={vi.fn()}
+        onLoadFile={vi.fn()}
+        onExportPdfBook={onExportPdfBook}
+      />,
+    );
+
+    const btn = getByTestId('export-pdf-book-btn');
+    expect(btn).toBeDefined();
+    fireEvent.click(btn);
+    expect(onExportPdfBook).toHaveBeenCalledTimes(1);
+  });
 });

@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from 'react';
 import {
+  BookOpen,
   Box,
   BrickWall,
   Building2,
@@ -121,6 +122,7 @@ export interface ToolbarProps {
   readonly onExportIfc?: () => void;
   readonly onExportSvg?: (scale: 50 | 100 | 200) => void;
   readonly onExportPlanDxf?: () => void;
+  readonly onExportPdfBook?: () => void;
   readonly levels?: readonly Level[];
   readonly activeLevelId?: string;
   readonly onSelectLevel?: (levelId: string) => void;
@@ -151,6 +153,7 @@ export function Toolbar({
   onExportIfc,
   onExportSvg,
   onExportPlanDxf,
+  onExportPdfBook,
   levels = [],
   activeLevelId,
   onSelectLevel,
@@ -318,6 +321,15 @@ export function Toolbar({
           >
             <Download size={15} />
             Plan DXF
+          </button>
+          <button
+            className={styles.action}
+            data-testid="export-pdf-book-btn"
+            onClick={onExportPdfBook}
+            title="Générer le carnet de plans multi-pages (PDF vectoriel pur)"
+          >
+            <BookOpen size={15} />
+            Carnet PDF
           </button>
         </div>
       </div>

@@ -78,4 +78,5 @@ export {
 } from './components-2d.js';
 export * from './spatial/index.js';
 export * from './dxf/index.js';
+export * from './pdf/index.js';
 

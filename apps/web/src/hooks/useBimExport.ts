@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { BimDocument, exportToIfc, detectRooms } from '@mini-bim/core';
-import { generatePlanSvg, generatePlanDxf } from '@mini-bim/view-2d';
+import { generatePlanSvg, generatePlanDxf, generatePdfBook, type PdfBookOptions } from '@mini-bim/view-2d';
 import { exportToFile, importFromFile } from '../persistence/jsonIO.js';
 import type { ToolKind } from '../tools/types.js';
 
@@ -22,6 +22,7 @@ export interface UseBimExportResult {
   readonly handleExportIfc: () => void;
   readonly handleExportSvg: (scale: 50 | 100 | 200) => void;
   readonly handleExportPlanDxf: () => void;
+  readonly handleExportPdfBook: (options?: PdfBookOptions) => void;
   readonly handleLoadFile: (file: File) => Promise<void>;
   readonly handleLoadR4Demo: () => Promise<void>;
 }
@@ -156,6 +157,35 @@ export function useBimExport({
     }
   }, [doc, activeLevelId, setErrorMessage, setInfoMessage]);
 
+  const handleExportPdfBook = useCallback(
+    (options: PdfBookOptions = {}) => {
+      try {
+        const pdfBytes = generatePdfBook(doc, options);
+        // Créer un blob binaire application/pdf
+        const blob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const projectSlug = (options.projectTitle ?? 'carnet-de-plans')
+          .toLowerCase()
+          .replace(/[^a-z0-9_-]/gi, '_');
+        a.download = `${projectSlug}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        setInfoMessage('Carnet de plans PDF généré et téléchargé.');
+      } catch (err) {
+        setErrorMessage(
+          err instanceof Error
+            ? err.message
+            : 'Erreur lors de la génération du carnet de plans PDF.',
+        );
+      }
+    },
+    [doc, setErrorMessage, setInfoMessage],
+  );
+
   const handleLoadFile = useCallback(
     async (file: File) => {
       try {
@@ -221,6 +251,7 @@ export function useBimExport({
     handleExportIfc,
     handleExportSvg,
     handleExportPlanDxf,
+    handleExportPdfBook,
     handleLoadFile,
     handleLoadR4Demo,
   };
