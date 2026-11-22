@@ -114,7 +114,7 @@ export function useBimPersistence({
             }
           }
           if (demoParam === 'r4' || demoParam === 'immeuble-r4') {
-            const resp = await fetch('/demo-immeuble-r4.json');
+            const resp = await fetch(`${import.meta.env.BASE_URL}demo-immeuble-r4.json`);
             if (resp.ok) {
               const text = await resp.text();
               if (!isCancelled) {
@@ -127,7 +127,7 @@ export function useBimPersistence({
             }
           }
           if (params.get('demo') === 'roof') {
-            const resp = await fetch('/demo-roof-plan.json');
+            const resp = await fetch(`${import.meta.env.BASE_URL}demo-roof-plan.json`);
             if (resp.ok) {
               const text = await resp.text();
               if (!isCancelled) {

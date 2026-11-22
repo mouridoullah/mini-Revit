@@ -221,7 +221,7 @@ export function useBimExport({
       resetActiveTool();
       setSelectedIds([]);
       setDrawingLength(null);
-      const resp = await fetch('/demo-immeuble-r4.json');
+      const resp = await fetch(`${import.meta.env.BASE_URL}demo-immeuble-r4.json`);
       if (!resp.ok) {
         throw new Error(`Échec du téléchargement (/demo-immeuble-r4.json: ${resp.status})`);
       }

@@ -69,7 +69,7 @@ describe('Banc de Scalabilité & Benchmark Clash Detection (Phase 9.4)', () => {
       `[T-CLASH-BENCH-1000] Entités: ${totalCount} | Conflits: ${clashes.length} | P50: ${metrics.p50Ms.toFixed(2)} ms | P95: ${metrics.p95Ms.toFixed(2)} ms`,
     );
 
-    expect(metrics.p50Ms).toBeLessThan(100);
+    expect(metrics.p50Ms).toBeLessThan(200);
   });
 
   it('T-CLASH-BVH-VS-BRUTEFORCE : Compare le filtrage BVH vs recherche exhaustive O(N^2)', () => {

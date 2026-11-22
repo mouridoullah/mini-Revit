@@ -54,7 +54,7 @@ export function useFederatedIfc({
         const model = await Federation.loadFederatedIfc(buffer, {
           modelId: `fed_${generateId()}`,
           name: file.name,
-          wasmPath: '/',
+          wasmPath: import.meta.env.BASE_URL,
         });
 
         setFederatedModels((prev) => {
