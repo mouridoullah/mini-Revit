@@ -21,6 +21,8 @@ import {
   GEOM_CONFIG,
 } from '@mini-bim/geometry';
 import { generateHatchLines } from '../dxf/hatch.js';
+import { resolveDimensionPoints } from '../renderer/dimensions.js';
+import type { DimensionFor2D, WallFor2D } from '../types.js';
 import type { PdfPageContent } from './PdfWriter.js';
 import {
   drawPageFrame,
@@ -452,27 +454,12 @@ export function renderPlanPage(
   );
 
   for (const dim of dims) {
-    const ref0 = dim.references?.[0];
-    const ref1 = dim.references?.[1];
-    let p1: Vec2 | null = null;
-    let p2: Vec2 | null = null;
-
-    if (dim.references?.length === 1 && ref0) {
-      const w = state.walls?.[ref0];
-      if (w) {
-        p1 = w.start;
-        p2 = w.end;
-      }
-    } else if (dim.references?.length >= 2 && ref0 && ref1) {
-      const w1 = state.walls?.[ref0];
-      const w2 = state.walls?.[ref1];
-      if (w1 && w2) {
-        p1 = vec2((w1.start.x + w1.end.x) / 2, (w1.start.y + w1.end.y) / 2);
-        p2 = vec2((w2.start.x + w2.end.x) / 2, (w2.start.y + w2.end.y) / 2);
-      }
-    }
-
-    if (!p1 || !p2) continue;
+    const pts = resolveDimensionPoints(
+      dim as unknown as DimensionFor2D,
+      (state.walls ?? {}) as unknown as Record<string, WallFor2D>,
+    );
+    if (!pts) continue;
+    const { p1, p2 } = pts;
     const dx = p2.x - p1.x;
     const dy = p2.y - p1.y;
     const len = Math.hypot(dx, dy);

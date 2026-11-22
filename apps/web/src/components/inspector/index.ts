@@ -9,3 +9,4 @@ export * from './RoofInspector.js';
 export * from './ComponentInspector.js';
 export * from './MepInspector.js';
 export * from './SectionInspector.js';
+export * from './DimensionInspector.js';

@@ -26,6 +26,7 @@ export function StatusBar({
   const doorCount = Object.keys(state.doors ?? {}).length;
   const windowCount = Object.keys(state.windows ?? {}).length;
   const componentCount = Object.keys(state.components ?? {}).length;
+  const dimensionCount = Object.keys(state.dimensions ?? {}).length;
   const levelCount = Object.keys(state.levels).length;
   const activeLevelId =
     activeLevelIdProp && state.levels[activeLevelIdProp]
@@ -75,6 +76,12 @@ export function StatusBar({
   } else if (activeToolKind === 'mep') {
     toolMessage =
       'Outil : Réseau MEP (P) — Cliquer pour démarrer le tracé, cliquer pour valider (Échap = annuler)';
+  } else if (activeToolKind === 'section') {
+    toolMessage =
+      'Outil : Coupe (X) — Clic départ puis clic arrivée (Espace = inverser direction, Échap = annuler)';
+  } else if (activeToolKind === 'dimension') {
+    toolMessage =
+      'Outil : Cotation (T) — Clic 1er point, clic 2e point, clic déport (Espace = inverser déport, Échap = annuler)';
   }
 
   return (
@@ -133,6 +140,11 @@ export function StatusBar({
         {componentCount > 0 && (
           <span>
             Composants : <strong style={{ color: 'var(--text-primary)' }}>{componentCount}</strong>
+          </span>
+        )}
+        {dimensionCount > 0 && (
+          <span>
+            Cotes : <strong style={{ color: 'var(--text-primary)' }}>{dimensionCount}</strong>
           </span>
         )}
       </div>

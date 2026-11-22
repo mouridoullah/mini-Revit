@@ -1,16 +1,26 @@
 import { type Dimension, type BimState, type ElementId } from '../types.js';
 
+export * from './auto-dimension.js';
+
 /**
  * Calcule dynamiquement la valeur d'une cotation 2D à partir de ses références architecturales.
  *
  * Invariant BIM :
- * - 1 référence [wallId] : longueur axiale du mur (distance euclidienne entre start et end).
- * - 2 références [wallId1, wallId2] : distance entre les deux murs.
- *   Si les deux murs sont parallèles, la distance orthogonale exacte est calculée.
- *   Sinon, la distance entre leurs milieux est retournée.
+ * - 0 référence : cotation libre entre `startPoint` et `endPoint`.
+ * - 1 référence [wallId] avec `span` : trumeau ou baie paramétrique le long du mur.
+ * - 1 référence [wallId] sans `span` : longueur axiale complète du mur.
+ * - 2 références [wallId1, wallId2] : distance entre les deux murs (orthogonale si parallèles, milieux sinon).
  */
-export function computeDimensionValue(dim: Pick<Dimension, 'references'>, state: BimState): number {
+export function computeDimensionValue(
+  dim: Pick<Dimension, 'references' | 'startPoint' | 'endPoint' | 'span'>,
+  state: BimState,
+): number {
   if (dim.references.length === 0) {
+    if (dim.startPoint && dim.endPoint) {
+      const dx = dim.endPoint.x - dim.startPoint.x;
+      const dy = dim.endPoint.y - dim.startPoint.y;
+      return Math.round(Math.hypot(dx, dy) * 1000) / 1000;
+    }
     return 0;
   }
 
@@ -18,6 +28,12 @@ export function computeDimensionValue(dim: Pick<Dimension, 'references'>, state:
     const wallId = dim.references[0] as ElementId;
     const wall = state.walls[wallId];
     if (!wall) return 0;
+
+    if (dim.span) {
+      const spanLen = Math.abs(dim.span.endOffset - dim.span.startOffset);
+      return Math.round(spanLen * 1000) / 1000;
+    }
+
     const dx = wall.end.x - wall.start.x;
     const dy = wall.end.y - wall.start.y;
     return Math.round(Math.hypot(dx, dy) * 1000) / 1000;

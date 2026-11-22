@@ -254,6 +254,17 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
     }
   }, [doc, selectedIds]);
 
+  const handleAutoDimensionFloor = useCallback(() => {
+    if (!activeLevelId) return;
+    try {
+      doc.execute(new Commands.AutoDimensionLevelCommand(activeLevelId));
+      setInfoMessage("Cotation automatique de l'étage générée avec succès.");
+      setErrorMessage(null);
+    } catch (err: unknown) {
+      setErrorMessage(err instanceof Error ? err.message : 'Erreur lors de la cotation automatique.');
+    }
+  }, [doc, activeLevelId]);
+
   const mepControls =
     activeToolKind === 'mep' ? (
       <MepRibbon
@@ -288,6 +299,7 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
         onExportSvg={handleExportSvg}
         onExportPlanDxf={handleExportPlanDxf}
         onExportPdfBook={() => setIsExportPdfOpen(true)}
+        onAutoDimensionFloor={handleAutoDimensionFloor}
         levels={Object.values(doc.getState().levels)}
         activeLevelId={activeLevelId}
         onSelectLevel={setActiveLevelId}

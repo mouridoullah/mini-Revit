@@ -16,7 +16,8 @@ export type ToolKind =
   | 'roof'
   | 'component'
   | 'mep'
-  | 'section';
+  | 'section'
+  | 'dimension';
 
 /**
  * États possibles de la machine à états SelectTool.
@@ -252,6 +253,30 @@ export type SectionToolState =
     };
 
 /**
+ * États possibles de la machine à états DimensionTool (ADR-066).
+ */
+export type DimensionToolState =
+  | { readonly kind: 'idle' }
+  | {
+      readonly kind: 'firstPointPicked';
+      readonly startWorld: Vec2;
+      readonly currentWorld: Vec2;
+    }
+  | {
+      readonly kind: 'placingOffset';
+      readonly startWorld: Vec2;
+      readonly endWorld: Vec2;
+      readonly currentWorld: Vec2;
+      readonly offset: number;
+    }
+  | {
+      readonly kind: 'finished';
+      readonly startWorld: Vec2;
+      readonly endWorld: Vec2;
+      readonly offset: number;
+    };
+
+/**
  * Paramètres par défaut configurables pour l'insertion de portes.
  */
 export interface DoorDefaults {
@@ -348,7 +373,8 @@ export interface Tool {
     | RoofToolState
     | ComponentToolState
     | MepToolState
-    | SectionToolState;
+    | SectionToolState
+    | DimensionToolState;
   handle(event: ToolEvent, ctx: ToolContext): ToolOutput;
   reset(): void;
 }

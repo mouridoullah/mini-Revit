@@ -12,6 +12,7 @@ import {
   ComponentInspector,
   MepInspector,
   SectionInspector,
+  DimensionInspector,
 } from './inspector/index.js';
 
 export interface PropertyInspectorProps {
@@ -202,6 +203,12 @@ export function PropertyInspector({
     const sectionCut = state.sectionCuts?.[id];
     if (sectionCut) {
       return <SectionInspector sectionCut={sectionCut} state={state} onExecute={execute} />;
+    }
+
+    // 11. Cotation 2D (ADR-066)
+    const dimension = state.dimensions?.[id];
+    if (dimension) {
+      return <DimensionInspector dimension={dimension} state={state} onExecute={execute} />;
     }
 
     return <div style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>Élément sélectionné : {id}</div>;

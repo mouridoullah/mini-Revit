@@ -88,6 +88,13 @@ const toolSets: Record<
       testId: 'tool-section-btn',
       icon: Scissors,
     },
+    {
+      kind: 'dimension',
+      label: 'Cotation',
+      shortcut: 'T',
+      testId: 'tool-dimension-btn',
+      icon: Ruler,
+    },
   ],
   Structure: [
     { kind: 'slab', label: 'Dalle', shortcut: 'L', testId: 'tool-slab-btn', icon: Square },
@@ -123,6 +130,7 @@ export interface ToolbarProps {
   readonly onExportSvg?: (scale: 50 | 100 | 200) => void;
   readonly onExportPlanDxf?: () => void;
   readonly onExportPdfBook?: () => void;
+  readonly onAutoDimensionFloor?: () => void;
   readonly levels?: readonly Level[];
   readonly activeLevelId?: string;
   readonly onSelectLevel?: (levelId: string) => void;
@@ -154,6 +162,7 @@ export function Toolbar({
   onExportSvg,
   onExportPlanDxf,
   onExportPdfBook,
+  onAutoDimensionFloor,
   levels = [],
   activeLevelId,
   onSelectLevel,
@@ -188,6 +197,7 @@ export function Toolbar({
       r: 'roof',
       p: 'mep',
       x: 'section',
+      t: 'dimension',
     };
     const onKey = (event: KeyboardEvent) => {
       if (
@@ -389,6 +399,19 @@ export function Toolbar({
                   {toolButton(tool)}
                 </span>
               ))
+          )}
+          {tab === 'Architecture' && onAutoDimensionFloor && (
+            <div className={styles.quickControls}>
+              <button
+                className={styles.tool}
+                data-testid="auto-dimension-floor-btn"
+                onClick={onAutoDimensionFloor}
+                title="Générer automatiquement les chaînes de cotes extérieures et intérieures de l'étage actif (ADR-066)"
+              >
+                <Sparkles size={16} />
+                Coter Étage
+              </button>
+            </div>
           )}
           {tab === 'Structure' && (
             <div className={styles.quickControls}>
