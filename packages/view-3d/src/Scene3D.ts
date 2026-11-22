@@ -888,6 +888,13 @@ export class Scene3D {
   }
 
   /**
+   * Retourne le groupe Three.js racine contenant les maquettes IFC fédérées.
+   */
+  public getFederatedRootGroup(): THREE.Group {
+    return this.federatedManager.getRootGroup();
+  }
+
+  /**
    * Raycast sur les géométries de référence IFC fédérées.
    */
   public getFederatedEntityAt(
@@ -904,7 +911,7 @@ export class Scene3D {
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(new THREE.Vector2(ndcX, ndcY), this.camera);
 
-    return this.federatedManager.pickEntity(raycaster);
+    return this.federatedManager.pickEntity(raycaster, this.activeClippingPlane);
   }
 
   /**
@@ -974,12 +981,20 @@ export class Scene3D {
     this.activeClippingPlane = plane;
     const planes = plane ? [plane] : [];
 
+    // 1. Couverture globale au niveau du renderer Three.js (ADR-063)
+    this.renderer.clippingPlanes = planes;
+
+    // 2. Propagation aux maillages architecturaux et MEP
     for (const meshList of this.meshes.values()) {
       for (const mesh of meshList) {
         this.applyClippingPlanesToMesh(mesh, planes);
       }
     }
 
+    // 3. Propagation aux maquettes IFC de référence fédérées
+    this.federatedManager.setClippingPlanes(planes);
+
+    // 4. Propagation aux matériaux internes partagés
     const sharedMaterials = [
       this.defaultMaterial,
       this.highlightMaterial,

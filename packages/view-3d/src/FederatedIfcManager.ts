@@ -18,6 +18,7 @@ interface ManagedFederatedModel {
 export class FederatedIfcManager {
   private readonly rootGroup: THREE.Group = new THREE.Group();
   private readonly models: Map<string, ManagedFederatedModel> = new Map();
+  private activeClippingPlanes: THREE.Plane[] = [];
 
   public constructor() {
     this.rootGroup.name = 'FederatedIfcContainer';
@@ -25,6 +26,19 @@ export class FederatedIfcManager {
 
   public getRootGroup(): THREE.Group {
     return this.rootGroup;
+  }
+
+  /**
+   * Définit ou réinitialise les plans de coupe Three.js pour toutes les maquettes IFC fédérées.
+   */
+  public setClippingPlanes(planes: THREE.Plane[]): void {
+    this.activeClippingPlanes = planes;
+    for (const managed of this.models.values()) {
+      for (const mat of managed.materials) {
+        mat.clippingPlanes = planes;
+        mat.clipShadows = true;
+      }
+    }
   }
 
   /**
@@ -79,6 +93,8 @@ export class FederatedIfcManager {
         metalness: 0.1,
         side: THREE.DoubleSide,
         depthWrite: opacity >= 0.85,
+        clippingPlanes: this.activeClippingPlanes.length > 0 ? this.activeClippingPlanes : [],
+        clipShadows: this.activeClippingPlanes.length > 0,
       });
       materials.push(material);
 
@@ -182,7 +198,10 @@ export class FederatedIfcManager {
   /**
    * Intersection par raycast sur les entités fédérées uniquement.
    */
-  public pickEntity(raycaster: THREE.Raycaster): { modelId: string; expressId: number } | null {
+  public pickEntity(
+    raycaster: THREE.Raycaster,
+    clippingPlane?: THREE.Plane | null,
+  ): { modelId: string; expressId: number } | null {
     const candidateMeshes: THREE.Mesh[] = [];
     for (const model of this.models.values()) {
       if (model.group.visible) {
@@ -193,12 +212,16 @@ export class FederatedIfcManager {
     if (candidateMeshes.length === 0) return null;
 
     const hits = raycaster.intersectObjects(candidateMeshes, false);
-    const firstHit = hits[0];
-    if (firstHit && firstHit.object.userData?.isFederated) {
-      return {
-        modelId: firstHit.object.userData.modelId as string,
-        expressId: firstHit.object.userData.expressId as number,
-      };
+    for (const hit of hits) {
+      if (clippingPlane && clippingPlane.distanceToPoint(hit.point) < 0) {
+        continue;
+      }
+      if (hit.object.userData?.isFederated) {
+        return {
+          modelId: hit.object.userData.modelId as string,
+          expressId: hit.object.userData.expressId as number,
+        };
+      }
     }
 
     return null;

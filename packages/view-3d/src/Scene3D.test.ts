@@ -801,5 +801,63 @@ describe('Scene3D — Gestionnaire de scène 3D Three.js impératif', () => {
 
       scene3d.dispose();
     });
+
+    it('T-SCENE3D-SEC-04 : setSectionCutPlane applique le clipping au renderer et aux modèles IFC fédérés', () => {
+      const scene3d = new Scene3D(canvas, { width: 800, height: 600 });
+      const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -1000);
+
+      // 1. Avant activation : clippingPlanes vide au niveau renderer
+      expect(scene3d.getRenderer().clippingPlanes).toEqual([]);
+
+      // 2. Modèle fédéré existant avant coupe
+      scene3d.addFederatedModel({
+        id: 'fed_model_1',
+        name: 'Structure.ifc',
+        items: [
+          {
+            expressId: 101,
+            positions: new Float32Array([0, 0, 0, 1000, 0, 0, 1000, 1000, 0]),
+            color: { r: 0.8, g: 0.2, b: 0.2 },
+          },
+        ],
+      });
+
+      // 3. Activation du plan de coupe
+      scene3d.setSectionCutPlane(plane);
+
+      // Le renderer global a bien reçu le plan
+      expect(scene3d.getRenderer().clippingPlanes).toEqual([plane]);
+
+      // Le modèle fédéré existant a reçu le plan
+      const root = scene3d.getFederatedRootGroup();
+      const model1Group = root.children.find((c) => c.name === 'FederatedModel_fed_model_1');
+      expect(model1Group).toBeDefined();
+      const mesh1 = model1Group!.children[0] as THREE.Mesh;
+      expect((mesh1.material as THREE.Material).clippingPlanes).toEqual([plane]);
+
+      // 4. Modèle fédéré ajouté APRÈS l'activation de la coupe
+      scene3d.addFederatedModel({
+        id: 'fed_model_2',
+        name: 'MEP.ifc',
+        items: [
+          {
+            expressId: 202,
+            positions: new Float32Array([0, 0, 0, 500, 0, 0, 500, 500, 0]),
+          },
+        ],
+      });
+      const model2Group = root.children.find((c) => c.name === 'FederatedModel_fed_model_2');
+      expect(model2Group).toBeDefined();
+      const mesh2 = model2Group!.children[0] as THREE.Mesh;
+      expect((mesh2.material as THREE.Material).clippingPlanes).toEqual([plane]);
+
+      // 5. Désactivation de la coupe
+      scene3d.setSectionCutPlane(null);
+      expect(scene3d.getRenderer().clippingPlanes).toEqual([]);
+      expect((mesh1.material as THREE.Material).clippingPlanes).toEqual([]);
+      expect((mesh2.material as THREE.Material).clippingPlanes).toEqual([]);
+
+      scene3d.dispose();
+    });
   });
 });
