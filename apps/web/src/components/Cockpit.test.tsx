@@ -60,16 +60,14 @@ describe('cockpit layout', () => {
     fireEvent.doubleClick(screen.getByTestId('viewport-splitter'));
   });
 
-  it('bascule les onglets Propriétés, Conflits et IFC Réf', () => {
+  it('bascule les onglets Propriétés et IFC Réf', () => {
     function Harness() {
-      const [tab, setTab] = useState<'properties' | 'clashes' | 'ifc'>('properties');
+      const [tab, setTab] = useState<'properties' | 'ifc'>('properties');
       return (
         <RightDockPanel
           properties={<div>Inspector</div>}
-          clashes={<div>Clashes</div>}
           ifc={<div>IFC models</div>}
           selectedCount={1}
-          clashCount={2}
           modelCount={3}
           activeTab={tab}
           onTabChange={setTab}
@@ -78,8 +76,6 @@ describe('cockpit layout', () => {
     }
     render(<Harness />);
     expect(screen.getByText('Inspector')).toBeTruthy();
-    fireEvent.click(screen.getByTestId('dock-tab-clashes'));
-    expect(screen.getByText('Clashes')).toBeTruthy();
     fireEvent.click(screen.getByTestId('dock-tab-ifc'));
     expect(screen.getByText('IFC models')).toBeTruthy();
   });

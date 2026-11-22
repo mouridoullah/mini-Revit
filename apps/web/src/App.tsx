@@ -5,7 +5,6 @@ import { useBimDocument } from './hooks/useBimDocument.js';
 import { Toolbar } from './components/Toolbar.js';
 import { StatusBar } from './components/StatusBar.js';
 import { MetricsPanel } from './components/MetricsPanel.js';
-import { ClashPanel } from './components/ClashPanel.js';
 import { FederatedIfcPanel } from './components/FederatedIfcPanel.js';
 import { PropertyInspector } from './components/PropertyInspector.js';
 import { ComponentRibbon } from './components/ComponentRibbon.js';
@@ -65,7 +64,6 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
   const [isWhiteMode, setIsWhiteMode] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('split');
   const [underlayEnabled, setUnderlayEnabled] = useState(true);
-  const [isClashPanelOpen, setIsClashPanelOpen] = useState(false);
   const [rightDockTab, setRightDockTab] = useState<DockTab>('properties');
   const [isBrowserCollapsed, setIsBrowserCollapsed] = useState(false);
   const [isExportPdfOpen, setIsExportPdfOpen] = useState(false);
@@ -95,7 +93,7 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
     activeSectionCutFor3D,
   } = useSectionCuts(doc);
   useEffect(() => {
-    if (selectedIds.length > 0 && rightDockTab !== 'clashes' && rightDockTab !== 'ifc') {
+    if (selectedIds.length > 0 && rightDockTab !== 'ifc') {
       setRightDockTab('properties');
     }
   }, [selectedIds, rightDockTab]);
@@ -125,7 +123,7 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
         z: clash.point.z,
         triggerId: Date.now() + Math.random(),
       });
-      setRightDockTab('clashes');
+      setViewMode('clashes');
     },
     [doc],
   );
@@ -388,10 +386,9 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
         underlayEnabled={underlayEnabled}
         onToggleUnderlay={setUnderlayEnabled}
         hasUnderlayLevel={hasUnderlayLevel}
-        isClashPanelOpen={isClashPanelOpen}
+        isClashPanelOpen={viewMode === 'clashes'}
         onToggleClashPanel={() => {
-          setIsClashPanelOpen((prev) => !prev);
-          setRightDockTab('clashes');
+          setViewMode((prev) => (prev === 'clashes' ? 'split' : 'clashes'));
         }}
         isFederatedPanelOpen={isFederatedPanelOpen}
         onToggleFederatedPanel={() => {
@@ -663,6 +660,7 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
                 doc={doc}
                 clashes={activeClashes}
                 onClashesChanged={setActiveClashes}
+                onSelectClash={handleSelectClash}
                 onFocusPoint3D={handleFocusPoint3D}
                 onLocate2D={handleLocate2D}
                 onClose={() => setViewMode('split')}
@@ -738,7 +736,6 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
           activeTab={rightDockTab}
           onTabChange={setRightDockTab}
           selectedCount={selectedIds.length}
-          clashCount={activeClashes.length + federatedClashes.length}
           modelCount={federatedModels.size}
           properties={
             <ErrorBoundary name="Inspecteur de Propriétés">
@@ -748,22 +745,6 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
                 isCollapsed={false}
                 onDeleteSelected={handleDeleteSelected}
                 embedded
-              />
-            </ErrorBoundary>
-          }
-          clashes={
-            <ErrorBoundary name="Détecteur de Conflits">
-              <ClashPanel
-                doc={doc}
-                embedded
-                isCollapsed={!isClashPanelOpen}
-                onToggleCollapse={() => setIsClashPanelOpen((open) => !open)}
-                onSelectClash={handleSelectClash}
-                onClashesChanged={setActiveClashes}
-                onSelectLevel={setActiveLevelId}
-                onFocusPoint={handleFocusPoint3D}
-                onLocate2D={handleLocate2D}
-                onOpenDedicatedView={() => setViewMode('clashes')}
               />
             </ErrorBoundary>
           }

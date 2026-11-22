@@ -43,7 +43,7 @@ describe('Composant <ClashWorkspace /> (Dedicated BIM Coordination Cockpit)', ()
     expect(screen.getByText('Coordination BIM & Conflits')).toBeDefined();
 
     // Lancer la détection
-    const runBtn = screen.getByTestId('workspace-run-detection-btn');
+    const runBtn = screen.getByTestId('run-clash-btn');
     fireEvent.click(runBtn);
 
     expect(handleClashesChanged).toHaveBeenCalledTimes(1);
@@ -74,7 +74,7 @@ describe('Composant <ClashWorkspace /> (Dedicated BIM Coordination Cockpit)', ()
     );
 
     expect(screen.getByTestId('workspace-hard-badge').textContent).toContain('1 Hard');
-    expect(screen.getByTestId('workspace-clashes-table')).toBeDefined();
+    expect(screen.getByTestId('clash-table')).toBeDefined();
 
     // Clic sur le conflit
     const firstRow = screen.getByTestId(/^workspace-clash-row-/);

@@ -267,7 +267,6 @@ export function Toolbar({
               className={`${styles.tab} ${tab === name ? styles.tabActive : ''}`}
               onClick={() => {
                 setTab(name);
-                if (name === 'Coordination') onOpenDockTab?.('clashes');
               }}
             >
               {name}
@@ -361,7 +360,6 @@ export function Toolbar({
                 aria-pressed={isClashPanelOpen}
                 onClick={() => {
                   onToggleClashPanel?.();
-                  onOpenDockTab?.('clashes');
                 }}
               >
                 <Sparkles size={16} />

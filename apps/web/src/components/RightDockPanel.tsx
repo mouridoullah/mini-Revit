@@ -1,28 +1,25 @@
 import { useState, type ReactNode } from 'react';
 import {
-  AlertTriangle,
   ChevronLeft,
   FileBox,
   PanelRightClose,
   SlidersHorizontal,
 } from 'lucide-react';
 import styles from './Cockpit.module.css';
-export type DockTab = 'properties' | 'clashes' | 'ifc';
+
+export type DockTab = 'properties' | 'ifc';
+
 export function RightDockPanel({
   properties,
-  clashes,
   ifc,
   selectedCount,
-  clashCount,
   modelCount,
   activeTab,
   onTabChange,
 }: {
   properties: ReactNode;
-  clashes: ReactNode;
   ifc: ReactNode;
   selectedCount: number;
-  clashCount: number;
   modelCount: number;
   activeTab: DockTab;
   onTabChange: (tab: DockTab) => void;
@@ -30,7 +27,6 @@ export function RightDockPanel({
   const [collapsed, setCollapsed] = useState(false);
   const tabs: { id: DockTab; label: string; icon: typeof SlidersHorizontal; badge?: number }[] = [
     { id: 'properties', label: 'Propriétés', icon: SlidersHorizontal },
-    { id: 'clashes', label: 'Conflits', icon: AlertTriangle, badge: clashCount },
     { id: 'ifc', label: 'IFC Réf', icon: FileBox, badge: modelCount },
   ];
   return (
@@ -61,11 +57,7 @@ export function RightDockPanel({
                 <Icon size={16} strokeWidth={1.75} />
                 {label}
                 {badge ? (
-                  <span
-                    style={{
-                      color: id === 'clashes' ? 'var(--status-warning)' : 'var(--accent-primary)',
-                    }}
-                  >
+                  <span>
                     {badge}
                   </span>
                 ) : null}
@@ -85,7 +77,7 @@ export function RightDockPanel({
       </div>
       {!collapsed && (
         <div className={styles.dockContent}>
-          {activeTab === 'properties' ? properties : activeTab === 'clashes' ? clashes : ifc}
+          {activeTab === 'properties' ? properties : ifc}
         </div>
       )}
     </aside>

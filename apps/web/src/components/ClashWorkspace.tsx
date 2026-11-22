@@ -22,6 +22,7 @@ export interface ClashWorkspaceProps {
   readonly doc: BimDocument;
   readonly clashes: readonly ClashResult[];
   readonly onClashesChanged: (clashes: readonly ClashResult[]) => void;
+  readonly onSelectClash?: (clash: ClashResult) => void;
   readonly onFocusPoint3D: (point: { readonly x: number; readonly y: number; readonly z: number }) => void;
   readonly onLocate2D: (point: { readonly x: number; readonly y: number }, levelId?: string) => void;
   readonly viewport3D: ReactNode;
@@ -109,6 +110,7 @@ export function ClashWorkspace({
   doc,
   clashes,
   onClashesChanged,
+  onSelectClash,
   onFocusPoint3D,
   onLocate2D,
   viewport3D,
@@ -132,6 +134,7 @@ export function ClashWorkspace({
         if (first) {
           setSelectedClashId(first.id);
           onFocusPoint3D(first.point);
+          onSelectClash?.(first);
         }
       } else {
         setSelectedClashId(null);
@@ -139,7 +142,7 @@ export function ClashWorkspace({
     } finally {
       setIsDetecting(false);
     }
-  }, [doc, onClashesChanged, onFocusPoint3D]);
+  }, [doc, onClashesChanged, onFocusPoint3D, onSelectClash]);
 
   const handleClear = useCallback(() => {
     onClashesChanged([]);
@@ -200,6 +203,7 @@ export function ClashWorkspace({
   const handleSelectClash = (clash: ClashResult) => {
     setSelectedClashId(clash.id);
     onFocusPoint3D(clash.point);
+    onSelectClash?.(clash);
   };
 
   const handleExportCsv = useCallback(() => {
@@ -233,6 +237,7 @@ export function ClashWorkspace({
     >
       {/* 1. Volet Gauche : Centre de Contrôle & Coordination (Largeur 520px) */}
       <div
+        data-testid="clash-panel"
         style={{
           width: '520px',
           flex: '0 0 520px',
@@ -358,7 +363,7 @@ export function ClashWorkspace({
           <div style={{ display: 'flex', gap: '8px' }}>
             <button
               type="button"
-              data-testid="workspace-run-detection-btn"
+              data-testid="run-clash-btn"
               onClick={handleRunDetection}
               disabled={isDetecting}
               style={{
@@ -503,6 +508,7 @@ export function ClashWorkspace({
         <div style={{ flex: 1, overflowY: 'auto' }}>
           {filteredClashes.length === 0 ? (
             <div
+              data-testid="no-clashes-msg"
               style={{
                 padding: '36px 20px',
                 textAlign: 'center',
@@ -524,7 +530,7 @@ export function ClashWorkspace({
             </div>
           ) : (
             <table
-              data-testid="workspace-clashes-table"
+              data-testid="clash-table"
               style={{
                 width: '100%',
                 borderCollapse: 'collapse',
@@ -765,7 +771,7 @@ export function ClashWorkspace({
           style={{
             position: 'absolute',
             top: '12px',
-            right: '16px',
+            left: '16px',
             zIndex: 10,
             display: 'flex',
             alignItems: 'center',
