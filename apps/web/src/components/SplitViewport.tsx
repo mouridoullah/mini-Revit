@@ -1,12 +1,16 @@
 import { useRef, useState, type ReactNode } from 'react';
-import { Columns2, Moon, PanelLeft, PanelRight, Sun, ZoomIn } from 'lucide-react';
+import { Columns2, Moon, PanelLeft, PanelRight, Scissors, Sun, ZoomIn } from 'lucide-react';
 import styles from './Cockpit.module.css';
 
-export type ViewMode = '2d' | 'split' | '3d';
+export type ViewMode = '2d' | 'split' | '3d' | 'section';
 export function SplitViewport({
   twoD,
   threeD,
+  section,
   levelName,
+  activeSectionName,
+  mode: controlledMode,
+  onModeChange,
   onZoomFit,
   onZoomFit3D,
   isWhiteMode = false,
@@ -14,13 +18,22 @@ export function SplitViewport({
 }: {
   twoD: ReactNode;
   threeD: ReactNode;
+  section?: ReactNode | undefined;
   levelName: string;
-  onZoomFit?: () => void;
-  onZoomFit3D?: () => void;
-  isWhiteMode?: boolean;
-  onToggleWhiteMode?: () => void;
+  activeSectionName?: string | undefined;
+  mode?: ViewMode | undefined;
+  onModeChange?: ((mode: ViewMode) => void) | undefined;
+  onZoomFit?: (() => void) | undefined;
+  onZoomFit3D?: (() => void) | undefined;
+  isWhiteMode?: boolean | undefined;
+  onToggleWhiteMode?: (() => void) | undefined;
 }) {
-  const [mode, setMode] = useState<ViewMode>('split');
+  const [internalMode, setInternalMode] = useState<ViewMode>('split');
+  const mode = controlledMode !== undefined ? controlledMode : internalMode;
+  const setMode = (next: ViewMode) => {
+    if (onModeChange) onModeChange(next);
+    else setInternalMode(next);
+  };
   const [ratio, setRatio] = useState(50);
   const root = useRef<HTMLDivElement>(null);
   const drag = useRef(false);
@@ -48,6 +61,7 @@ export function SplitViewport({
             ['2d', PanelLeft, '2D'],
             ['split', Columns2, '2D | 3D'],
             ['3d', PanelRight, '3D'],
+            ['section', Scissors, 'Coupe'],
           ] as const
         ).map(([value, Icon, label]) => (
           <button
@@ -135,6 +149,17 @@ export function SplitViewport({
           >
             <ZoomIn size={14} strokeWidth={1.75} /> Zoom Fit
           </button>
+        </section>
+      )}
+      {mode === 'section' && (
+        <section
+          className={styles.viewportFrame}
+          style={{ flex: '1 1 100%' }}
+        >
+          <div className={`${styles.viewportLabel} ${styles.viewport2dLabel}`}>
+            Coupe 2D — {activeSectionName ?? 'Vue de coupe'}
+          </div>
+          {section}
         </section>
       )}
     </div>

@@ -14,7 +14,8 @@ import { Viewport2D } from './components/Viewport2D.js';
 import { Viewport3D } from './components/Viewport3D.js';
 import { ProjectBrowser } from './components/ProjectBrowser.js';
 import { RightDockPanel, type DockTab } from './components/RightDockPanel.js';
-import { SplitViewport } from './components/SplitViewport.js';
+import { SplitViewport, type ViewMode } from './components/SplitViewport.js';
+import { SectionViewport } from './components/SectionViewport.js';
 import styles from './components/Cockpit.module.css';
 import { useActiveTool } from './tools/useActiveTool.js';
 import { ComponentTool } from './tools/ComponentTool.js';
@@ -30,6 +31,7 @@ import { useBimPersistence } from './hooks/useBimPersistence.js';
 import { useBimExport } from './hooks/useBimExport.js';
 import { useFederatedIfc } from './hooks/useFederatedIfc.js';
 import { useBimShortcuts } from './hooks/useBimShortcuts.js';
+import { useSectionCuts } from './hooks/useSectionCuts.js';
 
 export interface AppProps {
   readonly initialDoc?: BimDocument;
@@ -55,6 +57,7 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
     'single-line',
   );
   const [isWhiteMode, setIsWhiteMode] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('split');
   const [underlayEnabled, setUnderlayEnabled] = useState(true);
   const [isClashPanelOpen, setIsClashPanelOpen] = useState(false);
   const [rightDockTab, setRightDockTab] = useState<DockTab>('properties');
@@ -67,6 +70,16 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
     readonly y: number;
     readonly z: number;
   } | null>(null);
+
+  // 1b. Hook de Coupes & Élévations 2D / 3D (ADR-063)
+  const {
+    activeSectionCutId,
+    setActiveSectionCutId,
+    is3dSynchroEnabled,
+    toggle3dSynchro,
+    activeSectionCut,
+    activeSectionCutFor3D,
+  } = useSectionCuts(doc);
   useEffect(() => {
     if (selectedIds.length > 0) setRightDockTab('properties');
   }, [selectedIds]);
@@ -106,8 +119,12 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
     (ids: readonly string[]) => {
       setSelectedIds(ids);
       setSelectedFederatedEntity(null);
+      const firstId = ids[0];
+      if (ids.length === 1 && firstId && doc.getState().sectionCuts?.[firstId]) {
+        setActiveSectionCutId(firstId);
+      }
     },
-    [setSelectedFederatedEntity],
+    [doc, setSelectedFederatedEntity, setActiveSectionCutId],
   );
 
   const zoomFitRef = useRef<() => void>(() => undefined);
@@ -224,6 +241,7 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
         doc.execute(new Commands.DeleteMepElementCommand(id));
       else if (state.rooms?.[id]) doc.execute(new Commands.DeleteRoomCommand(id));
       else if (state.dimensions?.[id]) doc.execute(new Commands.DeleteDimensionCommand(id));
+      else if (state.sectionCuts?.[id]) doc.execute(new Commands.DeleteSectionCutCommand(id));
       else return;
       setSelectedIds([]);
       setErrorMessage(null);
@@ -397,6 +415,13 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
           hasUnderlayLevel={hasUnderlayLevel}
           models={Array.from(federatedModels.values())}
           systems={Object.values(doc.getState().mepSystems ?? {})}
+          sectionCuts={Object.values(doc.getState().sectionCuts ?? {})}
+          activeSectionCutId={activeSectionCutId}
+          onSelectSectionCut={(cutId) => {
+            setActiveSectionCutId(cutId);
+            setSelectedIds([cutId]);
+            setViewMode('section');
+          }}
           visibility={
             new Map(Array.from(federatedOptions, ([id, options]) => [id, options.visible]))
           }
@@ -412,10 +437,20 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
         />
         <SplitViewport
           levelName={doc.getState().levels[activeLevelId]?.name ?? 'Niveau'}
+          activeSectionName={activeSectionCut?.name}
+          mode={viewMode}
+          onModeChange={setViewMode}
           onZoomFit={() => zoomFitRef.current()}
           onZoomFit3D={() => zoomFit3DRef.current()}
           isWhiteMode={isWhiteMode}
           onToggleWhiteMode={() => setIsWhiteMode((current) => !current)}
+          section={
+            <SectionViewport
+              sectionCutId={activeSectionCutId}
+              is3dSynchroEnabled={is3dSynchroEnabled}
+              onToggle3dSynchro={toggle3dSynchro}
+            />
+          }
           twoD={
             <Viewport2D
               tool={activeTool}
@@ -441,6 +476,7 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
               clashes={activeClashes}
               focusPoint={clashFocusPoint}
               federatedModels={federatedVisuals}
+              activeSectionCut={activeSectionCutFor3D}
               federatedSelection={
                 selectedFederatedEntity
                   ? {

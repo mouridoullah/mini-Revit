@@ -1,7 +1,7 @@
 # REGISTRE DES DÉCISIONS D'ARCHITECTURE (ADR) — MINI-BIM
 
 **Statut global :** Registre Officiel de Décisions Techniques  
-**Dernière mise à jour :** 20 novembre 2026
+**Dernière mise à jour :** 22 novembre 2026
 
 ---
 
@@ -71,6 +71,7 @@
 | **ADR-060** | Modèle de Référence Fédéré IFC en Lecture Seule & Coordination Spatiale Inter-Maquettes (Phase 9.5) | **Accepté**  | 20/11/2026 |
 | **ADR-061** | Design System Graphite Engineering, CSS Modules et Icônes Lucide | **Accepté**  | 20/11/2026 |
 | **ADR-062** | Scalabilité du Noyau 10k — Indexation Paresseuse O(1), Partage Structurel CSG et DAG Incrémental Différentiel (Phase 10) | **Accepté**  | 21/11/2026 |
+| **ADR-063** | Coupes 2D Dynamiques, Élévations de Façade, Plans de Coupe 3D et Export Vectoriel SVG Normalisé (Saison 3 - Étape 2) | **Accepté**  | 22/11/2026 |
 
 ---
 
@@ -2502,6 +2503,46 @@ La métrologie de la Phase 9.1 a révélé deux goulots d'étranglement de scala
    - Filtrage spatial AABB 2D en amont dans `detectRooms` sur coordonnées brutes sans réveiller les proxies Immer.
    - Évitement du balayage de clés sur draft Immer via `noNewWalls: true` et `modifiedWallIds`.
    - Repli architectural systématique sur la détection complète du niveau pour les grandes pièces ouvertes (> 6m ou > 15m) afin de garantir 0 faux négatif `unenclosed`.
+
+---
+
+## ADR-063 : Coupes 2D Dynamiques, Élévations de Façade, Plans de Coupe 3D et Export Vectoriel SVG Normalisé
+
+### Contexte
+
+En ingénierie du bâtiment et modélisation BIM professionnelle (Revit, ArchiCAD), la coupe et l'élévation ne sont pas des dessins statiques ou isolés, mais des projections analytiques directes et dynamiques de la maquette numérique unique.
+Mini-BIM nécessitait un moteur dynamique capable de couper et projeter tous les corps d'état modélisés (architecture, structure, réseaux MEP), de synchroniser en temps réel un plan de coupe 3D Three.js sans dégradation de performance, d'exporter en SVG vectoriel avec cartouche réglementaire ISO, et d'offrir une ergonomie interactive fluide.
+
+### Décisions Clés
+
+1. **D1 — Contrat Unifié `SectionCut` & Repère Local de Coupe (`@mini-bim/core`, `@mini-bim/geometry`) :**
+   - Coupe définie par segment 2D borné `start`, `end`, une direction d'observation `viewDirection: 1 | -1`, une profondeur de champ `depth` et des bornes altimétriques optionnelles `zMin`, `zMax`.
+   - Repère orthonormé local `SectionFrame2D` $P(x, y) \to (s, d)$ avec abscisse curviligne $s \in [0, L]$ et profondeur $d \in [0, \text{depth}]$.
+   - Algorithme analytique `sliceSegmentWithPolygon` calculant l'intervalle de coupure exact avec les polygones 2D (murs, dalles, toitures).
+
+2. **D2 — Assemblage Neutre `computeSectionScene` (`@mini-bim/core`) :**
+   - Fonction pure découplée de tout moteur graphique produisant `SectionScene` contenant `cutItems` (pochés de coupe forts avec hachures maçonnerie, béton, isolant, solide MEP) et `projectedItems` (arêtes fines d'arrière-plan).
+   - Prise en compte rigoureuse des déductions d'ouvertures (allèges, linteaux), des trémies de dalles et cages d'escaliers (ADR-048), du biseautage de tête sous toiture (ADR-053), et des réseaux MEP (traversées circulaires ou projections de parcours).
+
+3. **D3 — Moteur de Rendu Canvas 2D & Export Vectoriel SVG (`@mini-bim/view-2d`) :**
+   - Rendu Canvas 2D `renderSectionView` avec cibles altimétriques, niveaux, lignes de sol et styles de hachures conformes aux normes ISO 128 / BIM.
+   - Export SVG `generateSectionSvg` intégrant cartouche réglementaire, motifs de hachures `<defs>` vectoriels, échelles normalisées 1:50, 1:100, 1:200 et format A4/A3 paysage.
+   - Représentation normalisée du symbole de coupe sur plan 2D (`drawSectionCuts`) avec trait mixte fort, flèches d'observation et pastilles de repère $A-A'$.
+
+4. **D4 — Synchronisation 3D Three.js & Filtrage Raycasting (`@mini-bim/view-3d`) :**
+   - Activation de `renderer.localClippingEnabled = true` et `setSectionCutFrom2D(start, end, viewDirection)`.
+   - Construction déterministe du plan analytique `THREE.Plane(normal, constant)` en repère Z-up :
+     $$\vec{n} = \text{viewDirection} \cdot (-u_y, u_x, 0), \quad c = -(n_x \cdot x_1 + n_y \cdot y_1)$$
+   - Propagation automatique aux matériaux existants et nouveaux via `setSectionCutPlane`.
+   - Filtrage dans `raycastNDC` : élimination des surfaces coupées (`distanceToPoint(hit.point) < 0`), permettant le picking naturel des éléments situés derrière la coupe.
+
+5. **D5 — Ergonomie Cockpit & Expérience Utilisateur (`apps/web`) :**
+   - Outil interactif pur `SectionTool` (`X`) avec mode glisser et mode deux clics, snap 45°/90° sur `Shift`, et inversion du sens par barre d'espace (`Space`).
+   - Détection au clic et sélection via `findSectionCutAtScreen` dans `SelectTool`.
+   - Panneau d'inspection dédié `SectionInspector` dans `PropertyInspector`.
+   - Intégration dans `ProjectBrowser` (sous-dossier « Coupes & Élévations »), onglet dédié `SplitViewport` (`Coupe`), et composant `SectionViewport` avec toggle Synchro 3D et bouton d'export SVG.
+   - Respect absolu de la Règle d'or #2 : zéro import direct de `@mini-bim/geometry` dans `apps/web`.
+
 
 
 

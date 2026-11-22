@@ -9,6 +9,7 @@ import {
   findOpeningAtScreen,
   findMepElementAtScreen,
   findMepPortAtScreen,
+  findSectionCutAtScreen,
 } from './hit-test.js';
 
 describe('Hit-Test Découplé (hit-test.ts)', () => {
@@ -333,5 +334,41 @@ describe('Hit-Test Découplé (hit-test.ts)', () => {
     // Clic à 20 pixels écran du port -> hors de la tolérance de 14 px
     const portMiss = findMepPortAtScreen(vec2(portScreen.x + 20, portScreen.y), transform, doc, { hitTolerancePx: 14 });
     expect(portMiss).toBeNull();
+  });
+
+  it('findSectionCutAtScreen détecte un clic sur une ligne de coupe et rejette les clics distants (ADR-063)', () => {
+    const doc = new BimDocument();
+    doc.execute(
+      new Commands.AddSectionCutCommand({
+        id: 'cut_hit_test',
+        category: 'sectionCut',
+        name: "Coupe A-A'",
+        label: 'A',
+        kind: 'section',
+        start: vec2(1000, 2000),
+        end: vec2(5000, 2000),
+        viewDirection: 1,
+        depth: 6000,
+      }),
+    );
+
+    const transform = new Transform2D({ scale: 0.1 }); // 1 px = 10 mm
+
+    // Clic sur le milieu de la ligne à (3000, 2000)
+    const screenMid = transform.worldToScreen(vec2(3000, 2000));
+    const hit = findSectionCutAtScreen(screenMid, transform, doc as unknown as import('./types.js').DocumentFor2D, { hitTolerancePx: 8 });
+    expect(hit).not.toBeNull();
+    expect(hit?.id).toBe('cut_hit_test');
+    expect(hit?.label).toBe('A');
+
+    // Clic décalé de 5 pixels écran (50 mm) -> dans la tolérance de 8 px (80 mm)
+    const screenClose = vec2(screenMid.x, screenMid.y + 5);
+    const hitClose = findSectionCutAtScreen(screenClose, transform, doc as unknown as import('./types.js').DocumentFor2D, { hitTolerancePx: 8 });
+    expect(hitClose).not.toBeNull();
+
+    // Clic décalé de 15 pixels écran (150 mm) -> hors tolérance
+    const screenFar = vec2(screenMid.x, screenMid.y + 15);
+    const hitFar = findSectionCutAtScreen(screenFar, transform, doc as unknown as import('./types.js').DocumentFor2D, { hitTolerancePx: 8 });
+    expect(hitFar).toBeNull();
   });
 });

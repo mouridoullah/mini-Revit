@@ -837,4 +837,32 @@ describe('Sérialisation et Désérialisation (serialization.ts)', () => {
     const reloaded = fromJSON(reserialized);
     expect(reloaded).toEqual(migrated);
   });
+
+  it('préserve les SectionCuts en round-trip toJSON / fromJSON (ADR-063)', () => {
+    const stateWithCut: BimState = {
+      ...sampleState,
+      sectionCuts: {
+        cut_01: {
+          id: 'cut_01',
+          category: 'sectionCut',
+          name: "Coupe A-A'",
+          label: 'A',
+          kind: 'section',
+          start: vec2(0, 2000),
+          end: vec2(6000, 2000),
+          viewDirection: 1,
+          depth: 8000,
+          zMin: -200,
+          zMax: 6000,
+        },
+      },
+    };
+
+    const jsonStr = toJSON(stateWithCut);
+    const restored = fromJSON(jsonStr);
+    expect(restored.sectionCuts?.['cut_01']).toBeDefined();
+    expect(restored.sectionCuts?.['cut_01']?.name).toBe("Coupe A-A'");
+    expect(restored.sectionCuts?.['cut_01']?.depth).toBe(8000);
+    expect(restored).toEqual(stateWithCut);
+  });
 });

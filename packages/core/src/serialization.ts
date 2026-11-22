@@ -764,5 +764,24 @@ export function fromJSON(jsonString: string): BimState {
     }
   }
 
+  if (state.sectionCuts && typeof state.sectionCuts === 'object' && !Array.isArray(state.sectionCuts)) {
+    for (const [id, sc] of Object.entries(state.sectionCuts)) {
+      if (
+        !sc ||
+        typeof sc !== 'object' ||
+        sc.id !== id ||
+        sc.category !== 'sectionCut' ||
+        (sc.kind !== 'section' && sc.kind !== 'elevation') ||
+        typeof sc.name !== 'string' ||
+        typeof sc.label !== 'string' ||
+        !sc.start ||
+        !sc.end ||
+        !Number.isFinite(sc.depth)
+      ) {
+        throw new BimValidationError('MALFORMED_SECTION_CUT', `Malformed section cut entry at "${id}".`);
+      }
+    }
+  }
+
   return state;
 }

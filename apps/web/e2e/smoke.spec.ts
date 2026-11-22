@@ -313,4 +313,58 @@ test.describe('Mini-BIM E2E Smoke Tests (Playwright Real Browser)', () => {
 
     expect(consoleErrors).toEqual([]);
   });
+
+  test('Saison 3 — Coupe 2D Dynamique : activation outil Coupe (X), tracé, inspection, bascule vue coupe et synchro 3D (ADR-063)', async ({
+    page,
+  }) => {
+    const consoleErrors: string[] = [];
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') consoleErrors.push(msg.text());
+    });
+    page.on('pageerror', (err) => consoleErrors.push(err.message));
+
+    await page.goto('/');
+
+    // 1. Bouton "Coupe" dans le ruban Architecture
+    const sectionToolBtn = page.locator('[data-testid="tool-section-btn"]');
+    await expect(sectionToolBtn).toBeVisible();
+    await sectionToolBtn.click();
+
+    // 2. Tracé d'une coupe sur le canvas 2D
+    const canvas2D = page.locator('canvas[data-testid="viewport-2d-canvas"]');
+    const box = await canvas2D.boundingBox();
+    expect(box).not.toBeNull();
+    if (box) {
+      await page.mouse.move(box.x + 200, box.y + 200);
+      await page.mouse.down();
+      await page.mouse.move(box.x + 500, box.y + 200);
+      await page.mouse.up();
+    }
+
+    // 3. Vérification de la création dans ProjectBrowser
+    const projectBrowser = page.locator('[data-testid="project-browser"]');
+    await expect(projectBrowser).toContainText('Coupe A-A');
+
+    // 4. Clic sur la coupe pour basculer vers la vue Coupe
+    const sectionItem = projectBrowser.locator('button', { hasText: 'Coupe A-A' });
+    await sectionItem.click();
+
+    // 5. Affichage de la vue SectionViewport
+    const sectionViewport = page.locator('[data-testid="section-viewport"]');
+    await expect(sectionViewport).toBeVisible();
+    await expect(page.locator('[data-testid="section-active-title"]')).toContainText('Coupe A-A');
+
+    // 6. Bascule vers la vue 2D puis retour vue Coupe via disposition cockpit
+    await page.locator('[data-testid="layout-2d-btn"]').click();
+    await expect(canvas2D).toBeVisible();
+    await page.locator('[data-testid="layout-section-btn"]').click();
+    await expect(sectionViewport).toBeVisible();
+
+    // 7. Toggle Synchro 3D
+    const synchroBtn = page.locator('[data-testid="toggle-3d-synchro-btn"]');
+    await expect(synchroBtn).toBeVisible();
+    await synchroBtn.click();
+
+    expect(consoleErrors).toEqual([]);
+  });
 });

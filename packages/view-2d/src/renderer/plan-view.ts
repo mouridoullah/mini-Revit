@@ -34,6 +34,7 @@ import { drawRoofs } from './roofs.js';
 import { drawMepElements } from './mep.js';
 import { drawRoomFills, drawRoomLabels, drawRoomDiagnostics } from './rooms.js';
 import { drawDimensions } from './dimensions.js';
+import { drawSectionCuts } from './section-symbols.js';
 import { drawPreview } from './preview.js';
 import {
   aabbIntersects,
@@ -437,6 +438,11 @@ export function renderPlanView(
   // 6c. Diagnostics visuels des pièces
   if (roomDiagnostics && roomDiagnostics.length > 0) {
     drawRoomDiagnostics(ctx, transform, roomDiagnostics);
+  }
+
+  // 6d. Symboles de coupe normalisés ISO (ADR-063)
+  if (state.sectionCuts) {
+    drawSectionCuts(ctx, transform, Object.values(state.sectionCuts), selectedIds);
   }
 
   // 7. Forme de prévisualisation interactive

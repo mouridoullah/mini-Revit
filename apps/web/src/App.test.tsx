@@ -1408,4 +1408,53 @@ describe('App Integration & Squelette Double Viewport (apps/web)', () => {
 
     cleanup();
   });
+
+  it('T-APP-SEC-01 : Coupe 2D Dynamique — affichage dans ProjectBrowser, bascule vers SectionViewport et synchro 3D (ADR-063)', async () => {
+    const doc = BimDocument.createDefaultProject();
+    doc.execute(
+      new Commands.AddSectionCutCommand({
+        id: 'cut_app_test',
+        category: 'sectionCut',
+        name: "Coupe A-A'",
+        label: 'A',
+        kind: 'section',
+        start: { x: 0, y: 1500 },
+        end: { x: 4000, y: 1500 },
+        viewDirection: 1,
+        depth: 5000,
+      }),
+    );
+
+    const { getByTestId, findByTestId } = render(<App initialDoc={doc} />);
+
+    // 1. Présence dans ProjectBrowser
+    const projectSectionItem = await findByTestId('project-section-cut_app_test');
+    expect(projectSectionItem).toBeDefined();
+    expect(projectSectionItem.textContent).toContain("Coupe A-A'");
+
+    // 2. Clic sur la coupe -> bascule vers SectionViewport
+    fireEvent.click(projectSectionItem);
+
+    const sectionViewport = await findByTestId('section-viewport');
+    expect(sectionViewport).toBeDefined();
+
+    const title = getByTestId('section-active-title');
+    expect(title.textContent).toBe("Coupe A-A'");
+
+    // 3. Bascule de disposition via boutons du cockpit
+    const btn2d = getByTestId('layout-2d-btn');
+    fireEvent.click(btn2d);
+    expect(getByTestId('viewport-2d-canvas')).toBeDefined();
+
+    const btnSection = getByTestId('layout-section-btn');
+    fireEvent.click(btnSection);
+    expect(getByTestId('section-viewport')).toBeDefined();
+
+    // 4. Toggle Synchro 3D
+    const synchroBtn = getByTestId('toggle-3d-synchro-btn');
+    fireEvent.click(synchroBtn);
+    expect(synchroBtn.textContent).toContain('Synchro 3D');
+
+    cleanup();
+  });
 });

@@ -8,3 +8,4 @@ export * from './StairInspector.js';
 export * from './RoofInspector.js';
 export * from './ComponentInspector.js';
 export * from './MepInspector.js';
+export * from './SectionInspector.js';

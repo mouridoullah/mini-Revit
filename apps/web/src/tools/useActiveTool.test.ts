@@ -227,4 +227,15 @@ describe('useActiveTool Hook', () => {
     expect(result.current.activeToolKind).toBe('slab');
     expect(result.current.activeTool).toBeInstanceOf(SlabTool);
   });
+
+  it('bascule vers section : SectionTool devient actif et est correctement instancié (ADR-063)', () => {
+    const { result } = renderHook(() => useActiveTool('select'));
+
+    act(() => {
+      result.current.setActiveToolKind('section');
+    });
+
+    expect(result.current.activeToolKind).toBe('section');
+    expect(result.current.activeTool.kind).toBe('section');
+  });
 });

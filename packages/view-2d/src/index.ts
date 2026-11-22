@@ -62,11 +62,14 @@ export {
   findComponentAtScreen,
   findMepElementAtScreen,
   findMepPortAtScreen,
+  findSectionCutAtScreen,
   type HitTestOptions,
   type HitOpeningResult,
   type HitMepElementResult,
   type HitMepPortResult,
+  type HitSectionCutResult,
 } from './hit-test.js';
+export { drawSectionCuts } from './renderer/section-symbols.js';
 export {
   drawComponentSymbol,
   drawComponents,

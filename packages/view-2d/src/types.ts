@@ -272,7 +272,20 @@ export interface DocumentFor2D {
     readonly mepConnectors?: Record<string, ConnectorFor2D> | undefined;
     readonly mepSystems?: Record<string, MepSystemFor2D> | undefined;
     readonly levels?: Record<string, { readonly id: string; readonly name: string; readonly elevation: number; readonly height?: number | undefined }> | undefined;
+    readonly sectionCuts?: Record<string, SectionCutFor2D> | undefined;
   };
+}
+
+export interface SectionCutFor2D {
+  readonly id: string;
+  readonly category?: 'sectionCut' | undefined;
+  readonly name: string;
+  readonly label: string;
+  readonly kind: 'section' | 'elevation';
+  readonly start: Vec2;
+  readonly end: Vec2;
+  readonly viewDirection: 1 | -1;
+  readonly depth: number;
 }
 
 // ============================================================================
@@ -671,6 +684,14 @@ export type PreviewShape =
         readonly compatible: boolean;
       } | null;
       readonly waypoints?: readonly Vec2[] | undefined;
+    }
+  | {
+      readonly kind: 'section';
+      readonly start: Vec2;
+      readonly end: Vec2;
+      readonly viewDirection: 1 | -1;
+      readonly depth?: number | undefined;
+      readonly label?: string | undefined;
     };
 
 /**

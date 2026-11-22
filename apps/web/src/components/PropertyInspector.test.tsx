@@ -471,4 +471,33 @@ describe('PropertyInspector — Panneau latéral d’inspection et d’édition 
     fireEvent.click(deleteBtn);
     expect(onDeleteMock).toHaveBeenCalledTimes(1);
   });
+
+  it('T-INSP-SEC-01 : sélection d’une coupe affiche SectionInspector et permet d’inverser la direction de vue (ADR-063)', () => {
+    doc.execute(
+      new Commands.AddSectionCutCommand({
+        id: 'cut_insp_test',
+        category: 'sectionCut',
+        name: "Coupe A-A'",
+        label: 'A',
+        kind: 'section',
+        start: { x: 0, y: 0 },
+        end: { x: 4000, y: 0 },
+        viewDirection: 1,
+        depth: 5000,
+      }),
+    );
+
+    render(<PropertyInspector doc={doc} selectedIds={['cut_insp_test']} />);
+
+    expect(screen.getByTestId('inspector-section-panel')).toBeDefined();
+    expect(screen.getByTestId('section-id').textContent).toBe('cut_insp_test');
+    expect(screen.getByText("Coupe 2D")).toBeDefined();
+
+    // Inversion de la direction de vue
+    const flipBtn = screen.getByTestId('section-flip-direction-btn');
+    fireEvent.click(flipBtn);
+
+    const updated = doc.getState().sectionCuts?.['cut_insp_test'];
+    expect(updated?.viewDirection).toBe(-1);
+  });
 });

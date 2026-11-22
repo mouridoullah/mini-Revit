@@ -333,6 +333,56 @@ export function drawPreview(
       }
       ctx.restore();
     }
+  } else if (preview.kind === 'section') {
+    const sStart = transform.worldToScreen(preview.start);
+    const sEnd = transform.worldToScreen(preview.end);
+
+    const dx = preview.end.x - preview.start.x;
+    const dy = preview.end.y - preview.start.y;
+    const len = Math.hypot(dx, dy);
+
+    ctx.save();
+    ctx.strokeStyle = '#2563eb';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([10, 4, 2, 4]);
+
+    ctx.beginPath();
+    ctx.moveTo(sStart.x, sStart.y);
+    ctx.lineTo(sEnd.x, sEnd.y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Pastilles d'extrémités
+    ctx.fillStyle = '#2563eb';
+    ctx.beginPath();
+    ctx.arc(sStart.x, sStart.y, 6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(sEnd.x, sEnd.y, 6, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Flèche d'orientation si longueur suffisante
+    if (len > 10) {
+      const sdx = sEnd.x - sStart.x;
+      const sdy = sEnd.y - sStart.y;
+      const slen = Math.hypot(sdx, sdy);
+      if (slen > 1e-4) {
+        const snx = (preview.viewDirection * sdy) / slen;
+        const sny = (preview.viewDirection * -sdx) / slen;
+
+        const midX = (sStart.x + sEnd.x) / 2;
+        const midY = (sStart.y + sEnd.y) / 2;
+
+        ctx.fillStyle = '#2563eb';
+        ctx.beginPath();
+        ctx.moveTo(midX + 16 * snx, midY + 16 * sny);
+        ctx.lineTo(midX + 6 * snx + 6 * -sny, midY + 6 * sny + 6 * snx);
+        ctx.lineTo(midX + 6 * snx - 6 * -sny, midY + 6 * sny - 6 * snx);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+    ctx.restore();
   }
   ctx.restore();
 }

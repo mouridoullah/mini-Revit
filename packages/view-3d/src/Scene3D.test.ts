@@ -10,6 +10,8 @@ vi.mock('three', async (importOriginal) => {
 
   class MockWebGLRenderer {
     public domElement: HTMLCanvasElement;
+    public localClippingEnabled = false;
+    public clippingPlanes: THREE.Plane[] = [];
     public setSize = vi.fn();
     public setPixelRatio = vi.fn();
     public render = vi.fn();
@@ -735,5 +737,69 @@ describe('Scene3D — Gestionnaire de scène 3D Three.js impératif', () => {
     expect(fedGroup.children.length).toBe(0);
 
     scene3d.dispose();
+  });
+
+  describe('ADR-063 : Plan de coupe 3D dynamique (Section Cuts & Elevations)', () => {
+    it('T-SCENE3D-SEC-01 : setSectionCutPlane propage le plan de coupe sur les matériaux existants et nouveaux', () => {
+      const scene3d = new Scene3D(canvas, { width: 800, height: 600 });
+      const mesh1 = scene3d.addMesh(createSampleRawMesh('wall_01'));
+      expect((mesh1.material as THREE.Material).clippingPlanes).toBeFalsy();
+
+      const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -1500);
+      scene3d.setSectionCutPlane(plane);
+
+      expect(scene3d.getActiveClippingPlane()).toBe(plane);
+      expect((mesh1.material as THREE.Material).clippingPlanes).toEqual([plane]);
+
+      // Nouveau mesh ajouté après l'activation de la coupe
+      const mesh2 = scene3d.addMesh(createSampleRawMesh('wall_02'));
+      expect((mesh2.material as THREE.Material).clippingPlanes).toEqual([plane]);
+
+      // Désactivation de la coupe
+      scene3d.setSectionCutPlane(null);
+      expect(scene3d.getActiveClippingPlane()).toBeNull();
+      expect((mesh1.material as THREE.Material).clippingPlanes).toEqual([]);
+      expect((mesh2.material as THREE.Material).clippingPlanes).toEqual([]);
+
+      scene3d.dispose();
+    });
+
+    it('T-SCENE3D-SEC-02 : setSectionCutFrom2D configure un plan THREE.Plane orienté par viewDirection', () => {
+      const scene3d = new Scene3D(canvas, { width: 800, height: 600 });
+
+      // Coupe horizontale de (0, 2000) à (5000, 2000) regardant vers le haut (+Y, viewDirection = 1)
+      scene3d.setSectionCutFrom2D({ x: 0, y: 2000 }, { x: 5000, y: 2000 }, 1);
+      const plane = scene3d.getActiveClippingPlane();
+      expect(plane).not.toBeNull();
+      // u = (1, 0), n_2D = (-uy, ux) = (0, 1) * 1 = (0, 1)
+      expect(plane!.normal.x).toBeCloseTo(0);
+      expect(plane!.normal.y).toBeCloseTo(1);
+      expect(plane!.normal.z).toBeCloseTo(0);
+      // constant = -(0*0 + 1*2000) = -2000
+      expect(plane!.constant).toBeCloseTo(-2000);
+
+      // Inversion de la direction de vue (-1 => normale vers le bas -Y)
+      scene3d.setSectionCutFrom2D({ x: 0, y: 2000 }, { x: 5000, y: 2000 }, -1);
+      const planeInv = scene3d.getActiveClippingPlane();
+      expect(planeInv!.normal.y).toBeCloseTo(-1);
+      expect(planeInv!.constant).toBeCloseTo(2000);
+
+      scene3d.dispose();
+    });
+
+    it('T-SCENE3D-SEC-03 : raycastNDC ignore les surfaces coupées par le plan de coupe', () => {
+      const scene3d = new Scene3D(canvas, { width: 800, height: 600 });
+      scene3d.addMesh(createSampleRawMesh('wall_cut'));
+
+      // Coupe plaçant wall_cut en zone coupée (distance < 0)
+      const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -5000);
+      scene3d.setSectionCutPlane(plane);
+
+      // Raycast simulé : avec le plan actif, si le point touché est < 0, il est ignoré
+      const hit = scene3d.raycastNDC(0, 0);
+      expect(hit).toBeNull();
+
+      scene3d.dispose();
+    });
   });
 });

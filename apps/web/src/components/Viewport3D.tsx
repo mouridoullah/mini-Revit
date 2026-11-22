@@ -35,6 +35,11 @@ export interface Viewport3DProps {
   readonly federatedModels?: readonly FederatedModelVisual[];
   readonly federatedSelection?: { readonly modelId: string; readonly expressId: number } | null;
   readonly onSelectFederatedEntity?: (modelId: string | null, expressId: number | null) => void;
+  readonly activeSectionCut?: {
+    readonly start: { readonly x: number; readonly y: number };
+    readonly end: { readonly x: number; readonly y: number };
+    readonly viewDirection: 1 | -1;
+  } | null;
 }
 
 /**
@@ -52,6 +57,7 @@ export function Viewport3D({
   federatedModels,
   federatedSelection,
   onSelectFederatedEntity,
+  activeSectionCut,
 }: Viewport3DProps = {}) {
   const { state, lastChangedIds } = useBimDocument();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -595,6 +601,21 @@ export function Viewport3D({
       sceneRef.current.setHighlight(selection ?? []);
     }
   }, [selection]);
+
+  // Synchronisation du plan de coupe 3D (ADR-063)
+  useEffect(() => {
+    const scene = sceneRef.current;
+    if (!scene) return;
+    if (activeSectionCut) {
+      scene.setSectionCutFrom2D(
+        activeSectionCut.start,
+        activeSectionCut.end,
+        activeSectionCut.viewDirection,
+      );
+    } else {
+      scene.setSectionCutPlane(null);
+    }
+  }, [activeSectionCut]);
 
   // Synchronisation des superpositions visuelles des conflits 3D (Phase 9.4)
   useEffect(() => {

@@ -11,6 +11,7 @@ import {
   RoofInspector,
   ComponentInspector,
   MepInspector,
+  SectionInspector,
 } from './inspector/index.js';
 
 export interface PropertyInspectorProps {
@@ -195,6 +196,12 @@ export function PropertyInspector({
       Boolean(state.mepEquipments?.[id]);
     if (isMep) {
       return <MepInspector elementId={id} state={state} onExecute={execute} />;
+    }
+
+    // 10. Coupe / Élévation 2D (ADR-063)
+    const sectionCut = state.sectionCuts?.[id];
+    if (sectionCut) {
+      return <SectionInspector sectionCut={sectionCut} state={state} onExecute={execute} />;
     }
 
     return <div style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>Élément sélectionné : {id}</div>;

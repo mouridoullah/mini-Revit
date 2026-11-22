@@ -284,4 +284,41 @@ describe('SelectTool (Machine à états pure sans DOM)', () => {
       wallId: 'pipe_select_test',
     });
   });
+
+  it('T-SEL-SEC-01 : Pointerdown sur une ligne de coupe sélectionne la coupe (ADR-063)', () => {
+    doc.execute(
+      new Commands.AddSectionCutCommand({
+        id: 'cut_sel_test',
+        category: 'sectionCut',
+        name: "Coupe A-A'",
+        label: 'A',
+        kind: 'section',
+        start: { x: 0, y: 1500 },
+        end: { x: 4000, y: 1500 },
+        viewDirection: 1,
+        depth: 5000,
+      }),
+    );
+
+    const screenPos = transform.worldToScreen({ x: 2000, y: 1500 });
+    const output = selectTool.handle(
+      {
+        type: 'pointerdown',
+        screen: screenPos,
+        button: 0,
+        shift: false,
+        alt: false,
+      },
+      ctx,
+    );
+
+    expect(output).toEqual({
+      kind: 'selectionChanged',
+      ids: ['cut_sel_test'],
+    });
+    expect(selectTool.getState()).toEqual({
+      kind: 'selected',
+      wallId: 'cut_sel_test',
+    });
+  });
 });

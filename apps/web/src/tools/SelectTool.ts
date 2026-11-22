@@ -1,4 +1,10 @@
-import { findWallAtScreen, findComponentAtScreen, findMepElementAtScreen, findOpeningAtScreen } from '@mini-bim/view-2d';
+import {
+  findWallAtScreen,
+  findComponentAtScreen,
+  findMepElementAtScreen,
+  findOpeningAtScreen,
+  findSectionCutAtScreen,
+} from '@mini-bim/view-2d';
 import {
   type Tool,
   type ToolEvent,
@@ -59,6 +65,13 @@ export class SelectTool implements Tool {
       if (hitOpening) {
         this.state = { kind: 'selected', wallId: hitOpening.id };
         return { kind: 'selectionChanged', ids: [hitOpening.id] };
+      }
+
+      // 3b. Lignes de coupe et élévations normalisées (ADR-063)
+      const hitSectionCut = findSectionCutAtScreen(event.screen, ctx.transform, ctx.doc);
+      if (hitSectionCut) {
+        this.state = { kind: 'selected', wallId: hitSectionCut.id };
+        return { kind: 'selectionChanged', ids: [hitSectionCut.id] };
       }
 
       // 4. Murs architecturaux

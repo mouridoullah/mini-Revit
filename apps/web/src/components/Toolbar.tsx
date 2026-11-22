@@ -19,6 +19,7 @@ import {
   PanelRight,
   Redo2,
   Save,
+  Scissors,
   Search,
   Sparkles,
   Undo2,
@@ -77,6 +78,13 @@ const toolSets: Record<
       shortcut: 'O',
       testId: 'tool-move-opening-btn',
       icon: Move,
+    },
+    {
+      kind: 'section',
+      label: 'Coupe',
+      shortcut: 'X',
+      testId: 'tool-section-btn',
+      icon: Scissors,
     },
   ],
   Structure: [
@@ -173,6 +181,7 @@ export function Toolbar({
       e: 'stair',
       r: 'roof',
       p: 'mep',
+      x: 'section',
     };
     const onKey = (event: KeyboardEvent) => {
       if (

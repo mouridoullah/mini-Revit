@@ -63,6 +63,11 @@ export class Scene3D {
    */
   private readonly meshes: Map<string, THREE.Mesh[]> = new Map();
 
+  /**
+   * Plan de coupe 3D actif (ADR-063).
+   */
+  private activeClippingPlane: THREE.Plane | null = null;
+
   private readonly onControlsChange: () => void;
   private isDisposed = false;
 
@@ -98,6 +103,7 @@ export class Scene3D {
       antialias: true,
       powerPreference: 'high-performance',
     });
+    this.renderer.localClippingEnabled = true;
     this.renderer.setSize(width, height, false);
     if (typeof window !== 'undefined' && window.devicePixelRatio) {
       this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -218,6 +224,18 @@ export class Scene3D {
 
     const geometry = MeshAdapter.fromRawMeshData(rawData);
     const mat = material ?? this.defaultMaterial;
+    if (this.activeClippingPlane) {
+      const planes = [this.activeClippingPlane];
+      if (Array.isArray(mat)) {
+        mat.forEach((m) => {
+          m.clippingPlanes = planes;
+          m.clipShadows = true;
+        });
+      } else {
+        mat.clippingPlanes = planes;
+        mat.clipShadows = true;
+      }
+    }
     const mesh = new THREE.Mesh(geometry, mat);
     mesh.name = rawData.elementId;
     mesh.userData = {
@@ -231,7 +249,11 @@ export class Scene3D {
     // Arêtes d'architecture fines, conservées comme enfants du volume sélectionnable.
     if (['wall', 'slab', 'roof'].includes(String(mesh.userData.category ?? ''))) {
       const edges = new THREE.EdgesGeometry(geometry, 15);
-      const lines = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x2b303b }));
+      const lineMat = new THREE.LineBasicMaterial({ color: 0x2b303b });
+      if (this.activeClippingPlane) {
+        lineMat.clippingPlanes = [this.activeClippingPlane];
+      }
+      const lines = new THREE.LineSegments(edges, lineMat);
       lines.name = `${rawData.elementId}-architectural-edges`;
       lines.userData.ownsGeometryAndMaterial = true;
       mesh.add(lines);
@@ -641,10 +663,12 @@ export class Scene3D {
     }
 
     const hits = raycaster.intersectObjects(candidateMeshes, false);
-    const firstHit = hits[0];
-    if (firstHit) {
-      const userDataId = firstHit.object.userData?.elementId as string | undefined;
-      const meshName = firstHit.object.name;
+    for (const hit of hits) {
+      if (this.activeClippingPlane && this.activeClippingPlane.distanceToPoint(hit.point) < 0) {
+        continue;
+      }
+      const userDataId = hit.object.userData?.elementId as string | undefined;
+      const meshName = hit.object.name;
       return userDataId || meshName || null;
     }
     return null;
@@ -935,11 +959,107 @@ export class Scene3D {
   }
 
   /**
+   * Retourne le plan de coupe actif ou null.
+   */
+  public getActiveClippingPlane(): THREE.Plane | null {
+    return this.activeClippingPlane;
+  }
+
+  /**
+   * Définit ou réinitialise le plan de coupe 3D actif (ADR-063).
+   * Propage le plan de coupe sur tous les matériaux existants et partagés.
+   */
+  public setSectionCutPlane(plane: THREE.Plane | null): void {
+    if (this.isDisposed) return;
+    this.activeClippingPlane = plane;
+    const planes = plane ? [plane] : [];
+
+    for (const meshList of this.meshes.values()) {
+      for (const mesh of meshList) {
+        this.applyClippingPlanesToMesh(mesh, planes);
+      }
+    }
+
+    const sharedMaterials = [
+      this.defaultMaterial,
+      this.highlightMaterial,
+      this.slabMaterial,
+      this.stairMaterial,
+      this.roofMaterial,
+      this.sanitaryMaterial,
+      this.kitchenMaterial,
+      this.furnitureMaterial,
+      this.glazingMaterial,
+    ];
+    for (const mat of sharedMaterials) {
+      mat.clippingPlanes = planes;
+      mat.clipShadows = true;
+    }
+
+    this.render();
+  }
+
+  /**
+   * Configure le plan de coupe 3D à partir d'un segment 2D et d'une direction de vue (ADR-063).
+   * start et end sont en coordonnées monde 2D (mm), viewDirection vaut 1 ou -1.
+   */
+  public setSectionCutFrom2D(
+    start: { readonly x: number; readonly y: number },
+    end: { readonly x: number; readonly y: number },
+    viewDirection: 1 | -1 = 1,
+  ): void {
+    if (this.isDisposed) return;
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const len = Math.hypot(dx, dy);
+    if (len < 1e-4) {
+      this.setSectionCutPlane(null);
+      return;
+    }
+    const ux = dx / len;
+    const uy = dy / len;
+    // Normale orientée vers la direction d'observation
+    const nx = viewDirection * -uy;
+    const ny = viewDirection * ux;
+    const normal = new THREE.Vector3(nx, ny, 0).normalize();
+    const constant = -(nx * start.x + ny * start.y);
+    const plane = new THREE.Plane(normal, constant);
+    this.setSectionCutPlane(plane);
+  }
+
+  private applyClippingPlanesToMesh(mesh: THREE.Mesh, planes: THREE.Plane[]): void {
+    if (Array.isArray(mesh.material)) {
+      mesh.material.forEach((m) => {
+        m.clippingPlanes = planes;
+        m.clipShadows = true;
+      });
+    } else if (mesh.material) {
+      mesh.material.clippingPlanes = planes;
+      mesh.material.clipShadows = true;
+    }
+    for (const child of mesh.children) {
+      if ('material' in child && child.material) {
+        const cMat = (child as THREE.Mesh | THREE.LineSegments).material;
+        if (Array.isArray(cMat)) {
+          cMat.forEach((m) => {
+            m.clippingPlanes = planes;
+          });
+        } else {
+          cMat.clippingPlanes = planes;
+        }
+      }
+    }
+  }
+
+  /**
    * Libère toutes les ressources WebGL, les géométries, les matériaux et les contrôles.
    */
   public dispose(): void {
     if (this.isDisposed) return;
     this.isDisposed = true;
+
+    // 0. Réinitialiser le plan de coupe
+    this.setSectionCutPlane(null);
 
     // 1. Détacher les écouteurs et libérer les contrôles orbitaux
     this.controls.removeEventListener('change', this.onControlsChange);

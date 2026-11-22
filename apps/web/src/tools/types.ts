@@ -15,7 +15,8 @@ export type ToolKind =
   | 'stair'
   | 'roof'
   | 'component'
-  | 'mep';
+  | 'mep'
+  | 'section';
 
 /**
  * États possibles de la machine à états SelectTool.
@@ -231,6 +232,26 @@ export type MepToolState =
     };
 
 /**
+ * États possibles de la machine à états SectionTool (ADR-063).
+ */
+export type SectionToolState =
+  | { readonly kind: 'idle' }
+  | {
+      readonly kind: 'drawing';
+      readonly startWorld: Vec2;
+      readonly currentWorld: Vec2;
+      readonly viewDirection: 1 | -1;
+      readonly depth: number;
+    }
+  | {
+      readonly kind: 'finished';
+      readonly startWorld: Vec2;
+      readonly endWorld: Vec2;
+      readonly viewDirection: 1 | -1;
+      readonly depth: number;
+    };
+
+/**
  * Paramètres par défaut configurables pour l'insertion de portes.
  */
 export interface DoorDefaults {
@@ -326,7 +347,8 @@ export interface Tool {
     | StairToolState
     | RoofToolState
     | ComponentToolState
-    | MepToolState;
+    | MepToolState
+    | SectionToolState;
   handle(event: ToolEvent, ctx: ToolContext): ToolOutput;
   reset(): void;
 }

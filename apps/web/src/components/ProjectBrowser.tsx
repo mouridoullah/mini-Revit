@@ -9,8 +9,9 @@ import {
   Layers,
   Plus,
   Ruler,
+  Scissors,
 } from 'lucide-react';
-import type { FederatedModel, Level, MepSystem } from '@mini-bim/core';
+import type { FederatedModel, Level, MepSystem, SectionCut } from '@mini-bim/core';
 import styles from './Cockpit.module.css';
 
 export function ProjectBrowser({
@@ -27,6 +28,9 @@ export function ProjectBrowser({
   onLoadIfc,
   onMetrics,
   systems = [],
+  sectionCuts = [],
+  activeSectionCutId = null,
+  onSelectSectionCut,
   collapsed,
   onToggleCollapsed,
 }: {
@@ -43,6 +47,9 @@ export function ProjectBrowser({
   onLoadIfc: () => void;
   onMetrics: () => void;
   systems?: readonly MepSystem[];
+  sectionCuts?: readonly SectionCut[];
+  activeSectionCutId?: string | null;
+  onSelectSectionCut?: (id: string) => void;
   collapsed: boolean;
   onToggleCollapsed: () => void;
 }) {
@@ -104,6 +111,27 @@ export function ProjectBrowser({
               )}{' '}
               Underlay (N-1)
             </button>
+          </section>
+          <section className={styles.browserSection}>
+            <div className={styles.sectionTitle}>
+              <span>Coupes &amp; Élévations</span>
+            </div>
+            {sectionCuts.length === 0 ? (
+              <div className={styles.subtle}>Aucune coupe définie</div>
+            ) : (
+              sectionCuts.map((cut) => (
+                <button
+                  key={cut.id}
+                  data-testid={`project-section-${cut.id}`}
+                  className={`${styles.browserRow} ${activeSectionCutId === cut.id ? styles.browserActive : ''}`}
+                  onClick={() => onSelectSectionCut?.(cut.id)}
+                >
+                  <Scissors size={14} />
+                  <span>{cut.name}</span>
+                  <span className={styles.subtle}>{cut.label}</span>
+                </button>
+              ))
+            )}
           </section>
           <section className={styles.browserSection}>
             <div className={styles.sectionTitle}>Systèmes MEP</div>

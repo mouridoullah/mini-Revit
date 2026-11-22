@@ -486,3 +486,52 @@ export function findMepPortAtScreen(
 
   return closest;
 }
+
+/**
+ * Résultat de détection d'une ligne de coupe sous le curseur.
+ */
+export interface HitSectionCutResult {
+  readonly id: string;
+  readonly category: 'sectionCut';
+  readonly name: string;
+  readonly label: string;
+}
+
+/**
+ * Recherche si une ligne de coupe / élévation est cliquée à l'écran (ADR-063).
+ */
+export function findSectionCutAtScreen(
+  screenPos: Vec2,
+  transform: Transform2D,
+  doc: DocumentFor2D,
+  options?: HitTestOptions,
+): HitSectionCutResult | null {
+  const hitTolerancePx = options?.hitTolerancePx ?? 8;
+  const worldPos = transform.screenToWorld(screenPos);
+  const toleranceMm = transform.screenDistanceToWorld(hitTolerancePx);
+  const state = doc.getState();
+
+  const cuts = state.sectionCuts ? Object.values(state.sectionCuts) : [];
+  if (cuts.length === 0) return null;
+
+  for (let i = cuts.length - 1; i >= 0; i--) {
+    const cut = cuts[i];
+    if (!cut) continue;
+
+    const dist = distancePointToSegment(worldPos, {
+      start: cut.start,
+      end: cut.end,
+    });
+
+    if (dist <= toleranceMm) {
+      return {
+        id: cut.id,
+        category: 'sectionCut',
+        name: cut.name,
+        label: cut.label,
+      };
+    }
+  }
+
+  return null;
+}
