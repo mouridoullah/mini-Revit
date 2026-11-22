@@ -31,7 +31,7 @@
 | **ADR-020** | Stratégie d'Identifiants Uniques — Adoption d'ULID pour le Noyau BIM                           | **Accepté**  | 13/11/2026 |
 | **ADR-021** | Architecture Impérative de view-2d sans React, Émission de Command, Conversion Y-up/Y-down     | **Accepté**  | 13/11/2026 |
 | **ADR-022** | Intégration React dans apps/web — Viewports Impératifs Isolés, Contexte Documentaire           | **Accepté**  | 13/11/2026 |
-| **ADR-023** | Génération de Maillages 3D dans @mini-bim/view-3d via Interfaces Géométriques Neutres          | **Accepté**  | 14/11/2026 |
+| **ADR-023** | Génération de Maillages 3D dans @tabax/view-3d via Interfaces Géométriques Neutres          | **Accepté**  | 14/11/2026 |
 | **ADR-024** | Architecture des Outils Interactifs 2D (State Machines Pures, Snapping 45° et Pont DOM)        | **Accepté**  | 14/11/2026 |
 | **ADR-025** | Sélection UI Partagée Bidirectionnelle (État Éphémère React vs Pureté Documentaire)            | **Accepté**  | 14/11/2026 |
 | **ADR-026** | Picking 3D Déterministe via Raycasting, userData et Permutation de Matériau Partagé            | **Accepté**  | 14/11/2026 |
@@ -75,6 +75,7 @@
 | **ADR-064** | Moteur d'Exportation DXF R12 Pur TypeScript (AC1009) sans Dépendance (Saison 3 - Étape 3 Lot A) | **Accepté**  | 22/11/2026 |
 | **ADR-065** | Moteur de Mise en Page & Carnet de Plans PDF Multi-Pages Vectoriel Pur (Saison 3 - Étape 3 Lot B) | **Accepté**  | 22/11/2026 |
 | **ADR-066** | Outil de Cotation Interactive & Moteur de Cotation Automatique d'Étage (Saison 3 - Étape 4) | **Accepté**  | 22/11/2026 |
+| **ADR-067** | Identité de Marque Tabax & Renommage du Monorepo (@tabax/*) | **Accepté**  | 22/11/2026 |
 
 ---
 
@@ -257,8 +258,8 @@ L'extension future du logiciel vers les réseaux techniques MEP (plomberie, vent
 
 ### Décision
 
-Mettre en place dans `@mini-bim/core` un registre d'extensions par catégories (`CategoryDef`). Le noyau ne code en dur que les catégories architecturales de base (`wall`, `door`, `window`, `slab`, `roof`, `room`).  
-Le futur module MEP (`@mini-bim/mep`) enregistrera ses propres catégories (`pipeSegment`, `ductSegment`, `mepFitting`) et définira ses algorithmes de balayage géométrique (`sweep`), ses connecteurs (ports) et ses classes IFC sans modification du code de base.
+Mettre en place dans `@tabax/core` un registre d'extensions par catégories (`CategoryDef`). Le noyau ne code en dur que les catégories architecturales de base (`wall`, `door`, `window`, `slab`, `roof`, `room`).  
+Le futur module MEP (`@tabax/mep`) enregistrera ses propres catégories (`pipeSegment`, `ductSegment`, `mepFitting`) et définira ses algorithmes de balayage géométrique (`sweep`), ses connecteurs (ports) et ses classes IFC sans modification du code de base.
 
 ### Justification & Avantages
 
@@ -279,12 +280,12 @@ La conception initiale comportait trois écueils mathématiques :
 
 ### Décision
 
-1. **Rejet formel de l'arrondi systématique à 1 mm :** Le noyau géométrique `@mini-bim/geometry` calcule strictement en espace continu IEEE 754 float64. L'arrondi au millimètre est proscrit dans les calculs bas niveau car il introduit des distorsions d'épaisseur ($\approx +0.82\text{ mm}$ à $45^\circ$) et déplace les intersections de plusieurs centimètres sur les angles aigus.
+1. **Rejet formel de l'arrondi systématique à 1 mm :** Le noyau géométrique `@tabax/geometry` calcule strictement en espace continu IEEE 754 float64. L'arrondi au millimètre est proscrit dans les calculs bas niveau car il introduit des distorsions d'épaisseur ($\approx +0.82\text{ mm}$ à $45^\circ$) et déplace les intersections de plusieurs centimètres sur les angles aigus.
 2. **Pyramide des tolérances :**
    - $\text{EPSILON\_NUMERICAL} = 10^{-9}$ (déterminants, normalisation, zéro arithmétique).
    - $\text{EPSILON\_DISTANCE} = 10^{-4}\text{ mm}$ ($0.1\ \mu m$, seuil de coïncidence géométrique continue, situé $450\,000 \times$ au-dessus du bruit d'arrondi machine et $1\,000 \times$ plus fin que la tolérance de construction).
    - $\text{EPSILON\_COLLINEAR} = 10^{-6}\text{ rad}$ (tolérance angulaire).
-   - $\text{VERTEX\_MERGE_TOLERANCE} = 1.0\text{ mm}$ : Confiné exclusivement à la couche topologique applicative (`@mini-bim/core`), strictement interdit dans `@mini-bim/geometry`.
+   - $\text{VERTEX\_MERGE_TOLERANCE} = 1.0\text{ mm}$ : Confiné exclusivement à la couche topologique applicative (`@tabax/core`), strictement interdit dans `@tabax/geometry`.
 3. **Typage discriminant exhaustif des intersections :**  
    Définition de `LineIntersectionResult` et `SegmentIntersectionResult` sous forme de tagged unions TypeScript représentant sans ambiguïté :
    - `point` (avec paramètres scalaires $t, u$)
@@ -334,7 +335,7 @@ Les logiciels de dessin 2D traditionnels se contentent souvent de superposer des
 
 ### Contexte
 
-L'audit approfondi du moteur de jonctions de murs `@mini-bim/geometry` a validé 115 tests automatisés (orientation CCW, simplicité polygonale de Jordan, invariance par rotation/translation, coordonnées à 1 km). Cependant, l'examen analytique détaillé a mis en évidence trois situations géométriques limites nécessitant un traitement renforcé avant le passage aux percements 2.5D :
+L'audit approfondi du moteur de jonctions de murs `@tabax/geometry` a validé 115 tests automatisés (orientation CCW, simplicité polygonale de Jordan, invariance par rotation/translation, coordonnées à 1 km). Cependant, l'examen analytique détaillé a mis en évidence trois situations géométriques limites nécessitant un traitement renforcé avant le passage aux percements 2.5D :
 
 1. **Bevel Gap dans `solveLMiter` :** Sur angle très aigu avec biseau activé, la troncature indépendante des deux murs crée un vide géométrique triangulaire à l'angle extérieur car les murs ne partagent pas d'arête de biseau commune.
 2. **Effondrement sur angle $0^\circ$ dans `engine.ts` :** Deux murs incidents de même direction au même nœud étaient envoyés dans le solveur d'onglet L, faisant converger les sommets sur le point de nœud par parallélisme des bords.
@@ -361,7 +362,7 @@ L'audit approfondi du moteur de jonctions de murs `@mini-bim/geometry` a validé
 
 ### Contexte
 
-Dans la continuité d'ADR-004, l'implémentation effective du moteur de percements (`@mini-bim/geometry/openings`) requiert une formalisation stricte de la complexité algorithmique, des règles de validation déterministes et de la conservation volumique de matière lors du découpage de baies (portes et fenêtres) dans les murs résolus par le moteur de jonctions.
+Dans la continuité d'ADR-004, l'implémentation effective du moteur de percements (`@tabax/geometry/openings`) requiert une formalisation stricte de la complexité algorithmique, des règles de validation déterministes et de la conservation volumique de matière lors du découpage de baies (portes et fenêtres) dans les murs résolus par le moteur de jonctions.
 
 ### Décision
 
@@ -417,14 +418,14 @@ Les phases de fondation géométrique (Phase 1.1 et Phase 1.2) ont mis en évide
 
 ### Contexte
 
-La Phase 1.3 nécessite de générer des maillages 3D polygonaux à partir des pièces extrudées 2.5D. L'architecture globale du projet impose une séparation stricte : le noyau de calcul géométrique `@mini-bim/geometry` ne doit pas dépendre des technologies de rendu graphique (Three.js, WebGL, React).
+La Phase 1.3 nécessite de générer des maillages 3D polygonaux à partir des pièces extrudées 2.5D. L'architecture globale du projet impose une séparation stricte : le noyau de calcul géométrique `@tabax/geometry` ne doit pas dépendre des technologies de rendu graphique (Three.js, WebGL, React).
 
 ### Décision
 
 1. **Format Neutre `RawMeshData` :**  
    Le package géométrique produit des structures de données brutes contenant des tableaux typés natifs (`Float32Array` pour les sommets et normales, `Uint32Array` pour les indices de triangles, AABB en millimètres).
 2. **Indépendance Totale de l'UI :**  
-   Aucun import de `three`, `react`, ou `react-dom` n'est autorisé dans `@mini-bim/geometry`. Le futur package `@mini-bim/view-3d` consommera directement ces typed arrays pour instancier des `THREE.BufferGeometry` via `BufferAttribute`.
+   Aucun import de `three`, `react`, ou `react-dom` n'est autorisé dans `@tabax/geometry`. Le futur package `@tabax/view-3d` consommera directement ces typed arrays pour instancier des `THREE.BufferGeometry` via `BufferAttribute`.
 3. **Normales Franches Déterministes :**  
    Pour le rendu architectural BIM sans artefacts de lissage sur les arêtes vives, les sommets partagés entre faces sont dupliqués afin d'attribuer des normales exactes orthogonales à chaque facette (+Z pour le dessus, -Z pour le dessous, et normale latérale extérieure pour chaque flanc).
 4. **Agrégation Optimisée pour la Scène :**  
@@ -482,7 +483,7 @@ Deux options architecturales se présentent pour le maillage 3D :
 
 ### Contexte
 
-Le package `@mini-bim/view-3d` introduit le moteur de rendu 3D Three.js dans Mini-BIM. Plusieurs choix structurants devaient être tranchés :
+Le package `@tabax/view-3d` introduit le moteur de rendu 3D Three.js dans Mini-BIM. Plusieurs choix structurants devaient être tranchés :
 
 1. **Couplage ou découplage avec React :** Faut-il encapsuler la scène directement dans des composants React (type `@react-three/fiber` ou composant `<Viewport3D />`) dès le package de rendu ?
 2. **Stratégie de rafraîchissement d'image :** Boucle continue 60 fps (`requestAnimationFrame`) comme dans un jeu vidéo, ou rendu événementiel à la demande ?
@@ -492,7 +493,7 @@ Le package `@mini-bim/view-3d` introduit le moteur de rendu 3D Three.js dans Min
 ### Décision
 
 1. **Architecture Impérative Pure sans React :**  
-   `@mini-bim/view-3d` n'importe ni `react` ni `react-dom`. Il expose des contrôleurs impératifs (`Scene3D`, `MeshAdapter`, `createDefaultMaterial`). Le composant React `<Viewport3D />` viendra se brancher par-dessus dans le package applicatif `apps/web` (Phase 2+). Cette séparation permet d'utiliser le visualiseur 3D dans des contextes découplés (workers, tests, scripts d'export, interfaces non-React).
+   `@tabax/view-3d` n'importe ni `react` ni `react-dom`. Il expose des contrôleurs impératifs (`Scene3D`, `MeshAdapter`, `createDefaultMaterial`). Le composant React `<Viewport3D />` viendra se brancher par-dessus dans le package applicatif `apps/web` (Phase 2+). Cette séparation permet d'utiliser le visualiseur 3D dans des contextes découplés (workers, tests, scripts d'export, interfaces non-React).
 2. **Rendu à la Demande (_Demand-Driven Rendering_) :**  
    Aucune boucle `requestAnimationFrame` continue n'est lancée dans le constructeur de `Scene3D`. Le rendu est déclenché exclusivement sur événement (`OrbitControls` `'change'`) ou sur mutation géométrique (`addMesh`, `updateMesh`, `removeMesh`, `resize`). Au repos, la consommation CPU/GPU est rigoureusement nulle.
 3. **Repère Altimétrique Z-up Architectural :**  
@@ -523,7 +524,7 @@ La gestion de l'état dans un logiciel de CAO/BIM paramétrique ne peut pas êtr
 
 ### Décision
 
-1. **Noyau Métier Autonome (`@mini-bim/core`) :**  
+1. **Noyau Métier Autonome (`@tabax/core`) :**  
    Le package `core` est le seul propriétaire de la structure documentaire. Il n'importe aucun composant React, Three.js, ou API DOM.
 2. **État Immuable Normalisé (`BimState`) :**  
    L'état est structuré en dictionnaires indexés par `ElementId` (`levels`, `wallTypes`, `walls`), facilitant les accès en $\mathcal{O}(1)$.
@@ -583,7 +584,7 @@ Deux problématiques géométriques et architecturales majeures se posent :
 
 ### Décision
 
-1. **Package Impératif Autonome (`@mini-bim/view-2d`) :**  
+1. **Package Impératif Autonome (`@tabax/view-2d`) :**  
    Le package `view-2d` est exempt de toute dépendance vers React, Three.js ou des packages DOM additionnels. Il utilise exclusivement l'API standard `HTMLCanvasElement` et `CanvasRenderingContext2D`. L'intégration React (`<Viewport2D />`) est strictement réservée à l'application web (`apps/web`).
 2. **RÈGLE D'OR : Non-Mutation Directe de `BimDocument` :**  
    La classe `View2D` ne mute JAMAIS directement `BimDocument`. Pour toute opération requérant une modification d'état (création, mise à jour, suppression), la vue émet des intentions de mutation sous forme d'instances typées de `Command` via le callback `onCommandRequested(cb)`. Seul le contrôleur hôte est décisionnaire pour appeler `doc.execute(command)`.
@@ -598,7 +599,7 @@ Deux problématiques géométriques et architecturales majeures se posent :
 4. **Rendu à la Demande (_Demand-Driven Rendering_) :**  
    À l'instar de `Scene3D` (ADR-018), aucune boucle `requestAnimationFrame` continue ne tourne au repos. Le canvas 2D n'est repeint que lors des notifications de mise à jour du document ou des interactions utilisateur (zoom molette, pan, clic de sélection).
 5. **Consommation Neutre du Noyau Géométrique :**  
-   Le calcul de l'emprise polygonale (poché) et des segments de contour/axe est systématiquement délégué à `computeWallFootprint2d` de `@mini-bim/geometry`.
+   Le calcul de l'emprise polygonale (poché) et des segments de contour/axe est systématiquement délégué à `computeWallFootprint2d` de `@tabax/geometry`.
 
 ### Conséquences
 
@@ -619,7 +620,7 @@ Trois contraintes architecturales et de performance critiques se posent :
 
 1. **Règle d'or du cycle de vie des moteurs graphiques :** Ni Three.js (`Scene3D`) ni l'API Canvas 2D (`View2D`) ne doivent être réinstanciés ou détruits lors des cycles de réconciliation déclaratifs de React. Le coût d'instanciation WebGL et d'allocation des tampons mémoire GPU/CPU est prohibitif.
 2. **Règle d'or de pureté de l'état React :** React doit gérer l'état UI déclaratif, mais ne doit jamais cloner ou encapsuler le document impératif `BimDocument` dans un `useState` (ce qui casserait les références, déclencherait des cascades de re-renders et corromprait l'arbre transactionnel d'Immer).
-3. **Règle d'or d'isolation géométrique :** L'application web ne doit pas être couplée aux détails algorithmiques internes de `@mini-bim/geometry`.
+3. **Règle d'or d'isolation géométrique :** L'application web ne doit pas être couplée aux détails algorithmiques internes de `@tabax/geometry`.
 
 ### Décision
 
@@ -629,8 +630,8 @@ Trois contraintes architecturales et de performance critiques se posent :
    La fonction de retour (cleanup) du hook `useEffect` appelle systématiquement `dispose()` sur `View2D` et `Scene3D`, garantissant la libération des écouteurs d'événements, des géométries tampons GPU et des textures.
 3. **Gestion du Document par Contexte Dédié (`BimDocumentProvider`) :**
    L'instance de `BimDocument` est stockée dans un `useRef` persistant au sein du `BimDocumentProvider`. Le hook `useState` ne stocke QUE la projection immuable `BimState` obtenue via `doc.getState()`. Un abonnement `doc.subscribe()` met à jour ce state React lors de chaque transaction métier.
-4. **Interdiction Formelle d'Import Direct de `@mini-bim/geometry` :**
-   `apps/web` n'a pas `@mini-bim/geometry` dans son `package.json`. Les calculs de tessellation 3D sont encapsulés et exportés par `@mini-bim/view-3d` (`createWallMesh`), et les calculs de projection/poché 2D sont gérés par `@mini-bim/view-2d`.
+4. **Interdiction Formelle d'Import Direct de `@tabax/geometry` :**
+   `apps/web` n'a pas `@tabax/geometry` dans son `package.json`. Les calculs de tessellation 3D sont encapsulés et exportés par `@tabax/view-3d` (`createWallMesh`), et les calculs de projection/poché 2D sont gérés par `@tabax/view-2d`.
 5. **Rendu à la Demande Réactif :**
    Les viewports écoutent les transitions d'état via React ou `subscribe` et ne redessinent leurs canvas respectifs que sur changement effectif du modèle, sans boucle d'animation continue.
 
@@ -642,15 +643,15 @@ Trois contraintes architecturales et de performance critiques se posent :
 
 ---
 
-## ADR-023 : Génération de Maillages 3D dans @mini-bim/view-3d via Interfaces Géométriques Neutres
+## ADR-023 : Génération de Maillages 3D dans @tabax/view-3d via Interfaces Géométriques Neutres
 
 ### Contexte
 
-L'application web (`apps/web`) doit afficher les murs du modèle BIM dans la scène Three.js (`Scene3D`). Conformément à la Règle d'or n°2, `apps/web` n'a pas le droit d'importer `@mini-bim/geometry` directement.
+L'application web (`apps/web`) doit afficher les murs du modèle BIM dans la scène Three.js (`Scene3D`). Conformément à la Règle d'or n°2, `apps/web` n'a pas le droit d'importer `@tabax/geometry` directement.
 
 Une fonction utilitaire `createWallMesh` est nécessaire pour calculer l'emprise polygonale et extruder les sous-volumes en `RawMeshData`. Deux options architecturales s'opposaient :
 
-- **Option A (Rejetée) :** `createWallMesh(wall: Wall, wallType: WallType, elevation: number)` avec import de types `@mini-bim/core`. Cette option introduirait une dépendance descendante de `view-3d` vers `core`, violant l'hermétisme posé en Phase 1.4 où `view-3d` ne dépend que de `geometry` et de `three`.
+- **Option A (Rejetée) :** `createWallMesh(wall: Wall, wallType: WallType, elevation: number)` avec import de types `@tabax/core`. Cette option introduirait une dépendance descendante de `view-3d` vers `core`, violant l'hermétisme posé en Phase 1.4 où `view-3d` ne dépend que de `geometry` et de `three`.
 - **Option B (Adoptée) :** `createWallMesh(wall: WallGeometryParams, wallType: WallTypeGeometryParams, elevation: number)` avec des interfaces purement structurelles et neutres déclarées dans `packages/view-3d/src/mesh-generator.ts`.
 
 ### Décision
@@ -669,10 +670,10 @@ Une fonction utilitaire `createWallMesh` est nécessaire pour calculer l'emprise
      readonly height: number;
    }
    ```
-2. **Absence Totale de Dépendance vers `@mini-bim/core` :**
-   `packages/view-3d/package.json` ne référence PAS `@mini-bim/core`. Le code de `mesh-generator.ts` n'importe aucun type ni symbole de `core`.
+2. **Absence Totale de Dépendance vers `@tabax/core` :**
+   `packages/view-3d/package.json` ne référence PAS `@tabax/core`. Le code de `mesh-generator.ts` n'importe aucun type ni symbole de `core`.
 3. **Typage Structurel Naturel de TypeScript :**
-   Les objets `Wall` et `WallType` de `@mini-bim/core` possédant structurellement ces champs (`id`, `start`, `end`, `thickness`, `height`), `apps/web` peut passer directement ses instances sans wrapper ni adaptateur verbeux.
+   Les objets `Wall` et `WallType` de `@tabax/core` possédant structurellement ces champs (`id`, `start`, `end`, `thickness`, `height`), `apps/web` peut passer directement ses instances sans wrapper ni adaptateur verbeux.
 
 ### Conséquences & Limites Documentées pour la Phase 3
 
@@ -714,7 +715,7 @@ Trois impératifs architecturaux guident la conception :
    ```
 
    Les entrées sont normalisées sous forme d'événements `ToolEvent` (`pointerdown`, `pointermove`, `pointerup`, `keydown`), et les transitions émettent des intentions fonctionnelles via `ToolOutput` (`command`, `selectionChanged`, `preview`, `noop`).
-   **Règle d'or :** Zéro import de `react`, `three`, ou `@mini-bim/geometry` dans les classes de machines à états (`SelectTool`, `WallTool`, `snap`, `types`).
+   **Règle d'or :** Zéro import de `react`, `three`, ou `@tabax/geometry` dans les classes de machines à états (`SelectTool`, `WallTool`, `snap`, `types`).
 
 2. **Snapping Angulaire 45° Déterministe (`snapAngle45`) :**  
    Pour éliminer tout artefact d'arrondi trigonométrique flottant, `snapAngle45` utilise une table fixe de vecteurs directeurs unitaires précalculés pour les 8 secteurs de 45° :
@@ -872,8 +873,8 @@ Trois questions architecturales majeures se posent pour Mini-BIM :
 
    **Bénéfice :** Aucun point de coordonnées monde n'est dupliqué. Si un mur est déplacé, pivoté ou allongé, l'ouverture conserve automatiquement son intégrité relationnelle sans nécessiter de calcul de synchronisation de coordonnées.
 
-2. **Délégation de Validation Métier à `@mini-bim/geometry` :**  
-   Pour respecter la séparation stricte des responsabilités et éviter toute duplication de code, `validateDoor` et `validateWindow` dans `@mini-bim/core` délèguent le contrôle géométrique à `validateOpenings` de `@mini-bim/geometry`.  
+2. **Délégation de Validation Métier à `@tabax/geometry` :**  
+   Pour respecter la séparation stricte des responsabilités et éviter toute duplication de code, `validateDoor` et `validateWindow` dans `@tabax/core` délèguent le contrôle géométrique à `validateOpenings` de `@tabax/geometry`.  
    Les règles vérifient :
    - L'existence du mur hôte (`UNKNOWN_HOST_WALL`).
    - La positivité des dimensions (`INVALID_OPENING_DIMENSIONS`).
@@ -915,17 +916,17 @@ Trois questions architecturales majeures se posent pour Mini-BIM :
 
 Comment connecter le pipeline géométrique de découpage d'ouvertures (`sliceWallWithOpenings`, `extrudeWallPiece`) et les tracés architecturaux 2D aux viewports (`view-2d` et `view-3d`) sans enfreindre les règles d'or d'architecture :
 
-1. `packages/view-3d` et `packages/view-2d` ne doivent JAMAIS importer `@mini-bim/core` (découplage strict des couches de présentation).
-2. `apps/web` ne doit JAMAIS importer `@mini-bim/geometry` directement (isolation de la géométrie pure).
+1. `packages/view-3d` et `packages/view-2d` ne doivent JAMAIS importer `@tabax/core` (découplage strict des couches de présentation).
+2. `apps/web` ne doit JAMAIS importer `@tabax/geometry` directement (isolation de la géométrie pure).
 3. Le picking 3D (raycast) sur n'importe quel morceau solide d'un mur percé doit retourner l'identifiant du mur hôte (`wall.id`), tandis que le clic sur une menuiserie doit retourner l'identifiant de l'ouverture (`opening.id`).
 4. La vue 2D doit afficher les conventions de tracé architectural (évidement du poché, montants, vantail à 90°, arc de 90° en pointillé, vitrage parallèle double) avec exactitude géométrique sous l'inversion d'axe écran Y-up $\to$ Y-down.
 
 ### Décisions Prises
 
 1. **Paramètres Neutres Structurels dans `view-3d` et `view-2d` :**
-   - `view-3d` définit `OpeningGeometryParams` et `WallWithOpeningsParams` basés uniquement sur des primitives numériques et les vecteurs de `@mini-bim/geometry`.
+   - `view-3d` définit `OpeningGeometryParams` et `WallWithOpeningsParams` basés uniquement sur des primitives numériques et les vecteurs de `@tabax/geometry`.
    - `view-2d` définit `WallFor2D`, `DoorFor2D`, `WindowFor2D`, `DocumentFor2D`, `CommandLike`.
-   - Dépendances directes : `view-3d` ne dépend que de `@mini-bim/geometry` et `three`. `view-2d` ne dépend que de `@mini-bim/geometry`. Zéro import de `@mini-bim/core` dans les sources `src/`.
+   - Dépendances directes : `view-3d` ne dépend que de `@tabax/geometry` et `three`. `view-2d` ne dépend que de `@tabax/geometry`. Zéro import de `@tabax/core` dans les sources `src/`.
 
 2. **Génération 3D Multi-Pièces et Conservation Stricte de Volume :**
    - `createWallMeshWithOpenings(params)` invoque `sliceWallWithOpenings` et génère un ensemble de pièces solides extrudées (`RawMeshData[]`).
@@ -963,7 +964,7 @@ Comment connecter le pipeline géométrique de découpage d'ouvertures (`sliceWa
 
 Comment permettre la modélisation et la manipulation interactive des portes, fenêtres et murs directement dans le viewport 2D tout en garantissant :
 
-1. La pureté absolue des machines à états des Tools (zéro dépendance à React, Three.js, au DOM ou à `@mini-bim/geometry`).
+1. La pureté absolue des machines à états des Tools (zéro dépendance à React, Three.js, au DOM ou à `@tabax/geometry`).
 2. L'invariant fondamental du BIM : « Le modèle est la source de vérité, la géométrie est un cache ». Lors du déplacement d'un mur hôte (`MoveWallTool`), les ouvertures hébergées ne doivent pas être altérées dans l'état documentaire (`offsetAlong` inchangé), mais leur représentation 2D et 3D doit suivre fidèlement et immédiatement le déplacement du mur hôte.
 3. Le snapping déterministe aux pas architecturaux : 50 mm pour les ouvertures le long de leur mur, 10 mm pour les translations de murs.
 4. L'exclusivité stricte de l'outil actif et la réinitialisation de tout outil sortant.
@@ -973,7 +974,7 @@ Comment permettre la modélisation et la manipulation interactive des portes, fe
 1. **Machines à États Pures Découplées du DOM :**
    - `DoorTool`, `WindowTool`, `MoveWallTool`, et `MoveOpeningTool` implémentent l'interface pure `Tool`.
    - Les événements sont normalisés (`ToolEvent`) et les sorties sont immuables (`ToolOutput` : `command`, `preview`, `selectionChanged`, `noop`).
-   - Zéro importation de `@mini-bim/geometry` dans les Tools : les calculs 2D de détection reposent exclusivement sur les fonctions exportées par `@mini-bim/view-2d` (`findWallAtScreen`, `findOpeningAtScreen`, `Transform2D`, `Vec2`).
+   - Zéro importation de `@tabax/geometry` dans les Tools : les calculs 2D de détection reposent exclusivement sur les fonctions exportées par `@tabax/view-2d` (`findWallAtScreen`, `findOpeningAtScreen`, `Transform2D`, `Vec2`).
 
 2. **Invariant Paramétrique de Déplacement de Mur (`MoveWallTool`) :**
    - Lorsqu'un utilisateur translate un mur, `MoveWallTool` émet `UpdateWallCommand(wallId, { start, end })`.
@@ -985,7 +986,7 @@ Comment permettre la modélisation et la manipulation interactive des portes, fe
    - Clamping strict aux gardes minimales de rive ($50 \text{ mm}$) pour prévenir tout débordement d'ouverture hors du mur hôte.
 
 4. **Détection Découplée d'Ouvertures (`findOpeningAtScreen`) :**
-   - Ajout et export dans `@mini-bim/view-2d` de la fonction pure `findOpeningAtScreen` calculant la projection orthogonale d'un point écran sur l'axe du mur hôte et testant l'intervalle $[offsetAlong - \epsilon, offsetAlong + width + \epsilon]$. Utilisée par `MoveOpeningTool`.
+   - Ajout et export dans `@tabax/view-2d` de la fonction pure `findOpeningAtScreen` calculant la projection orthogonale d'un point écran sur l'axe du mur hôte et testant l'intervalle $[offsetAlong - \epsilon, offsetAlong + width + \epsilon]$. Utilisée par `MoveOpeningTool`.
 
 5. **Gestion Exclusive dans `useActiveTool` :**
    - `useActiveTool` instancie et référence de manière stable les 6 outils.
@@ -1094,7 +1095,7 @@ Comment générer des fichiers IFC4 (Industry Foundation Classes) conformes à l
 Trois options architecturales étaient envisageables :
 
 1. **Option A (IfcOpenShell via sous-processus Python) :** Utiliser la bibliothèque de référence `ifcopenshell`. Problème critique : Python n'est pas installé sur l'environnement hôte Windows, et cette approche briserait le paradigme "zero-setup local-first" de l'application web.
-2. **Option B (Générateur Natif Pur TypeScript dans `@mini-bim/core`) :** Implémenter un générateur STEP ISO 10303-21 strict directement dans le package `@mini-bim/core`.
+2. **Option B (Générateur Natif Pur TypeScript dans `@tabax/core`) :** Implémenter un générateur STEP ISO 10303-21 strict directement dans le package `@tabax/core`.
 3. **Option C (Module WebAssembly IFC.js / web-ifc) :** Embarquer un binaire WebAssembly lourd. Trop complexe et surdimensionné pour un export déclaratif de modèles paramétriques.
 
 ### Décisions Prises
@@ -1146,7 +1147,7 @@ Dans un outil BIM, une cotation n'est pas un simple texte graphique passif : c'e
 4. **Cascade et Réversibilité (`DeleteWallCommand`) :**  
    Lorsqu'un mur est supprimé, toutes les cotations qui le référencent sont supprimées en cascade de `draft.dimensions`. Grâce à Immer, un appel à `doc.undo()` restaure le mur et toutes ses cotations associées à l'identique.
 5. **Rendu Architectural Conforme :**
-   - En Canvas 2D (`@mini-bim/view-2d`) : tracé des lignes de rappel, ligne de cote, traits obliques à 45° et texte orienté lisible.
+   - En Canvas 2D (`@tabax/view-2d`) : tracé des lignes de rappel, ligne de cote, traits obliques à 45° et texte orienté lisible.
    - En export SVG imprimable (`generatePlanSvg`) : calque dédié `<g id="dimensions">` vectoriel, net et proportionné à l'échelle choisie (1:50, 1:100, 1:200).
 
 ### Conséquences
@@ -1309,7 +1310,7 @@ Actuellement, les cascades de suppression sont codées en dur de manière impér
 ### Conséquences
 
 - L'ajout d'une nouvelle entité (ex: `Slab` en Phase 6) s'effectue par simple déclaration dans le registre sans jamais retoucher aux commandes de murs ou d'autres entités existantes.
-- Code du noyau (`@mini-bim/core`) hautement maintenable, modulaire et extensible.
+- Code du noyau (`@tabax/core`) hautement maintenable, modulaire et extensible.
 
 ---
 
@@ -1420,7 +1421,7 @@ Dans un bâtiment à étages, si un mur du niveau $N$ s'élève jusqu'à l'élé
 ### Décisions Prises
 
 1. **Option A retenue (DAG Minimal en TypeScript Pur) :**  
-   Implémentation dans `@mini-bim/core` d'une structure de graphe dirigé acyclique compacte (~100 à 150 lignes de code) sans dépendance externe, couplée au `RELATIONS_REGISTRY` (ADR-038).
+   Implémentation dans `@tabax/core` d'une structure de graphe dirigé acyclique compacte (~100 à 150 lignes de code) sans dépendance externe, couplée au `RELATIONS_REGISTRY` (ADR-038).
 2. **Structure du DAG (`DependencyGraph`) :**
    ```typescript
    export class DependencyGraph {
@@ -1610,7 +1611,7 @@ Une migration simpliste assignant des types standards fixes (ex: tous les ouvran
 
 - Rétrocompatibilité garantie à 100% avec les sauvegardes de la Saison 1.
 - Zéro perte de données dimensionnelles lors de la montée de version.
-- Migration propre, isolée et réversible dans `@mini-bim/core`.
+- Migration propre, isolée et réversible dans `@tabax/core`.
 
 ---
 
@@ -1869,7 +1870,7 @@ Trois décisions d'ingénierie majeures doivent être tranchées formellement av
 
 ### Découpe Géométrique des Trémies (`computeEffectiveSlabPolygon`)
 
-La fonction géométrique pure `computeEffectiveSlabPolygon` dans `@mini-bim/geometry/src/slabs/effective.ts` opère via la librairie éprouvée `polygon-clipping` :
+La fonction géométrique pure `computeEffectiveSlabPolygon` dans `@tabax/geometry/src/slabs/effective.ts` opère via la librairie éprouvée `polygon-clipping` :
 
 1. **Union des trémies :** $\mathcal{H}_{\text{merged}} = \text{union}(\text{manualHoles}, \text{stairShafts})$.
 2. **Découpe en rive :** $\mathcal{B}_{\text{trimmed}} = \text{difference}(\text{boundary}, \mathcal{H}_{\text{merged}})$.
@@ -1903,8 +1904,8 @@ La Phase 6.1a a posé le modèle métier immuable des dalles (`Slab`, `SlabType`
 
 1. Panneau latéral d'inspection des propriétés (`PropertyInspector`).
 2. Machine à états d'interaction pour le tracé de planchers (`SlabTool`, raccourci `L`).
-3. Moteur de rendu 2D plan avec poché architectural béton et croix de réservation des trémies (`@mini-bim/view-2d`).
-4. Moteur de rendu 3D Three.js avec maillage extrudé triangulé par `earcut` (`@mini-bim/view-3d`).
+3. Moteur de rendu 2D plan avec poché architectural béton et croix de réservation des trémies (`@tabax/view-2d`).
+4. Moteur de rendu 3D Three.js avec maillage extrudé triangulé par `earcut` (`@tabax/view-3d`).
 5. Sélecteur de niveau actif dans la barre d'outils (`LevelSelector`).
 6. Export IFC4 certifié `IfcSlab` (`.FLOOR.`) avec profils découpés.
 
@@ -1924,7 +1925,7 @@ La Phase 6.1a a posé le modèle métier immuable des dalles (`Slab`, `SlabType`
 - **Arbitrage :** L'identifiant du niveau actif (`activeLevelId`) est conservé dans le contexte applicatif React (`AppContext` ou `ActiveLevelContext`), de manière strictement découplée du modèle documentaire `BimState` (parfaitement aligné sur le pattern de sélection UI acté dans l'ADR-025).
 - **Conséquence :** Le niveau actif pilote le filtrage en plan 2D (`Viewport2D`) et la hauteur par défaut des nouveaux éléments créés par les outils (`WallTool`, `SlabTool`), tandis que la vue 3D (`Viewport3D`) continue d'afficher l'intégralité du bâtiment multi-niveaux.
 
-#### 3. Rendu 2D des Dalles et Trémies (`@mini-bim/view-2d`)
+#### 3. Rendu 2D des Dalles et Trémies (`@tabax/view-2d`)
 
 - Poché continu gris béton (`#f3f4f6`) sur le contour extérieur `boundary`.
 - Hachures diagonales à 45° en traits fins (`#e5e7eb`).
@@ -1933,7 +1934,7 @@ La Phase 6.1a a posé le modèle métier immuable des dalles (`Slab`, `SlabType`
 - Surbrillance bleue (`#3b82f6`) en cas de sélection.
 - Ordre de profondeur : dalles dessinées en arrière-plan sous les murs, avant les cotations.
 
-#### 4. Rendu 3D des Dalles (`@mini-bim/view-3d`)
+#### 4. Rendu 3D des Dalles (`@tabax/view-3d`)
 
 - Découpe géométrique préalable par `computeEffectiveSlabPolygon` pour extraire l'enveloppe solide d'un seul tenant et les anneaux intérieurs CW.
 - Triangulation plane par `earcut` pour la face supérieure ($Z_{\text{sup}} = \text{elevation} + \text{baseOffset}$) et la face inférieure ($Z_{\text{inf}} = Z_{\text{sup}} - \text{thickness}$).
@@ -1967,7 +1968,7 @@ La Phase 6.1b a certifié le modèle de dalles et son rendu 2D/3D. Pour assurer 
 
 #### 1. D1 — Localisation du Cache Path2D (Option β : Module Dédié Pur)
 
-- **Décision :** Implémenter le cache vectoriel d'underlay dans un module dédié et pur `@mini-bim/view-2d/src/underlay/UnderlayCache.ts`.
+- **Décision :** Implémenter le cache vectoriel d'underlay dans un module dédié et pur `@tabax/view-2d/src/underlay/UnderlayCache.ts`.
 - **Justification :** L'Option β garantit l'isolation stricte : zéro dépendance au DOM ou au canvas HTML, testabilité unitaire totale sous Vitest en environnement Node/JSDOM, et réutilisabilité pour d'autres sorties vectorielles (ex: générateur SVG). `View2D` encapsule simplement une instance d'UnderlayCache et pilote son cycle de vie.
 - **Principe d'invalidation sélective :** Le cache n'est invalidé que si au moins un identifiant de `changedIds` correspond à un mur ou une ouverture du niveau $N-1$. Si `changedIds` ne concerne que le niveau actif $N$, le `Path2D` en coordonnées mondes est réutilisé sans recompilation.
 
@@ -2097,7 +2098,7 @@ Toute géométrie altimétrique de mur et toute position d'ouverture hébergée 
 ```typescript
 function resolveWallGeometry(wall: Wall, state: BimState): ResolvedWall;
 ```
-Située dans `packages/core/src/walls/resolve.ts` et réexportée à la racine de `@mini-bim/core`.
+Située dans `packages/core/src/walls/resolve.ts` et réexportée à la racine de `@tabax/core`.
 
 #### 2. D2 — Modèle de Données Dérivé (`ResolvedWall` & `ResolvedOpening`)
 
@@ -2136,9 +2137,9 @@ export interface ResolvedWall {
 
 Zéro occurrence de `wallType.height` en dehors de `resolve.ts` (et de son délégué `walls.ts`, ou de la validation de validité intrinsèque du type `wallType.height > 0`) dans le code de production.
 
-#### 5. D5 — Découplage de `@mini-bim/view-3d`
+#### 5. D5 — Découplage de `@tabax/view-3d`
 
-Le package `@mini-bim/view-3d` reste strictement découplé de `@mini-bim/core`. Il ne dépend pas du résolveur mais accepte un paramètre géométrique neutre `height?: number` sur `WallWithOpeningsParams` et `createWallMesh`. C'est le consommateur applicatif (`Viewport3D.tsx`) qui fait le pont en appelant `resolveWallGeometry` et en passant `resolved.zBase` et `resolved.height`.
+Le package `@tabax/view-3d` reste strictement découplé de `@tabax/core`. Il ne dépend pas du résolveur mais accepte un paramètre géométrique neutre `height?: number` sur `WallWithOpeningsParams` et `createWallMesh`. C'est le consommateur applicatif (`Viewport3D.tsx`) qui fait le pont en appelant `resolveWallGeometry` et en passant `resolved.zBase` et `resolved.height`.
 
 ---
 
@@ -2161,7 +2162,7 @@ Le package `@mini-bim/view-3d` reste strictement découplé de `@mini-bim/core`.
    - Les placeholders 3D des portes et fenêtres (`doorMaterialRef`, `windowMaterialRef`) empruntent leur matériau sans le détruire.
 
 3. **D3 — Source Unique pour les Trémies d'Escaliers 2D et 3D (S2-5) :**
-   - `@mini-bim/core` est promu en dépendance de production de `@mini-bim/view-2d`.
+   - `@tabax/core` est promu en dépendance de production de `@tabax/view-2d`.
    - `View2D.ts` et `Viewport3D.tsx` utilisent tous deux la même fonction pure `computeStairShaft` avec `{ useHeadroomCutoff: true, slabThickness }`, éliminant toute duplication algorithmique et garantissant une géométrie de trémie rigoureusement identique en 2D et 3D.
 
 ---
@@ -2192,7 +2193,7 @@ Le package `@mini-bim/view-3d` reste strictement découplé de `@mini-bim/core`.
 
 ---
 
-## ADR-052 : Dépendance Contrôlée de `@mini-bim/view-2d` vers `@mini-bim/core` pour Fonctions Pures de Dérivation (Amendement ADR-021 & ADR-029)
+## ADR-052 : Dépendance Contrôlée de `@tabax/view-2d` vers `@tabax/core` pour Fonctions Pures de Dérivation (Amendement ADR-021 & ADR-029)
 
 ### Statut
 
@@ -2201,7 +2202,7 @@ Le package `@mini-bim/view-3d` reste strictement découplé de `@mini-bim/core`.
 ### Décisions Clés
 
 1. **D1 — Amendement Contrôlé d'ADR-021 & ADR-029 :**
-   - `@mini-bim/view-2d` est officiellement autorisé à importer `@mini-bim/core` en dépendance de production (`dependencies`), exclusivement pour les fonctions mathématiques pures de dérivation géométrique et les types en lecture seule.
+   - `@tabax/view-2d` est officiellement autorisé à importer `@tabax/core` en dépendance de production (`dependencies`), exclusivement pour les fonctions mathématiques pures de dérivation géométrique et les types en lecture seule.
 
 2. **D2 — Périmètre Autorisé (White-list) :**
    - Fonctions pures autorisées : `computeStairShaft`, `computeStairGeometry`, `computeHeadroomCutoffStep`, `resolveWallGeometry`.
@@ -2476,7 +2477,7 @@ Dans le cadre de la clôture de la Phase 9 (Réseaux Techniques MEP, Détection 
 5. **D5 — Inspection Sémantique en Lecture Seule & UI Réactive (`apps/web`) :**
    - Raycasting 3D sans altération du document.
    - Panneau `FederatedIfcPanel` avec onglets Maquettes, Inspecteur de propriétés (`GlobalId`, type IFC, `PropertySets`, `BaseQuantities`) et Conflits spatiaux.
-   - Respect strict de la Règle d'or #2 : zéro import de `@mini-bim/geometry` dans `apps/web`.
+   - Respect strict de la Règle d'or #2 : zéro import de `@tabax/geometry` dans `apps/web`.
 
 ---
 
@@ -2518,21 +2519,21 @@ Mini-BIM nécessitait un moteur dynamique capable de couper et projeter tous les
 
 ### Décisions Clés
 
-1. **D1 — Contrat Unifié `SectionCut` & Repère Local de Coupe (`@mini-bim/core`, `@mini-bim/geometry`) :**
+1. **D1 — Contrat Unifié `SectionCut` & Repère Local de Coupe (`@tabax/core`, `@tabax/geometry`) :**
    - Coupe définie par segment 2D borné `start`, `end`, une direction d'observation `viewDirection: 1 | -1`, une profondeur de champ `depth` et des bornes altimétriques optionnelles `zMin`, `zMax`.
    - Repère orthonormé local `SectionFrame2D` $P(x, y) \to (s, d)$ avec abscisse curviligne $s \in [0, L]$ et profondeur $d \in [0, \text{depth}]$.
    - Algorithme analytique `sliceSegmentWithPolygon` calculant l'intervalle de coupure exact avec les polygones 2D (murs, dalles, toitures).
 
-2. **D2 — Assemblage Neutre `computeSectionScene` (`@mini-bim/core`) :**
+2. **D2 — Assemblage Neutre `computeSectionScene` (`@tabax/core`) :**
    - Fonction pure découplée de tout moteur graphique produisant `SectionScene` contenant `cutItems` (pochés de coupe forts avec hachures maçonnerie, béton, isolant, solide MEP) et `projectedItems` (arêtes fines d'arrière-plan).
    - Prise en compte rigoureuse des déductions d'ouvertures (allèges, linteaux), des trémies de dalles et cages d'escaliers (ADR-048), du biseautage de tête sous toiture (ADR-053), et des réseaux MEP (traversées circulaires ou projections de parcours).
 
-3. **D3 — Moteur de Rendu Canvas 2D & Export Vectoriel SVG (`@mini-bim/view-2d`) :**
+3. **D3 — Moteur de Rendu Canvas 2D & Export Vectoriel SVG (`@tabax/view-2d`) :**
    - Rendu Canvas 2D `renderSectionView` avec cibles altimétriques, niveaux, lignes de sol et styles de hachures conformes aux normes ISO 128 / BIM.
    - Export SVG `generateSectionSvg` intégrant cartouche réglementaire, motifs de hachures `<defs>` vectoriels, échelles normalisées 1:50, 1:100, 1:200 et format A4/A3 paysage.
    - Représentation normalisée du symbole de coupe sur plan 2D (`drawSectionCuts`) avec trait mixte fort, flèches d'observation et pastilles de repère $A-A'$.
 
-4. **D4 — Synchronisation 3D Three.js & Filtrage Raycasting (`@mini-bim/view-3d`) :**
+4. **D4 — Synchronisation 3D Three.js & Filtrage Raycasting (`@tabax/view-3d`) :**
    - Activation de `renderer.localClippingEnabled = true` et `setSectionCutFrom2D(start, end, viewDirection)`.
    - Construction déterministe du plan analytique `THREE.Plane(normal, constant)` en repère Z-up :
      $$\vec{n} = \text{viewDirection} \cdot (-u_y, u_x, 0), \quad c = -(n_x \cdot x_1 + n_y \cdot y_1)$$
@@ -2544,7 +2545,7 @@ Mini-BIM nécessitait un moteur dynamique capable de couper et projeter tous les
    - Détection au clic et sélection via `findSectionCutAtScreen` dans `SelectTool`.
    - Panneau d'inspection dédié `SectionInspector` dans `PropertyInspector`.
    - Intégration dans `ProjectBrowser` (sous-dossier « Coupes & Élévations »), onglet dédié `SplitViewport` (`Coupe`), et composant `SectionViewport` avec toggle Synchro 3D et bouton d'export SVG.
-   - Respect absolu de la Règle d'or #2 : zéro import direct de `@mini-bim/geometry` dans `apps/web`.
+   - Respect absolu de la Règle d'or #2 : zéro import direct de `@tabax/geometry` dans `apps/web`.
 
 ---
 
@@ -2568,7 +2569,7 @@ Deux options techniques se présentaient pour le format pivot DXF :
 
 2. **D2 — Primitives Géométriques & Hachures Linéaires :**
    - Contours fermés tracés via `POLYLINE` suivie d'une séquence de `VERTEX` et terminée par `SEQEND`, avec le drapeau `70 = 1`.
-   - Hachures analytiques en primitives `LINE` générées par `hatch.ts` et découpées analytiquement à 45° via `sliceSegmentWithPolygonWithHoles` de `@mini-bim/geometry`. Segments isolés sur des calques dédiés (`ARCH-HATCH`, `SECTION-HATCH`).
+   - Hachures analytiques en primitives `LINE` générées par `hatch.ts` et découpées analytiquement à 45° via `sliceSegmentWithPolygonWithHoles` de `@tabax/geometry`. Segments isolés sur des calques dédiés (`ARCH-HATCH`, `SECTION-HATCH`).
    - Arcs et Cercles via entités `CIRCLE` et `ARC` (angles en degrés trigonométriques anti-horaires 0–360°).
    - Textes normalisés avec échappement AutoCAD universel (`cleanDxfText` : `%%c` pour Ø, `%%d` pour °, `%%p` pour ±, `m2` pour m²).
 
@@ -2637,7 +2638,7 @@ Toutefois, la production de plans d'exécution et de dossiers de permis de const
 Cette implémentation devait répondre à plusieurs contraintes architecturales majeures :
 1. **Éviter tout conflit de raccourci clavier** : la touche `D` étant déjà réservée à l'outil `DoorTool` (`Porte (D)`), l'outil de cotation devait adopter un raccourci dédié non conflictuel (`T` pour co**T**ation).
 2. **Associativité BIM et non-régression (ADR-034)** : le contrat de données `Dimension` devait supporter à la fois les cotes libres 2 points et les cotes paramétriques associées à un mur hôte avec portée (`span`).
-3. **Pureté architecturale de l'UI (Règle d'or #2)** : l'outil interactif `DimensionTool` dans `apps/web` devait impérativement rester une machine à états pure sans import direct de `@mini-bim/geometry`.
+3. **Pureté architecturale de l'UI (Règle d'or #2)** : l'outil interactif `DimensionTool` dans `apps/web` devait impérativement rester une machine à états pure sans import direct de `@tabax/geometry`.
 4. **Parité absolue des moteurs graphiques** : les cotes devaient être restituées avec une fidélité visuelle identique sur les 4 moteurs : Canvas 2D interactif, export SVG, export DXF R12 et carnet PDF vectoriel.
 5. **Idempotence et atomicité de l'automatisation** : la commande `AutoDimensionLevelCommand` devait s'exécuter dans une transaction atomique réversible (Undo/Redo) et remplacer exclusivement les cotes auto-générées du niveau sans altérer les cotes manuelles de l'utilisateur.
 
@@ -2646,13 +2647,13 @@ Cette implémentation devait répondre à plusieurs contraintes architecturales 
 1. **D1 — Raccourci Clavier Dédié `T` :**
    - Touche **`T`** (`Cotation (T)`) configurée dans `Toolbar.tsx`, `StatusBar.tsx` et `keyMap`, préservant intacte la touche `D` pour `DoorTool`.
 
-2. **D2 — Contrat de Données Unifié `Dimension` (`@mini-bim/core`) :**
+2. **D2 — Contrat de Données Unifié `Dimension` (`@tabax/core`) :**
    - Support simultané des cotes libres (`startPoint`, `endPoint`, `references: []`) et associatives murales (`references: [wallId]`, `span: { startOffset, endOffset }`).
    - Champ `autoGenerated?: boolean` pour le contrôle de régénération idempotente.
-   - Résolveur unifié `computeDimensionValue(dim, state)` dans `@mini-bim/core`.
+   - Résolveur unifié `computeDimensionValue(dim, state)` dans `@tabax/core`.
 
 3. **D3 — Machine à États Pure `DimensionTool` (`apps/web/src/tools/`) :**
-   - Conforme à la Règle d'or #2 (zéro import de `@mini-bim/geometry`).
+   - Conforme à la Règle d'or #2 (zéro import de `@tabax/geometry`).
    - Cycle d'interaction en 3 phases : `idle` -> `firstPointPicked` -> `placingOffset`.
    - Magnétisme de précision : snap grille 10 mm et sommets d'éléments existants.
    - Raccourci `Shift` (contrainte orthogonale 45°/90°), touche `Espace` (inversion du déport), `Échap` (annulation) et `Entrée` (validation directe).
@@ -2676,6 +2677,42 @@ Cette implémentation devait répondre à plusieurs contraintes architecturales 
      - Chaîne extérieure (hors-tout global) à déport `-1 150 mm`.
    - Idempotence stricte : remplacement exclusif des cotes `autoGenerated: true` du niveau actif.
    - Déclenchement en 1 clic via le bouton d'action `Coter Étage` dans la barre d'outils.
+
+---
+
+## ADR-067 : Identité de Marque Tabax & Renommage du Monorepo (`@tabax/*`)
+
+### Contexte
+
+Initié sous le nom de code de recherche `mini-Revit` / `Mini-BIM`, le projet a dépassé le stade de simple démonstrateur technologique pour devenir une plateforme logicielle professionnelle complète de modélisation de données du bâtiment (BIM) et de CAO architecturale dans le navigateur.
+
+Avec l'achèvement de la Saison 3 (coupes 2D et élévations dynamiques, export DXF R12 sans dépendance, moteur vectoriel de carnet de plans multi-pages PDF 1.4, outillage de cotation et auto-cotation d'étage, réseaux MEP complets, détection de conflits spatiaux BVH et passage à l'échelle 10k entités), le produit nécessitait une identité de marque pérenne, distinctive et taillée pour l'ingénierie internationale.
+
+Parmi les propositions explorées, le nom **Tabax** a été retenu à l'unanimité :
+- **Origine & Signification :** En wolof, *tabax* signifie « construire, bâtir, édifier » ou désigne l'« édifice / bâtiment ».
+- **Impact & Phonétique :** Direct, massif et sobre, il s'inscrit dans la lignée des grands noms de logiciels d'ingénierie et d'architecture (*Tekla*, *Revit*, *Archicad*).
+- **Sobriété technique :** Deux syllabes fluides, sans caractères spéciaux ni accents, idéales pour les namespaces de packages (`@tabax/core`, `@tabax/geometry`) et les dépôts Git.
+
+### Décisions Clés
+
+1. **D1 — Renommage du Scope des Workspaces (`@tabax/*`) :**
+   - `@mini-bim/geometry` $\to$ `@tabax/geometry`
+   - `@mini-bim/core` $\to$ `@tabax/core`
+   - `@mini-bim/view-2d` $\to$ `@tabax/view-2d`
+   - `@mini-bim/view-3d` $\to$ `@tabax/view-3d`
+   - `@mini-bim/web` $\to$ `@tabax/web`
+   - `package.json` racine : `"name": "tabax-monorepo"`, `"description": "Tabax — Logiciel de modélisation architecturale et d'ingénierie BIM"`.
+
+2. **D2 — Branding Applicatif & Expérience Utilisateur :**
+   - Titre de fenêtre web : `Tabax — Modélisation Architecturale & Ingénierie BIM`.
+   - Logo Cockpit (`Toolbar.tsx`) : affichage officiel `TABAX`.
+   - Exports documentaires : cartouches et en-têtes officiels (`Tabax IFC4 Generator`, `Tabax DXF Engine`, `TABAX BIM & ENGINEERING` en carnet PDF, `Tabax CAD Engine` en SVG).
+   - Noms de fichiers par défaut : `tabax-model.ifc`, `tabax-plan.svg`, `project.mbim.json`.
+
+3. **D3 — Documentation & Gouvernance :**
+   - `README.md` entièrement réécrit pour porter la vision et les principes fondateurs de Tabax.
+   - Alignement d'`ARCHITECTURE.md`, `ROADMAP.md` et des spécifications techniques de sous-systèmes.
+
 
 
 

@@ -1,4 +1,4 @@
-import { Commands, type Dimension, type BimState } from '@mini-bim/core';
+import { Commands, type Dimension, type BimState } from '@tabax/core';
 import { ArrowLeftRight, Ruler, Sparkles } from 'lucide-react';
 import { DebouncedNumberInput, DebouncedTextInput } from './DebouncedInputs.js';
 

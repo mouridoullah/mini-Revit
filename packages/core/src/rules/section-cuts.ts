@@ -1,7 +1,7 @@
 import type { SectionCut, BimState } from '../types.js';
 import type { RuleViolation } from './types.js';
 import { BimValidationError } from './types.js';
-import { distance } from '@mini-bim/geometry';
+import { distance } from '@tabax/geometry';
 
 export const MIN_SECTION_CUT_LENGTH = 100; // mm
 export const MIN_SECTION_CUT_DEPTH = 10; // mm

@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { vec2, type Vec2 } from '@mini-bim/geometry';
-import type { SectionScene } from '@mini-bim/core';
-import { BimDocument, computeSectionScene, type SectionCut } from '@mini-bim/core';
+import { vec2, type Vec2 } from '@tabax/geometry';
+import type { SectionScene } from '@tabax/core';
+import { BimDocument, computeSectionScene, type SectionCut } from '@tabax/core';
 import {
   DxfWriter,
   cleanDxfText,

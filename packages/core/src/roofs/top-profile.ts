@@ -1,4 +1,4 @@
-import { type Vec2, vec2, segment2, intersectSegments } from '@mini-bim/geometry';
+import { type Vec2, vec2, segment2, intersectSegments } from '@tabax/geometry';
 import { type BimState, type Wall, type Roof, type GableRoofType } from '../types.js';
 
 /**

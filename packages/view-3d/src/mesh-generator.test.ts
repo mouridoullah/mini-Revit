@@ -8,7 +8,7 @@ import {
   type WallTypeGeometryParams,
   type OpeningGeometryParams,
 } from './mesh-generator.js';
-import { type RawMeshData } from '@mini-bim/geometry';
+import { type RawMeshData } from '@tabax/geometry';
 
 /**
  * Calcule le volume exact d'un maillage 3D fermé (RawMeshData) par le théorème de divergence.

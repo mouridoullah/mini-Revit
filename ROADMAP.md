@@ -68,7 +68,7 @@ flowchart TD
 
 ---
 
-### Phase 1 — Fondations Géométriques (`@mini-bim/geometry`)
+### Phase 1 — Fondations Géométriques (`@tabax/geometry`)
 
 - **Objectif :** Construire une bibliothèque géométrique 2D/3D autonome, ultra-rapide, sans état et couverte à 100% par des tests unitaires.
 - **Fonctionnalités :**
@@ -82,7 +82,7 @@ flowchart TD
   - Algorithme d'extrusion de polygones convexes vers maillages indexés Three.js.
   - Intégration d'`earcut` pour la triangulation de polygones concaves avec trous.
 - **Dépendances :** Aucune (TypeScript pur + `earcut`).
-- **Livrables :** Package `@mini-bim/geometry` compilé avec déclarations TypeScript et suite de tests Vitest.
+- **Livrables :** Package `@tabax/geometry` compilé avec déclarations TypeScript et suite de tests Vitest.
 - **Tests :**
   - Tests unitaires paramétrés sur angles remarquables (90°, 45°, 30°, 10°, 179°, 180°).
   - Tests de robustesse sur cas limites : segments colinéaires, longueurs nulles, polygones dégénérés.
@@ -99,9 +99,9 @@ flowchart TD
 
 ---
 
-### Phase 1.4 — Package de Visualisation 3D Three.js (`@mini-bim/view-3d`) [LIVRÉ]
+### Phase 1.4 — Package de Visualisation 3D Three.js (`@tabax/view-3d`) [LIVRÉ]
 
-- **Objectif :** Fournir le visualiseur 3D Three.js impératif consommant les `RawMeshData` issus de `@mini-bim/geometry`.
+- **Objectif :** Fournir le visualiseur 3D Three.js impératif consommant les `RawMeshData` issus de `@tabax/geometry`.
 - **Fonctionnalités :**
   - `MeshAdapter` : conversion instantanée en `THREE.BufferGeometry` sans recalcul de normales ni de boîtes englobantes.
   - `Scene3D` : contrôleur impératif sans React, caméra perspective Z-up, grille de sol XY ($Z=0$), contrôles orbitaux (`OrbitControls`).
@@ -112,7 +112,7 @@ flowchart TD
 
 ---
 
-### Phase 1.5 — Noyau BIM Minimal (`@mini-bim/core`) [LIVRÉ]
+### Phase 1.5 — Noyau BIM Minimal (`@tabax/core`) [LIVRÉ]
 
 - **Objectif :** Fournir la source unique de vérité du modèle BIM (état documentaire, transactions par commandes, historique Undo/Redo via Immer).
 - **Fonctionnalités :**
@@ -128,9 +128,9 @@ flowchart TD
 
 ### Phase 2 — Éditeur et Double Visualisation Découpée
 
-_Dépendances : Phase 1.1 à 1.3 (`@mini-bim/geometry`), Phase 1.4 (`@mini-bim/view-3d`), Phase 1.5 (`@mini-bim/core`)._
+_Dépendances : Phase 1.1 à 1.3 (`@tabax/geometry`), Phase 1.4 (`@tabax/view-3d`), Phase 1.5 (`@tabax/core`)._
 
-#### Phase 2.1 — Package de Vue 2D (`@mini-bim/view-2d`) [LIVRÉ]
+#### Phase 2.1 — Package de Vue 2D (`@tabax/view-2d`) [LIVRÉ]
 
 - **Objectif :** Fournir le visualiseur en plan 2D impératif en Canvas 2D API pure (sans React, sans Three.js).
 - **Fonctionnalités :**
@@ -148,23 +148,23 @@ _Dépendances : Phase 1.1 à 1.3 (`@mini-bim/geometry`), Phase 1.4 (`@mini-bim/v
   - Architecture monorepo mise à jour : ajout de `apps/*` dans `pnpm-workspace.yaml`, scripts racine configurés.
   - Contexte documentaire React (`BimDocumentContext`) : conservation de l'instance impérative de `BimDocument` dans un `useRef`, exposition exclusive du `BimState` immuable via `useState` et abonnement réactif `doc.subscribe()`.
   - Wrapper `<Viewport2D />` : instanciation impérative unique de `View2D` dans `useEffect([], ...)`, cadrage automatique initial `zoomToFit()`, re-rendu à la demande sur notification d'état documentaire, libération propre des écouteurs et du ResizeObserver via `dispose()`.
-  - Wrapper `<Viewport3D />` : instanciation impérative unique de `Scene3D` dans `useEffect([], ...)`, conversion et ajout des maillages de murs initiaux via `createWallMesh` de `@mini-bim/view-3d`, synchronisation différentielle des maillages (add/update/remove) lors des mutations de state, libération GPU via `dispose()`.
+  - Wrapper `<Viewport3D />` : instanciation impérative unique de `Scene3D` dans `useEffect([], ...)`, conversion et ajout des maillages de murs initiaux via `createWallMesh` de `@tabax/view-3d`, synchronisation différentielle des maillages (add/update/remove) lors des mutations de state, libération GPU via `dispose()`.
   - Layout d'interface applicative `<App />` : barre d'outils supérieure (`Toolbar`), grille responsive 50/50 à deux colonnes (Vue 2D plan à gauche, Vue 3D orbitale Z-up à droite), barre d'état inférieure (`StatusBar`) affichant le nombre de murs, niveaux et le niveau actif.
-  - **Règles d'or respectées :** Zéro import de `@mini-bim/geometry` dans `apps/web`, zéro réinstanciation des contrôleurs graphiques lors des re-renders React, zéro fuite mémoire démontrée sur 10 cycles consécutifs de mount / unmount.
+  - **Règles d'or respectées :** Zéro import de `@tabax/geometry` dans `apps/web`, zéro réinstanciation des contrôleurs graphiques lors des re-renders React, zéro fuite mémoire démontrée sur 10 cycles consécutifs de mount / unmount.
 - **Tests :** 10 tests automatisés (cycle de vie du contexte, instanciation unique des viewports 2D/3D, libération mémoire, intégration globale de l'App).
 
 #### Phase 2.3 — Outils Interactifs 2D (`WallTool`, `SelectTool`) [LIVRÉ]
 
 - **Objectif :** Fournir les machines à états d'interaction 2D découplées du DOM pour la sélection et le tracé interactif de murs.
 - **Fonctionnalités :**
-  - `SelectTool` : machine à états pure (`idle`, `selecting`, `selected`), hit-testing délégué à `@mini-bim/view-2d/hit-test`, sélection au clic gauche, désélection au clic dans le vide ou touche `Escape`.
+  - `SelectTool` : machine à états pure (`idle`, `selecting`, `selected`), hit-testing délégué à `@tabax/view-2d/hit-test`, sélection au clic gauche, désélection au clic dans le vide ou touche `Escape`.
   - `WallTool` : machine à états pure (`idle`, `drawing`, `finished`), tracé par clic-glisser, prévisualisation élastique (rubber-band) en temps réel, aimantation angulaire 45° exacte via `snapAngle45` avec la touche `Shift`, contrainte de longueur minimale ($L \ge 100\text{ mm}$), validation par relâchement ou `Enter`, annulation par `Escape`, émission d'instances typées de `AddWallCommand`.
   - `snapAngle45` : aimantation angulaire déterministe via table de vecteurs unitaires précalculés pour les 8 secteurs de 45°, éliminant toute dérive de virgule flottante ($0^\circ, 45^\circ, 90^\circ, 135^\circ, 180^\circ, -135^\circ, -90^\circ, -45^\circ$).
   - Pont DOM normalisé (`toolGlue.ts`) : conversion rigoureuse des `PointerEvent`s et `KeyboardEvent`s en `ToolEvent`s relatifs au canvas.
   - Hook React d'orchestration (`useActiveTool`) : gestion de l'outil actif (`'select' | 'wall'`), réinitialisation systématique de l'outil sortant.
-  - Évolution de `@mini-bim/view-2d` : support des formes temporaires de prévisualisation `PreviewShape` (`line`, `rect`), rendu dédié `drawPreview`, accesseurs `setPreview` / `getPreview`, délégation de sélection avec `enableInternalSelection: false`.
+  - Évolution de `@tabax/view-2d` : support des formes temporaires de prévisualisation `PreviewShape` (`line`, `rect`), rendu dédié `drawPreview`, accesseurs `setPreview` / `getPreview`, délégation de sélection avec `enableInternalSelection: false`.
   - Intégration UI complète : boutons actifs dans `Toolbar` avec raccourcis clavier globaux `S` et `W`, retour textuel en temps réel dans `StatusBar` (longueur millimétrique du tracé, statut), curseur adaptatif (`crosshair` vs `default`).
-  - **Règles d'or respectées :** Zéro import de `react`, `three` ou `@mini-bim/geometry` dans les classes de machines à états, nettoyage systématique des écouteurs et du preview lors du démontage ou du changement d'outil.
+  - **Règles d'or respectées :** Zéro import de `react`, `three` ou `@tabax/geometry` dans les classes de machines à états, nettoyage systématique des écouteurs et du preview lors du démontage ou du changement d'outil.
 - **Tests :** 48 tests automatisés dans `apps/web` (+34 tests ajoutés : 10 snap 45°, 3 toolGlue, 6 SelectTool, 8 WallTool, 2 useActiveTool, 6 Viewport2D, 5 App), 37 tests dans `view-2d` (+2 tests Preview). Total monorepo : 334 tests réussis.
 
 #### Phase 2.4 — Synchronisation des Sélections 2D ↔ 3D, Undo/Redo UI et Persistance JSON [LIVRÉ]
@@ -192,7 +192,7 @@ _Dépendances : Phase 1.1 à 1.3 (`@mini-bim/geometry`), Phase 1.4 (`@mini-bim/v
 
 - **Objectif :** Transformer le système de dessin géométrique en un véritable modeleur d'objets BIM relationnel avec ouvertures hébergées (portes et fenêtres), découpage géométrique et placement interactif.
 
-#### Phase 3.1 — Modèle BIM Relationnel des Ouvertures Hébergées (`@mini-bim/core`) [LIVRÉ]
+#### Phase 3.1 — Modèle BIM Relationnel des Ouvertures Hébergées (`@tabax/core`) [LIVRÉ]
 
 - **Objectif :** Intégrer les concepts de portes et fenêtres hébergées dans le modèle documentaire BIM, sécuriser les règles métier, fournir les commandes transactionnelles et garantir l'intégrité référentielle avec suppression en cascade.
 - **Fonctionnalités :**
@@ -200,11 +200,11 @@ _Dépendances : Phase 1.1 à 1.3 (`@mini-bim/geometry`), Phase 1.4 (`@mini-bim/v
   - Commandes transactionnelles (`commands.ts`) : `AddDoorCommand`, `AddWindowCommand`, `UpdateDoorCommand`, `UpdateWindowCommand`, `DeleteOpeningCommand`, `MoveOpeningCommand`.
   - Suppression en cascade (`ON DELETE CASCADE`) : `DeleteWallCommand` supprime automatiquement le mur ET toutes ses portes et fenêtres hébergées, avec notification exhaustive dans `getChangedIds()`.
   - Réversibilité Undo/Redo intégrale (`history.ts`) : l'inversion des patchs Immer restaure simultanément le mur et toutes ses ouvertures hébergées en une seule transaction sans perte d'attributs.
-  - Validation métier stricte (`rules.ts`) : délégation des calculs de chevauchement et de dégagement à `validateOpenings` et `MIN_OPENING_CLEARANCE` de `@mini-bim/geometry`. Contrôles de débordement 1D $[0, L_{\text{wall}}]$, hauteur sous linteau, allège positive, sens de battement valide.
+  - Validation métier stricte (`rules.ts`) : délégation des calculs de chevauchement et de dégagement à `validateOpenings` et `MIN_OPENING_CLEARANCE` de `@tabax/geometry`. Contrôles de débordement 1D $[0, L_{\text{wall}}]$, hauteur sous linteau, allège positive, sens de battement valide.
   - Sérialisation et rétrocompatibilité (`serialization.ts`) : persistance JSON avec préservation de `schemaVersion: 1`, chargement sans encombre des fichiers existants (Phases 1 et 2) avec valeurs par défaut `doors: {}` et `windows: {}`.
-- **Tests :** 72 tests automatisés dans `@mini-bim/core` (+29 tests), 389 tests cumulés dans tout le monorepo.
+- **Tests :** 72 tests automatisés dans `@tabax/core` (+29 tests), 389 tests cumulés dans tout le monorepo.
 
-#### Phase 3.2 — Découpage Géométrique et Maillages Percés 2D/3D (`@mini-bim/view-2d`, `@mini-bim/view-3d`, `apps/web`) [LIVRÉ]
+#### Phase 3.2 — Découpage Géométrique et Maillages Percés 2D/3D (`@tabax/view-2d`, `@tabax/view-3d`, `apps/web`) [LIVRÉ]
 
 - **Objectif :** Connecter `sliceWallWithOpenings` et `extrudeWallPiece` aux couches de rendu pour générer les maillages de murs percés en 3D (panneaux pleins, allèges, linteaux), les placeholders d'ouvertures (bois pour portes, vitrage translucide pour fenêtres) et les empreintes 2D avec évidement de poché, ébrasements et arcs d'ouverture.
 - **Fonctionnalités :**
@@ -212,7 +212,7 @@ _Dépendances : Phase 1.1 à 1.3 (`@mini-bim/geometry`), Phase 1.4 (`@mini-bim/v
   - **Conservation Stricte du Volume :** Vérification mathématique par le théorème de divergence sur maillage triangulaire ($\sum V_i = V_{\text{plein}} - \sum V_{\text{baies}}$ avec résidu $\Delta < 50\text{ mm}^3$ sur 2.6 milliards de $\text{mm}^3$).
   - **Placeholders 3D d'Ouvertures :** Boîtes 3D orientées de 50 mm (porte, matériau bois `#8b5a2b`) et 30 mm (fenêtre, vitrage translucide `#90caf9`, opacité 0.5) portant `elementId = opening.id`. Restauration automatique du matériau de base lors des désélections dans `Scene3D.setHighlight`.
   - **Rendu Architectural 2D Normalisé (`renderer.ts`) :** Évidement propre du poché de mur sous la baie (`backgroundColor`), tracé des montants d'ébrasement, vantail à 90°, arc de 90° en pointillé avec calcul exact du sens de rotation écran (`counterclockwise`), et double vitrage bleu architectural.
-  - **Découplage Architectural Strict (Règles d'or) :** Zéro import de `@mini-bim/core` dans `packages/view-2d/src` et `packages/view-3d/src`. Paramètres neutres structurels (`WallFor2D`, `OpeningGeometryParams`, etc.).
+  - **Découplage Architectural Strict (Règles d'or) :** Zéro import de `@tabax/core` dans `packages/view-2d/src` et `packages/view-3d/src`. Paramètres neutres structurels (`WallFor2D`, `OpeningGeometryParams`, etc.).
   - **Intégration Applicative Web :** Le `demoDocument` intègre 1 porte sur `wall_south` et 1 fenêtre sur `wall_north`. Synchronisation automatique dans `Viewport3D` et `Viewport2D`. Suppression en cascade reflétée dans les maillages 3D.
 - **Tests :** 403 tests automatisés dans tout le monorepo (+14 tests par rapport à Phase 3.1) : 73 dans `core`, 23 dans `view-3d` (+6), 41 dans `view-2d` (+4), 75 dans `apps/web` (+3), 191 dans `geometry`.
 
@@ -221,7 +221,7 @@ _Dépendances : Phase 1.1 à 1.3 (`@mini-bim/geometry`), Phase 1.4 (`@mini-bim/v
 - **Objectif :** Implémenter les machines à états d'outils pures `DoorTool`, `WindowTool`, `MoveWallTool` et `MoveOpeningTool`, avec magnétisme le long de l'axe hôte (snap 50 mm) et translation de murs (snap 10 mm).
 - **Livrables :**
   - `DoorTool.ts`, `WindowTool.ts`, `MoveWallTool.ts`, `MoveOpeningTool.ts` purs sans dépendance DOM/moteur.
-  - Fonction de picking découplée `findOpeningAtScreen` dans `@mini-bim/view-2d`.
+  - Fonction de picking découplée `findOpeningAtScreen` dans `@tabax/view-2d`.
   - Intégration complète dans `useActiveTool`, `Toolbar` (raccourcis D, F, M, O) et `StatusBar`.
   - **Le Test de Crédibilité du BIM :** validation formelle qu'un mur déplacé conserve intact l'`offsetAlong` de ses ouvertures tout en déplaçant automatiquement les ouvertures en 2D et en 3D.
   - 432 tests automatisés passants sur l'ensemble du monorepo.
@@ -249,7 +249,7 @@ _Dépendances : Phase 1.1 à 1.3 (`@mini-bim/geometry`), Phase 1.4 (`@mini-bim/v
 
 - **Objectif :** Produire des livrables de plans architecturaux normalisés, des cotations 2D associatives et assurer l'interopérabilité OpenBIM via un export IFC4 natif.
 - **Fonctionnalités :**
-  - **Exportation IFC4 ISO 10303-21 STEP (`@mini-bim/core/ifc`) :** Générateur natif pur TypeScript (Option B / ADR-033) produisant un fichier STEP complet avec hiérarchie spatiale (`IfcProject`, `IfcSite`, `IfcBuilding`, `IfcBuildingStorey`), murs extrudés (`IfcWall`, `IfcExtrudedAreaSolid`), réservations découpées (`IfcOpeningElement`), portes et fenêtres avec relations BIM obligatoires (`IfcRelVoidsElement`, `IfcRelFillsElement`), espaces et surfaces habitables (`IfcSpace`, `Qto_SpaceBaseQuantities`), et rattachement d'étage (`IfcRelContainedInSpatialStructure`).
+  - **Exportation IFC4 ISO 10303-21 STEP (`@tabax/core/ifc`) :** Générateur natif pur TypeScript (Option B / ADR-033) produisant un fichier STEP complet avec hiérarchie spatiale (`IfcProject`, `IfcSite`, `IfcBuilding`, `IfcBuildingStorey`), murs extrudés (`IfcWall`, `IfcExtrudedAreaSolid`), réservations découpées (`IfcOpeningElement`), portes et fenêtres avec relations BIM obligatoires (`IfcRelVoidsElement`, `IfcRelFillsElement`), espaces et surfaces habitables (`IfcSpace`, `Qto_SpaceBaseQuantities`), et rattachement d'étage (`IfcRelContainedInSpatialStructure`).
   - **Cotations 2D Associatives (`Dimension` / ADR-034) :** Entité normalisée dans `BimState.dimensions` avec calcul géométrique pur (`computeDimensionValue`). Recalcul automatique lors du déplacement/allongement d'un mur hôte (`UpdateWallCommand`), suppression en cascade lors de la destruction d'un mur (`DeleteWallCommand`), et réversibilité transactionnelle bit-à-bit via `doc.undo()`.
   - **Plans Vectoriels Imprimables SVG (`generatePlanSvg`) :** Export vectoriel de haute précision à l'échelle architecturale normalisée (1:50, 1:100, 1:200) sur format A4/A3 paysage. Rendu conforme avec poché de mur, vitrages, arcs de battement de portes, surfaces pastel des pièces en m², lignes de cote avec ticks à 45°, et cartouche architectural réglementaire (Titre, Échelle, Date, Auteur).
   - **Intégration Web UI (`Toolbar.tsx`) :** Boutons d'export direct « Exporter IFC » et « Plan (SVG) » avec sélecteur d'échelle intégré, déclenchant le téléchargement instantané côté client.
@@ -274,27 +274,27 @@ flowchart LR
 
 - **Objectif :** Dépasser le simple niveau unique pour modéliser des édifices multi-étages complets avec leurs planchers horizontaux, trémies et circulations verticales.
 - **Sous-phases :**
-  - **6.0a Socle DAG Minimal, Registre des Relations & Refactor Pur (`@mini-bim/core`) [LIVRÉ & CERTIFIÉ] :**
+  - **6.0a Socle DAG Minimal, Registre des Relations & Refactor Pur (`@tabax/core`) [LIVRÉ & CERTIFIÉ] :**
     - **Refactor Préalable Sécurisé :** Réingénierie interne sans rupture fonctionnelle ni modification du schéma JSON v1 existant.
     - **Moteur DAG Minimal (ADR-041) :** Implémentation de `DependencyGraph` compact (~100–150 lignes de code pur) gérant la propagation automatique des invalidations pour `getChangedIds()`.
     - **Relations Déclaratives & Cascades Génériques (ADR-038) :** `RELATIONS_REGISTRY` centralisant les dépendances (`door -> wall`, `window -> wall`, `dimension -> wall`, `wall -> level`, `wall -> wallType`). Remplacement de la cascade codée en dur de `DeleteWallCommand` par `resolveCascadeDeletions`.
     - **Unification des Erreurs de Suppression :** Unification sous le code d'erreur `DELETE_RESTRICTED` avec `blockingIds: ElementId[]`.
     - **Garantie de Non-Régression Absolue :** 100% des 507 tests existants restent strictement inchangés et verts.
-  - **6.0b Validation Différentielle Post-Condition (`@mini-bim/core`) [LIVRÉ & CERTIFIÉ] :**
+  - **6.0b Validation Différentielle Post-Condition (`@tabax/core`) [LIVRÉ & CERTIFIÉ] :**
     - **Post-Condition Universelle `validateDirty` :** Validation différentielle dans `BimDocument.execute()` : la transaction n'est rejetée que si elle introduit une nouvelle violation sur le dirty set ou aggrave une violation existante, évitant de bloquer des opérations innocentes sur des modèles avec des avertissements pré-existants.
     - **Erreurs Enrichies :** Erreurs `BimValidationError` enrichies de `offendingIds: ElementId[]` permettant le surlignage immédiat dans l'interface utilisateur.
     - **Intégrité Altimétrique des Niveaux :** Règle de stricte unicité et d'élévations distinctes (`DUPLICATE_LEVEL_ELEVATION`). Helper métier `setStoryHeight(state, levelIndex, height)`.
-  - **6.0c Maintien de Connectivité des Jonctions & Étirement des Murs (`@mini-bim/geometry`, `@mini-bim/core`, `apps/web`) [LIVRÉ & CERTIFIÉ] :**
+  - **6.0c Maintien de Connectivité des Jonctions & Étirement des Murs (`@tabax/geometry`, `@tabax/core`, `apps/web`) [LIVRÉ & CERTIFIÉ] :**
     - **Détection Point-Segment :** Détection de connectivité dynamique basée sur la distance point-segment ($\text{dist}(P_i, \text{segment}(w_j)) \le 1.0\text{ mm}$), capturant aussi les branches de T-jonctions connectées au milieu d'un mur déplacé.
     - **Calcul des Sommets Communs (ADR-044) :** Option α (suivi rigide de l'extrémité $P_B' = P_A + \vec{\Delta}$) et Option β (projection monde de la baie hébergée sur le voisin $\text{offsetAlong}' = (M - P_B') \cdot \vec{u}_B'$). Intersection de droites directrices $\mathcal{D}_B \cap \mathcal{D}_{A'}$ pour les connexions en T (`mid`).
     - **Garde-Fous d'Élasticité :** Rejet de l'effondrement uniquement si la longueur passe sous le seuil UX de 100 mm **et** diminue ($L' < 100\text{ mm} \land L' < L$), rejet du retournement d'orientation ($\vec{v}' \cdot \vec{v} \le 0$), garde-fou de parallélisme $|\sin \theta| < 0.05$ pour les T-junctions, et détection de cycle avec Set d'ancêtres.
     - **Préservation Non-Destructive des Pièces (ADR-039) :** Rejet d'aucune Room en cas d'ouverture d'enceinte ; la pièce passe à `status: 'unenclosed'`, surface 0, sans suppression dans le state.
     - **MoveWallCommand & MoveWallTool :** Intégration complète dans l'outil interactif de translation avec snap 10 mm, retour visuel continu et invalidation fine des viewports 2D/3D via `res.changed`.
     - **100% Tests Verts Monorepo :** 620 tests passants (0 régression, 0 échec).
-  - **6.1a Modèle Dalles, Types, Migration Schéma v1→v2 & Découpe de Trémies (`@mini-bim/geometry`, `@mini-bim/core`) [LIVRÉ & CERTIFIÉ] :**
+  - **6.1a Modèle Dalles, Types, Migration Schéma v1→v2 & Découpe de Trémies (`@tabax/geometry`, `@tabax/core`) [LIVRÉ & CERTIFIÉ] :**
     - **Migration Documentaire vers Schéma v2 (ADR-043 / ADR-045 D1) :** Fonction pure `migrateSchemaV1toV2` extrayant automatiquement les familles distinctes de portes $(width, height)$ et fenêtres $(width, height, sillHeight)$ sans aucune perte dimensionnelle. Rétrocompatibilité totale bit-à-bit, conservation des attributs transitoires et préservation des pièces `Room.status` et `Room.area`. Tests de non-régression sur fixtures de référence Phase 5 (`T-MIG-01` à `15`).
     - **Sérialisation Automatique & Validation Stricte (`serialization.ts`) :** Migration à la volée de tout JSON v1 en v2 lors du chargement (`deserializeBimDocument`), validation des types et rejet des versions futures non supportées (`T-SER-01` à `03`).
-    - **Découpe Géométrique des Trémies (`@mini-bim/geometry`, ADR-045 D3) :** Algorithme booléen robuste basé sur `polygon-clipping` dans `computeEffectiveSlabPolygon`. Gestion des réservations internes et des trémies en rive (encoches extérieures), détection stricte des scissions (`SLAB_SEVERED`) et évidements intégraux (`SLAB_EMPTY`), normalisation CCW pour l'enveloppe et CW pour les trous (`T-SLAB-POLY-01` à `10`).
+    - **Découpe Géométrique des Trémies (`@tabax/geometry`, ADR-045 D3) :** Algorithme booléen robuste basé sur `polygon-clipping` dans `computeEffectiveSlabPolygon`. Gestion des réservations internes et des trémies en rive (encoches extérieures), détection stricte des scissions (`SLAB_SEVERED`) et évidements intégraux (`SLAB_EMPTY`), normalisation CCW pour l'enveloppe et CW pour les trous (`T-SLAB-POLY-01` à `10`).
     - **Généralisation Type / Instance & Commandes Dalles :** Entités `SlabType` et `Slab`, 6 commandes transactionnelles Immer (`AddSlabCommand`, `UpdateSlabCommand`, `DeleteSlabCommand`, `AddSlabTypeCommand`, `UpdateSlabTypeCommand`, `DeleteSlabTypeCommand`). Règles d'intégrité référentielle (`validateSlab`, `validateSlabType`), blocage de suppression par `DELETE_RESTRICTED` dans le DAG (`T-SLAB-01` à `15`).
     - **Résolution Altimétrique & Arase Supérieure des Murs (ADR-045 D2) :** `computeWallEffectiveHeight` résolvant la priorité 1 (`heightOverride`) > priorité 2 (`topConstraint` avec projection d'emprise de dalles sur `targetLevel` et arrêt sous la sous-face la plus basse $Z_{\text{inf}} = \text{elev}_{N+1} + baseOffset - thickness$, ou nominale si sous trémie traversante) > priorité 3 (`wallType.height`). Tests unitaires `T-WALL-TOP-01` à `08`.
     - **Tests à Base de Propriétés (`fast-check`) :** 4 suites de fuzzing et tests génératifs (`T-FC-01` à `T-FC-04`) : invariance réversible des transactions Undo/Redo, absence totale de crash non géré sur polygones aléatoires dans `validateSlab`, non-interpénétration physique absolue mur/dalle sur 100 configurations aléatoires ($Z_{\text{base}} + H \le Z_{\text{inf\_slab}}$), et round-trip JSON complet.
@@ -304,12 +304,12 @@ flowchart LR
     - **Panneau d'Inspection des Propriétés (`PropertyInspector`) :** Panneau latéral droit rétractable avec bouton collapse et largeur 280px. Inspection et édition en direct du mur (type, bascule « Hauteur : Auto / Fixe », hauteur libre, baseOffset, avertissement non-bloquant de pénétration de dalle), de la dalle (`name`, `slabTypeId`, `baseOffset`, affichage de l'épaisseur), du type de dalle (`thickness` avec recalcul instantané), des portes/fenêtres (dimensions, types) et du niveau (`storyHeight` via `setStoryHeight`). Anti-rebond (debounce 200ms) sur les champs numériques pour la fluidité transactionnelle.
     - **Outil Dalle Découplé (`SlabTool`, Raccourci `L`) :** Machine à états pure (`idle`, `drawing`) découplée du DOM et de Three.js. Tracé polygonal par clics consécutifs avec élastique temps réel (`PreviewShape` polyline), contrainte d'orthogonalité 45° via `Shift`, magnétisme de fermeture sur le premier sommet (tolérance écran 12px), validation par touche `Enter` ou double-clic (minimum 3 sommets non colinéaires), émission de `AddSlabCommand` et réinitialisation vers `SelectTool`.
     - **Sélecteur de Niveau (`LevelSelector`) :** Menu déroulant intégré dans la barre d'outils supérieure synchronisé avec `activeLevelId`. Filtrage en temps réel du plan 2D (`view2d.setActiveLevelId`) et mise à jour de la barre d'état.
-    - **Rendu 2D Plan des Dalles (`@mini-bim/view-2d`) :** Poché béton gris très clair (`#f3f4f6`) découpé selon la règle `evenodd`, hachures techniques à 45° espacées de 20px clippées au contour de la dalle, contour extérieur (`#4b5563`), et double diagonale en croix de réservation normalisée sur chaque trémie intérieure.
-    - **Rendu 3D Solide des Dalles (`@mini-bim/view-3d`) :** Génération de maillage solide extrudé (`createSlabMesh`) avec arase supérieure $Z_{\text{sup}} = \text{elevation} + baseOffset$ et arase inférieure $Z_{\text{inf}} = Z_{\text{sup}} - thickness$. Triangulation `earcut` des faces supérieure et inférieure et quads de flancs orientés. Support complet du picking raycast et de la surbrillance (`category: 'slab'`).
+    - **Rendu 2D Plan des Dalles (`@tabax/view-2d`) :** Poché béton gris très clair (`#f3f4f6`) découpé selon la règle `evenodd`, hachures techniques à 45° espacées de 20px clippées au contour de la dalle, contour extérieur (`#4b5563`), et double diagonale en croix de réservation normalisée sur chaque trémie intérieure.
+    - **Rendu 3D Solide des Dalles (`@tabax/view-3d`) :** Génération de maillage solide extrudé (`createSlabMesh`) avec arase supérieure $Z_{\text{sup}} = \text{elevation} + baseOffset$ et arase inférieure $Z_{\text{inf}} = Z_{\text{sup}} - thickness$. Triangulation `earcut` des faces supérieure et inférieure et quads de flancs orientés. Support complet du picking raycast et de la surbrillance (`category: 'slab'`).
     - **Export IFC4 `IfcSlab` :** Export réglementaire des dalles en solide extrudé ou profil avec trémies (`IfcArbitraryProfileDefWithVoids`) rattachées à leur `IfcBuildingStorey` avec attribut prédéfini `.FLOOR.`.
     - **Document de Démonstration Enrichi :** Intégration dans `demoDocument.ts` d'une dalle structurelle de 24 m² (4m × 6m, épaisseur 200 mm) au niveau RDC avec une trémie technique de gaine de 1 m² (1m × 1m).
     - **100% Tests Verts Monorepo :** 708 tests passants (+31 tests ajoutés en Phase 6.1b : 3 IFC, 5 View2D, 5 View3D, 3 LevelSelector, 4 SlabTool, 5 PropertyInspector, 5 App/Slab + 1 useActiveTool, 0 régression).
-  - **6.2 Vue Fantôme (Underlay) Vectorielle & Purge Définitive des Champs Transitoires V1 (`@mini-bim/core`, `@mini-bim/view-2d`, `apps/web`) [LIVRÉ & CERTIFIÉ] :**
+  - **6.2 Vue Fantôme (Underlay) Vectorielle & Purge Définitive des Champs Transitoires V1 (`@tabax/core`, `@tabax/view-2d`, `apps/web`) [LIVRÉ & CERTIFIÉ] :**
     - **Purge Définitive des Champs Transitoires V1 (ADR-042 / Note 3 Phase 6.1b) :** Suppression définitive des propriétés optionnelles transitoires `Door.kind?`, `Door.width?`, `Door.height?`, `Window.kind?`, `Window.width?`, `Window.height?` dans `types.ts` et alignement exhaustif du code de production et des suites de tests sur la résolution systématique via `doorTypes[door.doorTypeId]` et `windowTypes[window.windowTypeId]`. Vérification formelle par `git grep` (0 occurrence en production). Tests unitaires dédiés dans `purge.test.ts` (`T-PURGE-01` à `04`).
     - **Vue Fantôme (Underlay) Vectorielle & Cache Path2D (ADR-047 D1 = Option β, D2 = Option α, D3 = Option α) :** Module pur dédié `UnderlayCache` sans dépendance DOM/React. Compilation du niveau inférieur ($N-1$) en un `Path2D` composé en coordonnées monde (murs + baies hébergées avec battant à 90°, arc de débattement et ébrasements/vitrages). Invalidation ciblée par `changedIds` (complexité $\mathcal{O}(1)$ lors des pans/zooms sans aucune pixellisation). Rendu normalisé : gris `#9ca3af`, épaisseur constante $1/\text{scale}$ px, tiretés `[4/scale, 4/scale]`, opacité 0.5 (`drawUnderlay`).
     - **Snapping Inter-Niveaux Ergonomique :** Aimantation automatique aux sommets des murs du niveau sous-jacent $N-1$ avec tolérance écran constante de $12\text{ px} / \text{scale}$. Débrayable via `snapToUnderlay: boolean`. Arbitrage déterministe privilégiant le sommet du niveau actif à équidistance (`T-SNAP-U-01` à `07`).
@@ -319,12 +319,12 @@ flowchart LR
     - `SlabTool` (Raccourci `L`) : dessin polygonal de dalles par clics consécutifs avec magnétisme sur les angles de murs extérieurs.
     - Sélecteur de Niveau UI (`LevelSelector`) dans la barre d'outils supérieure : passage instantané du RDC au R+1, avec synchronisation du plan 2D et de la caméra 3D.
     - Extension du Panneau d'Inspection des Propriétés : gestion des matériaux, couches composites et surcharges graphiques.
-  - **6.4 Escalier Paramétrique Droit, Dérivation de Trémie & Rendu 2D/3D (`@mini-bim/core`, `view-2d`, `view-3d`, `apps/web`) [LIVRÉ & CERTIFIÉ] :**
+  - **6.4 Escalier Paramétrique Droit, Dérivation de Trémie & Rendu 2D/3D (`@tabax/core`, `view-2d`, `view-3d`, `apps/web`) [LIVRÉ & CERTIFIÉ] :**
     - **Modèle Paramétrique Droit & Blondel (ADR-048 D1 = Option α, D2 = Option γ, D3 = Option β) :** Entités `StairType` (largeur nominale, matériaux) et `Stair` (`start`, `end`, `bottomLevelId`, `topLevelId`, `widthOverride`). Calcul géométrique complet dans `computeStairGeometry` : dénivellation totale $\Delta Z = Z_{\text{haut}} - Z_{\text{bas}}$, nombre de marches $N = \operatorname{clamp}(\operatorname{round}(\Delta Z / 175), 3, 30)$, hauteur de contremarche $h = \Delta Z / N$, giron $g = L / N$. Formule de Blondel $M = 2h + g$ avec plage de confort $[600, 640]\text{ mm}$ ($h \in [160, 190]$, $g \in [250, 320]$) et plage de sécurité $[560, 680]\text{ mm}$ (avertissements non-bloquants ergonomie/sécurité, rejet strict si $L < \text{width}$, $L > 20000\text{ mm}$ ou $\Delta Z \le 0$).
     - **Dérivation Dynamique de la Trémie (ADR-048 D5) :** Respect strict du principe "Source unique de vérité" (ADR-001) : la trémie n'est jamais stockée dans `slab.holes`. `computeStairShaft` calcule l'emprise projetée au niveau haut avec dégagement latéral de $+50\text{ mm}$ (passage de main courante) et $+100\text{ mm}$ en extrémités, injectée dynamiquement dans `slab.openings` lors du rendu 2D et de la découpe 3D.
     - **Intégration DAG & Invalidation Automatique :** Enregistrement de la relation `stair -> slab(topLevelId)` dans `RELATIONS_REGISTRY` et `DependencyGraph`. Toute mutation d'un escalier marque dirty et régénère automatiquement le maillage de la dalle d'étage.
-    - **Rendu 2D Plan & Underlay (`@mini-bim/view-2d`) :** Tracé normalisé de la volée : emprise rectangulaire, $N-1$ nez de marches perpendiculaires espacés de $g$, ligne de foulée axiale fléchée avec pastille d'ancrage en pied (`start`) et flèche directionnelle en tête (`end`). Rendu fantôme sous-jacent en traits pointillés gris (`#9ca3af`) dans `UnderlayCache`.
-    - **Maillage 3D Crénelé Étanche (`@mini-bim/view-3d`, ADR-048 D4) :** Génération unifiée (`createStairMesh`) en un seul draw call (`RawMeshData`) comprenant les marches supérieures ($+Z$), contremarches ($-\vec{u}$), dos ($+\vec{u}$), base ($-Z$) et flancs latéraux triangulés sans T-junctions. Étanchéité absolue et caractéristique d'Euler vérifiée $V - E + F = 2$. Support complet du picking raycast (`category: 'stair'`).
+    - **Rendu 2D Plan & Underlay (`@tabax/view-2d`) :** Tracé normalisé de la volée : emprise rectangulaire, $N-1$ nez de marches perpendiculaires espacés de $g$, ligne de foulée axiale fléchée avec pastille d'ancrage en pied (`start`) et flèche directionnelle en tête (`end`). Rendu fantôme sous-jacent en traits pointillés gris (`#9ca3af`) dans `UnderlayCache`.
+    - **Maillage 3D Crénelé Étanche (`@tabax/view-3d`, ADR-048 D4) :** Génération unifiée (`createStairMesh`) en un seul draw call (`RawMeshData`) comprenant les marches supérieures ($+Z$), contremarches ($-\vec{u}$), dos ($+\vec{u}$), base ($-Z$) et flancs latéraux triangulés sans T-junctions. Étanchéité absolue et caractéristique d'Euler vérifiée $V - E + F = 2$. Support complet du picking raycast (`category: 'stair'`).
     - **Outil Interactif `StairTool` (Raccourci `E`) :** Machine à états pure (`idle` -> `drawing`) supportant à la fois le clic-glisser et le mode deux clics, snapping sur sommets de murs et d'underlay ($12\text{ px} / \text{scale}$), contrainte angulaire 45° via `Shift`, annulation par `Escape` et validation par `Enter` ou clic.
     - **Inspecteur de Propriétés Enrichi (`PropertyInspector`) :** Section complète d'inspection de l'escalier avec sélecteur de famille `StairType`, ajustement de largeur, dénivellation $\Delta Z$, nombre de marches $N$, contremarche $h$, giron $g$, badge ergonomique de Blondel (Vert Confort / Jaune Hors Confort / Rouge Hors Sécurité), liste des avertissements et bouton d'inversion instantanée du sens de montée.
     - **Barre d'Outils & Export IFC4 :** Bouton `Escalier (E)` dans la `Toolbar`. Export IFC4 complet avec entités `IFCSTAIR` (.STRAIGHT_RUN_STAIR.) et `IFCSTAIRFLIGHT` (.STRAIGHT.) liées par `IFCRELAGGREGATES` et rattachées au niveau bas via `IFCRELCONTAINEDINSPATIALSTRUCTURE`.
@@ -336,17 +336,17 @@ flowchart LR
 
 - **Objectif :** Clore l'enveloppe extérieure du bâtiment par le haut avec toitures plates et à 2 pans, biseautage automatique des têtes de murs, rendu 2D/3D étanche ($V - E + F = 2$), outils interactifs et interopérabilité IFC4 (`IfcRoof`).
 - **Jalons Livrés (Décisions D1 à D9 / ADR-053) :**
-  - **7a — Modèle de Toitures, Résolveur Altimétrique & Biseautage (`@mini-bim/core`) :**
+  - **7a — Modèle de Toitures, Résolveur Altimétrique & Biseautage (`@tabax/core`) :**
     - Union discriminée `RoofType` (`family: 'flat'` vs `family: 'gable'`), instances `Roof`, entités d'ouvertures dérivées `RoofOpening`.
     - Migration de schéma documentaire `WallTopConstraint` (`{ kind: 'level' }` vs `{ kind: 'roof' }`).
     - Algorithme analytique `computeRoofSlopes` et dérivation non-destructive de trémies `computeEffectiveRoofPolygon`.
     - Extension du résolveur unique `resolveWallGeometry` : arase supérieure sous forme de polyligne 2D locale `topProfile: Vec2[]`.
     - Profils trapézoïdaux sous pan unique et chevrons à 3 sommets pour les murs pignons traversant le faîtage ($Z_{\text{ridge}} = Z_{\text{base}} + W_{\text{half}} \cdot \tan(\alpha)$).
-  - **7b — Rendu 2D & Rendu 3D Étanche (`@mini-bim/view-2d`, `@mini-bim/view-3d`) :**
+  - **7b — Rendu 2D & Rendu 3D Étanche (`@tabax/view-2d`, `@tabax/view-3d`) :**
     - Rendu 2D Canvas : contour d'empreinte, débords de toiture en tiretés bleus, axe de faîtage épais, découpes de trémies avec double diagonale en croix.
     - Rendu 3D Three.js : solide étanche de toiture vérifiant la caractéristique d'Euler-Poincaré $V - E + F = 2$, calcul de volume analytique exact $2 \times S_{\text{versant}} \times e$, biseautage des têtes de murs dans `createWallMeshWithOpenings` (quads/triangles de faîte sans fente ni T-junction), matériau terre cuite `#92400e`.
     - Intégration dans le Graphe de Dépendances (`DependencyGraph`) avec invalidation réactive en cascade.
-  - **7c — Outils Interactifs, PropertyInspector & Export IFC4 (`apps/web`, `@mini-bim/core`) :**
+  - **7c — Outils Interactifs, PropertyInspector & Export IFC4 (`apps/web`, `@tabax/core`) :**
     - Outil interactif `RoofTool` (Raccourci clavier 'R') : tracé polygonal d'empreinte avec bouclage automatique, sélection interactive du faîtage pour toiture à 2 pans.
     - Inspecteur de propriétés `PropertyInspector` : panneau complet d'inspection de la toiture (famille, nom, pente modifiable, débords, décalage vertical `baseOffset`).
     - Intégration Toolbar (`Toiture (R)`), StatusBar (compteur de toitures) et types de toiture par défaut dans `createDefaultProject()`.
@@ -439,7 +439,7 @@ flowchart LR
     - Mesures d'empreinte mémoire V8 : +5,57 Mo statique pour 10 000 entités (~557 octets/entité), cycle de vie mémoire maîtrisé sous 20 mutations transactionnelles (206 Mo max, 161 Mo après Undo).
     - Diagnostic factuel des goulots d'étranglement (P0 : collision mur $\to$ composant sans index spatial dans `checkWallViolations`, résolution géométrique $O(W^2)$ dans `resolveWallGeometry` ; P1 : double reconstruction DAG par transaction, rendu 2D Canvas sans filtrage de niveau ni culling).
     - Rapport officiel produit dans `docs/perf/PHASE_9_1_SCALABILITY_REPORT.md` (1 045 tests passants, 0 erreur TS, 0 warning ESLint).
-  - **9.2 Noyau MEP & Modèle Topologique des Réseaux Techniques (`@mini-bim/core`) [LIVRÉ & QUALIFIÉ] :**
+  - **9.2 Noyau MEP & Modèle Topologique des Réseaux Techniques (`@tabax/core`) [LIVRÉ & QUALIFIÉ] :**
     - Modèle de données sémantique MEP (`Pipe`, `Duct`, `CableTray`, `MepFitting`, `MepEquipment`, `MepSystem`, `Port`, `Connector`) conforme à l'ADR-009 et l'ADR-056.
     - Découplage strict des deux graphes : `DependencyGraph` (DAG d'invalidation) 100% acyclique, et `MepNetworkGraph` (graphe physique de réseaux) autorisant les réseaux linéaires, ramifiés, les sous-réseaux disjoints et les boucles fermées cycliques (`hasLoops()`).
     - Contrat formel de `Port` (position 3D, normale unitaire sortante, forme, dimensions, domaine, type de fluide, sens de flux) et tolérances centralisées (`MEP_TOLERANCES`).
@@ -473,7 +473,7 @@ flowchart LR
     - **Discipline Mémoire WASM & Moteur 3D (`FederatedIfcManager.ts`, `Scene3D.ts`) :** Fermeture systématique de WebIFC (`try ... finally { CloseModel }`), conteneur Three.js dédié, visibilité, filaire, opacité réglable, décalage spatial $(dX, dY, dZ)$ et libération GPU totale des `BufferGeometry` et matériaux.
     - **Coordination Spatiale BVH Inter-Modèles :** Fonction `detectFederatedClashes` testant les interférences entre les géométries natives et les entités IFC externes via le `BVHTree`.
     - **Durcissement Géométrique 9.4.1 :** Qualification des cas limites de clash (OBB obliques à 45°, colonnes montantes verticales traversant une dalle, frontière de tolérance exacte de contact à 1,9 mm toléré vs 2,5 mm détecté).
-    - **Interface Web Complète (`apps/web`) :** Boutons `📁 IFC Réf` et `+ IFC` dans la Toolbar, panneau rétractable `FederatedIfcPanel.tsx` (onglets Maquettes, Inspecteur d'entités avec `GlobalId` et `PropertySets`, Conflits spatiaux), raycasting 3D sans effet de bord, et respect strict de la Règle d'or #2 (zéro import de `@mini-bim/geometry` dans `web`).
+    - **Interface Web Complète (`apps/web`) :** Boutons `📁 IFC Réf` et `+ IFC` dans la Toolbar, panneau rétractable `FederatedIfcPanel.tsx` (onglets Maquettes, Inspecteur d'entités avec `GlobalId` et `PropertySets`, Conflits spatiaux), raycasting 3D sans effet de bord, et respect strict de la Règle d'or #2 (zéro import de `@tabax/geometry` dans `web`).
     - **Consigné dans `ADR-060` :** Monorepo qualifié à 100% de tests verts (1 177 tests Vitest sur 110 suites, 6 tests Playwright E2E réels, 0 erreur TypeScript strict, 0 warning ESLint).
   - **9.6 Design System Graphite Engineering, Cockpit Modulaire & Refonte Visuelle CAD (`apps/web`) [LIVRÉ & QUALIFIÉ] :**
     - **Design System Graphite Engineering (`ADR-061`) :** Palette sobre d'ingénierie sombre (`#14161a`, `#1b1e24`, `#232730`, bordures `#2d323e`), typographie technique `tabular-nums`, suppression des styles en ligne disparates au profit de CSS Modules et tokens harmonisés.
@@ -532,14 +532,14 @@ flowchart LR
   - Flag d'idempotence `autoGenerated?: boolean`.
   - Calcul unifié `computeDimensionValue(dim, state)`.
 - **Machine à États Pure `DimensionTool` :**
-  - Règle d'or #2 respectée (zéro import `@mini-bim/geometry`).
+  - Règle d'or #2 respectée (zéro import `@tabax/geometry`).
   - Cycle en 3 phases : `idle` -> `firstPointPicked` -> `placingOffset`.
   - Magnétisme de précision (snap 10 mm et sommets), touche `Shift` (contrainte 45°/90°), touche `Espace` (inversion du déport), `Échap` et `Entrée`.
 - **Parité Graphique sur les 4 Moteurs 2D :**
   - Résolveur unifié `resolveDimensionPoints(dim, walls)`.
   - Restitution cohérente sur Canvas 2D interactif, aperçu temps réel `PreviewShape`, SVG vectoriel, DXF R12 (`COTATIONS` en magenta) et carnet PDF vectoriel (`0.55 0.36 0.96 RG`).
 - **Hit-Testing 2D & Cockpit Graphite :**
-  - `findDimensionAtScreen` dans `@mini-bim/view-2d/src/hit-test.ts`.
+  - `findDimensionAtScreen` dans `@tabax/view-2d/src/hit-test.ts`.
   - Inspecteur `DimensionInspector.tsx` dans `PropertyInspector` (valeur mm/m, déport réglable, flip instantané, personnalisation et badge auto).
   - Suppression unifiée via `DeleteElementsCommand`.
 - **Moteur d'Auto-Cotation d'Étage (`AutoDimensionLevelCommand`) :**

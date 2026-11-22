@@ -1,5 +1,5 @@
 /**
- * @mini-bim/core/mep/commands
+ * @tabax/core/mep/commands
  *
  * Commandes transactionnelles de mutation pour les entités et réseaux techniques MEP.
  * Conformes à l'architecture transactionnelle réversible BimDocument (Command + Immer).

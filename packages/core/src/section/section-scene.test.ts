@@ -4,7 +4,7 @@ import {
   computeSectionScene,
   type SectionCut,
 } from '../index.js';
-import { vec2 } from '@mini-bim/geometry';
+import { vec2 } from '@tabax/geometry';
 
 describe('Saison 3 — Lot 2.A : Scène de coupe analytique computeSectionScene (ADR-063)', () => {
   it('calcule la coupe transversale de la Villa Contemporaine Complexe (toiture 2 pans, mur pignon & dalle)', () => {

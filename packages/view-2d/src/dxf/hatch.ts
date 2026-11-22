@@ -1,5 +1,5 @@
-import { type Vec2, vec2 } from '@mini-bim/geometry';
-import { sliceSegmentWithPolygonWithHoles } from '@mini-bim/geometry';
+import { type Vec2, vec2 } from '@tabax/geometry';
+import { sliceSegmentWithPolygonWithHoles } from '@tabax/geometry';
 
 export interface HatchOptions {
   /** Angle des hachures en degrés (défaut : 45°). */

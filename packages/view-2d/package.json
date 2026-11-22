@@ -1,7 +1,7 @@
 {
-  "name": "@mini-bim/view-2d",
+  "name": "@tabax/view-2d",
   "version": "0.1.0",
-  "description": "Visualiseur et plan 2D impératif Canvas 2D pour Mini-BIM",
+  "description": "Visualiseur et plan 2D impératif Canvas 2D pour Tabax",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -19,8 +19,8 @@
     "typecheck": "tsc --noEmit -p tsconfig.test.json"
   },
   "dependencies": {
-    "@mini-bim/core": "workspace:*",
-    "@mini-bim/geometry": "workspace:*"
+    "@tabax/core": "workspace:*",
+    "@tabax/geometry": "workspace:*"
   },
   "devDependencies": {
     "@types/jsdom": "^30.0.0",

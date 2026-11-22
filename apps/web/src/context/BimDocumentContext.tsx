@@ -1,5 +1,5 @@
 import { createContext, useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
-import { type BimDocument, type BimState, type Command, type CommandResult } from '@mini-bim/core';
+import { type BimDocument, type BimState, type Command, type CommandResult } from '@tabax/core';
 import { createDemoDocument } from '../demo/demoDocument.js';
 
 /**

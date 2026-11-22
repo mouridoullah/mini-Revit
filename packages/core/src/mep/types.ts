@@ -1,5 +1,5 @@
 /**
- * @mini-bim/core/mep/types
+ * @tabax/core/mep/types
  *
  * Définition du modèle de données sémantique et topologique des réseaux techniques MEP
  * (Mechanical, Electrical & Plumbing - Génie climatique, plomberie et courants techniques).

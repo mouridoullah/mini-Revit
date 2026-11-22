@@ -1,5 +1,5 @@
 /**
- * @mini-bim/core/mep/routing
+ * @tabax/core/mep/routing
  *
  * Moteur de routage géométrique déterministe 3D pour réseaux techniques MEP (Sous-phase 9.3.3).
  *

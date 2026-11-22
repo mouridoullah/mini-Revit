@@ -1,4 +1,4 @@
-import { type Vec2, vec2, computeWallFootprint2d } from '@mini-bim/geometry';
+import { type Vec2, vec2, computeWallFootprint2d } from '@tabax/geometry';
 import { MockPath2D } from './mock-path2d.js';
 
 export { MockPath2D } from './mock-path2d.js';

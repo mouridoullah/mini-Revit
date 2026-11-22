@@ -1,5 +1,5 @@
-import { Commands, generateId } from '@mini-bim/core';
-import { type Vec2 } from '@mini-bim/view-2d';
+import { Commands, generateId } from '@tabax/core';
+import { type Vec2 } from '@tabax/view-2d';
 import { snapAngle45, snapPoint, collectSnapCandidates, snapToStep } from './snap.js';
 import {
   type Tool,
@@ -36,7 +36,7 @@ export const DEFAULT_DIMENSION_OFFSET = 500;
  * - Finalisation anticipée sur appui de Enter.
  * - Annulation propre par Escape.
  * - Validation finale émettant AddDimensionCommand.
- * - Zéro import direct de @mini-bim/geometry (Règle d'or #2, ADR-022, ADR-024).
+ * - Zéro import direct de @tabax/geometry (Règle d'or #2, ADR-022, ADR-024).
  */
 export class DimensionTool implements Tool {
   public readonly kind = 'dimension' as const;

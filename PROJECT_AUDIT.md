@@ -117,10 +117,10 @@ L'analyse technique approfondie du document initial révèle plusieurs points cr
 
 1. **Initialisation de l'infrastructure :** Mettre en place un monorepo TypeScript strict avec gestion des paquets `pnpm`, bundler `Vite`, moteur de test `Vitest`.
 2. **Découpage modulaire :** Structurer le projet en packages autonomes :
-   - `@mini-bim/geometry` : Mathématiques pures, 2D/3D, découpes, sans aucune dépendance externe lourde.
-   - `@mini-bim/core` : Entités BIM, catalogue de types, graphe de dépendances, bus de commandes.
-   - `@mini-bim/persistence` : Sérialisation, schémas Zod versionnés, adaptateurs JSON / SQLite.
-   - `@mini-bim/view-2d` : Moteur de rendu et d'interaction 2D (HTML5 Canvas).
-   - `@mini-bim/view-3d` : Moteur de rendu 3D Three.js impératif.
-   - `@mini-bim/ui` : Application React (barres d'outils, inspecteur de propriétés, métrés).
+   - `@tabax/geometry` : Mathématiques pures, 2D/3D, découpes, sans aucune dépendance externe lourde.
+   - `@tabax/core` : Entités BIM, catalogue de types, graphe de dépendances, bus de commandes.
+   - `@tabax/persistence` : Sérialisation, schémas Zod versionnés, adaptateurs JSON / SQLite.
+   - `@tabax/view-2d` : Moteur de rendu et d'interaction 2D (HTML5 Canvas).
+   - `@tabax/view-3d` : Moteur de rendu 3D Three.js impératif.
+   - `@tabax/ui` : Application React (barres d'outils, inspecteur de propriétés, métrés).
 3. **Formalisation des Spécifications :** Rédaction des documents normatifs d'architecture, de domaine, de géométrie et de roadmap.

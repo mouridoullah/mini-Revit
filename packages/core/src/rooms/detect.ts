@@ -9,7 +9,7 @@ import {
   computePolylabel,
   signedArea,
   perimeter,
-} from '@mini-bim/geometry';
+} from '@tabax/geometry';
 
 /**
  * Représentation géométrique d'une pièce calculée à la demande.

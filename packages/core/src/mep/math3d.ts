@@ -1,5 +1,5 @@
 /**
- * @mini-bim/core/mep/math3d
+ * @tabax/core/mep/math3d
  *
  * Utilitaires mathématiques 3D purs pour la topologie des réseaux techniques MEP.
  * Calcul en flottant double précision IEEE 754 float64 sans arrondi prématuré (ADR-010).

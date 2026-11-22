@@ -1,5 +1,5 @@
 /**
- * @mini-bim/view-2d
+ * @tabax/view-2d
  * Visualiseur et gestionnaire impératif de vue en plan 2D pour Mini-BIM.
  *
  * Utilise la Canvas 2D API pure. Indépendant de React et de Three.js.

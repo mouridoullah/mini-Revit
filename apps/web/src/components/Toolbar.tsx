@@ -33,7 +33,7 @@ import {
   Wind,
 } from 'lucide-react';
 import type { ToolKind } from '../tools/types.js';
-import type { Level } from '@mini-bim/core';
+import type { Level } from '@tabax/core';
 import type { LucideProps } from 'lucide-react';
 import type { DockTab } from './RightDockPanel.js';
 import styles from './Toolbar.module.css';
@@ -249,7 +249,7 @@ export function Toolbar({
           <span className={styles.logo}>
             <Building2 size={17} />
           </span>
-          <strong>MINI-BIM</strong>
+          <strong>TABAX</strong>
           <span className={styles.version}>0.1</span>
         </div>
         <nav className={styles.tabs} aria-label="Onglets métiers">

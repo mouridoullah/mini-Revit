@@ -3,7 +3,7 @@
 **Statut :** Accepté  
 **Date :** 21 novembre 2026  
 **Auteurs :** Ingénieur Principal & Direction Technique  
-**Périmètre :** `@mini-bim/core`, `@mini-bim/geometry`
+**Périmètre :** `@tabax/core`, `@tabax/geometry`
 
 ---
 

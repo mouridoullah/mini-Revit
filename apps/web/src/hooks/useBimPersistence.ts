@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { BimDocument, createComplexVillaDocument } from '@mini-bim/core';
+import { BimDocument, createComplexVillaDocument } from '@tabax/core';
 import { AutoSaveManager, loadFromIndexedDB } from '../persistence/autoSave.js';
 
 export interface UseBimPersistenceOptions {

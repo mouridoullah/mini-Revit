@@ -2,7 +2,7 @@ import {
   Commands,
   type Roof,
   type BimState,
-} from '@mini-bim/core';
+} from '@tabax/core';
 import { DebouncedTextInput, DebouncedNumberInput } from './DebouncedInputs.js';
 
 export interface RoofInspectorProps {

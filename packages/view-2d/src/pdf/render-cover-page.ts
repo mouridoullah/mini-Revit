@@ -1,4 +1,4 @@
-import type { BimState, Room } from '@mini-bim/core';
+import type { BimState, Room } from '@tabax/core';
 import type { PdfPageContent } from './PdfWriter.js';
 import { drawPageFrame, drawTitleBlock } from './cartouche.js';
 import { MM_TO_PT, type PageFormatDef, type PdfBookOptions } from './types.js';
@@ -29,13 +29,13 @@ export function renderCoverPage(
   const topYPt = (format.heightMm - marginMm) * MM_TO_PT;
 
   // 2. Grand en-tête architectural
-  content.text('MINI-BIM CAD & GRAPHITE ENGINEERING', leftXPt, topYPt - 5 * MM_TO_PT, {
+  content.text('TABAX CAD & GRAPHITE ENGINEERING', leftXPt, topYPt - 5 * MM_TO_PT, {
     font: 'bold',
     size: 9,
     color: [0.1, 0.45, 0.85],
   });
 
-  const projectTitle = (options.projectTitle ?? 'PROJET MINI-BIM').toUpperCase();
+  const projectTitle = (options.projectTitle ?? 'PROJET TABAX').toUpperCase();
   content.text(projectTitle, leftXPt, topYPt - 14 * MM_TO_PT, {
     font: 'bold',
     size: 20,
@@ -209,12 +209,12 @@ export function renderCoverPage(
 
   // 5. Cartouche architectural
   drawTitleBlock(content, format, {
-    projectTitle: options.projectTitle ?? 'PROJET MINI-BIM',
+    projectTitle: options.projectTitle ?? 'PROJET TABAX',
     sheetTitle: 'PAGE DE GARDE & SOMMAIRE',
     sheetNumber: `PL-${String(sheetIndex).padStart(2, '0')} / ${String(totalPages).padStart(2, '0')}`,
     scaleLabel: 'N/A',
     date: options.date ?? new Date().toLocaleDateString('fr-FR'),
-    author: options.author ?? 'Mini-BIM Engine',
+    author: options.author ?? 'Tabax Engine',
     revision: options.revision ?? 'INDICE 0',
     showNorthArrow: false,
   });

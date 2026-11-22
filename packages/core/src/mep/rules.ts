@@ -1,5 +1,5 @@
 /**
- * @mini-bim/core/mep/rules
+ * @tabax/core/mep/rules
  *
  * Règles de validation métier et d'intégrité pour les entités MEP.
  * Intégrées au mécanisme différentiel validateDirty (ADR-041 / Phase 9.2).

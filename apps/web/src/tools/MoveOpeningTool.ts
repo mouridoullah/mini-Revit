@@ -1,5 +1,5 @@
-import { Commands } from '@mini-bim/core';
-import { findOpeningAtScreen, type Vec2 } from '@mini-bim/view-2d';
+import { Commands } from '@tabax/core';
+import { findOpeningAtScreen, type Vec2 } from '@tabax/view-2d';
 import { snapToStep } from './snap.js';
 import {
   type Tool,
@@ -21,7 +21,7 @@ export const MIN_OPENING_CLEARANCE = 50;
  * Émet MoveOpeningCommand(openingId, newOffsetAlong), qui propage automatiquement
  * le recalcul du mur hôte percé via MoveOpeningCommand.getChangedIds().
  *
- * Ne dépend ni de React, ni de Three.js, ni du DOM, ni de @mini-bim/geometry.
+ * Ne dépend ni de React, ni de Three.js, ni du DOM, ni de @tabax/geometry.
  */
 export class MoveOpeningTool implements Tool {
   public readonly kind = 'moveOpening' as const;

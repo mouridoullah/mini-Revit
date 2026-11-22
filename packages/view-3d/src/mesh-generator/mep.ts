@@ -1,5 +1,5 @@
 /**
- * @mini-bim/view-3d/mesh-generator/mep
+ * @tabax/view-3d/mesh-generator/mep
  *
  * Générateur de maillage 3D pour les entités du génie technique du bâtiment (MEP) :
  * Tuyauteries, gaines aérauliques, chemins de câbles, raccords et équipements.
@@ -7,7 +7,7 @@
  * Conforme à l'ADR-009, l'ADR-017 (Backface Culling) et aux spécifications buildingSMART IFC4.
  */
 
-import { type RawMeshData } from '@mini-bim/geometry';
+import { type RawMeshData } from '@tabax/geometry';
 import type {
   PipeGeometryParams,
   DuctGeometryParams,

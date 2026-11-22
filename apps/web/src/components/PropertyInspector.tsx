@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Trash2, ChevronLeft } from 'lucide-react';
-import type { Commands, BimDocument } from '@mini-bim/core';
+import type { Commands, BimDocument } from '@tabax/core';
 import {
   WallInspector,
   SlabInspector,

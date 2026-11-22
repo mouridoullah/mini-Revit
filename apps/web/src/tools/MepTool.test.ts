@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { BimDocument, RouteMepPathCommand, InsertTeeBranchCommand } from '@mini-bim/core';
-import { Transform2D } from '@mini-bim/view-2d';
+import { BimDocument, RouteMepPathCommand, InsertTeeBranchCommand } from '@tabax/core';
+import { Transform2D } from '@tabax/view-2d';
 import { MepTool, CreateMepSegmentCommand } from './MepTool.js';
 import { type ToolContext } from './types.js';
 

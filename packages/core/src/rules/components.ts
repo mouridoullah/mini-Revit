@@ -11,7 +11,7 @@ import {
   type Vec2,
   vec2,
   computeWallFootprint2d,
-} from '@mini-bim/geometry';
+} from '@tabax/geometry';
 import { getComponentEffectiveDimensions } from '../components/dimensions.js';
 
 /**

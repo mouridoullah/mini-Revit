@@ -7,7 +7,7 @@ import {
   type LevelMetrics,
   type MepSystem,
   type Pipe,
-} from '@mini-bim/core';
+} from '@tabax/core';
 import type { PdfPageContent } from './PdfWriter.js';
 import { drawPageFrame, drawTitleBlock } from './cartouche.js';
 import { MM_TO_PT, type PageFormatDef, type PdfBookOptions } from './types.js';
@@ -513,12 +513,12 @@ export function renderMetricsPage(
       : `SYNTHÈSE MÉTRÉS & SURFACES (${metricsPageIndex + 1})`;
 
   drawTitleBlock(content, format, {
-    projectTitle: options.projectTitle ?? 'PROJET MINI-BIM',
+    projectTitle: options.projectTitle ?? 'PROJET TABAX',
     sheetTitle,
     sheetNumber: `PL-${String(sheetIndex).padStart(2, '0')} / ${String(totalPages).padStart(2, '0')}`,
     scaleLabel: 'N/A',
     date: options.date ?? new Date().toLocaleDateString('fr-FR'),
-    author: options.author ?? 'Mini-BIM Engine',
+    author: options.author ?? 'Tabax Engine',
     revision: options.revision ?? 'INDICE 0',
     showNorthArrow: false,
   });

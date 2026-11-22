@@ -16,7 +16,7 @@ import {
   type Roof,
   type Room,
 } from '../types.js';
-import { vec2 } from '@mini-bim/geometry';
+import { vec2 } from '@tabax/geometry';
 
 /**
  * Générateur de projet de référence : « Villa Contemporaine Complexe »

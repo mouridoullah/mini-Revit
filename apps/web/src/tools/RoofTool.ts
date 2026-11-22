@@ -1,5 +1,5 @@
-import { Commands, generateId, type Roof, type RoofType } from '@mini-bim/core';
-import { type Vec2 } from '@mini-bim/view-2d';
+import { Commands, generateId, type Roof, type RoofType } from '@tabax/core';
+import { type Vec2 } from '@tabax/view-2d';
 import { snapAngle45, snapPoint as snapHelper, collectSnapCandidates } from './snap.js';
 import {
   type Tool,

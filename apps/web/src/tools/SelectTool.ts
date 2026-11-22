@@ -5,7 +5,7 @@ import {
   findOpeningAtScreen,
   findSectionCutAtScreen,
   findDimensionAtScreen,
-} from '@mini-bim/view-2d';
+} from '@tabax/view-2d';
 import {
   type Tool,
   type ToolEvent,

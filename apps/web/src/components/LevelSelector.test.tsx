@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { LevelSelector } from './LevelSelector.js';
-import { type Level } from '@mini-bim/core';
+import { type Level } from '@tabax/core';
 
 describe('LevelSelector — Sélecteur d’étage de travail (Phase 6.1b)', () => {
   const sampleLevels: readonly Level[] = [

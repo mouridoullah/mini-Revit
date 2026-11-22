@@ -14,7 +14,7 @@ import {
 } from './commands.js';
 import { DependencyGraph } from './dag/DependencyGraph.js';
 import type { Door, BimState, ElementId } from './types.js';
-import { vec2 } from '@mini-bim/geometry';
+import { vec2 } from '@tabax/geometry';
 import { BimValidationError } from './rules.js';
 
 describe('Intégration BimDocument.execute() + DAG Minimal (T-EXEC-01 à 07)', () => {

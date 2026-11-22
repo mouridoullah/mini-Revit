@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import {
   createComplexVillaDocument,
   type BimState,
-} from '@mini-bim/core';
+} from '@tabax/core';
 import { describe, expect, it } from 'vitest';
 import {
   generatePdfBook,

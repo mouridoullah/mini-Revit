@@ -1,5 +1,5 @@
 /**
- * @mini-bim/view-3d
+ * @tabax/view-3d
  * Moteur de rendu et gestionnaire de scène 3D Three.js pour Mini-BIM.
  *
  * Indépendant de React : API impérative pure pour affichage 3D,
@@ -69,7 +69,7 @@ export {
   type WallInput,
   type ResolvedWall,
   type JunctionSolution,
-} from '@mini-bim/geometry';
+} from '@tabax/geometry';
 export type {
   SceneOptions,
   MeshHandle,

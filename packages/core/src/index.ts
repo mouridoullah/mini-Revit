@@ -1,5 +1,5 @@
 /**
- * @mini-bim/core
+ * @tabax/core
  * Noyau métier, modèle documentaire et gestionnaire de commandes transactionnelles pour Mini-BIM.
  *
  * Indépendant de React, Three.js et du DOM.

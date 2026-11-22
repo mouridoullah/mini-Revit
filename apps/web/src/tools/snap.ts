@@ -1,4 +1,4 @@
-import { type Vec2 } from '@mini-bim/view-2d';
+import { type Vec2 } from '@tabax/view-2d';
 import { type ToolContext } from './types.js';
 
 /**

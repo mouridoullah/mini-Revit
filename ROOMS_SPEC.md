@@ -3,7 +3,7 @@
 **Statut :** Spécification de Référence — Phase 4  
 **Date :** 14 novembre 2026  
 **Auteur :** Lead Software Architect & Computational Geometry Engineer  
-**Packages d'implémentation :** `@mini-bim/core`, `@mini-bim/geometry`, `@mini-bim/view-2d`, `@mini-bim/view-3d`
+**Packages d'implémentation :** `@tabax/core`, `@tabax/geometry`, `@tabax/view-2d`, `@tabax/view-3d`
 
 ---
 
@@ -26,7 +26,7 @@ Le module de pièces architecturales (_Rooms_) obéit aux règles fondatrices de
 
 ---
 
-## 2. Modèle de Données et Typage (`@mini-bim/core`)
+## 2. Modèle de Données et Typage (`@tabax/core`)
 
 ### 2.1 Interface `Room`
 

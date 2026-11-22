@@ -32,13 +32,13 @@ importers:
 
   apps/web:
     dependencies:
-      '@mini-bim/core':
+      '@tabax/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@mini-bim/view-2d':
+      '@tabax/view-2d':
         specifier: workspace:*
         version: link:../../packages/view-2d
-      '@mini-bim/view-3d':
+      '@tabax/view-3d':
         specifier: workspace:*
         version: link:../../packages/view-3d
       lucide-react:
@@ -90,7 +90,7 @@ importers:
 
   packages/core:
     dependencies:
-      '@mini-bim/geometry':
+      '@tabax/geometry':
         specifier: workspace:*
         version: link:../geometry
       immer:
@@ -140,10 +140,10 @@ importers:
 
   packages/view-2d:
     dependencies:
-      '@mini-bim/core':
+      '@tabax/core':
         specifier: workspace:*
         version: link:../core
-      '@mini-bim/geometry':
+      '@tabax/geometry':
         specifier: workspace:*
         version: link:../geometry
     devDependencies:
@@ -162,7 +162,7 @@ importers:
 
   packages/view-3d:
     dependencies:
-      '@mini-bim/geometry':
+      '@tabax/geometry':
         specifier: workspace:*
         version: link:../geometry
       three:

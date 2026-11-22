@@ -1,5 +1,5 @@
 import type * as THREE from 'three';
-import type { WallPieceRole } from '@mini-bim/geometry';
+import type { WallPieceRole } from '@tabax/geometry';
 
 /**
  * Options de configuration pour la scène 3D impérative Mini-BIM.

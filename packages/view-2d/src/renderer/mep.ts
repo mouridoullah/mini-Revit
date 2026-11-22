@@ -1,5 +1,5 @@
 /**
- * @mini-bim/view-2d/renderer/mep
+ * @tabax/view-2d/renderer/mep
  *
  * Moteur de rendu graphique 2D pour les entités du génie technique (MEP) :
  * Tuyauteries, gaines aérauliques, chemins de câbles, raccords et équipements.
@@ -13,7 +13,7 @@
  */
 
 import { type Transform2D } from '../transform.js';
-import { vec2, type Vec2 } from '@mini-bim/geometry';
+import { vec2, type Vec2 } from '@tabax/geometry';
 import type {
   MepRenderConfig,
   PipeFor2D,

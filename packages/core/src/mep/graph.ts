@@ -1,5 +1,5 @@
 /**
- * @mini-bim/core/mep/graph
+ * @tabax/core/mep/graph
  *
  * Graphe de réseau topologique physique indépendant (MepNetworkGraph).
  * Modélise la connectivité physique des réseaux de fluide/ventilation/courants sans contrainte DAG.

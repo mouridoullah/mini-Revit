@@ -2,7 +2,7 @@ import {
   Commands,
   type Window,
   type BimState,
-} from '@mini-bim/core';
+} from '@tabax/core';
 import { DebouncedNumberInput } from './DebouncedInputs.js';
 
 export interface WindowInspectorProps {

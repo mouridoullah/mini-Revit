@@ -5,7 +5,7 @@ import {
   type Vec2,
   vec2,
   GEOM_CONFIG,
-} from '@mini-bim/geometry';
+} from '@tabax/geometry';
 import type { DocumentFor2D } from '../types.js';
 import { resolveDimensionPoints } from '../renderer/dimensions.js';
 import { DxfWriter } from './DxfWriter.js';

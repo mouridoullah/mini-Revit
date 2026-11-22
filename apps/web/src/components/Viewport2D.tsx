@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
-import { type BimDocument, type BimState, detectRooms, diagnoseRoomLeaks } from '@mini-bim/core';
-import { View2D, type DetectedRoomFor2D } from '@mini-bim/view-2d';
+import { type BimDocument, type BimState, detectRooms, diagnoseRoomLeaks } from '@tabax/core';
+import { View2D, type DetectedRoomFor2D } from '@tabax/view-2d';
 import { useBimDocument } from '../hooks/useBimDocument.js';
 import { useResizeObserver } from '../hooks/useResizeObserver.js';
 import { type Tool, type ToolContext, type ToolEvent, type MepToolConfig } from '../tools/types.js';

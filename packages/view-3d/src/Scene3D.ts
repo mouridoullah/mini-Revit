@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { type RawMeshData } from '@mini-bim/geometry';
+import { type RawMeshData } from '@tabax/geometry';
 import { type SceneOptions, type ClashOverlayItem, type FederatedModelVisual } from './types.js';
 import { MeshAdapter } from './MeshAdapter.js';
 import { FederatedIfcManager } from './FederatedIfcManager.js';

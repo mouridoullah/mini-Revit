@@ -21,7 +21,7 @@ Cette version 1.1 intègre les arbitrages issus de l'audit critique de conceptio
 
 ---
 
-## 2. Modèle de Données Déclaratif (`@mini-bim/core`)
+## 2. Modèle de Données Déclaratif (`@tabax/core`)
 
 ### 2.1 Types TypeScript (ADR-042)
 
@@ -173,7 +173,7 @@ Afin de concilier simplicité de livraison et ambition BIM professionnelle :
 
 ---
 
-## 7. Pipeline Géométrique et Rendu 3D (`@mini-bim/view-3d`)
+## 7. Pipeline Géométrique et Rendu 3D (`@tabax/view-3d`)
 
 1. **Triangulation des faces horizontales :**
    - Utilisation d'`earcut` pour trianguler le polygone concave avec trous effectifs (`holes_effective`).
@@ -186,7 +186,7 @@ Afin de concilier simplicité de livraison et ambition BIM professionnelle :
 
 ---
 
-## 8. Rendu 2D en Plan (`@mini-bim/view-2d`)
+## 8. Rendu 2D en Plan (`@tabax/view-2d`)
 
 1. **Contour en plan :** Tracé du contour `boundary` en ligne continue avec poché discret béton (`#f3f4f6`).
 2. **Trémies :** Tracé des réservations avec croix architecturale en diagonales.
@@ -228,7 +228,7 @@ En complément des tests unitaires déterministes, la suite de tests de Phase 6.
 
 ## 11. Critères d'Acceptation et Décompte des Tests (Phase 6.1)
 
-1. **Noyau (`@mini-bim/core`) :**
+1. **Noyau (`@tabax/core`) :**
    - 100% des commandes testées (`Slab` et `SlabType`).
    - Moteur DAG minimal opérationnel et validé par les tests de cascades.
    - Validation stricte des 6 codes d'erreur de `validateSlab` et du code de `validateSlabType`.

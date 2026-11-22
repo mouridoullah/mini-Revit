@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { diagnoseRoomLeaks } from './leak-detector.js';
 import { type BimState, type Level, type WallType } from '../types.js';
-import { vec2 } from '@mini-bim/geometry';
+import { vec2 } from '@tabax/geometry';
 import { createComplexVillaState } from '../fixtures/complex-villa.js';
 
 describe('Room Leak Detector — Diagnostic automatique des brèches de pièces (Chantier 7.5-B)', () => {

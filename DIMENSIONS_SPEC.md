@@ -5,8 +5,8 @@
 **Auteur :** Antigravity (Lead Software Architect & Computational Geometry Engineer)  
 **Packages d'implémentation :**
 
-- `@mini-bim/core` (`packages/core/src/dimensions/`, `packages/core/src/commands.ts`)
-- `@mini-bim/view-2d` (`packages/view-2d/src/renderer.ts`, `packages/view-2d/src/svg-exporter.ts`)
+- `@tabax/core` (`packages/core/src/dimensions/`, `packages/core/src/commands.ts`)
+- `@tabax/view-2d` (`packages/view-2d/src/renderer.ts`, `packages/view-2d/src/svg-exporter.ts`)
 
 ---
 
@@ -62,7 +62,7 @@ L'associativité est garantie sans écouteur manuel grâce au moteur de commande
 
 ## 4. Documentation de Plans Imprimables (SVG)
 
-La fonction `generatePlanSvg(doc, options)` de `@mini-bim/view-2d` produit des fichiers vectoriels prêts à l'impression à des échelles architecturales normalisées :
+La fonction `generatePlanSvg(doc, options)` de `@tabax/view-2d` produit des fichiers vectoriels prêts à l'impression à des échelles architecturales normalisées :
 
 - **Échelles supportées :** 1:50, 1:100, 1:200.
 - **Formats normalisés :** A4 (297 × 210 mm) et A3 (420 × 297 mm) en orientation paysage.

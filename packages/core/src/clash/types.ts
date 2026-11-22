@@ -1,5 +1,5 @@
 import type { ElementId } from '../types.js';
-import type { Vec3, BoundingBox3D } from '@mini-bim/geometry';
+import type { Vec3, BoundingBox3D } from '@tabax/geometry';
 
 export type { Vec3 };
 export type AABB3D = BoundingBox3D;

@@ -1,5 +1,5 @@
 import { type ChangeEvent } from 'react';
-import { type Level } from '@mini-bim/core';
+import { type Level } from '@tabax/core';
 
 export interface LevelSelectorProps {
   readonly levels: readonly Level[];

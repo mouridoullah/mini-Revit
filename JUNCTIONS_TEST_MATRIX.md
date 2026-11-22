@@ -1,4 +1,4 @@
-# MATRICE DE TESTS DU MOTEUR DE JONCTIONS DE MURS (@mini-bim/geometry)
+# MATRICE DE TESTS DU MOTEUR DE JONCTIONS DE MURS (@tabax/geometry)
 
 **Statut :** Matrice de Qualification Complète  
 **Date :** 13 novembre 2026  

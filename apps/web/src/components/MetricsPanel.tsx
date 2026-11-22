@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { type BimDocument, computeLevelMetrics, type LevelMetrics } from '@mini-bim/core';
+import { type BimDocument, computeLevelMetrics, type LevelMetrics } from '@tabax/core';
 
 export interface MetricsPanelProps {
   readonly doc: BimDocument;

@@ -3,7 +3,7 @@ import {
   extrudeWallPiece,
   type RawMeshData,
   type WallPiece,
-} from '@mini-bim/geometry';
+} from '@tabax/geometry';
 import type { OpeningGeometryParams, WallGeometryParams } from './types.js';
 
 export function createOpeningPlaceholder(

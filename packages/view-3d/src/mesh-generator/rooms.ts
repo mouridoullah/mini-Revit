@@ -1,4 +1,4 @@
-import { vec2, extrudePolygon, type RawMeshData } from '@mini-bim/geometry';
+import { vec2, extrudePolygon, type RawMeshData } from '@tabax/geometry';
 import type { RoomFloorMeshParams } from './types.js';
 
 /**

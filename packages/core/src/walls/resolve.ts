@@ -1,4 +1,4 @@
-import { type Vec2, vec2 } from '@mini-bim/geometry';
+import { type Vec2, vec2 } from '@tabax/geometry';
 import { type BimState, type Wall, type ElementId, type Roof } from '../types.js';
 import { computeWallVerticalBounds } from '../walls.js';
 import { computeWallTopProfile, isWallCoveredByRoof } from '../roofs/top-profile.js';

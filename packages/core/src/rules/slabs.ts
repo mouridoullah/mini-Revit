@@ -5,7 +5,7 @@ import {
   computeEffectiveSlabPolygon,
   SlabGeometryError,
   signedArea,
-} from '@mini-bim/geometry';
+} from '@tabax/geometry';
 
 /**
  * Valide les paramètres d'un type de dalle (SlabType).

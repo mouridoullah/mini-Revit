@@ -1,4 +1,4 @@
-# SPÉCIFICATION TECHNIQUE — PACKAGE `@mini-bim/core`
+# SPÉCIFICATION TECHNIQUE — PACKAGE `@tabax/core`
 
 ## Noyau Métier, Modèle Documentaire BIM & CommandBus Transactionnel
 
@@ -11,14 +11,14 @@
 
 ## 1. Vision et Règles d'Or Architecturales
 
-Le package `@mini-bim/core` constitue la source unique de vérité (_Single Source of Truth_) du modèle d'information du bâtiment dans Mini-BIM. Il est régi par trois règles d'or absolues :
+Le package `@tabax/core` constitue la source unique de vérité (_Single Source of Truth_) du modèle d'information du bâtiment dans Mini-BIM. Il est régi par trois règles d'or absolues :
 
 1. **Indépendance Totale de l'Infrastructure Visuelle :**  
-   `@mini-bim/core` n'importe **aucun** composant ou hook React, aucune classe Three.js, et aucun élément de l'API DOM (`window`, `document`, `HTMLElement`). Il est consommable de manière identique dans un worker Web, un processus Node.js, ou un client web.
+   `@tabax/core` n'importe **aucun** composant ou hook React, aucune classe Three.js, et aucun élément de l'API DOM (`window`, `document`, `HTMLElement`). Il est consommable de manière identique dans un worker Web, un processus Node.js, ou un client web.
 2. **Immutabilité et Command Pattern Exclusif :**  
    Aucune mutation directe de l'état n'est autorisée. Toute modification de l'arbre documentaire passe impérativement par une `Command` exécutée par le `BimDocument`. L'historique d'annulation/rétablissement (Undo/Redo) repose sur les patchs différentiels RFC 6902 générés par Immer (`produceWithPatches`).
 3. **Absence de Géométrie Dérivée dans l'État Persistant :**  
-   L'état (`BimState`) ne stocke pas de maillages 3D, de polygones découpés ou de coordonnées de rendu. Il stocke exclusivement la définition paramétrique et topologique du projet (lignes d'axe, niveaux, types, offsets 1D d'ouvertures hébergées). Les maillages 3D percés et polygones 2D d'ouvertures sont calculés à la demande par les couches de visualisation (`@mini-bim/view-2d`, `@mini-bim/view-3d`).
+   L'état (`BimState`) ne stocke pas de maillages 3D, de polygones découpés ou de coordonnées de rendu. Il stocke exclusivement la définition paramétrique et topologique du projet (lignes d'axe, niveaux, types, offsets 1D d'ouvertures hébergées). Les maillages 3D percés et polygones 2D d'ouvertures sont calculés à la demande par les couches de visualisation (`@tabax/view-2d`, `@tabax/view-3d`).
 
 ---
 
@@ -262,7 +262,7 @@ Toute violation de règle métier lève immédiatement une exception explicite `
    - Deux ouvertures sur un même mur hôte ne peuvent se chevaucher en 1D :
      $$[\text{offset}_i, \text{offset}_i + w_i] \cap [\text{offset}_j, \text{offset}_j + w_j] = \emptyset$$
      (`OPENING_OVERLAP`).
-   - Les trumeaux minimaux et dégagements respectent la fonction `validateOpenings` de `@mini-bim/geometry` et $\text{MIN\_OPENING\_CLEARANCE} = 50\text{ mm}$ (`INVALID_OPENING_CLEARANCE`).
+   - Les trumeaux minimaux et dégagements respectent la fonction `validateOpenings` de `@tabax/geometry` et $\text{MIN\_OPENING\_CLEARANCE} = 50\text{ mm}$ (`INVALID_OPENING_CLEARANCE`).
 7. **Post-Condition Universelle Différentielle `validateDirty` :**  
    Avant d'enregistrer une transaction dans l'historique Undo/Redo, `BimDocument.execute()` invoque systématiquement `validateDirty(draftState, changedIds, previousState)`.
    - **Validation Différentielle :** La commande n'est rejetée que si elle introduit au moins une _nouvelle_ violation de règle sur le dirty set ou aggrave une violation existante, protégeant les opérations légitimes sur des modèles contenant des avertissements préalables.

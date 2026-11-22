@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, fireEvent } from '@testing-library/react';
-import { BimDocument, AddLevelCommand, AddSectionCutCommand } from '@mini-bim/core';
+import { BimDocument, AddLevelCommand, AddSectionCutCommand } from '@tabax/core';
 import { BimDocumentProvider } from '../context/BimDocumentContext.js';
 import { SectionViewport } from './SectionViewport.js';
 

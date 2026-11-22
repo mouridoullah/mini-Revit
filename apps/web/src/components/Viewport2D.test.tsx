@@ -1,14 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, fireEvent, act } from '@testing-library/react';
-import * as View2DModule from '@mini-bim/view-2d';
-import { BimDocument } from '@mini-bim/core';
+import * as View2DModule from '@tabax/view-2d';
+import { BimDocument } from '@tabax/core';
 import { BimDocumentProvider } from '../context/BimDocumentContext.js';
 import { Viewport2D } from './Viewport2D.js';
 import { WallTool } from '../tools/WallTool.js';
 import { SelectTool } from '../tools/SelectTool.js';
 import { DoorTool } from '../tools/DoorTool.js';
 import { MoveWallTool } from '../tools/MoveWallTool.js';
-import { Commands } from '@mini-bim/core';
+import { Commands } from '@tabax/core';
 import type { Tool } from '../tools/types.js';
 import { DEFAULT_MEP_CONFIG } from '../tools/MepTool.js';
 

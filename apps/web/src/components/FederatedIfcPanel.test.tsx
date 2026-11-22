@@ -5,7 +5,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { FederatedIfcPanel, type FederatedModelOptions } from './FederatedIfcPanel.js';
-import { type FederatedModel, type FederatedEntity } from '@mini-bim/core';
+import { type FederatedModel, type FederatedEntity } from '@tabax/core';
 
 describe('Composant FederatedIfcPanel (apps/web/src/components/FederatedIfcPanel.tsx)', () => {
   const sampleEntity: FederatedEntity = {

@@ -3,7 +3,7 @@ import {
   vec2,
   distancePointToSegment,
   computeWallFootprint2d,
-} from '@mini-bim/geometry';
+} from '@tabax/geometry';
 import { type Transform2D } from './transform.js';
 import { type DocumentFor2D, type WallFor2D, type WallTypeFor2D } from './types.js';
 import { resolveDimensionPoints } from './renderer/dimensions.js';

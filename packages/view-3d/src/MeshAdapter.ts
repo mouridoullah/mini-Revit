@@ -1,8 +1,8 @@
 import * as THREE from 'three';
-import { type RawMeshData } from '@mini-bim/geometry';
+import { type RawMeshData } from '@tabax/geometry';
 
 /**
- * Adaptateur de géométrie reliant le noyau géométrique pur @mini-bim/geometry
+ * Adaptateur de géométrie reliant le noyau géométrique pur @tabax/geometry
  * et le moteur de rendu Three.js.
  */
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class

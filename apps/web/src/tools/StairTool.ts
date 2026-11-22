@@ -1,4 +1,4 @@
-import { Commands, generateId } from '@mini-bim/core';
+import { Commands, generateId } from '@tabax/core';
 import { snapAngle45, snapPoint, collectSnapCandidates } from './snap.js';
 import {
   type Tool,

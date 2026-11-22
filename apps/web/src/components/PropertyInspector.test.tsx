@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
-import { BimDocument, Commands, type Wall, type Slab, type Level } from '@mini-bim/core';
+import { BimDocument, Commands, type Wall, type Slab, type Level } from '@tabax/core';
 import { PropertyInspector } from './PropertyInspector.js';
 
 describe('PropertyInspector — Panneau latéral d’inspection et d’édition BIM (Milestone 6.1b-2)', () => {
@@ -308,7 +308,7 @@ describe('PropertyInspector — Panneau latéral d’inspection et d’édition 
   });
 
   it('T-ROOF-INSP-01 : inspection d’une Toiture (nom, type, pente, débord, baseOffset)', () => {
-    const roof: import('@mini-bim/core').Roof = {
+    const roof: import('@tabax/core').Roof = {
       id: 'roof_test_insp',
       category: 'roof',
       roofTypeId: 'default-gable-roof-type',
@@ -346,7 +346,7 @@ describe('PropertyInspector — Panneau latéral d’inspection et d’édition 
   });
 
   it('T-COMP-INSP-01 : inspection d’un Composant (type, position, rotation, élévation, suppression)', () => {
-    const comp: import('@mini-bim/core').Component = {
+    const comp: import('@tabax/core').Component = {
       id: 'comp_wc_insp',
       category: 'component',
       typeId: 'ct_toilet_wall_hung',
@@ -386,7 +386,7 @@ describe('PropertyInspector — Panneau latéral d’inspection et d’édition 
   });
 
   it('T-COMP-PARAM-01 : inspection et surcharges dimensionnelles & dégagement ergonomique (Phase 8.4)', () => {
-    const comp: import('@mini-bim/core').Component = {
+    const comp: import('@tabax/core').Component = {
       id: 'comp_table_param',
       category: 'component',
       typeId: 'ct_dining_table',

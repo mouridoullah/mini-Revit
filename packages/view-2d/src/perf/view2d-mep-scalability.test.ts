@@ -3,7 +3,7 @@ import {
   BimDocument,
   generateSyntheticBimModel,
   runBenchmark,
-} from '@mini-bim/core';
+} from '@tabax/core';
 import { Transform2D } from '../transform.js';
 import { renderPlanView, DEFAULT_VIEW2D_RENDER_CONFIG } from '../renderer.js';
 import { buildSpatialIndex, buildLinearSpatialIndex } from '../spatial/index.js';
@@ -17,7 +17,7 @@ import type {
   DocumentFor2D,
 } from '../types.js';
 
-describe('Banc de Scalabilité Mixte Architecture + MEP 2D (@mini-bim/view-2d)', () => {
+describe('Banc de Scalabilité Mixte Architecture + MEP 2D (@tabax/view-2d)', () => {
   it('mesure la performance du rendu 2D et du culling sur maquette mixte (100, 1 000 et 10 000 entités)', () => {
     const { ctx } = createBenchmarkCanvas(1920, 1080);
     const testScales = [100, 1000, 10000] as const;

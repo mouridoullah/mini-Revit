@@ -5,7 +5,7 @@ import {
   type ClashResult,
   type ClashSeverity,
   detectClashes,
-} from '@mini-bim/core';
+} from '@tabax/core';
 
 export interface ClashPanelProps {
   readonly doc: BimDocument;

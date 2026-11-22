@@ -11,7 +11,7 @@ import {
   type OpeningInput,
   validateOpenings,
   MIN_OPENING_CLEARANCE,
-} from '@mini-bim/geometry';
+} from '@tabax/geometry';
 import { resolveWallGeometry, getWallLocalHeadroom } from '../walls/resolve.js';
 import { getComponentEffectiveDimensions } from '../components/dimensions.js';
 import { getOrBuildWallResolutionIndex } from '../walls/index-cache.js';

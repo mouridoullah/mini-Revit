@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { produceWithPatches } from 'immer';
-import { vec2 } from '@mini-bim/geometry';
+import { vec2 } from '@tabax/geometry';
 import { HistoryStack } from './history.js';
 import { type BimState, type Wall, type Door, type Window, type Room } from './types.js';
 import { BimDocument } from './document.js';

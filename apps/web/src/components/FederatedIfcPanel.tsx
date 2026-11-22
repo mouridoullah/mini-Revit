@@ -4,7 +4,7 @@ import {
   type FederatedModel,
   type FederatedEntity,
   type FederatedClashCandidate,
-} from '@mini-bim/core';
+} from '@tabax/core';
 
 export interface FederatedModelOptions {
   visible: boolean;

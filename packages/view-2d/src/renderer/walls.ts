@@ -4,14 +4,14 @@ import {
   type WallInput,
   type Vec2,
   GEOM_CONFIG,
-} from '@mini-bim/geometry';
+} from '@tabax/geometry';
 import type { Transform2D } from '../transform.js';
 import type { WallFor2D, WallTypeFor2D, WallRenderConfig } from '../types.js';
 import { DEFAULT_WALL_RENDER_CONFIG } from './config.js';
 
 /**
  * Dessine un mur architectural individuel avec poché, contour d'emprise et axe de référence.
- * Consomme obligatoirement l'algorithme `computeWallFootprint2d` de `@mini-bim/geometry`.
+ * Consomme obligatoirement l'algorithme `computeWallFootprint2d` de `@tabax/geometry`.
  */
 export function drawWall(
   ctx: CanvasRenderingContext2D,

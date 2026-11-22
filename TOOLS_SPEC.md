@@ -2,7 +2,7 @@
 
 **Statut :** Spécification de Référence — Phase 3.3  
 **Dernière mise à jour :** 14 novembre 2026  
-**Package d'implémentation :** `apps/web/src/tools/` et `@mini-bim/view-2d`
+**Package d'implémentation :** `apps/web/src/tools/` et `@tabax/view-2d`
 
 ---
 
@@ -126,7 +126,7 @@ export type ToolOutput =
  └──────────┘
 ```
 
-- **Hit-testing :** Utilise `findWallAtScreen(screenPos, transform, doc, { activeLevelId })` de `@mini-bim/view-2d`.
+- **Hit-testing :** Utilise `findWallAtScreen(screenPos, transform, doc, { activeLevelId })` de `@tabax/view-2d`.
 - **Émission :**
   - Si un mur est sous le curseur : `{ kind: 'selectionChanged', ids: [hitId] }` et état `selected`.
   - Si aucun élément sous le curseur : `{ kind: 'selectionChanged', ids: [] }` et état `idle`.
@@ -170,7 +170,7 @@ export type ToolOutput =
 - **Validation par touche `Enter` :** Permet la validation sans relâcher immédiatement.
 - **Annulation par touche `Escape` :** Efface le rubber-band et revient à `idle`.
 - **Contrainte de longueur minimale ergonomique (`MIN_WALL_LENGTH = 100 mm`) :** $L < 100\text{ mm}$ annule silencieusement pour éviter la création de micro-segments involontaires lors d'un clic parasite sans intention de glisser.  
-  _Note d'architecture :_ Ce seuil UX est distinct de la règle d'intégrité topologique du modèle dans `@mini-bim/core` (`validateWall` exigeant $\text{length} > 10^{-4}\text{ mm}$). Le modèle autorise des murs plus courts programmés ou importés, mais l'interaction utilisateur à la souris applique un garde-fou ergonomique de 10 cm.
+  _Note d'architecture :_ Ce seuil UX est distinct de la règle d'intégrité topologique du modèle dans `@tabax/core` (`validateWall` exigeant $\text{length} > 10^{-4}\text{ mm}$). Le modèle autorise des murs plus courts programmés ou importés, mais l'interaction utilisateur à la souris applique un garde-fou ergonomique de 10 cm.
 - **Aimantation angulaire (Shift) :** Si la touche `Shift` est enfoncée lors du déplacement ou du relâchement, le point d'arrivée est aligné sur l'axe multiple de 45° le plus proche selon la stratégie de **longueur conservée**.
 
 ---
@@ -252,7 +252,7 @@ Cette convention assure une zone d'attraction ergonomique constante sous le poin
 
 ### 7.1 `DoorTool` & `WindowTool` (Insertion Interactive d'Ouvertures)
 
-- **Nature :** Machines à états pures (0 import de `@mini-bim/geometry`, React, Three.js ou DOM).
+- **Nature :** Machines à états pures (0 import de `@tabax/geometry`, React, Three.js ou DOM).
 - **États :** `{ kind: 'idle' } | { kind: 'hovering'; wallId: string; offsetAlong: number } | { kind: 'placed'; id: string }`.
 - **Aimantation architecturale (Snap 50 mm) :**  
   La projection orthogonale du curseur écran sur l'axe du mur hôte produit un abscisse curviligne $u$. Cet offset est aimanté au pas de 50 mm via `snapToStep(rawOffset, 50)`.
@@ -308,7 +308,7 @@ Cette convention assure une zone d'attraction ergonomique constante sous le poin
 ### 7.4 Note Technique sur l'Espionnage des Fonctions Exportées (`vi.spyOn`)
 
 > [!NOTE] Espionnage sur exports nommés en ESM
-> L'espionnage Vitest via `vi.spyOn(Module, 'namedFunction')` nécessite en ECMAScript natif un import namespace (`import * as Scene3DModule from '@mini-bim/view-3d'`) afin que les références d'export soient mutables via le module loader de Vitest 3+. Les tests d'intégration d'`apps/web` appliquent systématiquement cette convention architecturale.
+> L'espionnage Vitest via `vi.spyOn(Module, 'namedFunction')` nécessite en ECMAScript natif un import namespace (`import * as Scene3DModule from '@tabax/view-3d'`) afin que les références d'export soient mutables via le module loader de Vitest 3+. Les tests d'intégration d'`apps/web` appliquent systématiquement cette convention architecturale.
 
 ### 7.5 Capture de l'Instance `View2D` dans les Tests d'Intégration (Note 3 de Revue)
 

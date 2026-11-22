@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, cleanup } from '@testing-library/react';
-import { createComplexVillaDocument } from '@mini-bim/core';
+import { createComplexVillaDocument } from '@tabax/core';
 import { BimDocumentProvider } from './context/BimDocumentContext.js';
 import { Viewport2D } from './components/Viewport2D.js';
 import { Viewport3D } from './components/Viewport3D.js';

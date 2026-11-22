@@ -3,7 +3,7 @@
 **Statut :** Spécification de Référence — Phase 4  
 **Date :** 14 novembre 2026  
 **Auteur :** Lead Software Architect & Computational Geometry Engineer  
-**Packages d'implémentation :** `@mini-bim/core`, `apps/web/src/components/MetricsPanel.tsx`
+**Packages d'implémentation :** `@tabax/core`, `apps/web/src/components/MetricsPanel.tsx`
 
 ---
 

@@ -1,5 +1,5 @@
 import polygonClipping from 'polygon-clipping';
-import { type Vec2, vec2, signedArea } from '@mini-bim/geometry';
+import { type Vec2, vec2, signedArea } from '@tabax/geometry';
 import { type Roof, type RoofOpening } from '../types.js';
 
 export class RoofGeometryError extends Error {

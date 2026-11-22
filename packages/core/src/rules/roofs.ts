@@ -8,7 +8,7 @@ import type {
 } from '../types.js';
 import type { RuleViolation } from './types.js';
 import { BimValidationError } from './types.js';
-import { signedArea } from '@mini-bim/geometry';
+import { signedArea } from '@tabax/geometry';
 
 /**
  * Vérifie les contraintes métier sur un RoofType (ADR-053 [3.1]).

@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { vec2 } from '@mini-bim/geometry';
+import { vec2 } from '@tabax/geometry';
 import {
   BimDocument,
   AddComponentCommand,
   STANDARD_COMPONENT_CATALOG,
-} from '@mini-bim/core';
+} from '@tabax/core';
 import { Transform2D } from './transform.js';
 import { createMockCanvas } from './test-utils.js';
 import {

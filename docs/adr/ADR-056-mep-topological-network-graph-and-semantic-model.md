@@ -23,7 +23,7 @@ Deux impératifs majeurs ont été dégagés lors des revues d'architecture :
 
 ### 2.1. Découplage Structurel Strict des Deux Graphes
 
-Deux graphes indépendants coexistent au sein du domaine `@mini-bim/core`, chacun doté d'une responsabilité univoque :
+Deux graphes indépendants coexistent au sein du domaine `@tabax/core`, chacun doté d'une responsabilité univoque :
 
 1. **`DependencyGraph` (DAG de dépendance BIM) :**
    - **Rôle :** Propagation réactive des invalidations et calcul de l'ordre d'évaluation lors des mutations d'état.

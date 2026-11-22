@@ -3,7 +3,7 @@ import {
   type Stair,
   type BimState,
   computeStairGeometry,
-} from '@mini-bim/core';
+} from '@tabax/core';
 import { DebouncedTextInput, DebouncedNumberInput } from './DebouncedInputs.js';
 
 export interface StairInspectorProps {

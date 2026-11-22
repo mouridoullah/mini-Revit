@@ -45,7 +45,7 @@ Dans le cadre de l'audit approfondi post-Phase 6.4, trois failles de cohérence 
 
 ### 3. D3 — Dérivation Unique et Partagée des Trémies d'Escalier (S2-5)
 
-- **Source unique de vérité :** `packages/view-2d` dépend désormais de `@mini-bim/core` en dépendance de production (`dependencies`).
+- **Source unique de vérité :** `packages/view-2d` dépend désormais de `@tabax/core` en dépendance de production (`dependencies`).
 - **Élimination de la duplication :** `View2D.ts` remplace l'ancien algorithme manuel par :
   ```typescript
   computeStairShaft(

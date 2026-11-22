@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { createComplexVillaState, createComplexVillaDocument } from './fixtures/complex-villa.js';
 import { resolveWallGeometry } from './walls/resolve.js';
-import { solveWallJunctions } from '@mini-bim/geometry';
+import { solveWallJunctions } from '@tabax/geometry';
 import { detectRooms } from './rooms/detect.js';
 import { exportToIfc } from './ifc/generator.js';
 import { computeLevelMetrics } from './metrics.js';

@@ -1,5 +1,5 @@
 /**
- * @mini-bim/core - Clash Detection & Spatial Index Engine
+ * @tabax/core - Clash Detection & Spatial Index Engine
  *
  * Moteur analytique pur de détection de conflits géométriques 3D (Broad-phase BVH + Narrow-phase SAT)
  * avec qualification sémantique BIM (élimination des faux positifs sur connecteurs MEP,

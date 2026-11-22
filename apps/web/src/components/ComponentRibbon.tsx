@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { RotateCw } from 'lucide-react';
-import type { ComponentType, ComponentFamily } from '@mini-bim/core';
+import type { ComponentType, ComponentFamily } from '@tabax/core';
 
 export interface ComponentRibbonProps {
   readonly componentTypes: Record<string, ComponentType>;

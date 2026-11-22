@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { vec2 } from '@mini-bim/geometry';
-import { BimDocument, Commands, type Wall, type WallType, type Stair, type StairType } from '@mini-bim/core';
+import { vec2 } from '@tabax/geometry';
+import { BimDocument, Commands, type Wall, type WallType, type Stair, type StairType } from '@tabax/core';
 import { Transform2D } from './transform.js';
 import { View2D } from './View2D.js';
 import { renderPlanView, DEFAULT_VIEW2D_RENDER_CONFIG } from './renderer.js';
@@ -8,7 +8,7 @@ import { createMockCanvas } from './test-utils.js';
 import { buildSpatialIndex, buildLinearSpatialIndex } from './spatial/index.js';
 import { findWallAtScreen } from './hit-test.js';
 
-describe('Validation & Non-Régression Frustum Culling & Filtrage par Niveau (@mini-bim/view-2d)', () => {
+describe('Validation & Non-Régression Frustum Culling & Filtrage par Niveau (@tabax/view-2d)', () => {
   const wallType: WallType = {
     id: 'wt_standard',
     name: 'Mur Extérieur 20cm',

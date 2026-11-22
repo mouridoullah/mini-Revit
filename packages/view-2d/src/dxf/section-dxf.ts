@@ -1,5 +1,5 @@
-import { vec2 } from '@mini-bim/geometry';
-import type { SectionScene } from '@mini-bim/core';
+import { vec2 } from '@tabax/geometry';
+import type { SectionScene } from '@tabax/core';
 import { DxfWriter } from './DxfWriter.js';
 import { generateHatchLines } from './hatch.js';
 import type { SectionDxfOptions } from './types.js';

@@ -1,5 +1,5 @@
-import { Commands } from '@mini-bim/core';
-import { findWallAtScreen, type Vec2 } from '@mini-bim/view-2d';
+import { Commands } from '@tabax/core';
+import { findWallAtScreen, type Vec2 } from '@tabax/view-2d';
 import { snapToStep } from './snap.js';
 import {
   type Tool,
@@ -21,7 +21,7 @@ import {
  * paramétrique de chaque porte/fenêtre, et leur géométrie 2D/3D suit automatiquement la nouvelle
  * position du mur hôte ("le modèle est la source de vérité, la géométrie est un cache").
  *
- * Ne dépend ni de React, ni de Three.js, ni du DOM, ni de @mini-bim/geometry.
+ * Ne dépend ni de React, ni de Three.js, ni du DOM, ni de @tabax/geometry.
  */
 export class MoveWallTool implements Tool {
   public readonly kind = 'moveWall' as const;

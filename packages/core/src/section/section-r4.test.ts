@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { BimDocument, computeSectionScene, type SectionCut } from '../index.js';
-import { vec2 } from '@mini-bim/geometry';
+import { vec2 } from '@tabax/geometry';
 
 describe('Saison 3 — Lot 2.A : Coupe Immeuble R+4 avec 6 Niveaux, Trémies et MEP', () => {
   it('calcule la coupe axiale traversant la cage d’escalier et les gaines MEP', () => {

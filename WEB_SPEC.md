@@ -10,8 +10,8 @@
 
 L'application web (`apps/web`) est le point d'entrée utilisateur et l'interface graphique (GUI) de Mini-BIM. Elle orchestre la double visualisation synchronisée :
 
-- **Vue 2D (Plan d'étage architectural) :** Canvas 2D impératif via `@mini-bim/view-2d`.
-- **Vue 3D (Maquette orbitale Z-up) :** Scène Three.js impérative via `@mini-bim/view-3d`.
+- **Vue 2D (Plan d'étage architectural) :** Canvas 2D impératif via `@tabax/view-2d`.
+- **Vue 3D (Maquette orbitale Z-up) :** Scène Three.js impérative via `@tabax/view-3d`.
 
 L'application est construite avec **React 19**, **Vite** et **TypeScript**.
 
@@ -20,11 +20,11 @@ L'application est construite avec **React 19**, **Vite** et **TypeScript**.
 ## 2. Règles d'Or Architecturales de `apps/web`
 
 1. **Règle d'or 1 — Frontières d'importation :**
-   - `apps/web` peut importer : `react`, `react-dom`, `@mini-bim/core`, `@mini-bim/view-2d`, `@mini-bim/view-3d`.
-   - `apps/web` n'importe **JAMAIS** `@mini-bim/geometry` directement.
+   - `apps/web` peut importer : `react`, `react-dom`, `@tabax/core`, `@tabax/view-2d`, `@tabax/view-3d`.
+   - `apps/web` n'importe **JAMAIS** `@tabax/geometry` directement.
 2. **Règle d'or 2 — Isolation géométrique :**
-   - Toutes les conversions géométriques vers des maillages 3D passent par `@mini-bim/view-3d` (ex. `createWallMesh`).
-   - Toutes les logiques de tracé et poché 2D sont internes à `@mini-bim/view-2d`.
+   - Toutes les conversions géométriques vers des maillages 3D passent par `@tabax/view-3d` (ex. `createWallMesh`).
+   - Toutes les logiques de tracé et poché 2D sont internes à `@tabax/view-2d`.
 3. **Règle d'or 3 — Cycle de vie des contrôleurs graphiques :**
    - Les instances impératives `View2D` et `Scene3D` sont créées **une seule et unique fois** lors du montage du composant dans un `useEffect(..., [])`.
    - Elles sont conservées dans des `useRef` et ne sont **jamais recréées** lors des re-renders React.

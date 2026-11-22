@@ -13,7 +13,7 @@ Mini-BIM est conçu comme un système de modélisation de données du bâtiment 
 1. **Le Modèle BIM est la Source de Vérité Unique :**  
    Les données du projet sont détenues sous forme d'entités sémantiques normalisées. Les représentations 2D (plans) et 3D (maillages Three.js) ne sont que des **vues de projection et des caches dérivés**, recalculés à la demande.
 2. **Découplage Strict UI / Métier / Rendu :**  
-   L'interface React n'exécute aucune règle métier BIM. Le moteur de rendu Three.js n'émet aucune décision architecturale. Les packages centraux (`@mini-bim/geometry` et `@mini-bim/core`) sont en TypeScript pur, sans aucune dépendance au DOM ni aux bibliothèques de rendu.
+   L'interface React n'exécute aucune règle métier BIM. Le moteur de rendu Three.js n'émet aucune décision architecturale. Les packages centraux (`@tabax/geometry` et `@tabax/core`) sont en TypeScript pur, sans aucune dépendance au DOM ni aux bibliothèques de rendu.
 3. **Modifications par Commandes Transactionnelles Atomiques :**  
    Toute mutation du modèle passe obligatoirement par un bus de commandes. Chaque commande est validée, exécutée, journalisée et inversible (Undo/Redo déterministe).
 4. **Propagation Réactive Incrémentale par Graphe de Dépendances (DAG) :**  
@@ -100,7 +100,7 @@ flowchart TD
 
 ## 3. Responsabilités des Modules
 
-### 3.1 `@mini-bim/geometry` (Noyau Géométrique)
+### 3.1 `@tabax/geometry` (Noyau Géométrique)
 
 - **Rôle :** Fonctions mathématiques et algorithmiques pures.
 - **Dépendances :** Aucune dépendance externe de rendu. Utilise `earcut` (triangulation) et à terme `clipper2-wasm`.
@@ -111,10 +111,10 @@ flowchart TD
   - Soustraction d'ouvertures par tranches verticales 2.5D.
   - Calculs de polygones : aire signée, périmètre, centroïde, orientation CCW, test point-dans-polygone.
 
-### 3.2 `@mini-bim/core` (Domaine BIM & Coordination)
+### 3.2 `@tabax/core` (Domaine BIM & Coordination)
 
 - **Rôle :** Représentation des concepts architecturaux, structurels, MEP et coordination spatiale.
-- **Dépendances :** `@mini-bim/geometry`. Aucune dépendance graphique ni DOM.
+- **Dépendances :** `@tabax/geometry`. Aucune dépendance graphique ni DOM.
 - **Responsabilités :**
   - Modèle de données normalisé Schéma v2 (25 catégories d'entités) : `Project`, `Building`, `Level`, `Wall`, `Door`, `Window`, `Slab`, `Roof`, `Stair`, `Component`, `Room`, `Dimension`, et le graphe technique MEP (`Pipe`, `Duct`, `CableTray`, `MepFitting`, `MepEquipment`, `MepSystem`, `MepConnector`).
   - Graphe de dépendances acyclique DAG minimal (ADR-041) avec invalidation réactive et maintenance incrémentale différentielle.
@@ -127,7 +127,7 @@ flowchart TD
 ### 3.3 Couche Application & Outils (`apps/web/src/tools` & CommandBus)
 
 - **Rôle :** Orchestration des flux utilisateurs, outillage interactif et historique.
-- **Dépendances :** `@mini-bim/core`. (Strictement aucun import direct de `@mini-bim/geometry` dans `apps/web`, conformément à ADR-022 et ADR-061).
+- **Dépendances :** `@tabax/core`. (Strictement aucun import direct de `@tabax/geometry` dans `apps/web`, conformément à ADR-022 et ADR-061).
 - **Responsabilités :**
   - Bus de commandes : `execute(command)`, `undo()`, `redo()`.
   - Commandes transactionnelles typées : `AddWallCommand`, `MoveWallCommand`, `MoveOpeningCommand`, `AddDoorCommand`, `MepToolCommand`, etc.
@@ -139,10 +139,10 @@ flowchart TD
     - `SelectTool` : sélection mono/multi-éléments, boîte élastique, gizmos et translation différentielle.
   - Moteur d'accrochage (`SnappingEngine`) : détection des extrémités, milieux, alignements et ports MEP en pixels écran.
 
-### 3.4 `@mini-bim/view-2d` & `@mini-bim/view-3d` (Moteurs de Vues & Coordination)
+### 3.4 `@tabax/view-2d` & `@tabax/view-3d` (Moteurs de Vues & Coordination)
 
 - **Rôle :** Affichage optimisé et capture des interactions de bas niveau.
-- **Dépendances :** Types géométriques neutres (`@mini-bim/geometry`), Three.js (uniquement pour 3D), Canvas 2D natif (pour 2D). **Zéro dépendance vers l'état mutable de `@mini-bim/core`**.
+- **Dépendances :** Types géométriques neutres (`@tabax/geometry`), Three.js (uniquement pour 3D), Canvas 2D natif (pour 2D). **Zéro dépendance vers l'état mutable de `@tabax/core`**.
 - **Règle fondamentale :** Ces modules sont instanciés de façon **impérative** et montés sur des éléments `<canvas>`.
 - **Responsabilités 3D :**
   - Scène Three.js avec repère Z-up orienté via groupe racine inversé.
@@ -156,10 +156,10 @@ flowchart TD
   - Moteur d'exportation DXF R12 pur TypeScript (`AC1009`, ADR-064) pour les plans d'étages et coupes/élévations analytiques avec hachures linéaires `LINE` et calques ACI normalisés.
   - Moteur de mise en page & carnet de plans PDF multi-pages vectoriel pur TypeScript (ISO 32000-1 / PDF 1.4, ADR-065) : conversion métrique exacte $1\text{ mm} = \frac{72}{25.4}\text{ pt}$, encodage Windows-1252 mono-octet, table `xref` binaire stricte à entrées fixes de 20 octets, formats A4/A3 paysage avec cadre double, cartouche architectural normalisé ($155 \times 40\text{ mm}$), échelle graphique graduée, flèche Nord bicolore et pagination automatique des plans d'étages, coupes analytiques et tableaux de métrés multi-colonnes.
 
-### 3.5 Persistance et Échange (`apps/web/src/persistence` & `@mini-bim/core/ifc`)
+### 3.5 Persistance et Échange (`apps/web/src/persistence` & `@tabax/core/ifc`)
 
 - **Rôle :** Sauvegarde locale continue, restauration, validation et conversion.
-- **Dépendances :** `@mini-bim/core`.
+- **Dépendances :** `@tabax/core`.
 - **Responsabilités :**
   - Persistance automatique réactive par `AutoSaveManager` dans IndexedDB (ADR-051), avec détection de conflits et restauration déterministe.
   - Import/Export de snapshots JSON versionnés (`schemaVersion: 2`).
@@ -227,11 +227,11 @@ sequenceDiagram
 Pour préserver l'intégrité du logiciel sur le long terme, les frontières suivantes sont garanties par l'outillage de compilation et de linting :
 
 1. **Règle d'or absolue :**  
-   `@mini-bim/geometry` et `@mini-bim/core` ne doivent **jamais** importer `react`, `react-dom`, `three`, ou une quelconque référence à `window` / `document`.
+   `@tabax/geometry` et `@tabax/core` ne doivent **jamais** importer `react`, `react-dom`, `three`, ou une quelconque référence à `window` / `document`.
 2. **Direction des flux (ADR-052) :**  
    Les dépendances vont de l'extérieur vers l'intérieur :
    $$\text{apps/web} \longrightarrow \text{view-2d / view-3d} \longrightarrow \text{core} \longrightarrow \text{geometry}$$
-   Conformément à ADR-052, `@mini-bim/view-2d` importe des fonctions pures de dérivation géométrique depuis `@mini-bim/core` (`resolveWallGeometry`, `computeStairGeometry`, etc.) sans jamais dépendre de l'état mutable ni du bus de commandes.
+   Conformément à ADR-052, `@tabax/view-2d` importe des fonctions pures de dérivation géométrique depuis `@tabax/core` (`resolveWallGeometry`, `computeStairGeometry`, etc.) sans jamais dépendre de l'état mutable ni du bus de commandes.
 3. **Immuabilité de l'API publique :**  
    Toute interaction entre l'interface et le modèle passe par des commandes sérialisables. L'UI ne mute jamais directement une propriété d'une entité du document.
 

@@ -4,7 +4,7 @@ import {
   type BimState,
   computeWallEffectiveHeight,
   computeWallSlabPenetration,
-} from '@mini-bim/core';
+} from '@tabax/core';
 import { DebouncedNumberInput } from './DebouncedInputs.js';
 
 export interface WallInspectorProps {

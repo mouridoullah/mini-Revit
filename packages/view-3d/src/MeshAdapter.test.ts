@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import * as THREE from 'three';
-import { type RawMeshData, extrudeWallPiece, vec2, type WallPiece } from '@mini-bim/geometry';
+import { type RawMeshData, extrudeWallPiece, vec2, type WallPiece } from '@tabax/geometry';
 import { MeshAdapter } from './MeshAdapter.js';
 
 describe('MeshAdapter — Conversion RawMeshData vers THREE.BufferGeometry', () => {

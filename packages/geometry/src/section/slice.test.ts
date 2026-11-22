@@ -8,7 +8,7 @@ import {
 } from './index.js';
 import { vec2 } from '../vec2.js';
 
-describe('Saison 3 — Lot 2.A : Géométrie de coupe analytique (@mini-bim/geometry)', () => {
+describe('Saison 3 — Lot 2.A : Géométrie de coupe analytique (@tabax/geometry)', () => {
   describe('SectionFrame2D', () => {
     it('initialise un repère horizontal avec direction 1 (regard vers le haut/Y+)', () => {
       const frame = createSectionFrame2D(vec2(0, 0), vec2(10000, 0), 1, 5000);

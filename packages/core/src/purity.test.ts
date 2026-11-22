@@ -30,7 +30,7 @@ describe('Pureté Architecturale et Absence de Dépendance Parasite (T-PUR-01 à
     }
   });
 
-  it('T-PUR-02: packages/core/src/dag et src/relations ne dépendent PAS de @mini-bim/geometry', () => {
+  it('T-PUR-02: packages/core/src/dag et src/relations ne dépendent PAS de @tabax/geometry', () => {
     const dagDir = path.resolve(__dirname, 'dag');
     const relDir = path.resolve(__dirname, 'relations');
 
@@ -41,7 +41,7 @@ describe('Pureté Architecturale et Absence de Dépendance Parasite (T-PUR-01 à
     for (const file of dagFiles) {
       const content = fs.readFileSync(file, 'utf8');
       const hasForbidden = forbiddenGeometry.test(content);
-      expect(hasForbidden, `Forbidden @mini-bim/geometry import in DAG/relations: ${file}`).toBe(
+      expect(hasForbidden, `Forbidden @tabax/geometry import in DAG/relations: ${file}`).toBe(
         false,
       );
     }

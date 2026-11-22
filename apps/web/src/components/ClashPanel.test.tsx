@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { type BimDocument, Commands, createPipe } from '@mini-bim/core';
+import { type BimDocument, Commands, createPipe } from '@tabax/core';
 import { ClashPanel } from './ClashPanel.js';
 import { createDemoDocument } from '../demo/demoDocument.js';
 

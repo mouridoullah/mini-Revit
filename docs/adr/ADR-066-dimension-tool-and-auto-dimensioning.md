@@ -14,7 +14,7 @@ Toutefois, la production de plans d'exécution et de dossiers de permis de const
 Cette implémentation devait répondre à plusieurs contraintes architecturales majeures :
 1. **Éviter tout conflit de raccourci clavier** : la touche `D` étant déjà réservée à l'outil `DoorTool` (`Porte (D)`), l'outil de cotation devait adopter un raccourci dédié non conflictuel (`T` pour co**T**ation).
 2. **Associativité BIM et non-régression (ADR-034)** : le contrat de données `Dimension` devait supporter à la fois les cotes libres 2 points et les cotes paramétriques associées à un mur hôte avec portée (`span`).
-3. **Pureté architecturale de l'UI (Règle d'or #2)** : l'outil interactif `DimensionTool` dans `apps/web` devait impérativement rester une machine à états pure sans import direct de `@mini-bim/geometry`.
+3. **Pureté architecturale de l'UI (Règle d'or #2)** : l'outil interactif `DimensionTool` dans `apps/web` devait impérativement rester une machine à états pure sans import direct de `@tabax/geometry`.
 4. **Parité absolue des moteurs graphiques** : les cotes devaient être restituées avec une fidélité visuelle identique sur les 4 moteurs : Canvas 2D interactif, export SVG, export DXF R12 et carnet PDF vectoriel.
 5. **Idempotence et atomicité de l'automatisation** : la commande `AutoDimensionLevelCommand` devait s'exécuter dans une transaction atomique réversible (Undo/Redo) et remplacer exclusivement les cotes auto-générées du niveau sans altérer les cotes manuelles de l'utilisateur.
 
@@ -27,7 +27,7 @@ Pour préserver l'outil `DoorTool` (`D`), le raccourci clavier standard attribu�
 
 ---
 
-### 2. Contrat de Données Unifié `Dimension` (`@mini-bim/core`)
+### 2. Contrat de Données Unifié `Dimension` (`@tabax/core`)
 L'interface `Dimension` dans `packages/core/src/types.ts` est enrichie pour unifier les deux modes de cotation :
 ```ts
 export interface Dimension {
@@ -54,7 +54,7 @@ La fonction de calcul géométrique `computeDimensionValue(dim, state)` résout 
 ---
 
 ### 3. Machine à États Pure `DimensionTool` (`apps/web/src/tools/`)
-Conformément à la **Règle d'or #2**, `DimensionTool.ts` n'importe aucun symbole de `@mini-bim/geometry` et implémente un cycle de vie en 3 états :
+Conformément à la **Règle d'or #2**, `DimensionTool.ts` n'importe aucun symbole de `@tabax/geometry` et implémente un cycle de vie en 3 états :
 - `idle` : attente du premier point d'ancrage avec prévisualisation du réticule et accrochage magnétique (snap grille 10 mm et sommets proches d'éléments existants).
 - `firstPointPicked` : premier point fixé, prévisualisation dynamique du segment de mesure vers le curseur avec contrainte angulaire 45°/90° lors du maintien de la touche `Shift`.
 - `placingOffset` : second point fixé, le déplacement de la souris détermine la distance et le signe du déport (`offset`) perpendiculaire à l'axe de cote.
@@ -66,7 +66,7 @@ Conformément à la **Règle d'or #2**, `DimensionTool.ts` n'importe aucun symbo
 ---
 
 ### 4. Parité Graphique sur les 4 Moteurs de Rendu 2D
-La fonction partagée `resolveDimensionPoints(dim, walls)` dans `@mini-bim/view-2d/src/renderer/dimensions.ts` garantit un rendu rigoureusement cohérent :
+La fonction partagée `resolveDimensionPoints(dim, walls)` dans `@tabax/view-2d/src/renderer/dimensions.ts` garantit un rendu rigoureusement cohérent :
 1. **Canvas 2D Interactif** : Tracé violet (`#8b5cf6`), lignes de rappel pointillées, ligne de cote continue, ticks d'extrémité inclinés à 45° (longueur 120 mm), et texte centré orienté lisible (angle de lecture normalisé entre -90° et +90°).
 2. **Aperçu Temps Réel (`PreviewShape`)** : Restitution fidèle de l'état `dimension` en cours de tracé via `renderPreview` dans `preview.ts`.
 3. **Export SVG (`svg-exporter.ts`)** : Balises `<line>` avec traits pointillés et flèches/ticks 45°, texte avec attributs de rotation SVG.
@@ -76,7 +76,7 @@ La fonction partagée `resolveDimensionPoints(dim, walls)` dans `@mini-bim/view-
 ---
 
 ### 5. Hit-Testing & Cycle de Vie dans l'Inspecteur Cockpit
-- **Hit-testing découplé** : `findDimensionAtScreen` dans `@mini-bim/view-2d/src/hit-test.ts` détecte les clics à proximité de la ligne de cote ou des lignes de rappel (tolérance paramétrable de 8 pixels écran).
+- **Hit-testing découplé** : `findDimensionAtScreen` dans `@tabax/view-2d/src/hit-test.ts` détecte les clics à proximité de la ligne de cote ou des lignes de rappel (tolérance paramétrable de 8 pixels écran).
 - **Sélection unifiée** : Intégration transparente dans `SelectTool.ts` pour sélectionner, déplacer ou supprimer les cotes.
 - **Panneau Inspecteur Dédié** : `DimensionInspector.tsx` dans `PropertyInspector.tsx` affiche :
   - Valeur mesurée exacte en millimètres et mètres (ex. `4 000 mm (4.00 m)`).
@@ -109,4 +109,4 @@ La commande `AutoDimensionLevelCommand` génère en une seule passe atomique les
 - Respect rigoureux des 4 règles d'or et de l'architecture découplée du monorepo.
 
 ### Neutres
-- Le fichier `types.ts` de `@mini-bim/core` s'enrichit de propriétés optionnelles rétrocompatibles (`startPoint`, `endPoint`, `span`, `autoGenerated`).
+- Le fichier `types.ts` de `@tabax/core` s'enrichit de propriétés optionnelles rétrocompatibles (`startPoint`, `endPoint`, `span`, `autoGenerated`).

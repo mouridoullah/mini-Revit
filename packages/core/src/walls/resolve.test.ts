@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { vec2 } from '@mini-bim/geometry';
+import { vec2 } from '@tabax/geometry';
 import { resolveWallGeometry } from './resolve.js';
 import {
   computeWallSlabPenetration,

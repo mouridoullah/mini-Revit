@@ -1,4 +1,4 @@
-import { type Vec2 } from '@mini-bim/geometry';
+import { type Vec2 } from '@tabax/geometry';
 import type { ComponentRenderConfig } from './components-2d.js';
 
 export type { Vec2 };
@@ -228,7 +228,7 @@ export interface ComponentTypeFor2D {
 
 /**
  * Interface structurelle neutre d'un document pour la vue en plan 2D.
- * Permet à View2D de consommer BimDocument sans dépendance directe ni import de @mini-bim/core.
+ * Permet à View2D de consommer BimDocument sans dépendance directe ni import de @tabax/core.
  */
 export interface DocumentFor2D {
   getState(): {

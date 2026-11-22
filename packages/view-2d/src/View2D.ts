@@ -1,5 +1,5 @@
-import { type Vec2, vec2, distance } from '@mini-bim/geometry';
-import { computeStairShaft, type Stair, type BimState } from '@mini-bim/core';
+import { type Vec2, vec2, distance } from '@tabax/geometry';
+import { computeStairShaft, type Stair, type BimState } from '@tabax/core';
 import { Transform2D } from './transform.js';
 import { renderPlanView, DEFAULT_VIEW2D_RENDER_CONFIG } from './renderer.js';
 import { findWallAtScreen, findComponentAtScreen } from './hit-test.js';
@@ -27,7 +27,7 @@ import {
  *
  * Principes architecturaux stricts :
  * 1. Zéro dépendance vers React, Three.js ou tout framework UI.
- * 2. Zéro dépendance directe vers @mini-bim/core (consomme des interfaces neutres).
+ * 2. Zéro dépendance directe vers @tabax/core (consomme des interfaces neutres).
  * 3. Utilisation exclusive de la standard Canvas 2D API (`HTMLCanvasElement`, `CanvasRenderingContext2D`).
  * 4. Ne mute JAMAIS le modèle en direct : émet des intentions de mutation (`CommandLike`)
  *    via le système de callback `onCommandRequested`.

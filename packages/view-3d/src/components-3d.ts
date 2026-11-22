@@ -1,4 +1,4 @@
-import { vec2, type Vec2, type WallPiece, buildWallMeshAggregated, type RawMeshData } from '@mini-bim/geometry';
+import { vec2, type Vec2, type WallPiece, buildWallMeshAggregated, type RawMeshData } from '@tabax/geometry';
 
 /**
  * Paramètres d'instance d'un composant pour la génération du maillage 3D.

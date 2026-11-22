@@ -99,7 +99,7 @@ Lorsqu'un port ouvert est détecté dans le rayon de capture, sa compatibilité 
 ## 4. Rendu de Prévisualisation Temps Réel (Rubber-band)
 
 La prévisualisation est totalement découplée du `BimDocument` :
-- Étend `PreviewShape` dans `@mini-bim/view-2d` avec `{ kind: 'mep', ... }`.
+- Étend `PreviewShape` dans `@tabax/view-2d` avec `{ kind: 'mep', ... }`.
 - Restitue le tracé central et l'enveloppe dimensionnelle (bifilaire) selon la catégorie active.
 - Affiche en surimpression la pastille d'accrochage et l'indicateur d'angle (orthogonalité / 45°).
 - Disparaît instantanément lors de la validation ou de l'annulation (`Escape`).

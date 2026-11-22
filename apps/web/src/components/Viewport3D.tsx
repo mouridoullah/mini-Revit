@@ -20,8 +20,8 @@ import {
   type OpeningGeometryParams,
   type ClashOverlayItem,
   type FederatedModelVisual,
-} from '@mini-bim/view-3d';
-import { computeStairShaft, resolveWallGeometry } from '@mini-bim/core';
+} from '@tabax/view-3d';
+import { computeStairShaft, resolveWallGeometry } from '@tabax/core';
 import { useBimDocument } from '../hooks/useBimDocument.js';
 import { useResizeObserver } from '../hooks/useResizeObserver.js';
 
@@ -45,7 +45,7 @@ export interface Viewport3DProps {
 /**
  * Wrapper React du visualiseur 3D orbital Three.js impératif.
  * Règle d'or 3 : Instanciation unique dans useEffect, jamais recréé à chaque render.
- * Règle d'or 2 : Aucun import direct de @mini-bim/geometry (passe par view-3d).
+ * Règle d'or 2 : Aucun import direct de @tabax/geometry (passe par view-3d).
  */
 export function Viewport3D({
   isWhiteMode = false,

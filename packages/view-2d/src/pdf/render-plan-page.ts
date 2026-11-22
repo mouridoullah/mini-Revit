@@ -11,7 +11,7 @@ import type {
   Stair,
   Wall,
   Window,
-} from '@mini-bim/core';
+} from '@tabax/core';
 import {
   computeWallFootprint2d,
   solveWallJunctions,
@@ -19,7 +19,7 @@ import {
   type Vec2,
   vec2,
   GEOM_CONFIG,
-} from '@mini-bim/geometry';
+} from '@tabax/geometry';
 import { generateHatchLines } from '../dxf/hatch.js';
 import { resolveDimensionPoints } from '../renderer/dimensions.js';
 import type { DimensionFor2D, WallFor2D } from '../types.js';
@@ -616,13 +616,13 @@ export function renderPlanPage(
 
   const scaleText = isAuto ? `Auto (1:${scaleRatio})` : `1:${scaleRatio}`;
   drawTitleBlock(content, format, {
-    projectTitle: options.projectTitle ?? 'PROJET MINI-BIM',
+    projectTitle: options.projectTitle ?? 'PROJET TABAX',
     sheetTitle: `PLAN D'ÉTAGE - ${levelName.toUpperCase()}`,
     sheetNumber: `PL-${String(sheetIndex).padStart(2, '0')} / ${String(totalPages).padStart(2, '0')}`,
     scaleLabel: scaleText,
     scaleRatio,
     date: options.date ?? new Date().toLocaleDateString('fr-FR'),
-    author: options.author ?? 'Mini-BIM Engine',
+    author: options.author ?? 'Tabax Engine',
     revision: options.revision ?? 'INDICE 0',
     showNorthArrow: true,
   });

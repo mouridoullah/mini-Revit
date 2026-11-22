@@ -1,5 +1,5 @@
 /**
- * @mini-bim/core/mep/catalog
+ * @tabax/core/mep/catalog
  *
  * Fabriques et modèles de référence pour l'instanciation cohérente des éléments MEP
  * avec calcul automatique des ports orientés vers l'extérieur.

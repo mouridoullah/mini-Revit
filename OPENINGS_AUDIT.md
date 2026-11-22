@@ -1,6 +1,6 @@
 # RAPPORT DE QUALIFICATION GÉOMÉTRIQUE — PERCEMENTS ET DÉCOUPE D'OUVERTURES 2.5D (PHASE 1.2)
 
-**Projet :** Mini-BIM (`@mini-bim/geometry`)  
+**Projet :** Mini-BIM (`@tabax/geometry`)  
 **Statut :** Phase 1.2 Validée et Conforme  
 **Date :** 13 novembre 2026  
 **Auditeur :** Ingénieur Principal en Géométrie Computationnelle, CAO & BIM  
@@ -126,7 +126,7 @@ Avant toute écriture de code pour la Phase 1.2, les trois correctifs issus de l
 | `src/junctions/audit.test.ts`      | Audit approfondi et non-régression Option B                                     |    25    |   **PASS**    |
 | `src/openings/validate.test.ts`    | **Règles de validation dimensionnelles et spatiales (Phase 1.2)**               |  **14**  |   **PASS**    |
 | `src/openings/slice.test.ts`       | **Pipeline de découpe 2.5D, conservation et cas limites (Phase 1.2)**           |  **12**  |   **PASS**    |
-| **TOTAL GÉNÉRAL**                  | **Couverture géométrique complète `@mini-bim/geometry`**                        | **148**  | **100% PASS** |
+| **TOTAL GÉNÉRAL**                  | **Couverture géométrique complète `@tabax/geometry`**                        | **148**  | **100% PASS** |
 
 ---
 

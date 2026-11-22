@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { BimDocument, generateSyntheticBimModel, runBenchmark } from '@mini-bim/core';
+import { BimDocument, generateSyntheticBimModel, runBenchmark } from '@tabax/core';
 import { Transform2D } from '../transform.js';
 import { renderPlanView, DEFAULT_VIEW2D_RENDER_CONFIG } from '../renderer.js';
 import { buildSpatialIndex, buildLinearSpatialIndex } from '../spatial/index.js';
 import { createBenchmarkCanvas } from '../test-utils.js';
 
-describe('Banc de Scalabilité et Performance du Rendu 2D Canvas (@mini-bim/view-2d)', () => {
+describe('Banc de Scalabilité et Performance du Rendu 2D Canvas (@tabax/view-2d)', () => {
   it('Évalue la scalabilité du culling spatial 2D sur 100, 1 000 et 10 000 entités (P50, P95, Pan, Zoom, Niveau)', () => {
     const { ctx } = createBenchmarkCanvas(1920, 1080);
 

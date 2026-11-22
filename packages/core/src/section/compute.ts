@@ -9,7 +9,7 @@ import {
   sliceSegmentWithPolygonWithHoles,
   computeWallFootprint2d,
   computeEffectiveSlabPolygon,
-} from '@mini-bim/geometry';
+} from '@tabax/geometry';
 import type { BimState, SectionCut, ElementId } from '../types.js';
 import type {
   SectionScene,

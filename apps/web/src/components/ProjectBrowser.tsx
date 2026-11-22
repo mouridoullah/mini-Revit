@@ -11,7 +11,7 @@ import {
   Ruler,
   Scissors,
 } from 'lucide-react';
-import type { FederatedModel, Level, MepSystem, SectionCut } from '@mini-bim/core';
+import type { FederatedModel, Level, MepSystem, SectionCut } from '@tabax/core';
 import styles from './Cockpit.module.css';
 
 export function ProjectBrowser({

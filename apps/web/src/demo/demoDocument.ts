@@ -1,10 +1,10 @@
-import { BimDocument, Commands } from '@mini-bim/core';
+import { BimDocument, Commands } from '@tabax/core';
 
 /**
  * Crée un BimDocument initial de démonstration contenant une pièce fermée à 4 murs
  * (dimensions : 6 000 mm x 4 000 mm = 24 m²).
  *
- * Conforme à la Règle d'or 2 : aucun import direct de @mini-bim/geometry.
+ * Conforme à la Règle d'or 2 : aucun import direct de @tabax/geometry.
  */
 export function createDemoDocument(): BimDocument {
   const doc = BimDocument.createDefaultProject();

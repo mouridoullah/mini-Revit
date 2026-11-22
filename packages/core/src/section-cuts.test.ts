@@ -9,7 +9,7 @@ import {
   BimValidationError,
   type SectionCut,
 } from './index.js';
-import { vec2 } from '@mini-bim/geometry';
+import { vec2 } from '@tabax/geometry';
 
 describe('Saison 3 — Lot 2.A : Modèle & Commandes SectionCut (ADR-063)', () => {
   const validCut: SectionCut = {

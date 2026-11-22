@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { renderSectionView, generateSectionSvg } from './index.js';
 import { createMockCanvas } from './test-utils.js';
-import { vec2 } from '@mini-bim/geometry';
-import type { SectionScene } from '@mini-bim/core';
+import { vec2 } from '@tabax/geometry';
+import type { SectionScene } from '@tabax/core';
 
 describe('Saison 3 — Lot 2.A : Rendu Canvas 2D & Export SVG de Coupe (ADR-063)', () => {
   const sampleScene: SectionScene = {
