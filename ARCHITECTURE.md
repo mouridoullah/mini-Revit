@@ -1,14 +1,14 @@
-# ARCHITECTURE SYSTÈME — MINI-BIM
+# ARCHITECTURE SYSTÈME — TABAX
 
 **Statut :** Spécification d'Architecture Validée  
-**Date :** 15 novembre 2026  
+**Version :** 1.0.0 (22 novembre 2026)  
 **Auteur :** Ingénieur Principal & Architecte Logiciel
 
 ---
 
 ## 1. Vision et Principes Directeurs Non Négociables
 
-Mini-BIM est conçu comme un système de modélisation de données du bâtiment (BIM) paramétrique. Il repose sur cinq principes directeurs stricts :
+Tabax est conçu comme un système de modélisation de données du bâtiment (BIM) paramétrique. Il repose sur cinq principes directeurs stricts :
 
 1. **Le Modèle BIM est la Source de Vérité Unique :**  
    Les données du projet sont détenues sous forme d'entités sémantiques normalisées. Les représentations 2D (plans) et 3D (maillages Three.js) ne sont que des **vues de projection et des caches dérivés**, recalculés à la demande.

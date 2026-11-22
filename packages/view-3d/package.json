@@ -1,6 +1,6 @@
 {
   "name": "@tabax/view-3d",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Visualiseur et gestionnaire de scène 3D Three.js pour Tabax",
   "type": "module",
   "main": "./dist/index.js",

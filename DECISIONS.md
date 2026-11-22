@@ -1,4 +1,4 @@
-# REGISTRE DES DÉCISIONS D'ARCHITECTURE (ADR) — MINI-BIM
+# REGISTRE DES DÉCISIONS D'ARCHITECTURE (ADR) — TABAX
 
 **Statut global :** Registre Officiel de Décisions Techniques  
 **Dernière mise à jour :** 22 novembre 2026
@@ -2485,6 +2485,28 @@ Dans le cadre de la clôture de la Phase 9 (Réseaux Techniques MEP, Détection 
 
 ---
 
+## ADR-061 : Design System Graphite Engineering, CSS Modules et Icônes Lucide
+
+### Contexte
+
+L'interface utilisateur `apps/web` accumulait des styles CSS inline divergents, une barre d'outils dense et plusieurs panneaux latéraux concurrents. Le cockpit unifié devait établir une identité visuelle d'ingénierie sobre et performante tout en conservant les moteurs et règles métier dans leurs packages respectifs.
+
+### Décisions Clés
+
+1. **D1 — Variables Centralisées & CSS Modules :** Adopter des variables CSS centralisées dans `apps/web/src/styles/theme.css` et des CSS Modules pour les composants du cockpit, sans recourir à Tailwind.
+2. **D2 — Icônes Vectorielles Normalisées :** Intégrer `lucide-react` comme unique bibliothèque d'icônes de l'interface et substituer les icônes vectorielles aux anciens emojis.
+3. **D3 — Ergonomie Cockpit Double Viewport :** Structurer l'interface en ruban métier à onglets, navigateur de projet gauche, vues 2D/3D redimensionnables avec séparateur fluide (20% à 80%), dock droit à onglets et tiroir de métrés rétractable.
+4. **D4 — Arêtes Architecturales Three.js Décoratives :** Limiter les arêtes Three.js à un effet de rendu dans `@tabax/view-3d`, attachées aux maillages architecturaux avec libération synchronisée des ressources GPU (`dispose()`).
+5. **D5 — Respect des Frontières Architecturales :** `@tabax/core` et `@tabax/geometry` restent strictement découplés du DOM et de Three.js ; `apps/web` n'importe jamais `@tabax/geometry` directement (Règle d'or #2).
+
+### Conséquences
+
+- Palette graphite dense partagée avec typographie à chiffres tabulaires (`tabular-nums`).
+- Viewports 2D/3D configurables en plein écran, en split synchronisé ou en fenêtres dédiées.
+- Intégration homogène des inspecteurs de propriétés, de détection de conflits et de maquettes fédérées.
+
+---
+
 ## ADR-062 : Scalabilité du Noyau 10 000 Entités — Indexation Paresseuse $\mathcal{O}(1)$, Partage Structurel CSG de Dalles via WeakMap et DAG Incrémental Différentiel
 
 ### Contexte
@@ -2666,7 +2688,7 @@ Cette implémentation devait répondre à plusieurs contraintes architecturales 
    - Fonction unifiée `resolveDimensionPoints(dim, walls)` dans `packages/view-2d/src/renderer/dimensions.ts`.
    - Canvas 2D : couleur violette (`#8b5cf6`), lignes de rappel pointillées, ticks 45° et texte orienté lisible.
    - SVG : balises `<line>` et texte orienté.
-   - DXF R12 : calque dédié `COTATIONS` (couleur ACI 6), primitives `LINE` et `TEXT` vectorielles.
+   - DXF R12 : calque dédié `ARCH-DIMS` (couleur ACI 6 / Magenta), primitives `LINE` et `TEXT` vectorielles.
    - Carnet PDF 1.4 : primitives vectorielles natives (`m`, `l`, `S`, `d`) et texte WinAnsi.
 
 5. **D5 — Inspection Cockpit et Hit-Testing 2D :**

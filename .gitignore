@@ -30,3 +30,9 @@ maison-contemporaine-r1.json
 .vscode/
 .idea/
 
+# Root artifact exports
+/demo-roof-plan.json
+/graphite-engineering.png
+/immeuble-r4-complet.ifc
+/immeuble-r4-r0-plan.svg
+
