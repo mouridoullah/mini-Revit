@@ -7,7 +7,10 @@ import {
 } from '@mini-bim/core';
 import { PdfWriter } from './PdfWriter.js';
 import { renderCoverPage, type SheetEntry } from './render-cover-page.js';
-import { renderMetricsPage } from './render-metrics-page.js';
+import {
+  calculateMetricsSheetCount,
+  renderMetricsPage,
+} from './render-metrics-page.js';
 import { renderPlanPage } from './render-plan-page.js';
 import { renderSectionPage } from './render-section-page.js';
 import { PAPER_FORMATS, type PdfBookOptions } from './types.js';
@@ -85,13 +88,25 @@ export function generatePdfBook(
     }
   }
 
+  const metricsPageCount = includeMetrics
+    ? calculateMetricsSheetCount(state, format)
+    : 0;
+
   if (includeMetrics) {
-    sheetCount++;
-    sheetList.push({
-      sheetNumber: `PL-${String(sheetCount).padStart(2, '0')}`,
-      title: 'Synthèse des Métrés, Quantitatifs & Surfaces',
-      scale: '—',
-    });
+    for (let m = 0; m < metricsPageCount; m++) {
+      sheetCount++;
+      const title =
+        metricsPageCount === 1
+          ? 'Synthèse des Métrés, Quantitatifs & Surfaces'
+          : m === 0
+            ? 'Synthèse des Métrés & Surfaces (Partie 1)'
+            : `Tableau Détaillé des Pièces & Surfaces (Partie ${m + 1})`;
+      sheetList.push({
+        sheetNumber: `PL-${String(sheetCount).padStart(2, '0')}`,
+        title,
+        scale: '—',
+      });
+    }
   }
 
   const totalPages = Math.max(1, sheetCount);
@@ -146,17 +161,21 @@ export function generatePdfBook(
     }
   }
 
-  // D. Planche Synthèse Métrés & Surfaces
+  // D. Planche(s) Synthèse Métrés & Surfaces
   if (includeMetrics) {
-    const pageContent = writer.addPage(format.widthPt, format.heightPt);
-    renderMetricsPage(
-      pageContent,
-      state,
-      format,
-      options,
-      currentSheetIndex++,
-      totalPages,
-    );
+    for (let m = 0; m < metricsPageCount; m++) {
+      const pageContent = writer.addPage(format.widthPt, format.heightPt);
+      renderMetricsPage(
+        pageContent,
+        state,
+        format,
+        options,
+        currentSheetIndex++,
+        totalPages,
+        m,
+        metricsPageCount,
+      );
+    }
   }
 
   // 5. Compilation du fichier binaire PDF 1.4

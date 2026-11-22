@@ -432,8 +432,8 @@ describe('Saison 3 — Lot 3.B : Moteur de Mise en Page & Carnet de Plans PDF Mu
       expect(report.isValid).toBe(true);
       expect(report.errors).toEqual([]);
 
-      // 6 niveaux (Sous-sol, RDC, R+1, R+2, R+3, R+4) + 1 Garde + 1 Coupe + 1 Métrés = 9 planches
-      expect(report.pageCount).toBeGreaterThanOrEqual(8);
+      // 6 niveaux (RDC à Attique) + 1 Garde + 1 Coupe + 1 Métrés (2 colonnes) = exactement 9 planches
+      expect(report.pageCount).toBe(9);
       // Taille substantielle vectorielle (> 45 Ko)
       expect(pdfBytes.length).toBeGreaterThan(45000);
 
@@ -441,6 +441,37 @@ describe('Saison 3 — Lot 3.B : Moteur de Mise en Page & Carnet de Plans PDF Mu
       for (const mb of report.mediaBoxes) {
         expect(mb).toBe('0 0 1190.55 841.89');
       }
+
+      // Vérifier que 100% des 36 pièces de l'Immeuble R+4 sont présentes dans le document
+      const pdfText = new TextDecoder('latin1').decode(pdfBytes);
+      const roomNames = Object.values(state.rooms ?? {}).map((r) => r.name);
+      expect(roomNames.length).toBe(36);
+      for (const name of roomNames) {
+        expect(pdfText.includes(name)).toBe(true);
+      }
+    });
+
+    it('déclenche une pagination automatique multi-pages sur les métrés de l’Immeuble R+4 au format A4', () => {
+      const r4JsonPath = path.resolve(
+        __dirname,
+        '../../../../apps/web/public/demo-immeuble-r4.json',
+      );
+      if (!fs.existsSync(r4JsonPath)) return;
+
+      const rawJson = fs.readFileSync(r4JsonPath, 'utf8');
+      const state = JSON.parse(rawJson) as BimState;
+
+      const pdfBytes = generatePdfBook(state, {
+        projectTitle: 'Immeuble R+4 A4 Pagination',
+        paperSize: 'A4',
+        scale: 'auto',
+      });
+
+      const report = parseAndValidatePdf14(pdfBytes);
+      expect(report.isValid).toBe(true);
+      expect(report.errors).toEqual([]);
+      // 1 Garde + 6 Plans + 3 Métrés (10 + 24 + 2) = 10 planches
+      expect(report.pageCount).toBe(10);
     });
   });
 });
