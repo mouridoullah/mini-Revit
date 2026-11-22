@@ -106,6 +106,7 @@ export {
   AddSectionCutCommand,
   UpdateSectionCutCommand,
   DeleteSectionCutCommand,
+  AutoGenerateViewsCommand,
 } from './commands.js';
 export {
   BimValidationError,

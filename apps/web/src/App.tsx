@@ -269,6 +269,20 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
     }
   }, [doc, activeLevelId]);
 
+  const handleAutoGenerateViews = useCallback(() => {
+    try {
+      doc.execute(new Commands.AutoGenerateViewsCommand());
+      setInfoMessage('4 élévations et 2 coupes générées automatiquement.');
+      setErrorMessage(null);
+    } catch (err: unknown) {
+      setErrorMessage(
+        err instanceof Error
+          ? err.message
+          : 'Erreur lors de la génération automatique des vues.',
+      );
+    }
+  }, [doc]);
+
   const mepControls =
     activeToolKind === 'mep' ? (
       <MepRibbon
@@ -304,6 +318,7 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
         onExportPlanDxf={handleExportPlanDxf}
         onExportPdfBook={() => setIsExportPdfOpen(true)}
         onAutoDimensionFloor={handleAutoDimensionFloor}
+        onAutoGenerateViews={handleAutoGenerateViews}
         levels={Object.values(doc.getState().levels)}
         activeLevelId={activeLevelId}
         onSelectLevel={setActiveLevelId}

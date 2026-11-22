@@ -40,7 +40,10 @@ export function generateSectionSvg(scene: SectionScene, options: SectionSvgOptio
   const printHeightMm = paperHeightMm - 2 * marginMm - 20; // 20 mm réservés pour le cartouche
 
   // Conversion 1 mm maquette = 1 / scaleRatio mm papier
-  const sceneWidthOnPaper = scene.cutLength / scaleRatio;
+  const sMin = scene.bounds.sMin ?? 0;
+  const sMax = scene.bounds.sMax ?? scene.cutLength;
+  const sSpan = Math.max(1000, sMax - sMin);
+  const sceneWidthOnPaper = sSpan / scaleRatio;
   const zSpan = Math.max(1000, scene.bounds.zMax - scene.bounds.zMin);
   const sceneHeightOnPaper = zSpan / scaleRatio;
 
@@ -52,8 +55,8 @@ export function generateSectionSvg(scene: SectionScene, options: SectionSvgOptio
 
   const mmPerStateMm = (1 / scaleRatio) * autoZoom;
 
-  // Centrage de la scène dans la zone utile
-  const originX = marginMm + (printWidthMm - scene.cutLength * mmPerStateMm) / 2;
+  // Centrage de la scène (s'étendant de sMin à sMax) dans la zone utile
+  const originX = marginMm + (printWidthMm - sSpan * mmPerStateMm) / 2 - sMin * mmPerStateMm;
   const originY =
     marginMm +
     printHeightMm -
@@ -80,7 +83,7 @@ export function generateSectionSvg(scene: SectionScene, options: SectionSvgOptio
       <circle cx="3" cy="3" r="0.25" fill="#475569" />
     </pattern>
     <pattern id="hatch-insulation" width="3" height="3" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
-      <line x1="0" y1="0" x2="0" y2="3" stroke="#92400e" stroke-width="0.25" />
+      <line x1="0" y1="0" x2="3" y2="0" stroke="#92400e" stroke-width="0.25" />
       <line x1="0" y1="0" x2="3" y2="0" stroke="#92400e" stroke-width="0.25" />
     </pattern>
   </defs>`);
@@ -93,8 +96,8 @@ export function generateSectionSvg(scene: SectionScene, options: SectionSvgOptio
 
   // Ligne de sol
   parts.push(`  <!-- Ligne de référence sol -->`);
-  const solStartX = (originX - 10).toFixed(2);
-  const solEndX = (originX + scene.cutLength * mmPerStateMm + 10).toFixed(2);
+  const solStartX = toSvgX(Math.min(-500, sMin));
+  const solEndX = toSvgX(Math.max(scene.cutLength + 500, sMax));
   const solY = toSvgY(0);
   parts.push(
     `  <line x1="${solStartX}" y1="${solY}" x2="${solEndX}" y2="${solY}" stroke="#0f172a" stroke-width="0.6" stroke-dasharray="6,2" />`,
@@ -164,17 +167,61 @@ export function generateSectionSvg(scene: SectionScene, options: SectionSvgOptio
   }
   parts.push(`  </g>`);
 
+  // Cotations verticales (ADR-069)
+  if (scene.dimensions && scene.dimensions.length > 0) {
+    parts.push(`  <!-- Cotations architecturales verticales -->`);
+    parts.push(`  <g id="section-dimensions" stroke="#334155" stroke-width="0.25" font-size="2.2" fill="#1e293b">`);
+    for (const dim of scene.dimensions) {
+      if (dim.kind === 'level_marker') continue;
+
+      const x = toSvgX(dim.s);
+      const y1 = toSvgY(dim.z1);
+      const y2 = toSvgY(dim.z2);
+
+      // Ligne de cote verticale
+      parts.push(`    <line x1="${x}" y1="${y1}" x2="${x}" y2="${y2}" />`);
+
+      // Ticks à 45°
+      const tick = 1.0;
+      const x1Tick = (Number(x) - tick).toFixed(2);
+      const x2Tick = (Number(x) + tick).toFixed(2);
+      const y1TickA = (Number(y1) + tick).toFixed(2);
+      const y1TickB = (Number(y1) - tick).toFixed(2);
+      const y2TickA = (Number(y2) + tick).toFixed(2);
+      const y2TickB = (Number(y2) - tick).toFixed(2);
+
+      parts.push(`    <line x1="${x1Tick}" y1="${y1TickA}" x2="${x2Tick}" y2="${y1TickB}" stroke-width="0.3" />`);
+      parts.push(`    <line x1="${x1Tick}" y1="${y2TickA}" x2="${x2Tick}" y2="${y2TickB}" stroke-width="0.3" />`);
+
+      // Lignes de rappel
+      if (dim.isExterior) {
+        const xOrigin = toSvgX(0);
+        parts.push(`    <line x1="${xOrigin}" y1="${y1}" x2="${x}" y2="${y1}" stroke="#94a3b8" stroke-dasharray="1,1" stroke-width="0.15" />`);
+        parts.push(`    <line x1="${xOrigin}" y1="${y2}" x2="${x}" y2="${y2}" stroke="#94a3b8" stroke-dasharray="1,1" stroke-width="0.15" />`);
+      }
+
+      // Texte
+      const yMid = ((Number(y1) + Number(y2)) / 2 + 0.7).toFixed(2);
+      const textX = (Number(x) - 1.5).toFixed(2);
+      const text = dim.label ? `${escapeXml(dim.label)} ${escapeXml(dim.formattedValue)}` : escapeXml(dim.formattedValue);
+      parts.push(`    <text x="${textX}" y="${yMid}" text-anchor="end" stroke="none">${text}</text>`);
+    }
+    parts.push(`  </g>`);
+  }
+
   // Cartouche réglementaire en bas à droite
   const cartoucheW = 90;
   const cartoucheH = 18;
   const cartoucheX = paperWidthMm - marginMm - cartoucheW;
   const cartoucheY = paperHeightMm - marginMm - cartoucheH;
 
+  const kindLabel = scene.kind === 'elevation' ? 'ÉLÉVATION' : 'COUPE';
+
   parts.push(`  <!-- Cartouche normalisé -->`);
   parts.push(`  <g id="cartouche" transform="translate(${cartoucheX}, ${cartoucheY})">
     <rect width="${cartoucheW}" height="${cartoucheH}" fill="#f8fafc" stroke="#0f172a" stroke-width="0.3" />
     <text x="3" y="4.5" font-size="3" font-weight="bold" fill="#0f172a">${escapeXml(project)}</text>
-    <text x="3" y="9" font-size="2.8" font-weight="bold" fill="#2563eb">COUPE ${escapeXml(scene.cutLabel)}-${escapeXml(scene.cutLabel)}' : ${escapeXml(title)}</text>
+    <text x="3" y="9" font-size="2.8" font-weight="bold" fill="#2563eb">${kindLabel} ${escapeXml(scene.cutLabel)}-${escapeXml(scene.cutLabel)}' : ${escapeXml(title)}</text>
     <text x="3" y="13.5" font-size="2.2" fill="#64748b">Échelle 1:${scaleRatio} | Format ${paper} | Date : ${escapeXml(date)}</text>
     <text x="3" y="16.5" font-size="2" fill="#94a3b8">Auteur : ${escapeXml(author)}</text>
   </g>`);

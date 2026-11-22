@@ -131,6 +131,7 @@ export interface ToolbarProps {
   readonly onExportPlanDxf?: () => void;
   readonly onExportPdfBook?: () => void;
   readonly onAutoDimensionFloor?: () => void;
+  readonly onAutoGenerateViews?: () => void;
   readonly levels?: readonly Level[];
   readonly activeLevelId?: string;
   readonly onSelectLevel?: (levelId: string) => void;
@@ -166,6 +167,7 @@ export function Toolbar({
   onExportPlanDxf,
   onExportPdfBook,
   onAutoDimensionFloor,
+  onAutoGenerateViews,
   levels = [],
   activeLevelId,
   onSelectLevel,
@@ -416,6 +418,19 @@ export function Toolbar({
               >
                 <Sparkles size={16} />
                 Coter Étage
+              </button>
+            </div>
+          )}
+          {tab === 'Architecture' && onAutoGenerateViews && (
+            <div className={styles.quickControls}>
+              <button
+                className={styles.tool}
+                data-testid="auto-generate-views-btn"
+                onClick={onAutoGenerateViews}
+                title="Générer automatiquement les 4 élévations de façades et les 2 coupes orthogonales du projet (ADR-069)"
+              >
+                <Scissors size={16} />
+                Générer Vues
               </button>
             </div>
           )}

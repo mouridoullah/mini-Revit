@@ -86,15 +86,18 @@ export function renderSectionView(
 
   // 2. Calcul du cadrage (mapping s, z -> canvasX, canvasY)
   const cutLen = Math.max(100, scene.cutLength);
+  const sMin = scene.bounds.sMin ?? 0;
+  const sMax = scene.bounds.sMax ?? cutLen;
+  const sSpan = Math.max(100, sMax - sMin);
   const zSpan = Math.max(500, scene.bounds.zMax - scene.bounds.zMin);
 
   const availW = Math.max(50, width - padding * 2);
   const availH = Math.max(50, height - padding * 2);
 
-  const fitScale = Math.min(availW / cutLen, availH / zSpan);
+  const fitScale = Math.min(availW / sSpan, availH / zSpan);
   const scale = options.scale ?? fitScale;
 
-  const offX = options.offset?.x ?? (padding + (availW - cutLen * scale) / 2);
+  const offX = options.offset?.x ?? (padding + (availW - sSpan * scale) / 2 - sMin * scale);
   const offY =
     options.offset?.y ?? (height - padding - (availH - zSpan * scale) / 2);
 
@@ -105,8 +108,8 @@ export function renderSectionView(
   ctx.strokeStyle = '#0f172a';
   ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.moveTo(toX(-500), toY(0));
-  ctx.lineTo(toX(scene.cutLength + 500), toY(0));
+  ctx.moveTo(toX(Math.min(-500, sMin)), toY(0));
+  ctx.lineTo(toX(Math.max(scene.cutLength + 500, sMax)), toY(0));
   ctx.stroke();
 
   // 4. Éléments projetés en arrière-plan (traits fins)
@@ -231,13 +234,69 @@ export function renderSectionView(
     ctx.restore();
   }
 
+  // 6.b Cotations architecturales verticales (ADR-069)
+  if (scene.dimensions && scene.dimensions.length > 0) {
+    ctx.save();
+    ctx.font = '10px sans-serif';
+    ctx.strokeStyle = '#334155';
+    ctx.fillStyle = '#1e293b';
+    ctx.lineWidth = 1;
+
+    for (const dim of scene.dimensions) {
+      if (dim.kind === 'level_marker') continue; // Déjà géré par les lignes de niveaux
+
+      const xDim = toX(dim.s);
+      const y1 = toY(dim.z1);
+      const y2 = toY(dim.z2);
+
+      // Ligne de cote verticale
+      ctx.beginPath();
+      ctx.moveTo(xDim, y1);
+      ctx.lineTo(xDim, y2);
+      ctx.stroke();
+
+      // Ticks à 45° aux extrémités
+      const tick = 4;
+      ctx.beginPath();
+      ctx.moveTo(xDim - tick, y1 + tick);
+      ctx.lineTo(xDim + tick, y1 - tick);
+      ctx.moveTo(xDim - tick, y2 + tick);
+      ctx.lineTo(xDim + tick, y2 - tick);
+      ctx.stroke();
+
+      // Lignes de rappel horizontales vers le bâtiment
+      if (dim.isExterior) {
+        const xAttOrigin = toX(0);
+        ctx.save();
+        ctx.strokeStyle = '#94a3b8';
+        ctx.setLineDash([2, 2]);
+        ctx.beginPath();
+        ctx.moveTo(xAttOrigin, y1);
+        ctx.lineTo(xDim, y1);
+        ctx.moveTo(xAttOrigin, y2);
+        ctx.lineTo(xDim, y2);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Texte de cotation
+      const yMid = (y1 + y2) / 2;
+      const text = dim.label ? `${dim.label} ${dim.formattedValue}` : dim.formattedValue;
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, xDim - 6, yMid);
+    }
+    ctx.restore();
+  }
+
   // 7. Cartouche / En-tête de coupe
   ctx.save();
   ctx.font = 'bold 13px sans-serif';
   ctx.fillStyle = '#0f172a';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'top';
-  const title = `COUPE ${scene.cutLabel}-${scene.cutLabel}' : ${scene.cutName.toUpperCase()}`;
+  const kindLabel = scene.kind === 'elevation' ? 'ÉLÉVATION' : 'COUPE';
+  const title = `${kindLabel} ${scene.cutLabel}-${scene.cutLabel}' : ${scene.cutName.toUpperCase()}`;
   ctx.fillText(title, padding, 16);
   ctx.restore();
 

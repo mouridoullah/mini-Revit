@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { computeSectionScene } from '@tabax/core';
 import { renderSectionView, generateSectionSvg, generateSectionDxf } from '@tabax/view-2d';
-import { Download, Scissors, Eye, EyeOff, ZoomIn } from 'lucide-react';
+import { Download, Scissors, Eye, EyeOff, ZoomIn, Building2 } from 'lucide-react';
 import { useBimDocument } from '../hooks/useBimDocument.js';
 import { useResizeObserver } from '../hooks/useResizeObserver.js';
 
@@ -172,7 +172,11 @@ export function SectionViewport({
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Scissors size={15} color="var(--accent-primary)" />
+          {sectionCut.kind === 'elevation' ? (
+            <Building2 size={15} color="var(--accent-primary)" />
+          ) : (
+            <Scissors size={15} color="var(--accent-primary)" />
+          )}
           <strong data-testid="section-active-title">{sectionCut.name}</strong>
           <span
             style={{

@@ -50,6 +50,17 @@ describe('Saison 3 — Lot 2.A : Scène de coupe analytique computeSectionScene 
         scene.projectedItems[i + 1]!.depth,
       );
     }
+
+    // Cotations verticales (ADR-069)
+    expect(scene.dimensions.length).toBeGreaterThan(0);
+    const lvlMarkers = scene.dimensions.filter((d) => d.kind === 'level_marker');
+    expect(lvlMarkers.length).toBe(scene.levels.length);
+    const floorHeights = scene.dimensions.filter((d) => d.kind === 'floor_height');
+    expect(floorHeights.length).toBeGreaterThanOrEqual(1);
+    const totalHeights = scene.dimensions.filter((d) => d.kind === 'total_height');
+    expect(totalHeights).toHaveLength(1);
+    const hspDims = scene.dimensions.filter((d) => d.kind === 'ceiling_height');
+    expect(hspDims.length).toBeGreaterThanOrEqual(1);
   });
 
   it('calcule une élévation de façade avec 100% de projection en arrière-plan', () => {
@@ -79,5 +90,26 @@ describe('Saison 3 — Lot 2.A : Scène de coupe analytique computeSectionScene 
     expect(scene.projectedItems.length).toBeGreaterThan(0);
     const projectedWalls = scene.projectedItems.filter((i) => i.category === 'wall');
     expect(projectedWalls.length).toBeGreaterThan(0);
+    // Vérification de l'opacité et style des murs en façade
+    expect(projectedWalls[0]?.style?.fill).toBe('#f8fafc');
+    expect(projectedWalls[0]?.style?.opacity).toBe(1);
+
+    // Ouvertures avec lignes de châssis / menuiseries
+    const projectedOpenings = scene.projectedItems.filter(
+      (i) => i.category === 'door' || i.category === 'window',
+    );
+    expect(projectedOpenings.length).toBeGreaterThan(0);
+    expect(projectedOpenings.some((op) => op.lines && op.lines.length > 0)).toBe(true);
+
+    // Toitures projetées en façade
+    const projectedRoofs = scene.projectedItems.filter((i) => i.category === 'roof');
+    expect(projectedRoofs.length).toBeGreaterThan(0);
+
+    // Cotations : repères de niveaux, hauteurs d'étages et hauteur hors-tout (pas de HSP en façade)
+    expect(scene.dimensions.length).toBeGreaterThan(0);
+    expect(scene.dimensions.some((d) => d.kind === 'level_marker')).toBe(true);
+    expect(scene.dimensions.some((d) => d.kind === 'floor_height')).toBe(true);
+    expect(scene.dimensions.some((d) => d.kind === 'total_height')).toBe(true);
+    expect(scene.dimensions.filter((d) => d.kind === 'ceiling_height')).toHaveLength(0);
   });
 });

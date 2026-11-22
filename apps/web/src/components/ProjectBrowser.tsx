@@ -1,4 +1,5 @@
 import {
+  Building2,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
@@ -126,7 +127,7 @@ export function ProjectBrowser({
                   className={`${styles.browserRow} ${activeSectionCutId === cut.id ? styles.browserActive : ''}`}
                   onClick={() => onSelectSectionCut?.(cut.id)}
                 >
-                  <Scissors size={14} />
+                  {cut.kind === 'elevation' ? <Building2 size={14} /> : <Scissors size={14} />}
                   <span>{cut.name}</span>
                   <span className={styles.subtle}>{cut.label}</span>
                 </button>

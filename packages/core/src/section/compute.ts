@@ -16,6 +16,7 @@ import type {
   SectionLevelDatum,
   SectionCutItem,
   SectionProjectedItem,
+  SectionDimension,
 } from './types.js';
 import { resolveWallGeometry } from '../walls/resolve.js';
 import { computeRoofSlopes } from '../roofs/slopes.js';
@@ -279,6 +280,7 @@ export function computeSectionScene(state: BimState, cut: SectionCut): SectionSc
         const sLeft = Math.min(clampedS1, clampedS2);
         const sRight = Math.max(clampedS1, clampedS2);
         const avgDepth = (p1Proj.d + p2Proj.d) / 2;
+        const isElev = cut.kind === 'elevation';
 
         projectedItems.push({
           id: `${wall.id}_proj`,
@@ -291,9 +293,10 @@ export function computeSectionScene(state: BimState, cut: SectionCut): SectionSc
             vec2(sLeft, resolved.zTop),
           ],
           style: {
-            stroke: '#6b7280',
-            strokeWidth: 1,
-            fill: 'rgba(243, 244, 246, 0.4)',
+            stroke: isElev ? '#334155' : '#6b7280',
+            strokeWidth: isElev ? 1.2 : 1,
+            fill: isElev ? '#f8fafc' : 'rgba(243, 244, 246, 0.4)',
+            opacity: isElev ? 1 : 0.85,
           },
         });
 
@@ -310,20 +313,78 @@ export function computeSectionScene(state: BimState, cut: SectionCut): SectionSc
             const opRight = Math.max(sOp1, sOp2);
 
             if (opRight >= 0 && opLeft <= cutLen) {
+              const lines: [Vec2, Vec2][] = [];
+              const w = Math.abs(opRight - opLeft);
+              const h = Math.abs(op.lintelZAbsolute - op.sillZAbsolute);
+
+              if (isElev) {
+                if (op.kind === 'window') {
+                  // Châssis intérieur (décalage de 40mm)
+                  const dF = Math.min(40, w * 0.1, h * 0.1);
+                  const sIn1 = opLeft + dF;
+                  const sIn2 = opRight - dF;
+                  const zIn1 = op.sillZAbsolute + dF;
+                  const zIn2 = op.lintelZAbsolute - dF;
+                  if (sIn2 > sIn1 && zIn2 > zIn1) {
+                    lines.push([vec2(sIn1, zIn1), vec2(sIn2, zIn1)]);
+                    lines.push([vec2(sIn2, zIn1), vec2(sIn2, zIn2)]);
+                    lines.push([vec2(sIn2, zIn2), vec2(sIn1, zIn2)]);
+                    lines.push([vec2(sIn1, zIn2), vec2(sIn1, zIn1)]);
+                  }
+
+                  // Meneau vertical au milieu si fenêtre large (> 700mm)
+                  if (w >= 700) {
+                    const sMid = (opLeft + opRight) / 2;
+                    lines.push([vec2(sMid, op.sillZAbsolute), vec2(sMid, op.lintelZAbsolute)]);
+                  }
+                  // Traverse horizontale si fenêtre haute (> 1200mm)
+                  if (h >= 1200) {
+                    const zTrans = op.lintelZAbsolute - 400;
+                    lines.push([vec2(opLeft, zTrans), vec2(opRight, zTrans)]);
+                  }
+                } else {
+                  // Porte : cadre dormant et poignée
+                  const dF = Math.min(50, w * 0.08);
+                  const sIn1 = opLeft + dF;
+                  const sIn2 = opRight - dF;
+                  const zIn2 = op.lintelZAbsolute - dF;
+                  if (sIn2 > sIn1 && zIn2 > op.sillZAbsolute) {
+                    lines.push([vec2(sIn1, op.sillZAbsolute), vec2(sIn1, zIn2)]);
+                    lines.push([vec2(sIn1, zIn2), vec2(sIn2, zIn2)]);
+                    lines.push([vec2(sIn2, zIn2), vec2(sIn2, op.sillZAbsolute)]);
+                  }
+
+                  // Poignée à Z = sill + 1050
+                  const zHandle = op.sillZAbsolute + 1050;
+                  const isRight = state.doors?.[op.id]?.swing?.side === 'right';
+                  const sHandle = opLeft + (isRight ? 70 : Math.max(70, w - 70));
+                  lines.push([vec2(sHandle - 15, zHandle), vec2(sHandle + 15, zHandle)]);
+                }
+              }
+
               projectedItems.push({
                 id: `${op.id}_proj`,
                 category: op.kind === 'door' ? 'door' : 'window',
-                depth: avgDepth + 1,
+                depth: avgDepth - 1,
                 polygon: [
                   vec2(Math.max(0, opLeft), op.sillZAbsolute),
                   vec2(Math.min(cutLen, opRight), op.sillZAbsolute),
                   vec2(Math.min(cutLen, opRight), op.lintelZAbsolute),
                   vec2(Math.max(0, opLeft), op.lintelZAbsolute),
                 ],
+                lines: lines.length > 0 ? lines : undefined,
                 style: {
-                  stroke: op.kind === 'door' ? '#92400e' : '#2563eb',
-                  strokeWidth: 1.2,
-                  fill: op.kind === 'door' ? 'rgba(254, 243, 199, 0.6)' : 'rgba(219, 234, 254, 0.6)',
+                  stroke: op.kind === 'door' ? '#78350f' : '#1e40af',
+                  strokeWidth: isElev ? 1.4 : 1.2,
+                  fill:
+                    op.kind === 'door'
+                      ? isElev
+                        ? '#fef3c7'
+                        : 'rgba(254, 243, 199, 0.6)'
+                      : isElev
+                        ? '#dbeafe'
+                        : 'rgba(219, 234, 254, 0.6)',
+                  opacity: 1,
                 },
               });
             }
@@ -403,15 +464,15 @@ export function computeSectionScene(state: BimState, cut: SectionCut): SectionSc
   for (const roof of roofs) {
     const slopes = computeRoofSlopes(roof, state);
     for (const slope of slopes) {
+      // Calcul des altitudes sur le plan de versant : z = -(a*x + b*y + d) / c
+      const calcZ = (pt: Vec2): number => {
+        if (Math.abs(slope.plane.c) < 1e-6) return slope.zRidge;
+        return -(slope.plane.a * pt.x + slope.plane.b * pt.y + slope.plane.d) / slope.plane.c;
+      };
+
       const slices = sliceSegmentWithPolygon(cut.start, cut.end, slope.polygon);
       for (const slice of slices) {
         if (slice.endS - slice.startS < 5) continue;
-
-        // Calcul des altitudes sur le plan de versant : z = -(a*x + b*y + d) / c
-        const calcZ = (pt: Vec2): number => {
-          if (Math.abs(slope.plane.c) < 1e-6) return slope.zRidge;
-          return -(slope.plane.a * pt.x + slope.plane.b * pt.y + slope.plane.d) / slope.plane.c;
-        };
 
         const z1 = calcZ(slice.startPt);
         const z2 = calcZ(slice.endPt);
@@ -435,6 +496,43 @@ export function computeSectionScene(state: BimState, cut: SectionCut): SectionSc
             hatch: 'insulation',
           },
         });
+      }
+
+      // Projection du versant en arrière-plan (0 < d <= depth)
+      if (slope.polygon.length >= 3) {
+        const projectedPts = slope.polygon.map((pt) => {
+          const pProj = projectPointToSectionFrame(pt, frame);
+          const z = calcZ(pt);
+          return { s: pProj.s, d: pProj.d, z };
+        });
+
+        const minD = Math.min(...projectedPts.map((p) => p.d));
+        const maxD = Math.max(...projectedPts.map((p) => p.d));
+        const minS = Math.min(...projectedPts.map((p) => p.s));
+        const maxS = Math.max(...projectedPts.map((p) => p.s));
+
+        if (minD > 10 && maxD <= cut.depth && maxS >= 0 && minS <= cutLen) {
+          const avgD = projectedPts.reduce((acc, p) => acc + p.d, 0) / projectedPts.length;
+          const poly2d = projectedPts.map((p) => vec2(p.s, p.z));
+
+          for (const p of projectedPts) {
+            zMax = Math.max(zMax, p.z + 500);
+          }
+
+          const isElev = cut.kind === 'elevation';
+          projectedItems.push({
+            id: `${roof.id}_${slope.id}_proj`,
+            category: 'roof',
+            depth: avgD,
+            polygon: poly2d,
+            style: {
+              stroke: '#78350f',
+              strokeWidth: isElev ? 1.4 : 1,
+              fill: isElev ? '#fef3c7' : 'rgba(254, 243, 199, 0.4)',
+              opacity: isElev ? 1 : 0.8,
+            },
+          });
+        }
       }
     }
   }
@@ -528,6 +626,11 @@ export function computeSectionScene(state: BimState, cut: SectionCut): SectionSc
     const s2 = proj2.s;
     const z1 = p1.z;
     const z2 = p2.z;
+
+    // En élévation extérieure, masquer les réseaux MEP intérieurs
+    if (cut.kind === 'elevation') {
+      return;
+    }
 
     const system = systemId ? state.mepSystems?.[systemId] : undefined;
     const color =
@@ -627,6 +730,139 @@ export function computeSectionScene(state: BimState, cut: SectionCut): SectionSc
   // 7. Tri des éléments projetés par profondeur décroissante (peintre : fond vers premier plan)
   projectedItems.sort((a, b) => b.depth - a.depth);
 
+  // 8. Cotations architecturales et chaînes altimétriques (ADR-069)
+  const dimensions: SectionDimension[] = [];
+
+  // A. Repères altimétriques de niveaux (s = -350 mm)
+  for (const lvl of sortedLevels) {
+    const elevM = (lvl.elevation / 1000).toFixed(2);
+    const sign = lvl.elevation > 0 ? '+' : '';
+    dimensions.push({
+      id: `dim_lvl_${lvl.id}`,
+      kind: 'level_marker',
+      s: -350,
+      z1: lvl.elevation,
+      z2: lvl.elevation,
+      offset: -350,
+      valueMm: lvl.elevation,
+      formattedValue: `${sign}${elevM}`,
+      label: lvl.name,
+      isExterior: true,
+    });
+  }
+
+  // B. Chaîne de hauteurs d'étages fini-à-fini (s = -150 mm)
+  for (let i = 0; i < sortedLevels.length - 1; i++) {
+    const lvl1 = sortedLevels[i];
+    const lvl2 = sortedLevels[i + 1];
+    if (!lvl1 || !lvl2) continue;
+    const hMm = Math.round(lvl2.elevation - lvl1.elevation);
+    if (hMm > 100) {
+      dimensions.push({
+        id: `dim_floor_${lvl1.id}_${lvl2.id}`,
+        kind: 'floor_height',
+        s: -150,
+        z1: lvl1.elevation,
+        z2: lvl2.elevation,
+        offset: -150,
+        valueMm: hMm,
+        formattedValue: `${(hMm / 1000).toFixed(2)} m`,
+        label: 'H. Ét.',
+        isExterior: true,
+      });
+    }
+  }
+
+  // C. Hauteur hors-tout totale (s = -550 mm)
+  const firstLvl = sortedLevels[0];
+  const lastLvl = sortedLevels[sortedLevels.length - 1];
+  if (sortedLevels.length >= 2 && firstLvl && lastLvl) {
+    const bottomZ = firstLvl.elevation;
+    let topZ = lastLvl.elevation;
+    for (const item of cutItems) {
+      for (const pt of item.polygon) {
+        if (pt.y > topZ) topZ = pt.y;
+      }
+    }
+    for (const item of projectedItems) {
+      for (const pt of item.polygon) {
+        if (pt.y > topZ) topZ = pt.y;
+      }
+    }
+    topZ = Math.round(topZ);
+    const totalMm = topZ - bottomZ;
+    if (totalMm > 500) {
+      dimensions.push({
+        id: 'dim_total_height',
+        kind: 'total_height',
+        s: -550,
+        z1: bottomZ,
+        z2: topZ,
+        offset: -550,
+        valueMm: totalMm,
+        formattedValue: `${(totalMm / 1000).toFixed(2)} m`,
+        label: 'Total',
+        isExterior: true,
+      });
+    }
+  }
+
+  // D. Hauteur sous plafond H.S.P. intérieure (uniquement pour les coupes)
+  if (cut.kind === 'section') {
+    for (let i = 0; i < sortedLevels.length - 1; i++) {
+      const lvl1 = sortedLevels[i];
+      const lvl2 = sortedLevels[i + 1];
+      if (!lvl1 || !lvl2) continue;
+      const slabThick = 200;
+      const hspMm = Math.round(lvl2.elevation - lvl1.elevation - slabThick);
+      if (hspMm >= 1800) {
+        dimensions.push({
+          id: `dim_hsp_${lvl1.id}`,
+          kind: 'ceiling_height',
+          s: Math.round(cutLen / 2),
+          z1: lvl1.elevation,
+          z2: lvl1.elevation + hspMm,
+          offset: 0,
+          valueMm: hspMm,
+          formattedValue: `${(hspMm / 1000).toFixed(2)} m`,
+          label: 'H.S.P.',
+          isExterior: false,
+        });
+      }
+    }
+  }
+
+  // Calcul rigoureux des bornes horizontales sMin / sMax englobant la géométrie,
+  // les cotations déportées (s < 0) et les repères altimétriques
+  let sMin = 0;
+  let sMax = cutLen;
+
+  for (const item of cutItems) {
+    for (const pt of item.polygon) {
+      if (pt.x < sMin) sMin = pt.x;
+      if (pt.x > sMax) sMax = pt.x;
+    }
+  }
+
+  for (const item of projectedItems) {
+    for (const pt of item.polygon) {
+      if (pt.x < sMin) sMin = pt.x;
+      if (pt.x > sMax) sMax = pt.x;
+    }
+  }
+
+  for (const dim of dimensions) {
+    const dimLeft = dim.s - 700; // Marge pour le texte de cote aligné à droite
+    if (dimLeft < sMin) sMin = dimLeft;
+    if (dim.s > sMax) sMax = dim.s;
+  }
+
+  if (sortedLevels.length > 0) {
+    // Les lignes de niveaux s'étendent de s = -1200 (avec triangle et texte de niveau à gauche) à cutLen + 1000
+    if (-1800 < sMin) sMin = -1800;
+    if (cutLen + 1000 > sMax) sMax = cutLen + 1000;
+  }
+
   return {
     cutId: cut.id,
     cutName: cut.name,
@@ -635,13 +871,14 @@ export function computeSectionScene(state: BimState, cut: SectionCut): SectionSc
     cutLength: cutLen,
     depth: cut.depth,
     bounds: {
-      sMin: 0,
-      sMax: cutLen,
+      sMin: Math.round(sMin),
+      sMax: Math.round(sMax),
       zMin,
       zMax,
     },
     levels,
     cutItems,
     projectedItems,
+    dimensions,
   };
 }

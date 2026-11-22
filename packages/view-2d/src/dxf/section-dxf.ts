@@ -29,6 +29,7 @@ export function generateSectionDxf(
   writer.addLayer({ name: 'SECTION-GROUND', color: 8, lineType: 'DASHED' }); // Ligne de référence sol Z=0 (Gris tireté)
   writer.addLayer({ name: 'SECTION-MEP-CUT', color: 4, lineType: 'CONTINUOUS' }); // Réseaux MEP coupés (Cyan)
   writer.addLayer({ name: 'SECTION-MEP-PROJ', color: 5, lineType: 'CONTINUOUS' }); // Réseaux MEP projetés (Bleu)
+  writer.addLayer({ name: 'SECTION-DIMENSIONS', color: 1, lineType: 'CONTINUOUS' }); // Cotations verticales (Rouge)
   writer.addLayer({ name: 'SECTION-ANNOTATIONS', color: 7, lineType: 'CONTINUOUS' }); // Titres et étiquettes (Blanc/Noir)
 
   // -------------------------------------------------------------------------
@@ -128,6 +129,61 @@ export function generateSectionDxf(
           writer.addLine('SECTION-HATCH', p1, p2);
         }
       }
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // 5.b Cotations architecturales verticales (ADR-069)
+  // -------------------------------------------------------------------------
+  if (scene.dimensions && scene.dimensions.length > 0) {
+    for (const dim of scene.dimensions) {
+      if (dim.kind === 'level_marker') continue;
+
+      const p1 = vec2(dim.s, dim.z1);
+      const p2 = vec2(dim.s, dim.z2);
+
+      // Ligne principale de cote verticale
+      writer.addLine('SECTION-DIMENSIONS', p1, p2);
+
+      // Ticks à 45° de 100 mm
+      const tick = 100;
+      writer.addLine(
+        'SECTION-DIMENSIONS',
+        vec2(dim.s - tick, dim.z1 - tick),
+        vec2(dim.s + tick, dim.z1 + tick),
+      );
+      writer.addLine(
+        'SECTION-DIMENSIONS',
+        vec2(dim.s - tick, dim.z2 - tick),
+        vec2(dim.s + tick, dim.z2 + tick),
+      );
+
+      // Lignes de rappel vers le modèle
+      if (dim.isExterior) {
+        writer.addLine(
+          'SECTION-DIMENSIONS',
+          vec2(0, dim.z1),
+          vec2(dim.s, dim.z1),
+          { lineType: 'DASHED' },
+        );
+        writer.addLine(
+          'SECTION-DIMENSIONS',
+          vec2(0, dim.z2),
+          vec2(dim.s, dim.z2),
+          { lineType: 'DASHED' },
+        );
+      }
+
+      // Texte de cotation
+      const zMid = (dim.z1 + dim.z2) / 2;
+      const text = dim.label ? `${dim.label} ${dim.formattedValue}` : dim.formattedValue;
+      writer.addText(
+        'SECTION-DIMENSIONS',
+        vec2(dim.s - 60, zMid),
+        160,
+        text,
+        { halign: 'right', valign: 'middle' },
+      );
     }
   }
 
