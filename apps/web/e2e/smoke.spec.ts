@@ -415,4 +415,47 @@ test.describe('Mini-BIM E2E Smoke Tests (Playwright Real Browser)', () => {
     await expect(modal).toBeHidden();
     expect(consoleErrors).toEqual([]);
   });
+
+  test('cotes 2D interactives et cotation automatique d’étage (ADR-066)', async ({ page }) => {
+    const consoleErrors: string[] = [];
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') consoleErrors.push(msg.text());
+    });
+    page.on('pageerror', (err) => consoleErrors.push(err.message));
+
+    await page.goto('/');
+
+    // 1. Activer l'outil Cotation (T)
+    const dimToolBtn = page.locator('[data-testid="tool-dimension-btn"]');
+    await expect(dimToolBtn).toBeVisible();
+    await dimToolBtn.click();
+
+    await expect(page.locator('[data-testid="status-tool-info"]')).toContainText('Cotation (T)');
+
+    // 2. Tracé interactif d'une cote libre sur le canvas 2D
+    const canvas2D = page.locator('canvas[data-testid="viewport-2d-canvas"]');
+    const box = await canvas2D.boundingBox();
+    expect(box).not.toBeNull();
+    if (!box) throw new Error('Canvas 2D introuvable');
+
+    // Clic 1er point au centre
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+    // Clic 2e point décalé de 120 px à droite
+    await page.mouse.click(box.x + box.width / 2 + 120, box.y + box.height / 2);
+    // Clic 3e point pour placer le déport (50 px vers le haut)
+    await page.mouse.click(box.x + box.width / 2 + 60, box.y + box.height / 2 - 50);
+
+    // Vérifier que la barre d'état compte la nouvelle cote (1 existante démo + 1 nouvelle = 2)
+    await expect(page.locator('[data-testid="status-bar"]')).toContainText('Cotes : 2');
+
+    // 3. Déclencher la cotation automatique d'étage
+    const autoDimBtn = page.locator('[data-testid="auto-dimension-floor-btn"]');
+    await expect(autoDimBtn).toBeVisible();
+    await autoDimBtn.click();
+
+    // Vérifier que le nombre de cotes passe à 12 (2 manuelles + 10 automatiques chaînes complètes)
+    await expect(page.locator('[data-testid="status-bar"]')).toContainText('Cotes : 12');
+
+    expect(consoleErrors).toEqual([]);
+  });
 });

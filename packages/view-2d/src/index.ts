@@ -36,6 +36,7 @@ export {
   drawRoomFills,
   drawRoomLabels,
   drawDimensions,
+  resolveDimensionPoints,
   drawOpeningDoor,
   drawOpeningWindow,
   drawOpenings,
@@ -63,11 +64,13 @@ export {
   findMepElementAtScreen,
   findMepPortAtScreen,
   findSectionCutAtScreen,
+  findDimensionAtScreen,
   type HitTestOptions,
   type HitOpeningResult,
   type HitMepElementResult,
   type HitMepPortResult,
   type HitSectionCutResult,
+  type HitDimensionResult,
 } from './hit-test.js';
 export { drawSectionCuts } from './renderer/section-symbols.js';
 export {

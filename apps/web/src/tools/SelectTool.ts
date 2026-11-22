@@ -4,6 +4,7 @@ import {
   findMepElementAtScreen,
   findOpeningAtScreen,
   findSectionCutAtScreen,
+  findDimensionAtScreen,
 } from '@mini-bim/view-2d';
 import {
   type Tool,
@@ -72,6 +73,15 @@ export class SelectTool implements Tool {
       if (hitSectionCut) {
         this.state = { kind: 'selected', wallId: hitSectionCut.id };
         return { kind: 'selectionChanged', ids: [hitSectionCut.id] };
+      }
+
+      // 3c. Lignes de cotation (ADR-066)
+      const hitDimension = findDimensionAtScreen(event.screen, ctx.transform, ctx.doc, {
+        activeLevelId: ctx.activeLevelId,
+      });
+      if (hitDimension) {
+        this.state = { kind: 'selected', wallId: hitDimension.id };
+        return { kind: 'selectionChanged', ids: [hitDimension.id] };
       }
 
       // 4. Murs architecturaux

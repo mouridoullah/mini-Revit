@@ -383,6 +383,101 @@ export function drawPreview(
       }
     }
     ctx.restore();
+  } else if (preview.kind === 'dimension') {
+    const p1 = preview.start;
+    const p2 = preview.end;
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
+    const len = Math.hypot(dx, dy);
+
+    ctx.save();
+    if (len < 1e-4) {
+      const sp1 = transform.worldToScreen(p1);
+      ctx.fillStyle = '#2563eb';
+      ctx.beginPath();
+      ctx.arc(sp1.x, sp1.y, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      return;
+    }
+
+    const ux = dx / len;
+    const uy = dy / len;
+    const nx = -uy;
+    const ny = ux;
+
+    const ox = nx * preview.offset;
+    const oy = ny * preview.offset;
+
+    const d1World = { x: p1.x + ox, y: p1.y + oy };
+    const d2World = { x: p2.x + ox, y: p2.y + oy };
+
+    const sp1 = transform.worldToScreen(p1);
+    const sp2 = transform.worldToScreen(p2);
+    const sd1 = transform.worldToScreen(d1World);
+    const sd2 = transform.worldToScreen(d2World);
+
+    // 1. Lignes de rappel pointillées
+    ctx.strokeStyle = '#2563eb';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(sp1.x, sp1.y);
+    ctx.lineTo(sd1.x, sd1.y);
+    ctx.moveTo(sp2.x, sp2.y);
+    ctx.lineTo(sd2.x, sd2.y);
+    ctx.stroke();
+
+    // 2. Ligne de cote continue
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.moveTo(sd1.x, sd1.y);
+    ctx.lineTo(sd2.x, sd2.y);
+    ctx.stroke();
+
+    // 3. Ticks architecturaux à 45°
+    const tick = 8;
+    ctx.beginPath();
+    ctx.moveTo(sd1.x - tick / 2, sd1.y + tick / 2);
+    ctx.lineTo(sd1.x + tick / 2, sd1.y - tick / 2);
+    ctx.moveTo(sd2.x - tick / 2, sd2.y + tick / 2);
+    ctx.lineTo(sd2.x + tick / 2, sd2.y - tick / 2);
+    ctx.stroke();
+
+    // 4. Pastilles aux points d'ancrage
+    ctx.fillStyle = '#2563eb';
+    ctx.beginPath();
+    ctx.arc(sp1.x, sp1.y, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(sp2.x, sp2.y, 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 5. Texte de cote
+    const val = preview.value ?? len;
+    const label =
+      preview.customLabel ??
+      (val >= 1000 ? `${(val / 1000).toFixed(2)} m` : `${Math.round(val)} mm`);
+
+    const midScreenX = (sd1.x + sd2.x) / 2;
+    const midScreenY = (sd1.y + sd2.y) / 2;
+
+    let angle = Math.atan2(sd2.y - sd1.y, sd2.x - sd1.x);
+    if (angle > Math.PI / 2 || angle < -Math.PI / 2) {
+      angle += Math.PI;
+    }
+
+    ctx.save();
+    ctx.translate(midScreenX, midScreenY);
+    ctx.rotate(angle);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.fillStyle = '#2563eb';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.fillText(label, 0, -3);
+    ctx.restore();
+
+    ctx.restore();
   }
   ctx.restore();
 }

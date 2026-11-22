@@ -8,8 +8,8 @@ import { assertNoViolations } from './utils.js';
 export function checkDimensionViolations(dim: Dimension, state: BimState): RuleViolation[] {
   const violations: RuleViolation[] = [];
 
-  // 1. Niveau existant
-  if (!state.levels[dim.levelId]) {
+  // 1. Niveau existant (si spécifié)
+  if (dim.levelId && !state.levels[dim.levelId]) {
     violations.push({
       code: 'UNKNOWN_LEVEL',
       message: `Dimension refers to non-existent Level ID: "${dim.levelId}".`,
@@ -17,13 +17,23 @@ export function checkDimensionViolations(dim: Dimension, state: BimState): RuleV
     });
   }
 
-  // 2. Au moins une référence valide
+  // 2. Références ou points de cotation libre valides
   if (!dim.references || dim.references.length === 0) {
-    violations.push({
-      code: 'INVALID_DIMENSION_REFERENCES',
-      message: 'Dimension must reference at least one architectural element.',
-      offendingIds: [dim.id],
-    });
+    const hasValidPoints =
+      dim.startPoint &&
+      dim.endPoint &&
+      Number.isFinite(dim.startPoint.x) &&
+      Number.isFinite(dim.startPoint.y) &&
+      Number.isFinite(dim.endPoint.x) &&
+      Number.isFinite(dim.endPoint.y);
+
+    if (!hasValidPoints) {
+      violations.push({
+        code: 'INVALID_DIMENSION_REFERENCES',
+        message: 'Dimension must reference at least one architectural element or provide valid start/end points.',
+        offendingIds: [dim.id],
+      });
+    }
   }
 
   // 3. Toutes les références doivent être des murs existants
@@ -44,6 +54,22 @@ export function checkDimensionViolations(dim: Dimension, state: BimState): RuleV
       message: 'Dimension offset must be a finite number.',
       offendingIds: [dim.id],
     });
+  }
+
+  // 5. Validation du span paramétrique optionnel
+  if (dim.span) {
+    if (
+      !Number.isFinite(dim.span.startOffset) ||
+      !Number.isFinite(dim.span.endOffset) ||
+      dim.span.startOffset < 0 ||
+      dim.span.endOffset <= dim.span.startOffset
+    ) {
+      violations.push({
+        code: 'INVALID_DIMENSION_SPAN',
+        message: 'Dimension span must define finite non-negative start/end offsets with endOffset > startOffset.',
+        offendingIds: [dim.id],
+      });
+    }
   }
 
   return violations;

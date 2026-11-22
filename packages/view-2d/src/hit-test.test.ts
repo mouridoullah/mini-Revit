@@ -10,6 +10,7 @@ import {
   findMepElementAtScreen,
   findMepPortAtScreen,
   findSectionCutAtScreen,
+  findDimensionAtScreen,
 } from './hit-test.js';
 
 describe('Hit-Test Découplé (hit-test.ts)', () => {
@@ -369,6 +370,46 @@ describe('Hit-Test Découplé (hit-test.ts)', () => {
     // Clic décalé de 15 pixels écran (150 mm) -> hors tolérance
     const screenFar = vec2(screenMid.x, screenMid.y + 15);
     const hitFar = findSectionCutAtScreen(screenFar, transform, doc as unknown as import('./types.js').DocumentFor2D, { hitTolerancePx: 8 });
+    expect(hitFar).toBeNull();
+  });
+
+  it('findDimensionAtScreen détecte un clic sur une cote libre ou une cote murale avec offset (ADR-066)', () => {
+    const doc = BimDocument.createDefaultProject();
+    const levelId = Object.keys(doc.getState().levels)[0]!;
+
+    // 1. Cote libre 2 points de (0, 0) à (4000, 0) avec déport offset = 600 mm (nx=0, ny=1) -> ligne de cote à Y = 600
+    doc.execute(
+      new Commands.AddDimensionCommand({
+        id: 'dim_free_test',
+        category: 'dimension',
+        levelId,
+        type: 'aligned',
+        references: [],
+        startPoint: vec2(0, 0),
+        endPoint: vec2(4000, 0),
+        offset: 600,
+        value: 4000,
+      }),
+    );
+
+    const transform = new Transform2D({ scale: 0.1 }); // 1 px = 10 mm
+
+    // Clic sur le milieu de la ligne de cote à (2000, 600)
+    const screenDimMid = transform.worldToScreen(vec2(2000, 600));
+    const hit = findDimensionAtScreen(screenDimMid, transform, doc as unknown as import('./types.js').DocumentFor2D, { hitTolerancePx: 8 });
+    expect(hit).not.toBeNull();
+    expect(hit?.id).toBe('dim_free_test');
+    expect(hit?.value).toBe(4000);
+
+    // Clic sur une ligne de rappel à (0, 300)
+    const screenWitness = transform.worldToScreen(vec2(0, 300));
+    const hitWitness = findDimensionAtScreen(screenWitness, transform, doc as unknown as import('./types.js').DocumentFor2D, { hitTolerancePx: 8 });
+    expect(hitWitness).not.toBeNull();
+    expect(hitWitness?.id).toBe('dim_free_test');
+
+    // Clic loin de la cote à (2000, 1500)
+    const screenFar = transform.worldToScreen(vec2(2000, 1500));
+    const hitFar = findDimensionAtScreen(screenFar, transform, doc as unknown as import('./types.js').DocumentFor2D, { hitTolerancePx: 8 });
     expect(hitFar).toBeNull();
   });
 });

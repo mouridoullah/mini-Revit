@@ -1,6 +1,73 @@
 import type { Transform2D } from '../transform.js';
-import type { DimensionFor2D, WallFor2D, DimensionRenderConfig } from '../types.js';
+import type { DimensionFor2D, WallFor2D, DimensionRenderConfig, Vec2 } from '../types.js';
 import { DEFAULT_DIMENSION_RENDER_CONFIG } from './config.js';
+
+/**
+ * Résout les deux points d'ancrage 2D (p1, p2) d'une cotation selon son type et ses références.
+ * Supporte :
+ * 1. Cotation libre à deux points (references: [], startPoint, endPoint).
+ * 2. Cotation paramétrique de trumeau/baie sur mur hôte (references: [wallId], span).
+ * 3. Cotation de mur hôte entier (references: [wallId]).
+ * 4. Cotation entre deux axes de murs (references: [w1, w2]).
+ */
+export function resolveDimensionPoints(
+  dim: DimensionFor2D,
+  walls: Record<string, WallFor2D>,
+): { p1: Vec2; p2: Vec2 } | null {
+  const ref0 = dim.references[0];
+  const ref1 = dim.references[1];
+
+  // 1. Cote libre à 2 points avec snap
+  if (dim.references.length === 0 && dim.startPoint && dim.endPoint) {
+    return {
+      p1: { x: dim.startPoint.x, y: dim.startPoint.y },
+      p2: { x: dim.endPoint.x, y: dim.endPoint.y },
+    };
+  }
+
+  // 2. Cote associée à un mur hôte unique (mur entier ou segment span trumeau/baie)
+  if (dim.references.length === 1 && ref0) {
+    const wall = walls[ref0];
+    if (!wall) return null;
+
+    if (dim.span) {
+      const dx = wall.end.x - wall.start.x;
+      const dy = wall.end.y - wall.start.y;
+      const wallLen = Math.hypot(dx, dy);
+      if (wallLen < 1e-4) return null;
+      const ux = dx / wallLen;
+      const uy = dy / wallLen;
+      return {
+        p1: {
+          x: wall.start.x + ux * dim.span.startOffset,
+          y: wall.start.y + uy * dim.span.startOffset,
+        },
+        p2: {
+          x: wall.start.x + ux * dim.span.endOffset,
+          y: wall.start.y + uy * dim.span.endOffset,
+        },
+      };
+    }
+
+    return {
+      p1: { x: wall.start.x, y: wall.start.y },
+      p2: { x: wall.end.x, y: wall.end.y },
+    };
+  }
+
+  // 3. Cote entre deux murs (entraxe)
+  if (dim.references.length >= 2 && ref0 && ref1) {
+    const w1 = walls[ref0];
+    const w2 = walls[ref1];
+    if (!w1 || !w2) return null;
+    return {
+      p1: { x: (w1.start.x + w1.end.x) / 2, y: (w1.start.y + w1.end.y) / 2 },
+      p2: { x: (w2.start.x + w2.end.x) / 2, y: (w2.start.y + w2.end.y) / 2 },
+    };
+  }
+
+  return null;
+}
 
 export function drawDimensions(
   ctx: CanvasRenderingContext2D,
@@ -25,26 +92,9 @@ export function drawDimensions(
       continue;
     }
 
-    let p1: { x: number; y: number } | null = null;
-    let p2: { x: number; y: number } | null = null;
-
-    const ref0 = dim.references[0];
-    const ref1 = dim.references[1];
-
-    if (dim.references.length === 1 && ref0) {
-      const wall = walls[ref0];
-      if (!wall) continue;
-      p1 = { x: wall.start.x, y: wall.start.y };
-      p2 = { x: wall.end.x, y: wall.end.y };
-    } else if (dim.references.length >= 2 && ref0 && ref1) {
-      const w1 = walls[ref0];
-      const w2 = walls[ref1];
-      if (!w1 || !w2) continue;
-      p1 = { x: (w1.start.x + w1.end.x) / 2, y: (w1.start.y + w1.end.y) / 2 };
-      p2 = { x: (w2.start.x + w2.end.x) / 2, y: (w2.start.y + w2.end.y) / 2 };
-    }
-
-    if (!p1 || !p2) continue;
+    const pts = resolveDimensionPoints(dim, walls);
+    if (!pts) continue;
+    const { p1, p2 } = pts;
 
     const dx = p2.x - p1.x;
     const dy = p2.y - p1.y;

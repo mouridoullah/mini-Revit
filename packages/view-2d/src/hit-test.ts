@@ -6,6 +6,7 @@ import {
 } from '@mini-bim/geometry';
 import { type Transform2D } from './transform.js';
 import { type DocumentFor2D, type WallFor2D, type WallTypeFor2D } from './types.js';
+import { resolveDimensionPoints } from './renderer/dimensions.js';
 
 /**
  * Options de détection de clic (hit-testing) sur les éléments architecturaux.
@@ -529,6 +530,91 @@ export function findSectionCutAtScreen(
         category: 'sectionCut',
         name: cut.name,
         label: cut.label,
+      };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Résultat de détection d'une ligne de cote sous le curseur.
+ */
+export interface HitDimensionResult {
+  readonly id: string;
+  readonly category: 'dimension';
+  readonly value: number;
+}
+
+/**
+ * Recherche si une ligne de cotation est cliquée à l'écran (ADR-066).
+ */
+export function findDimensionAtScreen(
+  screenPos: Vec2,
+  transform: Transform2D,
+  doc: DocumentFor2D,
+  options?: HitTestOptions,
+): HitDimensionResult | null {
+  const hitTolerancePx = options?.hitTolerancePx ?? 8;
+  const activeLevelId = options?.activeLevelId;
+  const worldPos = transform.screenToWorld(screenPos);
+  const toleranceMm = transform.screenDistanceToWorld(hitTolerancePx);
+  const state = doc.getState();
+
+  const dims = state.dimensions ? Object.values(state.dimensions) : [];
+  if (dims.length === 0) return null;
+
+  for (let i = dims.length - 1; i >= 0; i--) {
+    const dim = dims[i];
+    if (!dim) continue;
+    if (activeLevelId && dim.levelId && dim.levelId !== activeLevelId) continue;
+
+    const pts = resolveDimensionPoints(dim, state.walls);
+    if (!pts) continue;
+
+    const { p1, p2 } = pts;
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
+    const len = Math.hypot(dx, dy);
+    if (len < 1e-4) continue;
+
+    const ux = dx / len;
+    const uy = dy / len;
+    const nx = -uy;
+    const ny = ux;
+
+    const ox = nx * dim.offset;
+    const oy = ny * dim.offset;
+
+    const d1 = { x: p1.x + ox, y: p1.y + oy };
+    const d2 = { x: p2.x + ox, y: p2.y + oy };
+
+    // 1. Distance au segment principal de cote [d1, d2]
+    const distMain = distancePointToSegment(worldPos, { start: d1, end: d2 });
+    if (distMain <= toleranceMm) {
+      return {
+        id: dim.id,
+        category: 'dimension',
+        value: dim.value,
+      };
+    }
+
+    // 2. Distance aux lignes de rappel [p1, d1] et [p2, d2]
+    const distW1 = distancePointToSegment(worldPos, { start: p1, end: d1 });
+    if (distW1 <= toleranceMm) {
+      return {
+        id: dim.id,
+        category: 'dimension',
+        value: dim.value,
+      };
+    }
+
+    const distW2 = distancePointToSegment(worldPos, { start: p2, end: d2 });
+    if (distW2 <= toleranceMm) {
+      return {
+        id: dim.id,
+        category: 'dimension',
+        value: dim.value,
       };
     }
   }

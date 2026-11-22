@@ -169,7 +169,7 @@ export * from './components/catalog.js';
 export * from './components/dimensions.js';
 export * from './rooms/index.js';
 export * from './metrics.js';
-export { computeDimensionValue } from './dimensions/index.js';
+export { computeDimensionValue, computeAutoDimensionsForLevel } from './dimensions/index.js';
 export { exportToIfc, type IfcExportOptions } from './ifc/generator.js';
 export {
   computeWallEffectiveHeight,

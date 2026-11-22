@@ -36,15 +36,17 @@ flowchart TD
     end
 
     subgraph AppLayer ["Couche Application"]
-        Tools["Machines à états des Outils (WallTool, DoorTool, SelectTool, MepTool)"]
+        Tools["Machines à états des Outils (WallTool, DoorTool, SelectTool, MepTool, SectionTool, DimensionTool)"]
         Snapping["Moteur d'Accrochage (Snapping Engine - R-Tree & BVH)"]
         ToolDispatcher["Gestionnaire d'Outils & Dispatcher d'Intentions"]
     end
 
-    subgraph Viewports ["Moteurs de Rendu des Vues (Impératifs)"]
-        View2D["Viewport 2D Plan (Canvas, Cotations, Dalles, Murs, MEP, Underlay)"]
-        View3D["Viewport 3D (Three.js WebGL, Murs percés, Dalles, Toits, MEP, Ombres)"]
+    subgraph Viewports ["Moteurs de Rendu & Livrables Documentaires (Impératifs)"]
+        View2D["Viewport 2D Plan (Canvas, Cotations, Dalles, Murs, MEP, Underlay, Coupes)"]
+        View3D["Viewport 3D (Three.js WebGL, Murs percés, Dalles, Toits, MEP, Clipping)"]
         Federated3D["Gestionnaire Fédéré IFC (Three.js, WebIFC, ADR-060)"]
+        DxfEngine["Moteur DXF R12 AC1009 Pur TS (ADR-064)"]
+        PdfEngine["Moteur Carnet de Plans PDF 1.4 Vectoriel Pur TS (ADR-065)"]
     end
 
     subgraph CoreDomain ["Noyau BIM Core (TypeScript Pur — Zero DOM)"]
@@ -132,6 +134,8 @@ flowchart TD
   - Machines à états des outils pures (`Tool`) :
     - `WallTool`, `DoorTool`, `WindowTool`, `SlabTool`, `RoofTool`, `StairTool`, `ComponentTool`.
     - `MepTool` : tracé de segments fluides/aérauliques/électriques, auto-routage géométrique coudes/tés (ADR-058), connexion sur ports.
+    - `SectionTool` : tracé interactif de coupes 2D et façades avec direction de vue et inversion dynamique (ADR-063).
+    - `DimensionTool` : cotations interactives libres et murales avec magnétisme 10mm/sommets et déport ajustable (Raccourci `T`, ADR-066).
     - `SelectTool` : sélection mono/multi-éléments, boîte élastique, gizmos et translation différentielle.
   - Moteur d'accrochage (`SnappingEngine`) : détection des extrémités, milieux, alignements et ports MEP en pixels écran.
 

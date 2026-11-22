@@ -238,4 +238,15 @@ describe('useActiveTool Hook', () => {
     expect(result.current.activeToolKind).toBe('section');
     expect(result.current.activeTool.kind).toBe('section');
   });
+
+  it('bascule vers dimension : DimensionTool devient actif et est correctement instancié (ADR-066)', () => {
+    const { result } = renderHook(() => useActiveTool('select'));
+
+    act(() => {
+      result.current.setActiveToolKind('dimension');
+    });
+
+    expect(result.current.activeToolKind).toBe('dimension');
+    expect(result.current.activeTool.kind).toBe('dimension');
+  });
 });
