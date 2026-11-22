@@ -142,8 +142,8 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
     zoomFit3DRef.current = zoomFit;
   }, []);
 
-  // 2. Hook de Persistance (IndexedDB, AutoSave réactif & flush beforeunload)
-  useBimPersistence({
+  // 2. Hook de Persistance (IndexedDB, AutoSave réactif, Web Locks & BroadcastChannel)
+  const { isSecondaryTab, reloadLatestVersion } = useBimPersistence({
     doc,
     hasInitialDoc,
     setDocument,
@@ -403,6 +403,44 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
             }}
           >
             <X size={14} strokeWidth={1.75} />
+          </button>
+        </aside>
+      )}
+
+      {/* Bannière de conflit multi-onglets (ADR-070) */}
+      {isSecondaryTab && (
+        <aside
+          data-testid="multi-tab-warning-banner"
+          style={{
+            backgroundColor: '#d97706',
+            color: '#ffffff',
+            padding: '8px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            fontSize: '13px',
+            fontWeight: 500,
+            zIndex: 50,
+            boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+          }}
+        >
+          <span>Projet déjà ouvert dans un autre onglet — sauvegarde automatique suspendue</span>
+          <button
+            type="button"
+            data-testid="reload-latest-btn"
+            onClick={() => void reloadLatestVersion()}
+            style={{
+              backgroundColor: '#ffffff',
+              color: '#92400e',
+              border: 'none',
+              borderRadius: '4px',
+              padding: '4px 10px',
+              fontSize: '12px',
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            Recharger la dernière version
           </button>
         </aside>
       )}

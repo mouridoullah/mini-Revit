@@ -111,6 +111,7 @@ export {
 export {
   BimValidationError,
   type RuleViolation,
+  auditDocumentState,
   validateWall,
   validateWallType,
   validateLevel,

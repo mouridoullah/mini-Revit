@@ -1,10 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { BimDocument, Commands } from '@tabax/core';
+import { BimDocument, Commands, type BimState } from '@tabax/core';
 import {
   saveToIndexedDB,
   loadFromIndexedDB,
   clearIndexedDB,
   AutoSaveManager,
+  WebLockCoordinator,
+  AUTOSAVE_DB_NAME,
+  LEGACY_AUTOSAVE_DB_NAME,
 } from './autoSave.js';
 import { createMockIndexedDB } from './indexedDBMock.js';
 
@@ -171,7 +174,7 @@ describe('S2-8 : Persistance & Sauvegarde Automatique IndexedDB (apps/web/src/pe
     // 2. Échec lors de l'écriture (quota de stockage dépassé)
     mockIDB.simulateOpenError = false;
     const db = await new Promise<IDBDatabase>((resolve) => {
-      const req = mockIDB.open('mini_bim_autosave', 1);
+      const req = mockIDB.open(AUTOSAVE_DB_NAME, 1);
       req.onsuccess = () => resolve(req.result);
     });
     const store = (db as any)._getStore('projects');
@@ -304,7 +307,7 @@ describe('S2-8 : Persistance & Sauvegarde Automatique IndexedDB (apps/web/src/pe
     await saveToIndexedDB(doc, mockIDB as unknown as IDBFactory);
 
     const db = await new Promise<IDBDatabase>((resolve, reject) => {
-      const req = (mockIDB as unknown as IDBFactory).open('mini_bim_autosave', 1);
+      const req = (mockIDB as unknown as IDBFactory).open(AUTOSAVE_DB_NAME, 1);
       req.onsuccess = () => resolve(req.result);
       req.onerror = () => reject(req.error);
     });
@@ -328,5 +331,97 @@ describe('S2-8 : Persistance & Sauvegarde Automatique IndexedDB (apps/web/src/pe
     const loaded = await loadFromIndexedDB(mockIDB as unknown as IDBFactory);
     expect(loaded?.json).toBeDefined();
     expect(JSON.parse(loaded?.json ?? '{}').schemaVersion).toBe(2);
+  });
+
+  it('T-AUTOSAVE-13 : Migration silencieuse à sens unique de mini_bim_autosave vers tabax_autosave (ADR-070)', async () => {
+    const doc = BimDocument.createDefaultProject();
+    const state = doc.getState();
+
+    // 1. Écriture directe dans l'ancienne base mini_bim_autosave
+    const legacyDb = await new Promise<IDBDatabase>((resolve, reject) => {
+      const req = (mockIDB as unknown as IDBFactory).open(LEGACY_AUTOSAVE_DB_NAME, 1);
+      req.onupgradeneeded = () => {
+        req.result.createObjectStore('projects', { keyPath: 'id' });
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+
+    const tx = legacyDb.transaction('projects', 'readwrite');
+    tx.objectStore('projects').put({
+      id: 'current_project',
+      state,
+      timestamp: 1710000000000,
+      schemaVersion: 2,
+    });
+    await new Promise<void>((resolve) => {
+      tx.oncomplete = () => {
+        legacyDb.close();
+        resolve();
+      };
+    });
+
+    // 2. Appel de loadFromIndexedDB sans tabax_autosave existant : déclenche la migration
+    const result = await loadFromIndexedDB(mockIDB as unknown as IDBFactory);
+    expect(result).not.toBeNull();
+    expect(result?.migratedFromLegacy).toBe(true);
+    expect(result?.state.schemaVersion).toBe(2);
+
+    // 3. Vérification que tabax_autosave contient désormais les données
+    const newDb = await new Promise<IDBDatabase>((resolve, reject) => {
+      const req = (mockIDB as unknown as IDBFactory).open(AUTOSAVE_DB_NAME, 1);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    const readTx = newDb.transaction('projects', 'readonly');
+    const migratedRecord = await new Promise<Record<string, unknown>>((resolve) => {
+      const req = readTx.objectStore('projects').get('current_project');
+      req.onsuccess = () => {
+        newDb.close();
+        resolve(req.result as Record<string, unknown>);
+      };
+    });
+
+    expect(migratedRecord).toBeDefined();
+    expect((migratedRecord.state as BimState).schemaVersion).toBe(2);
+  });
+
+  it('T-AUTOSAVE-14 : AutoSaveManager.setDisabled(true) suspend immédiatement toute écriture (ADR-070)', async () => {
+    vi.useFakeTimers();
+    const manager = new AutoSaveManager(100, mockIDB as unknown as IDBFactory);
+    const doc = BimDocument.createDefaultProject();
+    const onSavedSpy = vi.fn();
+
+    // Suspension d'écriture (mode onglet passif / conflit de verrou)
+    manager.setDisabled(true);
+    expect(manager.isDisabled()).toBe(true);
+
+    manager.scheduleSave(doc, onSavedSpy);
+    await vi.advanceTimersByTimeAsync(300);
+
+    // Aucune écriture ni callback n'a eu lieu
+    expect(onSavedSpy).not.toHaveBeenCalled();
+    const loaded = await loadFromIndexedDB(mockIDB as unknown as IDBFactory);
+    expect(loaded).toBeNull();
+
+    // Rétablissement
+    manager.setDisabled(false);
+    expect(manager.isDisabled()).toBe(false);
+    manager.scheduleSave(doc, onSavedSpy);
+    await vi.advanceTimersByTimeAsync(300);
+    expect(onSavedSpy).toHaveBeenCalledTimes(1);
+
+    manager.destroy();
+    vi.useRealTimers();
+  });
+
+  it('T-AUTOSAVE-15 : WebLockCoordinator gère l’acquisition et la libération du verrou (ADR-070)', async () => {
+    // Dans l'environnement Node/Vitest où navigator.locks est simulé ou absent
+    const acquired = await WebLockCoordinator.requestLock();
+    expect(acquired).toBe(true);
+    expect(WebLockCoordinator.isHolding()).toBe(true);
+
+    WebLockCoordinator.releaseLock();
+    expect(WebLockCoordinator.isHolding()).toBe(false);
   });
 });

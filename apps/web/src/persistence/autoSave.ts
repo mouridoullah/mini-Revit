@@ -1,8 +1,11 @@
 import { type BimDocument, type BimState } from '@tabax/core';
 
-export const AUTOSAVE_DB_NAME = 'mini_bim_autosave';
+export const AUTOSAVE_DB_NAME = 'tabax_autosave';
+export const LEGACY_AUTOSAVE_DB_NAME = 'mini_bim_autosave';
 export const AUTOSAVE_STORE_NAME = 'projects';
 export const AUTOSAVE_KEY = 'current_project';
+export const TABAX_SYNC_CHANNEL = 'tabax-sync';
+export const TABAX_PROJECT_LOCK = 'tabax-project-lock';
 
 export interface AutoSaveRecord {
   readonly id: string;
@@ -16,20 +19,27 @@ export interface AutoSaveLoadResult {
   readonly state: BimState;
   readonly json: string;
   readonly timestamp: number;
+  readonly migratedFromLegacy?: boolean;
+}
+
+export interface TabaxSyncMessage {
+  readonly type: 'TABAX_AUTOSAVE_SAVED';
+  readonly timestamp: number;
 }
 
 function getIDBFactory(customFactory?: IDBFactory): IDBFactory {
-  const factory = customFactory ?? (typeof globalThis !== 'undefined' ? globalThis.indexedDB : undefined);
+  const factory =
+    customFactory ?? (typeof globalThis !== 'undefined' ? globalThis.indexedDB : undefined);
   if (!factory) {
     throw new Error('IndexedDB is not supported in this environment.');
   }
   return factory;
 }
 
-function openAutoSaveDB(customFactory?: IDBFactory): Promise<IDBDatabase> {
+function openSpecificDB(dbName: string, customFactory?: IDBFactory): Promise<IDBDatabase> {
   const factory = getIDBFactory(customFactory);
   return new Promise((resolve, reject) => {
-    const request = factory.open(AUTOSAVE_DB_NAME, 1);
+    const request = factory.open(dbName, 1);
 
     request.onupgradeneeded = () => {
       const db = request.result;
@@ -39,9 +49,97 @@ function openAutoSaveDB(customFactory?: IDBFactory): Promise<IDBDatabase> {
     };
 
     request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error ?? new Error('Failed to open IndexedDB'));
+    request.onerror = () => reject(request.error ?? new Error(`Failed to open IndexedDB "${dbName}"`));
   });
 }
+
+function openAutoSaveDB(customFactory?: IDBFactory): Promise<IDBDatabase> {
+  return openSpecificDB(AUTOSAVE_DB_NAME, customFactory);
+}
+
+/**
+ * Diffuse un événement de synchronisation multi-onglets via BroadcastChannel.
+ */
+export function broadcastSync(message: TabaxSyncMessage): void {
+  if (typeof BroadcastChannel !== 'undefined') {
+    try {
+      const channel = new BroadcastChannel(TABAX_SYNC_CHANNEL);
+      channel.postMessage(message);
+      channel.close();
+    } catch {
+      // Ignorer si indisponible dans l'environnement
+    }
+  }
+}
+
+let lockReleasePromise: (() => void) | null = null;
+let isHoldingProjectLock = false;
+
+/**
+ * Coordinateur de verrou exclusif multi-onglets (Web Locks API / ADR-070).
+ */
+export const WebLockCoordinator = {
+  /**
+   * Tente d'acquérir le verrou exclusif non-bloquant sur le projet.
+   * Retourne true si le verrou est acquis (ou si Web Locks n'est pas supporté).
+   * Retourne false si un autre onglet détient déjà le verrou.
+   */
+  async requestLock(): Promise<boolean> {
+    if (typeof navigator === 'undefined' || !navigator.locks) {
+      // Repli propre pour Node.js / JSDOM / navigateurs sans Web Locks
+      isHoldingProjectLock = true;
+      return true;
+    }
+
+    return new Promise<boolean>((resolve) => {
+      let resolved = false;
+
+      navigator.locks
+        .request(TABAX_PROJECT_LOCK, { ifAvailable: true }, async (lock) => {
+          if (!lock) {
+            isHoldingProjectLock = false;
+            if (!resolved) {
+              resolved = true;
+              resolve(false);
+            }
+            return;
+          }
+
+          isHoldingProjectLock = true;
+          if (!resolved) {
+            resolved = true;
+            resolve(true);
+          }
+
+          // Garde le verrou actif tant que releaseLock() n'est pas appelé
+          await new Promise<void>((rel) => {
+            lockReleasePromise = rel;
+          });
+          isHoldingProjectLock = false;
+        })
+        .catch(() => {
+          if (!resolved) {
+            resolved = true;
+            // En cas d'erreur de l'API locks, ne pas bloquer l'utilisateur
+            isHoldingProjectLock = true;
+            resolve(true);
+          }
+        });
+    });
+  },
+
+  isHolding(): boolean {
+    return isHoldingProjectLock;
+  },
+
+  releaseLock(): void {
+    if (lockReleasePromise) {
+      lockReleasePromise();
+      lockReleasePromise = null;
+    }
+    isHoldingProjectLock = false;
+  },
+};
 
 /**
  * Persiste l'état documentaire dans IndexedDB sous la clé standard 'current_project'.
@@ -81,6 +179,7 @@ export async function saveToIndexedDB(
 
       tx.oncomplete = () => {
         db.close();
+        broadcastSync({ type: 'TABAX_AUTOSAVE_SAVED', timestamp: record.timestamp });
         resolve(true);
       };
       tx.onerror = () => {
@@ -95,19 +194,14 @@ export async function saveToIndexedDB(
   });
 }
 
-/**
- * Charge l'état documentaire précédemment persisté dans IndexedDB.
- * Retourne null si aucune sauvegarde n'existe, si IndexedDB est inaccessible
- * ou si le contenu est corrompu (sans lever d'exception).
- */
-export async function loadFromIndexedDB(
+async function readFromDB(
+  dbName: string,
   customFactory?: IDBFactory,
-): Promise<AutoSaveLoadResult | null> {
+): Promise<AutoSaveRecord | null> {
   let db: IDBDatabase;
   try {
-    db = await openAutoSaveDB(customFactory);
-  } catch (err) {
-    console.warn('[AutoSave] IndexedDB non disponible ou inaccessible :', err);
+    db = await openSpecificDB(dbName, customFactory);
+  } catch {
     return null;
   }
 
@@ -120,26 +214,7 @@ export async function loadFromIndexedDB(
       req.onsuccess = () => {
         const record = req.result as AutoSaveRecord | undefined;
         db.close();
-        if (!record || !record.state) {
-          resolve(null);
-          return;
-        }
-
-        const jsonStr = record.json ?? JSON.stringify(record.state);
-        // Protection contre un enregistrement JSON corrompu
-        try {
-          if (record.json) {
-            JSON.parse(record.json);
-          }
-          resolve({
-            state: record.state,
-            json: jsonStr,
-            timestamp: record.timestamp,
-          });
-        } catch {
-          console.warn('[AutoSave] Enregistrement JSON corrompu détecté dans IndexedDB.');
-          resolve(null);
-        }
+        resolve(record ?? null);
       };
 
       req.onerror = () => {
@@ -154,31 +229,77 @@ export async function loadFromIndexedDB(
 }
 
 /**
+ * Charge l'état documentaire précédemment persisté dans IndexedDB.
+ * Effectue une migration silencieuse à sens unique depuis `mini_bim_autosave`
+ * vers `tabax_autosave` au premier démarrage si nécessaire (ADR-070).
+ */
+export async function loadFromIndexedDB(
+  customFactory?: IDBFactory,
+): Promise<AutoSaveLoadResult | null> {
+  // 1. Tenter la lecture dans la base cible tabax_autosave
+  let record = await readFromDB(AUTOSAVE_DB_NAME, customFactory);
+  let migratedFromLegacy = false;
+
+  // 2. Si tabax_autosave est vide, vérifier la base historique mini_bim_autosave
+  if (!record || !record.state) {
+    const legacyRecord = await readFromDB(LEGACY_AUTOSAVE_DB_NAME, customFactory);
+    if (legacyRecord && legacyRecord.state) {
+      // Migration silencieuse à sens unique vers tabax_autosave
+      await saveToIndexedDB(legacyRecord.state, customFactory);
+      record = legacyRecord;
+      migratedFromLegacy = true;
+    }
+  }
+
+  if (!record || !record.state) {
+    return null;
+  }
+
+  const jsonStr = record.json ?? JSON.stringify(record.state);
+  try {
+    if (record.json) {
+      JSON.parse(record.json);
+    }
+    return {
+      state: record.state,
+      json: jsonStr,
+      timestamp: record.timestamp,
+      migratedFromLegacy,
+    };
+  } catch {
+    console.warn('[AutoSave] Enregistrement JSON corrompu détecté dans IndexedDB.');
+    return null;
+  }
+}
+
+/**
  * Supprime la sauvegarde automatique persistée dans IndexedDB (ex. lors d'un 'Nouveau Projet').
  */
 export async function clearIndexedDB(customFactory?: IDBFactory): Promise<void> {
-  const db = await openAutoSaveDB(customFactory);
-  return new Promise((resolve, reject) => {
+  const clearDB = async (name: string): Promise<void> => {
     try {
-      const tx = db.transaction(AUTOSAVE_STORE_NAME, 'readwrite');
-      const store = tx.objectStore(AUTOSAVE_STORE_NAME);
-      const req = store.delete(AUTOSAVE_KEY);
-
-      req.onerror = () => reject(req.error ?? new Error('Failed to delete from IndexedDB'));
-
-      tx.oncomplete = () => {
-        db.close();
-        resolve();
-      };
-      tx.onerror = () => {
-        db.close();
-        reject(tx.error ?? new Error('Transaction failed'));
-      };
-    } catch (err) {
-      db.close();
-      reject(err);
+      const db = await openSpecificDB(name, customFactory);
+      await new Promise<void>((resolve, reject) => {
+        const tx = db.transaction(AUTOSAVE_STORE_NAME, 'readwrite');
+        const store = tx.objectStore(AUTOSAVE_STORE_NAME);
+        const req = store.delete(AUTOSAVE_KEY);
+        req.onerror = () => reject(req.error);
+        tx.oncomplete = () => {
+          db.close();
+          resolve();
+        };
+        tx.onerror = () => {
+          db.close();
+          reject(tx.error);
+        };
+      });
+    } catch {
+      // Ignorer si la base n'existe pas
     }
-  });
+  };
+
+  await clearDB(AUTOSAVE_DB_NAME);
+  await clearDB(LEGACY_AUTOSAVE_DB_NAME);
 }
 
 /**
@@ -191,7 +312,8 @@ export interface AutoSaveCallbacks {
 
 /**
  * Gestionnaire debouncé de persistance automatique pour React / UI.
- * Intègre un suivi de version (changeId) pour éviter les conditions de concurrence
+ * Intègre un suivi de version (changeId) pour éviter les conditions de concurrence,
+ * un support de suspension (disabled) en mode multi-onglets passif,
  * et maintient l'état `dirty = true` tant que l'écriture n'est pas formellement acquittée.
  */
 export class AutoSaveManager {
@@ -199,6 +321,7 @@ export class AutoSaveManager {
   private dirty = false;
   private saving = false;
   private changeId = 0;
+  private disabled = false;
 
   public constructor(
     private readonly debounceMs = 500,
@@ -213,7 +336,19 @@ export class AutoSaveManager {
     return this.saving;
   }
 
+  public isDisabled(): boolean {
+    return this.disabled;
+  }
+
+  public setDisabled(disabled: boolean): void {
+    this.disabled = disabled;
+    if (disabled) {
+      this.cancelScheduledSave();
+    }
+  }
+
   public markDirty(): void {
+    if (this.disabled) return;
     this.dirty = true;
     this.changeId++;
   }
@@ -222,6 +357,10 @@ export class AutoSaveManager {
     doc: BimDocument,
     onSavedOrCallbacks?: ((record: { timestamp: number }) => void) | AutoSaveCallbacks,
   ): void {
+    if (this.disabled) {
+      return;
+    }
+
     this.dirty = true;
     this.changeId++;
 
@@ -235,23 +374,20 @@ export class AutoSaveManager {
     }
     this.timer = setTimeout(async () => {
       this.timer = null;
-      if (!this.dirty) return;
+      if (!this.dirty || this.disabled) return;
 
       const targetChangeId = this.changeId;
       try {
         this.saving = true;
         const success = await saveToIndexedDB(doc, this.customFactory);
         if (success) {
-          // Si aucune nouvelle modification n'est survenue pendant l'écriture
           if (this.changeId === targetChangeId) {
             this.dirty = false;
           } else {
-            // Modification concurrente intervenue pendant la sauvegarde : re-planifier
             this.scheduleSave(doc, callbacks);
           }
           callbacks.onSaved?.({ timestamp: Date.now() });
         } else {
-          // Échec de la sauvegarde (quota, DB inaccessible) : dirty reste true pour permettre un retry ultérieur
           console.warn('[AutoSaveManager] Échec de la sauvegarde IndexedDB, dirty maintenu à true');
           callbacks.onSaveFailed?.();
         }
@@ -265,6 +401,8 @@ export class AutoSaveManager {
   }
 
   public async flushSave(doc: BimDocument): Promise<boolean> {
+    if (this.disabled) return true;
+
     if (this.timer) {
       clearTimeout(this.timer);
       this.timer = null;
@@ -289,7 +427,7 @@ export class AutoSaveManager {
 
   public attachBeforeUnload(doc: BimDocument): () => void {
     const handler = () => {
-      if (this.isDirty()) {
+      if (this.isDirty() && !this.disabled) {
         void this.flushSave(doc);
       }
     };

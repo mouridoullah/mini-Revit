@@ -11,3 +11,4 @@ export * from './roofs.js';
 export * from './components.js';
 export * from './section-cuts.js';
 export * from './dirty.js';
+export * from './audit.js';

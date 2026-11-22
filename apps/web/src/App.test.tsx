@@ -9,6 +9,7 @@ import { BimDocument, AddWallCommand, Commands, resolveWallGeometry, computeLeve
 import { App } from './App.js';
 import { createDemoDocument } from './demo/demoDocument.js';
 import { exportToJSON } from './persistence/jsonIO.js';
+import { WebLockCoordinator } from './persistence/autoSave.js';
 
 describe('App Integration & Squelette Double Viewport (apps/web)', () => {
   beforeEach(() => {
@@ -1602,6 +1603,23 @@ describe('App Integration & Squelette Double Viewport (apps/web)', () => {
     const sectionTitle = getByTestId('section-active-title');
     expect(sectionTitle.textContent).toBe('Élévation Façade Sud');
 
+    cleanup();
+  });
+
+  it('T-APP-LOCK-01 : Affiche la bannière multi-onglets et suspend la sauvegarde automatique quand le verrou n’est pas acquis (ADR-070)', async () => {
+    // Simuler que le verrou est déjà détenu par un autre onglet
+    const lockSpy = vi.spyOn(WebLockCoordinator, 'requestLock').mockResolvedValueOnce(false);
+
+    const { getByTestId, queryByTestId } = render(<App />);
+
+    await waitFor(() => {
+      const banner = queryByTestId('multi-tab-warning-banner');
+      expect(banner).not.toBeNull();
+      expect(banner?.textContent).toContain('Projet déjà ouvert dans un autre onglet');
+      expect(getByTestId('reload-latest-btn')).toBeDefined();
+    });
+
+    lockSpy.mockRestore();
     cleanup();
   });
 });

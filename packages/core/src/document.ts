@@ -1,4 +1,4 @@
-import { produceWithPatches } from 'immer';
+import { produceWithPatches, applyPatches, type Patch } from 'immer';
 import {
   type BimState,
   type ElementId,
@@ -12,7 +12,7 @@ import { HistoryStack } from './history.js';
 import { toJSON, fromJSON } from './serialization.js';
 import { generateId } from './ids.js';
 import { DependencyGraph, type ReadonlyDependencyGraph } from './dag/DependencyGraph.js';
-import { validateDirty, BimValidationError } from './rules.js';
+import { validateDirty, BimValidationError, auditDocumentState, type RuleViolation } from './rules.js';
 import { createDefaultComponentTypes } from './components/catalog.js';
 
 /**
@@ -399,44 +399,76 @@ export class BimDocument {
   }
 
   /**
-   * Annule la dernière commande exécutée.
+   * Annule la dernière commande exécutée (Contrat d'atomicité transactionnelle ADR-070).
+   * Valide l'état et le graphe de dépendances avant toute mutation.
    */
   public undo(): boolean {
-    const result = this.history.undo(this.state);
-    if (!result) return false;
+    const entry = this.history.peekUndo();
+    if (!entry) return false;
 
-    const prevState = this.state;
-    this.state = result.nextState;
+    // 1. Calcul du nouvel état sans muter this.state
+    const nextState = applyPatches(this.state, entry.inversePatches as Patch[]) as BimState;
 
-    // Synchronisation incrémentale du graphe de dépendances sur annulation
-    if (hasStructuralOrCrossLevelChanges(result.changed, prevState, this.state)) {
-      this._dag = DependencyGraph.build(this.state);
+    // 2. Synchronisation et validation du graphe de dépendances sur un clone / reconstruction
+    let nextDag: DependencyGraph;
+    if (hasStructuralOrCrossLevelChanges(entry.changed, this.state, nextState)) {
+      nextDag = DependencyGraph.build(nextState);
     } else {
-      this._dag.updateElements(result.changed, prevState, this.state);
+      nextDag = this._dag.clone();
+      nextDag.updateElements(entry.changed, this.state, nextState);
     }
 
-    this.notifySubscribers(result.changed);
+    if (nextDag.hasCycle()) {
+      const cycle = nextDag.findCycleNodes();
+      throw new BimValidationError(
+        'DEPENDENCY_CYCLE',
+        `Cycle de dépendances détecté lors de l'annulation (undo) : ${cycle.join(' -> ')}`,
+      );
+    }
+
+    // 3. Bascule atomique : toutes les étapes ayant réussi, on committe
+    this.history.commitUndo();
+    this.state = nextState;
+    this._dag = nextDag;
+
+    this.notifySubscribers(entry.changed);
     return true;
   }
 
   /**
-   * Rétablit la dernière commande annulée.
+   * Rétablit la dernière commande annulée (Contrat d'atomicité transactionnelle ADR-070).
+   * Valide l'état et le graphe de dépendances avant toute mutation.
    */
   public redo(): boolean {
-    const result = this.history.redo(this.state);
-    if (!result) return false;
+    const entry = this.history.peekRedo();
+    if (!entry) return false;
 
-    const prevState = this.state;
-    this.state = result.nextState;
+    // 1. Calcul du nouvel état sans muter this.state
+    const nextState = applyPatches(this.state, entry.patches as Patch[]) as BimState;
 
-    // Synchronisation incrémentale du graphe de dépendances sur rétablissement
-    if (hasStructuralOrCrossLevelChanges(result.changed, prevState, this.state)) {
-      this._dag = DependencyGraph.build(this.state);
+    // 2. Synchronisation et validation du graphe de dépendances sur un clone / reconstruction
+    let nextDag: DependencyGraph;
+    if (hasStructuralOrCrossLevelChanges(entry.changed, this.state, nextState)) {
+      nextDag = DependencyGraph.build(nextState);
     } else {
-      this._dag.updateElements(result.changed, prevState, this.state);
+      nextDag = this._dag.clone();
+      nextDag.updateElements(entry.changed, this.state, nextState);
     }
 
-    this.notifySubscribers(result.changed);
+    if (nextDag.hasCycle()) {
+      const cycle = nextDag.findCycleNodes();
+      throw new BimValidationError(
+        'DEPENDENCY_CYCLE',
+        `Cycle de dépendances détecté lors du rétablissement (redo) : ${cycle.join(' -> ')}`,
+      );
+    }
+
+    // 3. Bascule atomique : toutes les étapes ayant réussi, on committe
+    this.history.commitRedo();
+    this.state = nextState;
+    this._dag = nextDag;
+
+    this.notifySubscribers(entry.changed);
     return true;
   }
 
@@ -457,6 +489,15 @@ export class BimDocument {
     return () => {
       this.subscribers.delete(listener);
     };
+  }
+
+  /**
+   * Exécute un diagnostic passif complet de la maquette (ADR-070).
+   * Retourne la liste des anomalies géométriques et métier (avertissements non-bloquants)
+   * sans altérer l'état documentaire.
+   */
+  public getValidationIssues(): readonly RuleViolation[] {
+    return auditDocumentState(this.state);
   }
 
   /**
