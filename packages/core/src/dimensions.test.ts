@@ -226,8 +226,8 @@ describe('Cotations 2D Associatives (packages/core)', () => {
         }),
       );
 
-      // Invariant : l'id du mur ET l'id de la cotation impactée sont retournés dans l'ordre déterministe
-      expect(res.changed).toEqual(['wall_south', 'dim_south']);
+      // Invariant : l'id du mur, ses voisins connectés ET l'id de la cotation impactée sont retournés
+      expect(res.changed).toEqual(['wall_south', 'wall_east', 'wall_west', 'dim_south']);
 
       // Invariant : la valeur de la cotation a été automatiquement mise à jour
       expect(doc.getState().dimensions['dim_south']!.value).toBe(7500);
@@ -259,8 +259,8 @@ describe('Cotations 2D Associatives (packages/core)', () => {
       // Suppression de wall_south
       const res = doc.execute(new DeleteWallCommand('wall_south'));
 
-      // Invariant : la cotation est supprimée et signalée dans getChangedIds dans l'ordre déterministe
-      expect(res.changed).toEqual(['wall_south', 'dim_south']);
+      // Invariant : la cotation est supprimée et signalée dans getChangedIds avec les murs connectés
+      expect(res.changed).toEqual(['wall_south', 'wall_east', 'wall_west', 'dim_south']);
       expect(doc.getState().dimensions['dim_south']).toBeUndefined();
 
       // Invariant Undo : restauration bit-à-bit stricte

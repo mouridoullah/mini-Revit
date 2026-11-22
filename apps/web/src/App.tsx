@@ -17,6 +17,7 @@ import { RightDockPanel, type DockTab } from './components/RightDockPanel.js';
 import { SplitViewport, type ViewMode } from './components/SplitViewport.js';
 import { SectionViewport } from './components/SectionViewport.js';
 import { ExportPdfModal } from './components/ExportPdfModal.js';
+import { ErrorBoundary } from './components/ErrorBoundary.js';
 import styles from './components/Cockpit.module.css';
 import { useActiveTool } from './tools/useActiveTool.js';
 import { ComponentTool } from './tools/ComponentTool.js';
@@ -51,6 +52,9 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const [activeLevelId, setActiveLevelId] = useState<string>(
     () => Object.keys(doc.getState().levels)[0] ?? '',
+  );
+  const [activeWallTypeId, setActiveWallTypeId] = useState<string>(
+    () => Object.keys(doc.getState().wallTypes)[0] ?? '',
   );
   const [activeComponentTypeId, setActiveComponentTypeId] = useState<string>('ct_toilet_wall_hung');
   const [mepConfig, setMepConfig] = useState<MepToolConfig>(DEFAULT_MEP_CONFIG);
@@ -320,6 +324,9 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
         federatedModelCount={federatedModels.size}
         onOpenDockTab={setRightDockTab}
         mepControls={mepControls}
+        wallTypes={doc.getState().wallTypes}
+        activeWallTypeId={activeWallTypeId}
+        onSelectWallType={setActiveWallTypeId}
       />
       <input
         ref={ifcFileInputRef}
@@ -463,48 +470,55 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
           isWhiteMode={isWhiteMode}
           onToggleWhiteMode={() => setIsWhiteMode((current) => !current)}
           section={
-            <SectionViewport
-              sectionCutId={activeSectionCutId}
-              is3dSynchroEnabled={is3dSynchroEnabled}
-              onToggle3dSynchro={toggle3dSynchro}
-            />
+            <ErrorBoundary name="Coupe 2D">
+              <SectionViewport
+                sectionCutId={activeSectionCutId}
+                is3dSynchroEnabled={is3dSynchroEnabled}
+                onToggle3dSynchro={toggle3dSynchro}
+              />
+            </ErrorBoundary>
           }
           twoD={
-            <Viewport2D
-              tool={activeTool}
-              selection={selectedIds}
-              onSelectionChanged={handlePlanSelectionChanged}
-              onDrawingLengthChange={setDrawingLength}
-              onErrorChange={setErrorMessage}
-              activeLevelId={activeLevelId}
-              underlayLevelId={underlayLevelId}
-              snapToUnderlay={underlayEnabled}
-              activeComponentTypeId={activeComponentTypeId}
-              mepConfig={mepConfig}
-              mepDisplayMode={mepDisplayMode}
-              onZoomFitReady={setZoomFit}
-            />
+            <ErrorBoundary name="Vue 2D">
+              <Viewport2D
+                tool={activeTool}
+                selection={selectedIds}
+                onSelectionChanged={handlePlanSelectionChanged}
+                onDrawingLengthChange={setDrawingLength}
+                onErrorChange={setErrorMessage}
+                activeLevelId={activeLevelId}
+                activeWallTypeId={activeWallTypeId}
+                underlayLevelId={underlayLevelId}
+                snapToUnderlay={underlayEnabled}
+                activeComponentTypeId={activeComponentTypeId}
+                mepConfig={mepConfig}
+                mepDisplayMode={mepDisplayMode}
+                onZoomFitReady={setZoomFit}
+              />
+            </ErrorBoundary>
           }
           threeD={
-            <Viewport3D
-              isWhiteMode={isWhiteMode}
-              onZoomFitReady={setZoomFit3D}
-              selection={selectedIds}
-              onSelectionChanged={setSelectedIds}
-              clashes={activeClashes}
-              focusPoint={clashFocusPoint}
-              federatedModels={federatedVisuals}
-              activeSectionCut={activeSectionCutFor3D}
-              federatedSelection={
-                selectedFederatedEntity
-                  ? {
-                      modelId: selectedFederatedEntity.modelId,
-                      expressId: selectedFederatedEntity.entity.expressId,
-                    }
-                  : null
-              }
-              onSelectFederatedEntity={handleSelectFederatedEntity}
-            />
+            <ErrorBoundary name="Vue 3D">
+              <Viewport3D
+                isWhiteMode={isWhiteMode}
+                onZoomFitReady={setZoomFit3D}
+                selection={selectedIds}
+                onSelectionChanged={setSelectedIds}
+                clashes={activeClashes}
+                focusPoint={clashFocusPoint}
+                federatedModels={federatedVisuals}
+                activeSectionCut={activeSectionCutFor3D}
+                federatedSelection={
+                  selectedFederatedEntity
+                    ? {
+                        modelId: selectedFederatedEntity.modelId,
+                        expressId: selectedFederatedEntity.entity.expressId,
+                      }
+                    : null
+                }
+                onSelectFederatedEntity={handleSelectFederatedEntity}
+              />
+            </ErrorBoundary>
           }
         />
         <RightDockPanel
@@ -514,54 +528,62 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
           clashCount={activeClashes.length + federatedClashes.length}
           modelCount={federatedModels.size}
           properties={
-            <PropertyInspector
-              doc={doc}
-              selectedIds={selectedIds}
-              isCollapsed={false}
-              onDeleteSelected={handleDeleteSelected}
-              embedded
-            />
+            <ErrorBoundary name="Inspecteur de Propriétés">
+              <PropertyInspector
+                doc={doc}
+                selectedIds={selectedIds}
+                isCollapsed={false}
+                onDeleteSelected={handleDeleteSelected}
+                embedded
+              />
+            </ErrorBoundary>
           }
           clashes={
-            <ClashPanel
-              doc={doc}
-              embedded
-              isCollapsed={!isClashPanelOpen}
-              onToggleCollapse={() => setIsClashPanelOpen((open) => !open)}
-              onSelectClash={handleSelectClash}
-              onClashesChanged={setActiveClashes}
-            />
+            <ErrorBoundary name="Détecteur de Conflits">
+              <ClashPanel
+                doc={doc}
+                embedded
+                isCollapsed={!isClashPanelOpen}
+                onToggleCollapse={() => setIsClashPanelOpen((open) => !open)}
+                onSelectClash={handleSelectClash}
+                onClashesChanged={setActiveClashes}
+              />
+            </ErrorBoundary>
           }
           ifc={
-            <FederatedIfcPanel
-              embedded
-              models={Array.from(federatedModels.values())}
-              options={federatedOptions}
-              selectedEntity={selectedFederatedEntity}
-              isCollapsed={!isFederatedPanelOpen}
-              onToggleCollapse={() => setIsFederatedPanelOpen((open) => !open)}
-              onSelectEntity={(modelId, entity) =>
-                setSelectedFederatedEntity(entity ? { modelId, entity } : null)
-              }
-              onUpdateOptions={handleUpdateFederatedOptions}
-              onUnloadModel={handleUnloadFederatedModel}
-              onFocusPoint={(point) => setClashFocusPoint(point)}
-              onTargetClash={handleTargetFederatedClash}
-              onCheckClashes={handleCheckFederatedClashes}
-              clashCandidates={federatedClashes}
-            />
+            <ErrorBoundary name="Panneau IFC Fédéré">
+              <FederatedIfcPanel
+                embedded
+                models={Array.from(federatedModels.values())}
+                options={federatedOptions}
+                selectedEntity={selectedFederatedEntity}
+                isCollapsed={!isFederatedPanelOpen}
+                onToggleCollapse={() => setIsFederatedPanelOpen((open) => !open)}
+                onSelectEntity={(modelId, entity) =>
+                  setSelectedFederatedEntity(entity ? { modelId, entity } : null)
+                }
+                onUpdateOptions={handleUpdateFederatedOptions}
+                onUnloadModel={handleUnloadFederatedModel}
+                onFocusPoint={(point) => setClashFocusPoint(point)}
+                onTargetClash={handleTargetFederatedClash}
+                onCheckClashes={handleCheckFederatedClashes}
+                clashCandidates={federatedClashes}
+              />
+            </ErrorBoundary>
           }
         />
       </div>
 
       {/* Panneau rétractable du tableau de métrés et surfaces */}
       <div className={`${styles.metrics} ${!isMetricsCollapsed ? styles.metricsExpanded : ''}`}>
-        <MetricsPanel
-          doc={doc}
-          activeLevelId={activeLevelId}
-          isCollapsed={isMetricsCollapsed}
-          onToggleCollapse={() => setIsMetricsCollapsed((collapsed) => !collapsed)}
-        />
+        <ErrorBoundary name="Tableau de Métrés">
+          <MetricsPanel
+            doc={doc}
+            activeLevelId={activeLevelId}
+            isCollapsed={isMetricsCollapsed}
+            onToggleCollapse={() => setIsMetricsCollapsed((collapsed) => !collapsed)}
+          />
+        </ErrorBoundary>
       </div>
 
       <StatusBar

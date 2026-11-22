@@ -1,0 +1,6718 @@
+{
+  "schemaVersion": 2,
+  "units": "mm",
+  "levels": {
+    "level_rdc": {
+      "id": "level_rdc",
+      "name": "Rez-de-chaussée (RDC)",
+      "elevation": 0,
+      "height": 2800
+    },
+    "level_r1": {
+      "id": "level_r1",
+      "name": "Étage 1 (R+1)",
+      "elevation": 3000,
+      "height": 2800
+    },
+    "level_r2": {
+      "id": "level_r2",
+      "name": "Étage 2 (R+2)",
+      "elevation": 6000,
+      "height": 2800
+    }
+  },
+  "wallTypes": {
+    "wall_ext_250": {
+      "id": "wall_ext_250",
+      "name": "Façade maçonnée isolée 250 mm",
+      "thickness": 250,
+      "height": 3000,
+      "isExternal": true,
+      "loadBearing": true,
+      "layers": [
+        {
+          "materialId": "concrete_block",
+          "thickness": 200
+        },
+        {
+          "materialId": "thermal_insulation",
+          "thickness": 30
+        },
+        {
+          "materialId": "interior_exterior_finish",
+          "thickness": 20
+        }
+      ]
+    },
+    "wall_int_150": {
+      "id": "wall_int_150",
+      "name": "Cloison distributive 150 mm",
+      "thickness": 150,
+      "height": 2800,
+      "isExternal": false,
+      "loadBearing": false,
+      "layers": [
+        {
+          "materialId": "blockwork",
+          "thickness": 100
+        },
+        {
+          "materialId": "plasterboard_finish",
+          "thickness": 25
+        },
+        {
+          "materialId": "plasterboard_finish",
+          "thickness": 25
+        }
+      ]
+    },
+    "wall_core_200": {
+      "id": "wall_core_200",
+      "name": "Refend porteur 200 mm",
+      "thickness": 200,
+      "height": 3000,
+      "isExternal": false,
+      "loadBearing": true,
+      "layers": [
+        {
+          "materialId": "reinforced_concrete",
+          "thickness": 200
+        }
+      ]
+    },
+    "wall_wet_100": {
+      "id": "wall_wet_100",
+      "name": "Cloison technique humide 100 mm",
+      "thickness": 100,
+      "height": 2800,
+      "isExternal": false,
+      "loadBearing": false,
+      "layers": [
+        {
+          "materialId": "hydro_block",
+          "thickness": 100
+        }
+      ]
+    }
+  },
+  "slabTypes": {
+    "slab_rc_200": {
+      "id": "slab_rc_200",
+      "name": "Dalle pleine béton armé 200 mm",
+      "thickness": 200,
+      "materialId": "reinforced_concrete"
+    },
+    "slab_roof_250": {
+      "id": "slab_roof_250",
+      "name": "Dalle toiture béton armé 250 mm",
+      "thickness": 250,
+      "materialId": "reinforced_concrete"
+    }
+  },
+  "doorTypes": {
+    "door_entry_1100": {
+      "id": "door_entry_1100",
+      "name": "Porte d’entrée isolante 1100 × 2200",
+      "width": 1100,
+      "height": 2200
+    },
+    "door_internal_900": {
+      "id": "door_internal_900",
+      "name": "Porte intérieure 900 × 2100",
+      "width": 900,
+      "height": 2100
+    },
+    "door_accessible_1000": {
+      "id": "door_accessible_1000",
+      "name": "Porte passage élargi 1000 × 2100",
+      "width": 1000,
+      "height": 2100
+    },
+    "door_sliding_1800": {
+      "id": "door_sliding_1800",
+      "name": "Baie coulissante 1800 × 2200",
+      "width": 1800,
+      "height": 2200
+    },
+    "door_service_800": {
+      "id": "door_service_800",
+      "name": "Porte technique 800 × 2050",
+      "width": 800,
+      "height": 2050
+    }
+  },
+  "windowTypes": {
+    "window_1800": {
+      "id": "window_1800",
+      "name": "Baie vitrée 1800 × 1500",
+      "width": 1800,
+      "height": 1500,
+      "defaultSillHeight": 800
+    },
+    "window_1500": {
+      "id": "window_1500",
+      "name": "Fenêtre 1500 × 1400",
+      "width": 1500,
+      "height": 1400,
+      "defaultSillHeight": 900
+    },
+    "window_1200": {
+      "id": "window_1200",
+      "name": "Fenêtre 1200 × 1350",
+      "width": 1200,
+      "height": 1350,
+      "defaultSillHeight": 900
+    },
+    "window_high_600": {
+      "id": "window_high_600",
+      "name": "Châssis haut 600 × 600",
+      "width": 600,
+      "height": 600,
+      "defaultSillHeight": 1600
+    }
+  },
+  "stairTypes": {
+    "stair_rc_1000": {
+      "id": "stair_rc_1000",
+      "name": "Escalier droit béton 1000 mm",
+      "width": 1000,
+      "materialId": "reinforced_concrete"
+    }
+  },
+  "roofTypes": {
+    "roof_gable_30": {
+      "id": "roof_gable_30",
+      "name": "Toiture principale deux pans 30°",
+      "category": "roofType",
+      "family": "gable",
+      "thickness": 250,
+      "slopeDeg": 30,
+      "overhangMm": 450,
+      "materialId": "roof_tiles"
+    },
+    "roof_type_flat_annex": {
+      "id": "roof_type_flat_annex",
+      "name": "Toiture terrasse annexe avec acrotère",
+      "category": "roofType",
+      "family": "flat",
+      "thickness": 250,
+      "acrotereHeight": 450,
+      "materialId": "reinforced_concrete"
+    }
+  },
+  "componentTypes": {
+    "comp_sofa": {
+      "id": "comp_sofa",
+      "category": "componentType",
+      "name": "Canapé trois places",
+      "family": "furniture",
+      "subType": "sofa",
+      "width": 2200,
+      "depth": 900,
+      "height": 850,
+      "clearanceDepth": 600,
+      "ifcEntity": "IfcFurniture"
+    },
+    "comp_table": {
+      "id": "comp_table",
+      "category": "componentType",
+      "name": "Table de repas 6 places",
+      "family": "furniture",
+      "subType": "table",
+      "width": 1800,
+      "depth": 900,
+      "height": 750,
+      "clearanceDepth": 750,
+      "ifcEntity": "IfcFurniture"
+    },
+    "comp_chair": {
+      "id": "comp_chair",
+      "category": "componentType",
+      "name": "Chaise de salle à manger",
+      "family": "furniture",
+      "subType": "chair",
+      "width": 500,
+      "depth": 500,
+      "height": 900,
+      "clearanceDepth": 450,
+      "ifcEntity": "IfcFurniture"
+    },
+    "comp_bed_double": {
+      "id": "comp_bed_double",
+      "category": "componentType",
+      "name": "Lit double 1600",
+      "family": "furniture",
+      "subType": "bed",
+      "width": 1600,
+      "depth": 2000,
+      "height": 550,
+      "clearanceDepth": 650,
+      "ifcEntity": "IfcFurniture"
+    },
+    "comp_wardrobe": {
+      "id": "comp_wardrobe",
+      "category": "componentType",
+      "name": "Armoire 1800",
+      "family": "furniture",
+      "subType": "cabinet",
+      "width": 1800,
+      "depth": 600,
+      "height": 2200,
+      "clearanceDepth": 700,
+      "ifcEntity": "IfcFurniture"
+    },
+    "comp_desk": {
+      "id": "comp_desk",
+      "category": "componentType",
+      "name": "Bureau de travail",
+      "family": "furniture",
+      "subType": "table",
+      "width": 1400,
+      "depth": 700,
+      "height": 750,
+      "clearanceDepth": 700,
+      "ifcEntity": "IfcFurniture"
+    },
+    "comp_bookcase": {
+      "id": "comp_bookcase",
+      "category": "componentType",
+      "name": "Bibliothèque murale",
+      "family": "furniture",
+      "subType": "cabinet",
+      "width": 1200,
+      "depth": 350,
+      "height": 2100,
+      "clearanceDepth": 500,
+      "ifcEntity": "IfcFurniture"
+    },
+    "comp_toilet": {
+      "id": "comp_toilet",
+      "category": "componentType",
+      "name": "WC suspendu",
+      "family": "sanitary",
+      "subType": "toilet",
+      "width": 380,
+      "depth": 700,
+      "height": 800,
+      "clearanceDepth": 600,
+      "ifcEntity": "IfcSanitaryTerminal"
+    },
+    "comp_sink": {
+      "id": "comp_sink",
+      "category": "componentType",
+      "name": "Meuble vasque",
+      "family": "sanitary",
+      "subType": "sink",
+      "width": 700,
+      "depth": 500,
+      "height": 850,
+      "clearanceDepth": 600,
+      "ifcEntity": "IfcSanitaryTerminal"
+    },
+    "comp_shower": {
+      "id": "comp_shower",
+      "category": "componentType",
+      "name": "Douche à l’italienne",
+      "family": "sanitary",
+      "subType": "shower",
+      "width": 900,
+      "depth": 900,
+      "height": 2100,
+      "clearanceDepth": 600,
+      "ifcEntity": "IfcSanitaryTerminal"
+    },
+    "comp_bath": {
+      "id": "comp_bath",
+      "category": "componentType",
+      "name": "Baignoire",
+      "family": "sanitary",
+      "subType": "bath",
+      "width": 1700,
+      "depth": 750,
+      "height": 600,
+      "clearanceDepth": 650,
+      "ifcEntity": "IfcSanitaryTerminal"
+    },
+    "comp_kitchen": {
+      "id": "comp_kitchen",
+      "category": "componentType",
+      "name": "Linéaire de meubles bas cuisine",
+      "family": "kitchen",
+      "subType": "kitchen_base",
+      "width": 3000,
+      "depth": 600,
+      "height": 900,
+      "clearanceDepth": 900,
+      "ifcEntity": "IfcFurnishingElement"
+    },
+    "comp_sink_unit": {
+      "id": "comp_sink_unit",
+      "category": "componentType",
+      "name": "Évier deux bacs",
+      "family": "kitchen",
+      "subType": "sink_unit",
+      "width": 900,
+      "depth": 600,
+      "height": 900,
+      "clearanceDepth": 700,
+      "ifcEntity": "IfcFurnishingElement"
+    },
+    "comp_appliance": {
+      "id": "comp_appliance",
+      "category": "componentType",
+      "name": "Colonne électroménager",
+      "family": "kitchen",
+      "subType": "appliance",
+      "width": 600,
+      "depth": 650,
+      "height": 2100,
+      "clearanceDepth": 700,
+      "ifcEntity": "IfcFurnishingElement"
+    },
+    "comp_storage": {
+      "id": "comp_storage",
+      "category": "componentType",
+      "name": "Rangement technique",
+      "family": "furniture",
+      "subType": "cabinet",
+      "width": 900,
+      "depth": 450,
+      "height": 2000,
+      "clearanceDepth": 500,
+      "ifcEntity": "IfcFurniture"
+    },
+    "comp_glazing_panel": {
+      "id": "comp_glazing_panel",
+      "category": "componentType",
+      "name": "Panneau vitré intérieur",
+      "family": "glazing",
+      "subType": "french_window",
+      "width": 1500,
+      "depth": 100,
+      "height": 2200,
+      "minWidth": 900,
+      "maxWidth": 2400,
+      "minHeight": 1800,
+      "maxHeight": 2400,
+      "ifcEntity": "IfcWindow"
+    },
+    "comp_glazing_slider": {
+      "id": "comp_glazing_slider",
+      "category": "componentType",
+      "name": "Coulissant vitré intérieur",
+      "family": "glazing",
+      "subType": "sliding_door",
+      "width": 1800,
+      "depth": 100,
+      "height": 2200,
+      "allowedWidths": [
+        1200,
+        1500,
+        1800,
+        2400
+      ],
+      "ifcEntity": "IfcDoor"
+    }
+  },
+  "walls": {
+    "w_level_rdc_south_main": {
+      "id": "w_level_rdc_south_main",
+      "category": "wall",
+      "typeId": "wall_ext_250",
+      "levelId": "level_rdc",
+      "start": {
+        "x": 0,
+        "y": 0
+      },
+      "end": {
+        "x": 11000,
+        "y": 0
+      },
+      "isExternal": true,
+      "loadBearing": true
+    },
+    "w_level_rdc_south_annex": {
+      "id": "w_level_rdc_south_annex",
+      "category": "wall",
+      "typeId": "wall_ext_250",
+      "levelId": "level_rdc",
+      "start": {
+        "x": 11000,
+        "y": 0
+      },
+      "end": {
+        "x": 16000,
+        "y": 0
+      },
+      "isExternal": true,
+      "loadBearing": true
+    },
+    "w_level_rdc_east": {
+      "id": "w_level_rdc_east",
+      "category": "wall",
+      "typeId": "wall_ext_250",
+      "levelId": "level_rdc",
+      "start": {
+        "x": 16000,
+        "y": 0
+      },
+      "end": {
+        "x": 16000,
+        "y": 12000
+      },
+      "isExternal": true,
+      "loadBearing": true
+    },
+    "w_level_rdc_north_annex": {
+      "id": "w_level_rdc_north_annex",
+      "category": "wall",
+      "typeId": "wall_ext_250",
+      "levelId": "level_rdc",
+      "start": {
+        "x": 16000,
+        "y": 12000
+      },
+      "end": {
+        "x": 11000,
+        "y": 12000
+      },
+      "isExternal": true,
+      "loadBearing": true
+    },
+    "w_level_rdc_north_main": {
+      "id": "w_level_rdc_north_main",
+      "category": "wall",
+      "typeId": "wall_ext_250",
+      "levelId": "level_rdc",
+      "start": {
+        "x": 11000,
+        "y": 12000
+      },
+      "end": {
+        "x": 0,
+        "y": 12000
+      },
+      "isExternal": true,
+      "loadBearing": true
+    },
+    "w_level_rdc_west": {
+      "id": "w_level_rdc_west",
+      "category": "wall",
+      "typeId": "wall_ext_250",
+      "levelId": "level_rdc",
+      "start": {
+        "x": 0,
+        "y": 12000
+      },
+      "end": {
+        "x": 0,
+        "y": 0
+      },
+      "isExternal": true,
+      "loadBearing": true
+    },
+    "w_level_rdc_core_x6000": {
+      "id": "w_level_rdc_core_x6000",
+      "category": "wall",
+      "typeId": "wall_core_200",
+      "levelId": "level_rdc",
+      "start": {
+        "x": 6000,
+        "y": 0
+      },
+      "end": {
+        "x": 6000,
+        "y": 12000
+      },
+      "isExternal": false,
+      "loadBearing": true
+    },
+    "w_level_rdc_core_x11000": {
+      "id": "w_level_rdc_core_x11000",
+      "category": "wall",
+      "typeId": "wall_core_200",
+      "levelId": "level_rdc",
+      "start": {
+        "x": 11000,
+        "y": 0
+      },
+      "end": {
+        "x": 11000,
+        "y": 12000
+      },
+      "isExternal": false,
+      "loadBearing": true
+    },
+    "w_level_rdc_partition_x13500": {
+      "id": "w_level_rdc_partition_x13500",
+      "category": "wall",
+      "typeId": "wall_int_150",
+      "levelId": "level_rdc",
+      "start": {
+        "x": 13500,
+        "y": 5000
+      },
+      "end": {
+        "x": 13500,
+        "y": 12000
+      },
+      "isExternal": false,
+      "loadBearing": false
+    },
+    "w_level_rdc_partition_y5000_main": {
+      "id": "w_level_rdc_partition_y5000_main",
+      "category": "wall",
+      "typeId": "wall_int_150",
+      "levelId": "level_rdc",
+      "start": {
+        "x": 0,
+        "y": 5000
+      },
+      "end": {
+        "x": 11000,
+        "y": 5000
+      },
+      "isExternal": false,
+      "loadBearing": false
+    },
+    "w_level_rdc_partition_y5000_annex": {
+      "id": "w_level_rdc_partition_y5000_annex",
+      "category": "wall",
+      "typeId": "wall_int_150",
+      "levelId": "level_rdc",
+      "start": {
+        "x": 11000,
+        "y": 5000
+      },
+      "end": {
+        "x": 16000,
+        "y": 5000
+      },
+      "isExternal": false,
+      "loadBearing": false
+    },
+    "w_level_rdc_partition_y8500_west": {
+      "id": "w_level_rdc_partition_y8500_west",
+      "category": "wall",
+      "typeId": "wall_int_150",
+      "levelId": "level_rdc",
+      "start": {
+        "x": 0,
+        "y": 8500
+      },
+      "end": {
+        "x": 6000,
+        "y": 8500
+      },
+      "isExternal": false,
+      "loadBearing": false
+    },
+    "w_level_rdc_partition_y8500_east": {
+      "id": "w_level_rdc_partition_y8500_east",
+      "category": "wall",
+      "typeId": "wall_int_150",
+      "levelId": "level_rdc",
+      "start": {
+        "x": 11000,
+        "y": 8500
+      },
+      "end": {
+        "x": 16000,
+        "y": 8500
+      },
+      "isExternal": false,
+      "loadBearing": false
+    },
+    "w_level_r1_south_main": {
+      "id": "w_level_r1_south_main",
+      "category": "wall",
+      "typeId": "wall_ext_250",
+      "levelId": "level_r1",
+      "start": {
+        "x": 0,
+        "y": 0
+      },
+      "end": {
+        "x": 11000,
+        "y": 0
+      },
+      "isExternal": true,
+      "loadBearing": true
+    },
+    "w_level_r1_south_annex": {
+      "id": "w_level_r1_south_annex",
+      "category": "wall",
+      "typeId": "wall_ext_250",
+      "levelId": "level_r1",
+      "start": {
+        "x": 11000,
+        "y": 0
+      },
+      "end": {
+        "x": 16000,
+        "y": 0
+      },
+      "isExternal": true,
+      "loadBearing": true
+    },
+    "w_level_r1_east": {
+      "id": "w_level_r1_east",
+      "category": "wall",
+      "typeId": "wall_ext_250",
+      "levelId": "level_r1",
+      "start": {
+        "x": 16000,
+        "y": 0
+      },
+      "end": {
+        "x": 16000,
+        "y": 12000
+      },
+      "isExternal": true,
+      "loadBearing": true
+    },
+    "w_level_r1_north_annex": {
+      "id": "w_level_r1_north_annex",
+      "category": "wall",
+      "typeId": "wall_ext_250",
+      "levelId": "level_r1",
+      "start": {
+        "x": 16000,
+        "y": 12000
+      },
+      "end": {
+        "x": 11000,
+        "y": 12000
+      },
+      "isExternal": true,
+      "loadBearing": true
+    },
+    "w_level_r1_north_main": {
+      "id": "w_level_r1_north_main",
+      "category": "wall",
+      "typeId": "wall_ext_250",
+      "levelId": "level_r1",
+      "start": {
+        "x": 11000,
+        "y": 12000
+      },
+      "end": {
+        "x": 0,
+        "y": 12000
+      },
+      "isExternal": true,
+      "loadBearing": true
+    },
+    "w_level_r1_west": {
+      "id": "w_level_r1_west",
+      "category": "wall",
+      "typeId": "wall_ext_250",
+      "levelId": "level_r1",
+      "start": {
+        "x": 0,
+        "y": 12000
+      },
+      "end": {
+        "x": 0,
+        "y": 0
+      },
+      "isExternal": true,
+      "loadBearing": true
+    },
+    "w_level_r1_core_x6000": {
+      "id": "w_level_r1_core_x6000",
+      "category": "wall",
+      "typeId": "wall_core_200",
+      "levelId": "level_r1",
+      "start": {
+        "x": 6000,
+        "y": 0
+      },
+      "end": {
+        "x": 6000,
+        "y": 12000
+      },
+      "isExternal": false,
+      "loadBearing": true
+    },
+    "w_level_r1_core_x11000": {
+      "id": "w_level_r1_core_x11000",
+      "category": "wall",
+      "typeId": "wall_core_200",
+      "levelId": "level_r1",
+      "start": {
+        "x": 11000,
+        "y": 0
+      },
+      "end": {
+        "x": 11000,
+        "y": 12000
+      },
+      "isExternal": false,
+      "loadBearing": true
+    },
+    "w_level_r1_partition_x13500": {
+      "id": "w_level_r1_partition_x13500",
+      "category": "wall",
+      "typeId": "wall_int_150",
+      "levelId": "level_r1",
+      "start": {
+        "x": 13500,
+        "y": 5000
+      },
+      "end": {
+        "x": 13500,
+        "y": 12000
+      },
+      "isExternal": false,
+      "loadBearing": false
+    },
+    "w_level_r1_partition_y5000_main": {
+      "id": "w_level_r1_partition_y5000_main",
+      "category": "wall",
+      "typeId": "wall_int_150",
+      "levelId": "level_r1",
+      "start": {
+        "x": 0,
+        "y": 5000
+      },
+      "end": {
+        "x": 11000,
+        "y": 5000
+      },
+      "isExternal": false,
+      "loadBearing": false
+    },
+    "w_level_r1_partition_y5000_annex": {
+      "id": "w_level_r1_partition_y5000_annex",
+      "category": "wall",
+      "typeId": "wall_int_150",
+      "levelId": "level_r1",
+      "start": {
+        "x": 11000,
+        "y": 5000
+      },
+      "end": {
+        "x": 16000,
+        "y": 5000
+      },
+      "isExternal": false,
+      "loadBearing": false
+    },
+    "w_level_r1_partition_y8500_west": {
+      "id": "w_level_r1_partition_y8500_west",
+      "category": "wall",
+      "typeId": "wall_int_150",
+      "levelId": "level_r1",
+      "start": {
+        "x": 0,
+        "y": 8500
+      },
+      "end": {
+        "x": 6000,
+        "y": 8500
+      },
+      "isExternal": false,
+      "loadBearing": false
+    },
+    "w_level_r1_partition_y8500_east": {
+      "id": "w_level_r1_partition_y8500_east",
+      "category": "wall",
+      "typeId": "wall_int_150",
+      "levelId": "level_r1",
+      "start": {
+        "x": 11000,
+        "y": 8500
+      },
+      "end": {
+        "x": 16000,
+        "y": 8500
+      },
+      "isExternal": false,
+      "loadBearing": false
+    },
+    "w_level_r2_south_main": {
+      "id": "w_level_r2_south_main",
+      "category": "wall",
+      "typeId": "wall_ext_250",
+      "levelId": "level_r2",
+      "start": {
+        "x": 0,
+        "y": 0
+      },
+      "end": {
+        "x": 11000,
+        "y": 0
+      },
+      "topConstraint": {
+        "kind": "roof",
+        "roofId": "roof_gable_main",
+        "offset": 0
+      },
+      "isExternal": true,
+      "loadBearing": true
+    },
+    "w_level_r2_south_annex": {
+      "id": "w_level_r2_south_annex",
+      "category": "wall",
+      "typeId": "wall_ext_250",
+      "levelId": "level_r2",
+      "start": {
+        "x": 11000,
+        "y": 0
+      },
+      "end": {
+        "x": 16000,
+        "y": 0
+      },
+      "topConstraint": {
+        "kind": "roof",
+        "roofId": "roof_flat_annex",
+        "offset": 0
+      },
+      "isExternal": true,
+      "loadBearing": true
+    },
+    "w_level_r2_east": {
+      "id": "w_level_r2_east",
+      "category": "wall",
+      "typeId": "wall_ext_250",
+      "levelId": "level_r2",
+      "start": {
+        "x": 16000,
+        "y": 0
+      },
+      "end": {
+        "x": 16000,
+        "y": 12000
+      },
+      "topConstraint": {
+        "kind": "roof",
+        "roofId": "roof_flat_annex",
+        "offset": 0
+      },
+      "isExternal": true,
+      "loadBearing": true
+    },
+    "w_level_r2_north_annex": {
+      "id": "w_level_r2_north_annex",
+      "category": "wall",
+      "typeId": "wall_ext_250",
+      "levelId": "level_r2",
+      "start": {
+        "x": 16000,
+        "y": 12000
+      },
+      "end": {
+        "x": 11000,
+        "y": 12000
+      },
+      "topConstraint": {
+        "kind": "roof",
+        "roofId": "roof_flat_annex",
+        "offset": 0
+      },
+      "isExternal": true,
+      "loadBearing": true
+    },
+    "w_level_r2_north_main": {
+      "id": "w_level_r2_north_main",
+      "category": "wall",
+      "typeId": "wall_ext_250",
+      "levelId": "level_r2",
+      "start": {
+        "x": 11000,
+        "y": 12000
+      },
+      "end": {
+        "x": 0,
+        "y": 12000
+      },
+      "topConstraint": {
+        "kind": "roof",
+        "roofId": "roof_gable_main",
+        "offset": 0
+      },
+      "isExternal": true,
+      "loadBearing": true
+    },
+    "w_level_r2_west": {
+      "id": "w_level_r2_west",
+      "category": "wall",
+      "typeId": "wall_ext_250",
+      "levelId": "level_r2",
+      "start": {
+        "x": 0,
+        "y": 12000
+      },
+      "end": {
+        "x": 0,
+        "y": 0
+      },
+      "topConstraint": {
+        "kind": "roof",
+        "roofId": "roof_gable_main",
+        "offset": 0
+      },
+      "isExternal": true,
+      "loadBearing": true
+    },
+    "w_level_r2_core_x6000": {
+      "id": "w_level_r2_core_x6000",
+      "category": "wall",
+      "typeId": "wall_core_200",
+      "levelId": "level_r2",
+      "start": {
+        "x": 6000,
+        "y": 0
+      },
+      "end": {
+        "x": 6000,
+        "y": 12000
+      },
+      "topConstraint": {
+        "kind": "roof",
+        "roofId": "roof_gable_main",
+        "offset": 0
+      },
+      "isExternal": false,
+      "loadBearing": true
+    },
+    "w_level_r2_core_x11000": {
+      "id": "w_level_r2_core_x11000",
+      "category": "wall",
+      "typeId": "wall_core_200",
+      "levelId": "level_r2",
+      "start": {
+        "x": 11000,
+        "y": 0
+      },
+      "end": {
+        "x": 11000,
+        "y": 12000
+      },
+      "topConstraint": {
+        "kind": "roof",
+        "roofId": "roof_gable_main",
+        "offset": 0
+      },
+      "isExternal": false,
+      "loadBearing": true
+    },
+    "w_level_r2_partition_x13500": {
+      "id": "w_level_r2_partition_x13500",
+      "category": "wall",
+      "typeId": "wall_int_150",
+      "levelId": "level_r2",
+      "start": {
+        "x": 13500,
+        "y": 5000
+      },
+      "end": {
+        "x": 13500,
+        "y": 12000
+      },
+      "topConstraint": {
+        "kind": "roof",
+        "roofId": "roof_flat_annex",
+        "offset": 0
+      },
+      "isExternal": false,
+      "loadBearing": false
+    },
+    "w_level_r2_partition_y5000_main": {
+      "id": "w_level_r2_partition_y5000_main",
+      "category": "wall",
+      "typeId": "wall_int_150",
+      "levelId": "level_r2",
+      "start": {
+        "x": 0,
+        "y": 5000
+      },
+      "end": {
+        "x": 11000,
+        "y": 5000
+      },
+      "topConstraint": {
+        "kind": "roof",
+        "roofId": "roof_gable_main",
+        "offset": 0
+      },
+      "isExternal": false,
+      "loadBearing": false
+    },
+    "w_level_r2_partition_y5000_annex": {
+      "id": "w_level_r2_partition_y5000_annex",
+      "category": "wall",
+      "typeId": "wall_int_150",
+      "levelId": "level_r2",
+      "start": {
+        "x": 11000,
+        "y": 5000
+      },
+      "end": {
+        "x": 16000,
+        "y": 5000
+      },
+      "topConstraint": {
+        "kind": "roof",
+        "roofId": "roof_flat_annex",
+        "offset": 0
+      },
+      "isExternal": false,
+      "loadBearing": false
+    },
+    "w_level_r2_partition_y8500_west": {
+      "id": "w_level_r2_partition_y8500_west",
+      "category": "wall",
+      "typeId": "wall_int_150",
+      "levelId": "level_r2",
+      "start": {
+        "x": 0,
+        "y": 8500
+      },
+      "end": {
+        "x": 6000,
+        "y": 8500
+      },
+      "topConstraint": {
+        "kind": "roof",
+        "roofId": "roof_gable_main",
+        "offset": 0
+      },
+      "isExternal": false,
+      "loadBearing": false
+    },
+    "w_level_r2_partition_y8500_east": {
+      "id": "w_level_r2_partition_y8500_east",
+      "category": "wall",
+      "typeId": "wall_int_150",
+      "levelId": "level_r2",
+      "start": {
+        "x": 11000,
+        "y": 8500
+      },
+      "end": {
+        "x": 16000,
+        "y": 8500
+      },
+      "topConstraint": {
+        "kind": "roof",
+        "roofId": "roof_flat_annex",
+        "offset": 0
+      },
+      "isExternal": false,
+      "loadBearing": false
+    },
+    "w_level_r2_library_diagonal_a": {
+      "id": "w_level_r2_library_diagonal_a",
+      "category": "wall",
+      "typeId": "wall_int_150",
+      "levelId": "level_r2",
+      "start": {
+        "x": 1000,
+        "y": 9500
+      },
+      "end": {
+        "x": 2500,
+        "y": 10800
+      },
+      "topConstraint": {
+        "kind": "roof",
+        "roofId": "roof_gable_main",
+        "offset": 0
+      },
+      "isExternal": false,
+      "loadBearing": false
+    },
+    "w_level_r2_library_diagonal_b": {
+      "id": "w_level_r2_library_diagonal_b",
+      "category": "wall",
+      "typeId": "wall_int_150",
+      "levelId": "level_r2",
+      "start": {
+        "x": 2500,
+        "y": 10800
+      },
+      "end": {
+        "x": 3200,
+        "y": 9000
+      },
+      "topConstraint": {
+        "kind": "roof",
+        "roofId": "roof_gable_main",
+        "offset": 0
+      },
+      "isExternal": false,
+      "loadBearing": false
+    }
+  },
+  "slabs": {
+    "slab_level_rdc": {
+      "id": "slab_level_rdc",
+      "category": "slab",
+      "slabTypeId": "slab_rc_200",
+      "levelId": "level_rdc",
+      "boundary": [
+        {
+          "x": 0,
+          "y": 0
+        },
+        {
+          "x": 16000,
+          "y": 0
+        },
+        {
+          "x": 16000,
+          "y": 12000
+        },
+        {
+          "x": 0,
+          "y": 12000
+        }
+      ],
+      "baseOffset": 0,
+      "name": "Dallage bas",
+      "holes": [
+        [
+          {
+            "x": 12600,
+            "y": 9800
+          },
+          {
+            "x": 13400,
+            "y": 9800
+          },
+          {
+            "x": 13400,
+            "y": 9000
+          },
+          {
+            "x": 12600,
+            "y": 9000
+          }
+        ]
+      ]
+    },
+    "slab_level_r1": {
+      "id": "slab_level_r1",
+      "category": "slab",
+      "slabTypeId": "slab_rc_200",
+      "levelId": "level_r1",
+      "boundary": [
+        {
+          "x": 0,
+          "y": 0
+        },
+        {
+          "x": 16000,
+          "y": 0
+        },
+        {
+          "x": 16000,
+          "y": 12000
+        },
+        {
+          "x": 0,
+          "y": 12000
+        }
+      ],
+      "baseOffset": 0,
+      "name": "Plancher haut RDC / plancher R+1",
+      "holes": [
+        [
+          {
+            "x": 12600,
+            "y": 9800
+          },
+          {
+            "x": 13400,
+            "y": 9800
+          },
+          {
+            "x": 13400,
+            "y": 9000
+          },
+          {
+            "x": 12600,
+            "y": 9000
+          }
+        ]
+      ],
+      "openings": [
+        [
+          {
+            "x": 6900,
+            "y": 4700
+          },
+          {
+            "x": 9100,
+            "y": 4700
+          },
+          {
+            "x": 9100,
+            "y": 11000
+          },
+          {
+            "x": 6900,
+            "y": 11000
+          }
+        ]
+      ]
+    },
+    "slab_level_r2": {
+      "id": "slab_level_r2",
+      "category": "slab",
+      "slabTypeId": "slab_rc_200",
+      "levelId": "level_r2",
+      "boundary": [
+        {
+          "x": 0,
+          "y": 0
+        },
+        {
+          "x": 16000,
+          "y": 0
+        },
+        {
+          "x": 16000,
+          "y": 12000
+        },
+        {
+          "x": 0,
+          "y": 12000
+        }
+      ],
+      "baseOffset": 0,
+      "name": "Plancher haut R+1 / plancher R+2",
+      "holes": [
+        [
+          {
+            "x": 12600,
+            "y": 9800
+          },
+          {
+            "x": 13400,
+            "y": 9800
+          },
+          {
+            "x": 13400,
+            "y": 9000
+          },
+          {
+            "x": 12600,
+            "y": 9000
+          }
+        ]
+      ],
+      "openings": [
+        [
+          {
+            "x": 6900,
+            "y": 4700
+          },
+          {
+            "x": 9100,
+            "y": 4700
+          },
+          {
+            "x": 9100,
+            "y": 11000
+          },
+          {
+            "x": 6900,
+            "y": 11000
+          }
+        ]
+      ]
+    }
+  },
+  "doors": {
+    "d_level_rdc_entry": {
+      "id": "d_level_rdc_entry",
+      "category": "door",
+      "doorTypeId": "door_entry_1100",
+      "hostWallId": "w_level_rdc_south_main",
+      "offsetAlong": 650,
+      "swing": {
+        "side": "right",
+        "direction": "in"
+      }
+    },
+    "d_level_rdc_core_west_lower": {
+      "id": "d_level_rdc_core_west_lower",
+      "category": "door",
+      "doorTypeId": "door_internal_900",
+      "hostWallId": "w_level_rdc_core_x6000",
+      "offsetAlong": 1050,
+      "swing": {
+        "side": "left",
+        "direction": "in"
+      }
+    },
+    "d_level_rdc_core_west_upper": {
+      "id": "d_level_rdc_core_west_upper",
+      "category": "door",
+      "doorTypeId": "door_internal_900",
+      "hostWallId": "w_level_rdc_core_x6000",
+      "offsetAlong": 6100,
+      "swing": {
+        "side": "left",
+        "direction": "in"
+      }
+    },
+    "d_level_rdc_core_east_lower": {
+      "id": "d_level_rdc_core_east_lower",
+      "category": "door",
+      "doorTypeId": "door_internal_900",
+      "hostWallId": "w_level_rdc_core_x11000",
+      "offsetAlong": 1100,
+      "swing": {
+        "side": "left",
+        "direction": "in"
+      }
+    },
+    "d_level_rdc_core_east_upper": {
+      "id": "d_level_rdc_core_east_upper",
+      "category": "door",
+      "doorTypeId": "door_internal_900",
+      "hostWallId": "w_level_rdc_core_x11000",
+      "offsetAlong": 6200,
+      "swing": {
+        "side": "left",
+        "direction": "in"
+      }
+    },
+    "d_level_rdc_right_split_mid": {
+      "id": "d_level_rdc_right_split_mid",
+      "category": "door",
+      "doorTypeId": "door_service_800",
+      "hostWallId": "w_level_rdc_partition_x13500",
+      "offsetAlong": 650,
+      "swing": {
+        "side": "left",
+        "direction": "in"
+      }
+    },
+    "d_level_rdc_right_split_upper": {
+      "id": "d_level_rdc_right_split_upper",
+      "category": "door",
+      "doorTypeId": "door_internal_900",
+      "hostWallId": "w_level_rdc_partition_x13500",
+      "offsetAlong": 4200,
+      "swing": {
+        "side": "left",
+        "direction": "in"
+      }
+    },
+    "d_level_rdc_cross_west": {
+      "id": "d_level_rdc_cross_west",
+      "category": "door",
+      "doorTypeId": "door_internal_900",
+      "hostWallId": "w_level_rdc_partition_y5000_main",
+      "offsetAlong": 1700,
+      "swing": {
+        "side": "left",
+        "direction": "in"
+      }
+    },
+    "d_level_rdc_cross_central": {
+      "id": "d_level_rdc_cross_central",
+      "category": "door",
+      "doorTypeId": "door_accessible_1000",
+      "hostWallId": "w_level_rdc_partition_y5000_main",
+      "offsetAlong": 7600,
+      "swing": {
+        "side": "left",
+        "direction": "in"
+      }
+    },
+    "d_level_rdc_cross_east": {
+      "id": "d_level_rdc_cross_east",
+      "category": "door",
+      "doorTypeId": "door_internal_900",
+      "hostWallId": "w_level_rdc_partition_y5000_annex",
+      "offsetAlong": 1500,
+      "swing": {
+        "side": "left",
+        "direction": "in"
+      }
+    },
+    "d_level_rdc_west_rear": {
+      "id": "d_level_rdc_west_rear",
+      "category": "door",
+      "doorTypeId": "door_internal_900",
+      "hostWallId": "w_level_rdc_partition_y8500_west",
+      "offsetAlong": 2100,
+      "swing": {
+        "side": "left",
+        "direction": "in"
+      }
+    },
+    "d_level_rdc_east_rear": {
+      "id": "d_level_rdc_east_rear",
+      "category": "door",
+      "doorTypeId": "door_internal_900",
+      "hostWallId": "w_level_rdc_partition_y8500_east",
+      "offsetAlong": 1500,
+      "swing": {
+        "side": "left",
+        "direction": "in"
+      }
+    },
+    "d_level_r1_balcony": {
+      "id": "d_level_r1_balcony",
+      "category": "door",
+      "doorTypeId": "door_sliding_1800",
+      "hostWallId": "w_level_r1_south_main",
+      "offsetAlong": 8800,
+      "swing": {
+        "side": "left",
+        "direction": "out"
+      }
+    },
+    "d_level_r1_core_west_lower": {
+      "id": "d_level_r1_core_west_lower",
+      "category": "door",
+      "doorTypeId": "door_internal_900",
+      "hostWallId": "w_level_r1_core_x6000",
+      "offsetAlong": 1050,
+      "swing": {
+        "side": "left",
+        "direction": "in"
+      }
+    },
+    "d_level_r1_core_west_upper": {
+      "id": "d_level_r1_core_west_upper",
+      "category": "door",
+      "doorTypeId": "door_internal_900",
+      "hostWallId": "w_level_r1_core_x6000",
+      "offsetAlong": 6100,
+      "swing": {
+        "side": "left",
+        "direction": "in"
+      }
+    },
+    "d_level_r1_core_east_lower": {
+      "id": "d_level_r1_core_east_lower",
+      "category": "door",
+      "doorTypeId": "door_internal_900",
+      "hostWallId": "w_level_r1_core_x11000",
+      "offsetAlong": 1100,
+      "swing": {
+        "side": "left",
+        "direction": "in"
+      }
+    },
+    "d_level_r1_core_east_upper": {
+      "id": "d_level_r1_core_east_upper",
+      "category": "door",
+      "doorTypeId": "door_internal_900",
+      "hostWallId": "w_level_r1_core_x11000",
+      "offsetAlong": 6200,
+      "swing": {
+        "side": "left",
+        "direction": "in"
+      }
+    },
+    "d_level_r1_right_split_mid": {
+      "id": "d_level_r1_right_split_mid",
+      "category": "door",
+      "doorTypeId": "door_service_800",
+      "hostWallId": "w_level_r1_partition_x13500",
+      "offsetAlong": 650,
+      "swing": {
+        "side": "left",
+        "direction": "in"
+      }
+    },
+    "d_level_r1_right_split_upper": {
+      "id": "d_level_r1_right_split_upper",
+      "category": "door",
+      "doorTypeId": "door_internal_900",
+      "hostWallId": "w_level_r1_partition_x13500",
+      "offsetAlong": 4200,
+      "swing": {
+        "side": "left",
+        "direction": "in"
+      }
+    },
+    "d_level_r1_cross_west": {
+      "id": "d_level_r1_cross_west",
+      "category": "door",
+      "doorTypeId": "door_internal_900",
+      "hostWallId": "w_level_r1_partition_y5000_main",
+      "offsetAlong": 1700,
+      "swing": {
+        "side": "left",
+        "direction": "in"
+      }
+    },
+    "d_level_r1_cross_central": {
+      "id": "d_level_r1_cross_central",
+      "category": "door",
+      "doorTypeId": "door_accessible_1000",
+      "hostWallId": "w_level_r1_partition_y5000_main",
+      "offsetAlong": 7600,
+      "swing": {
+        "side": "left",
+        "direction": "in"
+      }
+    },
+    "d_level_r1_cross_east": {
+      "id": "d_level_r1_cross_east",
+      "category": "door",
+      "doorTypeId": "door_internal_900",
+      "hostWallId": "w_level_r1_partition_y5000_annex",
+      "offsetAlong": 1500,
+      "swing": {
+        "side": "left",
+        "direction": "in"
+      }
+    },
+    "d_level_r1_west_rear": {
+      "id": "d_level_r1_west_rear",
+      "category": "door",
+      "doorTypeId": "door_internal_900",
+      "hostWallId": "w_level_r1_partition_y8500_west",
+      "offsetAlong": 2100,
+      "swing": {
+        "side": "left",
+        "direction": "in"
+      }
+    },
+    "d_level_r1_east_rear": {
+      "id": "d_level_r1_east_rear",
+      "category": "door",
+      "doorTypeId": "door_internal_900",
+      "hostWallId": "w_level_r1_partition_y8500_east",
+      "offsetAlong": 1500,
+      "swing": {
+        "side": "left",
+        "direction": "in"
+      }
+    },
+    "d_level_r2_balcony": {
+      "id": "d_level_r2_balcony",
+      "category": "door",
+      "doorTypeId": "door_sliding_1800",
+      "hostWallId": "w_level_r2_south_main",
+      "offsetAlong": 8800,
+      "swing": {
+        "side": "left",
+        "direction": "out"
+      }
+    },
+    "d_level_r2_core_west_lower": {
+      "id": "d_level_r2_core_west_lower",
+      "category": "door",
+      "doorTypeId": "door_internal_900",
+      "hostWallId": "w_level_r2_core_x6000",
+      "offsetAlong": 1050,
+      "swing": {
+        "side": "left",
+        "direction": "in"
+      }
+    },
+    "d_level_r2_core_west_upper": {
+      "id": "d_level_r2_core_west_upper",
+      "category": "door",
+      "doorTypeId": "door_internal_900",
+      "hostWallId": "w_level_r2_core_x6000",
+      "offsetAlong": 6100,
+      "swing": {
+        "side": "left",
+        "direction": "in"
+      }
+    },
+    "d_level_r2_core_east_lower": {
+      "id": "d_level_r2_core_east_lower",
+      "category": "door",
+      "doorTypeId": "door_internal_900",
+      "hostWallId": "w_level_r2_core_x11000",
+      "offsetAlong": 1100,
+      "swing": {
+        "side": "left",
+        "direction": "in"
+      }
+    },
+    "d_level_r2_core_east_upper": {
+      "id": "d_level_r2_core_east_upper",
+      "category": "door",
+      "doorTypeId": "door_internal_900",
+      "hostWallId": "w_level_r2_core_x11000",
+      "offsetAlong": 6200,
+      "swing": {
+        "side": "left",
+        "direction": "in"
+      }
+    },
+    "d_level_r2_right_split_mid": {
+      "id": "d_level_r2_right_split_mid",
+      "category": "door",
+      "doorTypeId": "door_service_800",
+      "hostWallId": "w_level_r2_partition_x13500",
+      "offsetAlong": 650,
+      "swing": {
+        "side": "left",
+        "direction": "in"
+      }
+    },
+    "d_level_r2_right_split_upper": {
+      "id": "d_level_r2_right_split_upper",
+      "category": "door",
+      "doorTypeId": "door_internal_900",
+      "hostWallId": "w_level_r2_partition_x13500",
+      "offsetAlong": 4200,
+      "swing": {
+        "side": "left",
+        "direction": "in"
+      }
+    },
+    "d_level_r2_cross_west": {
+      "id": "d_level_r2_cross_west",
+      "category": "door",
+      "doorTypeId": "door_internal_900",
+      "hostWallId": "w_level_r2_partition_y5000_main",
+      "offsetAlong": 1700,
+      "swing": {
+        "side": "left",
+        "direction": "in"
+      }
+    },
+    "d_level_r2_cross_central": {
+      "id": "d_level_r2_cross_central",
+      "category": "door",
+      "doorTypeId": "door_accessible_1000",
+      "hostWallId": "w_level_r2_partition_y5000_main",
+      "offsetAlong": 7600,
+      "swing": {
+        "side": "left",
+        "direction": "in"
+      }
+    },
+    "d_level_r2_cross_east": {
+      "id": "d_level_r2_cross_east",
+      "category": "door",
+      "doorTypeId": "door_internal_900",
+      "hostWallId": "w_level_r2_partition_y5000_annex",
+      "offsetAlong": 1500,
+      "swing": {
+        "side": "left",
+        "direction": "in"
+      }
+    },
+    "d_level_r2_west_rear": {
+      "id": "d_level_r2_west_rear",
+      "category": "door",
+      "doorTypeId": "door_internal_900",
+      "hostWallId": "w_level_r2_partition_y8500_west",
+      "offsetAlong": 2100,
+      "swing": {
+        "side": "left",
+        "direction": "in"
+      }
+    },
+    "d_level_r2_east_rear": {
+      "id": "d_level_r2_east_rear",
+      "category": "door",
+      "doorTypeId": "door_internal_900",
+      "hostWallId": "w_level_r2_partition_y8500_east",
+      "offsetAlong": 1500,
+      "swing": {
+        "side": "left",
+        "direction": "in"
+      }
+    }
+  },
+  "windows": {
+    "win_level_rdc_south_living": {
+      "id": "win_level_rdc_south_living",
+      "category": "window",
+      "windowTypeId": "window_1800",
+      "hostWallId": "w_level_rdc_south_main",
+      "offsetAlong": 2500,
+      "sillHeight": 800
+    },
+    "win_level_rdc_south_kitchen": {
+      "id": "win_level_rdc_south_kitchen",
+      "category": "window",
+      "windowTypeId": "window_1500",
+      "hostWallId": "w_level_rdc_south_main",
+      "offsetAlong": 7000,
+      "sillHeight": 900
+    },
+    "win_level_rdc_south_annex": {
+      "id": "win_level_rdc_south_annex",
+      "category": "window",
+      "windowTypeId": "window_1500",
+      "hostWallId": "w_level_rdc_south_annex",
+      "offsetAlong": 1500,
+      "sillHeight": 900
+    },
+    "win_level_rdc_east_lower": {
+      "id": "win_level_rdc_east_lower",
+      "category": "window",
+      "windowTypeId": "window_1500",
+      "hostWallId": "w_level_rdc_east",
+      "offsetAlong": 1200,
+      "sillHeight": 900
+    },
+    "win_level_rdc_east_middle": {
+      "id": "win_level_rdc_east_middle",
+      "category": "window",
+      "windowTypeId": "window_1200",
+      "hostWallId": "w_level_rdc_east",
+      "offsetAlong": 5400,
+      "sillHeight": 1000
+    },
+    "win_level_rdc_east_upper": {
+      "id": "win_level_rdc_east_upper",
+      "category": "window",
+      "windowTypeId": "window_1500",
+      "hostWallId": "w_level_rdc_east",
+      "offsetAlong": 9200,
+      "sillHeight": 900
+    },
+    "win_level_rdc_north_right": {
+      "id": "win_level_rdc_north_right",
+      "category": "window",
+      "windowTypeId": "window_1200",
+      "hostWallId": "w_level_rdc_north_annex",
+      "offsetAlong": 1200,
+      "sillHeight": 900
+    },
+    "win_level_rdc_north_pair_a": {
+      "id": "win_level_rdc_north_pair_a",
+      "category": "window",
+      "windowTypeId": "window_1200",
+      "hostWallId": "w_level_rdc_north_main",
+      "offsetAlong": 4200,
+      "sillHeight": 900
+    },
+    "win_level_rdc_north_pair_b": {
+      "id": "win_level_rdc_north_pair_b",
+      "category": "window",
+      "windowTypeId": "window_1200",
+      "hostWallId": "w_level_rdc_north_main",
+      "offsetAlong": 5550,
+      "sillHeight": 900
+    },
+    "win_level_rdc_north_left": {
+      "id": "win_level_rdc_north_left",
+      "category": "window",
+      "windowTypeId": "window_1500",
+      "hostWallId": "w_level_rdc_north_main",
+      "offsetAlong": 9000,
+      "sillHeight": 900
+    },
+    "win_level_rdc_west_lower": {
+      "id": "win_level_rdc_west_lower",
+      "category": "window",
+      "windowTypeId": "window_1500",
+      "hostWallId": "w_level_rdc_west",
+      "offsetAlong": 1200,
+      "sillHeight": 900
+    },
+    "win_level_rdc_west_middle": {
+      "id": "win_level_rdc_west_middle",
+      "category": "window",
+      "windowTypeId": "window_1200",
+      "hostWallId": "w_level_rdc_west",
+      "offsetAlong": 5200,
+      "sillHeight": 900
+    },
+    "win_level_rdc_west_upper": {
+      "id": "win_level_rdc_west_upper",
+      "category": "window",
+      "windowTypeId": "window_1500",
+      "hostWallId": "w_level_rdc_west",
+      "offsetAlong": 9000,
+      "sillHeight": 900
+    },
+    "win_level_rdc_east_high": {
+      "id": "win_level_rdc_east_high",
+      "category": "window",
+      "windowTypeId": "window_high_600",
+      "hostWallId": "w_level_rdc_east",
+      "offsetAlong": 7400,
+      "sillHeight": 1600
+    },
+    "win_level_r1_south_living": {
+      "id": "win_level_r1_south_living",
+      "category": "window",
+      "windowTypeId": "window_1800",
+      "hostWallId": "w_level_r1_south_main",
+      "offsetAlong": 2500,
+      "sillHeight": 800
+    },
+    "win_level_r1_south_kitchen": {
+      "id": "win_level_r1_south_kitchen",
+      "category": "window",
+      "windowTypeId": "window_1500",
+      "hostWallId": "w_level_r1_south_main",
+      "offsetAlong": 7000,
+      "sillHeight": 900
+    },
+    "win_level_r1_south_annex": {
+      "id": "win_level_r1_south_annex",
+      "category": "window",
+      "windowTypeId": "window_1500",
+      "hostWallId": "w_level_r1_south_annex",
+      "offsetAlong": 1500,
+      "sillHeight": 900
+    },
+    "win_level_r1_east_lower": {
+      "id": "win_level_r1_east_lower",
+      "category": "window",
+      "windowTypeId": "window_1500",
+      "hostWallId": "w_level_r1_east",
+      "offsetAlong": 1200,
+      "sillHeight": 900
+    },
+    "win_level_r1_east_middle": {
+      "id": "win_level_r1_east_middle",
+      "category": "window",
+      "windowTypeId": "window_1200",
+      "hostWallId": "w_level_r1_east",
+      "offsetAlong": 5400,
+      "sillHeight": 1000
+    },
+    "win_level_r1_east_upper": {
+      "id": "win_level_r1_east_upper",
+      "category": "window",
+      "windowTypeId": "window_1500",
+      "hostWallId": "w_level_r1_east",
+      "offsetAlong": 9200,
+      "sillHeight": 900
+    },
+    "win_level_r1_north_right": {
+      "id": "win_level_r1_north_right",
+      "category": "window",
+      "windowTypeId": "window_1200",
+      "hostWallId": "w_level_r1_north_annex",
+      "offsetAlong": 1200,
+      "sillHeight": 900
+    },
+    "win_level_r1_north_pair_a": {
+      "id": "win_level_r1_north_pair_a",
+      "category": "window",
+      "windowTypeId": "window_1200",
+      "hostWallId": "w_level_r1_north_main",
+      "offsetAlong": 4200,
+      "sillHeight": 900
+    },
+    "win_level_r1_north_pair_b": {
+      "id": "win_level_r1_north_pair_b",
+      "category": "window",
+      "windowTypeId": "window_1200",
+      "hostWallId": "w_level_r1_north_main",
+      "offsetAlong": 5550,
+      "sillHeight": 900
+    },
+    "win_level_r1_north_left": {
+      "id": "win_level_r1_north_left",
+      "category": "window",
+      "windowTypeId": "window_1500",
+      "hostWallId": "w_level_r1_north_main",
+      "offsetAlong": 9000,
+      "sillHeight": 900
+    },
+    "win_level_r1_west_lower": {
+      "id": "win_level_r1_west_lower",
+      "category": "window",
+      "windowTypeId": "window_1500",
+      "hostWallId": "w_level_r1_west",
+      "offsetAlong": 1200,
+      "sillHeight": 900
+    },
+    "win_level_r1_west_middle": {
+      "id": "win_level_r1_west_middle",
+      "category": "window",
+      "windowTypeId": "window_1200",
+      "hostWallId": "w_level_r1_west",
+      "offsetAlong": 5200,
+      "sillHeight": 900
+    },
+    "win_level_r1_west_upper": {
+      "id": "win_level_r1_west_upper",
+      "category": "window",
+      "windowTypeId": "window_1500",
+      "hostWallId": "w_level_r1_west",
+      "offsetAlong": 9000,
+      "sillHeight": 900
+    },
+    "win_level_r1_east_high": {
+      "id": "win_level_r1_east_high",
+      "category": "window",
+      "windowTypeId": "window_high_600",
+      "hostWallId": "w_level_r1_east",
+      "offsetAlong": 7400,
+      "sillHeight": 1600
+    },
+    "win_level_r2_south_living": {
+      "id": "win_level_r2_south_living",
+      "category": "window",
+      "windowTypeId": "window_1800",
+      "hostWallId": "w_level_r2_south_main",
+      "offsetAlong": 2500,
+      "sillHeight": 800
+    },
+    "win_level_r2_south_kitchen": {
+      "id": "win_level_r2_south_kitchen",
+      "category": "window",
+      "windowTypeId": "window_1500",
+      "hostWallId": "w_level_r2_south_main",
+      "offsetAlong": 7000,
+      "sillHeight": 900
+    },
+    "win_level_r2_south_annex": {
+      "id": "win_level_r2_south_annex",
+      "category": "window",
+      "windowTypeId": "window_1500",
+      "hostWallId": "w_level_r2_south_annex",
+      "offsetAlong": 1500,
+      "sillHeight": 900
+    },
+    "win_level_r2_east_lower": {
+      "id": "win_level_r2_east_lower",
+      "category": "window",
+      "windowTypeId": "window_1500",
+      "hostWallId": "w_level_r2_east",
+      "offsetAlong": 1200,
+      "sillHeight": 900
+    },
+    "win_level_r2_east_middle": {
+      "id": "win_level_r2_east_middle",
+      "category": "window",
+      "windowTypeId": "window_1200",
+      "hostWallId": "w_level_r2_east",
+      "offsetAlong": 5400,
+      "sillHeight": 1000
+    },
+    "win_level_r2_east_upper": {
+      "id": "win_level_r2_east_upper",
+      "category": "window",
+      "windowTypeId": "window_1500",
+      "hostWallId": "w_level_r2_east",
+      "offsetAlong": 9200,
+      "sillHeight": 900
+    },
+    "win_level_r2_north_right": {
+      "id": "win_level_r2_north_right",
+      "category": "window",
+      "windowTypeId": "window_1200",
+      "hostWallId": "w_level_r2_north_annex",
+      "offsetAlong": 1200,
+      "sillHeight": 900
+    },
+    "win_level_r2_north_pair_a": {
+      "id": "win_level_r2_north_pair_a",
+      "category": "window",
+      "windowTypeId": "window_1200",
+      "hostWallId": "w_level_r2_north_main",
+      "offsetAlong": 4200,
+      "sillHeight": 900
+    },
+    "win_level_r2_north_pair_b": {
+      "id": "win_level_r2_north_pair_b",
+      "category": "window",
+      "windowTypeId": "window_1200",
+      "hostWallId": "w_level_r2_north_main",
+      "offsetAlong": 5550,
+      "sillHeight": 900
+    },
+    "win_level_r2_north_left": {
+      "id": "win_level_r2_north_left",
+      "category": "window",
+      "windowTypeId": "window_1500",
+      "hostWallId": "w_level_r2_north_main",
+      "offsetAlong": 9000,
+      "sillHeight": 900
+    },
+    "win_level_r2_west_lower": {
+      "id": "win_level_r2_west_lower",
+      "category": "window",
+      "windowTypeId": "window_1500",
+      "hostWallId": "w_level_r2_west",
+      "offsetAlong": 1200,
+      "sillHeight": 900
+    },
+    "win_level_r2_west_middle": {
+      "id": "win_level_r2_west_middle",
+      "category": "window",
+      "windowTypeId": "window_1200",
+      "hostWallId": "w_level_r2_west",
+      "offsetAlong": 5200,
+      "sillHeight": 900
+    },
+    "win_level_r2_west_upper": {
+      "id": "win_level_r2_west_upper",
+      "category": "window",
+      "windowTypeId": "window_1500",
+      "hostWallId": "w_level_r2_west",
+      "offsetAlong": 9000,
+      "sillHeight": 900
+    },
+    "win_level_r2_east_high": {
+      "id": "win_level_r2_east_high",
+      "category": "window",
+      "windowTypeId": "window_high_600",
+      "hostWallId": "w_level_r2_east",
+      "offsetAlong": 7400,
+      "sillHeight": 1600
+    }
+  },
+  "rooms": {
+    "room_level_rdc_living": {
+      "id": "room_level_rdc_living",
+      "category": "room",
+      "levelId": "level_rdc",
+      "seed": {
+        "x": 3000,
+        "y": 2500
+      },
+      "name": "Séjour et salle à manger",
+      "status": "enclosed"
+    },
+    "room_level_rdc_guest": {
+      "id": "room_level_rdc_guest",
+      "category": "room",
+      "levelId": "level_rdc",
+      "seed": {
+        "x": 3000,
+        "y": 6750
+      },
+      "name": "Chambre d’amis",
+      "status": "enclosed"
+    },
+    "room_level_rdc_office": {
+      "id": "room_level_rdc_office",
+      "category": "room",
+      "levelId": "level_rdc",
+      "seed": {
+        "x": 3000,
+        "y": 10250
+      },
+      "name": "Bureau RDC",
+      "status": "enclosed"
+    },
+    "room_level_rdc_kitchen": {
+      "id": "room_level_rdc_kitchen",
+      "category": "room",
+      "levelId": "level_rdc",
+      "seed": {
+        "x": 8500,
+        "y": 2500
+      },
+      "name": "Cuisine familiale",
+      "status": "enclosed"
+    },
+    "room_level_rdc_stair_hall": {
+      "id": "room_level_rdc_stair_hall",
+      "category": "room",
+      "levelId": "level_rdc",
+      "seed": {
+        "x": 8500,
+        "y": 8500
+      },
+      "name": "Hall et cage d’escalier",
+      "status": "enclosed"
+    },
+    "room_level_rdc_garage": {
+      "id": "room_level_rdc_garage",
+      "category": "room",
+      "levelId": "level_rdc",
+      "seed": {
+        "x": 13500,
+        "y": 2500
+      },
+      "name": "Garage et atelier",
+      "status": "enclosed"
+    },
+    "room_level_rdc_bath": {
+      "id": "room_level_rdc_bath",
+      "category": "room",
+      "levelId": "level_rdc",
+      "seed": {
+        "x": 12250,
+        "y": 6750
+      },
+      "name": "Salle d’eau RDC",
+      "status": "enclosed"
+    },
+    "room_level_rdc_tech": {
+      "id": "room_level_rdc_tech",
+      "category": "room",
+      "levelId": "level_rdc",
+      "seed": {
+        "x": 14750,
+        "y": 6750
+      },
+      "name": "Local technique",
+      "status": "enclosed"
+    },
+    "room_level_rdc_laundry": {
+      "id": "room_level_rdc_laundry",
+      "category": "room",
+      "levelId": "level_rdc",
+      "seed": {
+        "x": 12250,
+        "y": 10250
+      },
+      "name": "Buanderie",
+      "status": "enclosed"
+    },
+    "room_level_rdc_store": {
+      "id": "room_level_rdc_store",
+      "category": "room",
+      "levelId": "level_rdc",
+      "seed": {
+        "x": 14750,
+        "y": 10250
+      },
+      "name": "Réserve RDC",
+      "status": "enclosed"
+    },
+    "room_level_r1_family": {
+      "id": "room_level_r1_family",
+      "category": "room",
+      "levelId": "level_r1",
+      "seed": {
+        "x": 3000,
+        "y": 2500
+      },
+      "name": "Salon familial",
+      "status": "enclosed"
+    },
+    "room_level_r1_bed2": {
+      "id": "room_level_r1_bed2",
+      "category": "room",
+      "levelId": "level_r1",
+      "seed": {
+        "x": 3000,
+        "y": 6750
+      },
+      "name": "Chambre enfant 1",
+      "status": "enclosed"
+    },
+    "room_level_r1_bed3": {
+      "id": "room_level_r1_bed3",
+      "category": "room",
+      "levelId": "level_r1",
+      "seed": {
+        "x": 3000,
+        "y": 10250
+      },
+      "name": "Chambre enfant 2",
+      "status": "enclosed"
+    },
+    "room_level_r1_master": {
+      "id": "room_level_r1_master",
+      "category": "room",
+      "levelId": "level_r1",
+      "seed": {
+        "x": 8500,
+        "y": 2500
+      },
+      "name": "Suite parentale",
+      "status": "enclosed"
+    },
+    "room_level_r1_landing": {
+      "id": "room_level_r1_landing",
+      "category": "room",
+      "levelId": "level_r1",
+      "seed": {
+        "x": 8500,
+        "y": 8500
+      },
+      "name": "Palier et cage d’escalier",
+      "status": "enclosed"
+    },
+    "room_level_r1_bed4": {
+      "id": "room_level_r1_bed4",
+      "category": "room",
+      "levelId": "level_r1",
+      "seed": {
+        "x": 13500,
+        "y": 2500
+      },
+      "name": "Chambre 4",
+      "status": "enclosed"
+    },
+    "room_level_r1_bath": {
+      "id": "room_level_r1_bath",
+      "category": "room",
+      "levelId": "level_r1",
+      "seed": {
+        "x": 12250,
+        "y": 6750
+      },
+      "name": "Salle de bains principale",
+      "status": "enclosed"
+    },
+    "room_level_r1_dressing": {
+      "id": "room_level_r1_dressing",
+      "category": "room",
+      "levelId": "level_r1",
+      "seed": {
+        "x": 14750,
+        "y": 6750
+      },
+      "name": "Dressing",
+      "status": "enclosed"
+    },
+    "room_level_r1_shower": {
+      "id": "room_level_r1_shower",
+      "category": "room",
+      "levelId": "level_r1",
+      "seed": {
+        "x": 12250,
+        "y": 10250
+      },
+      "name": "Salle d’eau secondaire",
+      "status": "enclosed"
+    },
+    "room_level_r1_linen": {
+      "id": "room_level_r1_linen",
+      "category": "room",
+      "levelId": "level_r1",
+      "seed": {
+        "x": 14750,
+        "y": 10250
+      },
+      "name": "Lingerie",
+      "status": "enclosed"
+    },
+    "room_level_r2_lounge": {
+      "id": "room_level_r2_lounge",
+      "category": "room",
+      "levelId": "level_r2",
+      "seed": {
+        "x": 3000,
+        "y": 2500
+      },
+      "name": "Salon polyvalent R+2",
+      "status": "enclosed"
+    },
+    "room_level_r2_guest": {
+      "id": "room_level_r2_guest",
+      "category": "room",
+      "levelId": "level_r2",
+      "seed": {
+        "x": 3000,
+        "y": 6750
+      },
+      "name": "Chambre d’appoint R+2",
+      "status": "enclosed"
+    },
+    "room_level_r2_library": {
+      "id": "room_level_r2_library",
+      "category": "room",
+      "levelId": "level_r2",
+      "seed": {
+        "x": 3000,
+        "y": 10250
+      },
+      "name": "Bibliothèque",
+      "status": "enclosed"
+    },
+    "room_level_r2_studio": {
+      "id": "room_level_r2_studio",
+      "category": "room",
+      "levelId": "level_r2",
+      "seed": {
+        "x": 8500,
+        "y": 2500
+      },
+      "name": "Atelier et studio",
+      "status": "enclosed"
+    },
+    "room_level_r2_loft_hall": {
+      "id": "room_level_r2_loft_hall",
+      "category": "room",
+      "levelId": "level_r2",
+      "seed": {
+        "x": 8500,
+        "y": 8500
+      },
+      "name": "Palier et circulation R+2",
+      "status": "enclosed"
+    },
+    "room_level_r2_terrace_lounge": {
+      "id": "room_level_r2_terrace_lounge",
+      "category": "room",
+      "levelId": "level_r2",
+      "seed": {
+        "x": 13500,
+        "y": 2500
+      },
+      "name": "Espace lounge sous toiture annexe",
+      "status": "enclosed"
+    },
+    "room_level_r2_wc": {
+      "id": "room_level_r2_wc",
+      "category": "room",
+      "levelId": "level_r2",
+      "seed": {
+        "x": 12250,
+        "y": 6750
+      },
+      "name": "Sanitaires R+2",
+      "status": "enclosed"
+    },
+    "room_level_r2_plant": {
+      "id": "room_level_r2_plant",
+      "category": "room",
+      "levelId": "level_r2",
+      "seed": {
+        "x": 14750,
+        "y": 6750
+      },
+      "name": "Local technique toiture",
+      "status": "enclosed"
+    },
+    "room_level_r2_storage": {
+      "id": "room_level_r2_storage",
+      "category": "room",
+      "levelId": "level_r2",
+      "seed": {
+        "x": 12250,
+        "y": 10250
+      },
+      "name": "Rangement toiture",
+      "status": "enclosed"
+    },
+    "room_level_r2_service": {
+      "id": "room_level_r2_service",
+      "category": "room",
+      "levelId": "level_r2",
+      "seed": {
+        "x": 14750,
+        "y": 10250
+      },
+      "name": "Local entretien",
+      "status": "enclosed"
+    }
+  },
+  "dimensions": {
+    "dim_level_rdc_overall_width": {
+      "id": "dim_level_rdc_overall_width",
+      "category": "dimension",
+      "levelId": "level_rdc",
+      "type": "linear",
+      "references": [
+        "w_level_rdc_south_main"
+      ],
+      "offset": -900,
+      "value": 11000,
+      "customLabel": "11 000 mm"
+    },
+    "dim_level_rdc_overall_depth": {
+      "id": "dim_level_rdc_overall_depth",
+      "category": "dimension",
+      "levelId": "level_rdc",
+      "type": "linear",
+      "references": [
+        "w_level_rdc_west"
+      ],
+      "offset": -900,
+      "value": 12000,
+      "customLabel": "12 000 mm"
+    },
+    "dim_level_rdc_main_bay": {
+      "id": "dim_level_rdc_main_bay",
+      "category": "dimension",
+      "levelId": "level_rdc",
+      "type": "aligned",
+      "references": [
+        "w_level_rdc_south_main",
+        "w_level_rdc_core_x6000"
+      ],
+      "offset": -1500,
+      "value": 6000
+    },
+    "dim_level_rdc_central_bay": {
+      "id": "dim_level_rdc_central_bay",
+      "category": "dimension",
+      "levelId": "level_rdc",
+      "type": "aligned",
+      "references": [
+        "w_level_rdc_core_x6000",
+        "w_level_rdc_core_x11000"
+      ],
+      "offset": -1800,
+      "value": 5000
+    },
+    "dim_level_rdc_free_room_width": {
+      "id": "dim_level_rdc_free_room_width",
+      "category": "dimension",
+      "levelId": "level_rdc",
+      "type": "aligned",
+      "references": [],
+      "offset": -650,
+      "value": 6000,
+      "startPoint": {
+        "x": 0,
+        "y": 0
+      },
+      "endPoint": {
+        "x": 6000,
+        "y": 0
+      },
+      "customLabel": "Largeur séjour"
+    },
+    "dim_level_rdc_auto_chain_1": {
+      "id": "dim_level_rdc_auto_chain_1",
+      "category": "dimension",
+      "levelId": "level_rdc",
+      "type": "linear",
+      "references": [
+        "w_level_rdc_south_main"
+      ],
+      "offset": -2200,
+      "value": 6000,
+      "autoGenerated": true,
+      "span": {
+        "startOffset": 0,
+        "endOffset": 6000
+      }
+    },
+    "dim_level_rdc_auto_chain_2": {
+      "id": "dim_level_rdc_auto_chain_2",
+      "category": "dimension",
+      "levelId": "level_rdc",
+      "type": "linear",
+      "references": [
+        "w_level_rdc_south_main"
+      ],
+      "offset": -2200,
+      "value": 5000,
+      "autoGenerated": true,
+      "span": {
+        "startOffset": 6000,
+        "endOffset": 11000
+      }
+    },
+    "dim_level_rdc_auto_chain_3": {
+      "id": "dim_level_rdc_auto_chain_3",
+      "category": "dimension",
+      "levelId": "level_rdc",
+      "type": "linear",
+      "references": [
+        "w_level_rdc_south_main"
+      ],
+      "offset": -2200,
+      "value": 5000,
+      "autoGenerated": true,
+      "span": {
+        "startOffset": 11000,
+        "endOffset": 16000
+      }
+    },
+    "dim_level_r1_overall_width": {
+      "id": "dim_level_r1_overall_width",
+      "category": "dimension",
+      "levelId": "level_r1",
+      "type": "linear",
+      "references": [
+        "w_level_r1_south_main"
+      ],
+      "offset": -900,
+      "value": 11000,
+      "customLabel": "11 000 mm"
+    },
+    "dim_level_r1_overall_depth": {
+      "id": "dim_level_r1_overall_depth",
+      "category": "dimension",
+      "levelId": "level_r1",
+      "type": "linear",
+      "references": [
+        "w_level_r1_west"
+      ],
+      "offset": -900,
+      "value": 12000,
+      "customLabel": "12 000 mm"
+    },
+    "dim_level_r1_main_bay": {
+      "id": "dim_level_r1_main_bay",
+      "category": "dimension",
+      "levelId": "level_r1",
+      "type": "aligned",
+      "references": [
+        "w_level_r1_south_main",
+        "w_level_r1_core_x6000"
+      ],
+      "offset": -1500,
+      "value": 6000
+    },
+    "dim_level_r1_central_bay": {
+      "id": "dim_level_r1_central_bay",
+      "category": "dimension",
+      "levelId": "level_r1",
+      "type": "aligned",
+      "references": [
+        "w_level_r1_core_x6000",
+        "w_level_r1_core_x11000"
+      ],
+      "offset": -1800,
+      "value": 5000
+    },
+    "dim_level_r1_free_room_width": {
+      "id": "dim_level_r1_free_room_width",
+      "category": "dimension",
+      "levelId": "level_r1",
+      "type": "aligned",
+      "references": [],
+      "offset": -650,
+      "value": 6000,
+      "startPoint": {
+        "x": 0,
+        "y": 0
+      },
+      "endPoint": {
+        "x": 6000,
+        "y": 0
+      },
+      "customLabel": "Largeur séjour"
+    },
+    "dim_level_r1_auto_chain_1": {
+      "id": "dim_level_r1_auto_chain_1",
+      "category": "dimension",
+      "levelId": "level_r1",
+      "type": "linear",
+      "references": [
+        "w_level_r1_south_main"
+      ],
+      "offset": -2200,
+      "value": 6000,
+      "autoGenerated": true,
+      "span": {
+        "startOffset": 0,
+        "endOffset": 6000
+      }
+    },
+    "dim_level_r1_auto_chain_2": {
+      "id": "dim_level_r1_auto_chain_2",
+      "category": "dimension",
+      "levelId": "level_r1",
+      "type": "linear",
+      "references": [
+        "w_level_r1_south_main"
+      ],
+      "offset": -2200,
+      "value": 5000,
+      "autoGenerated": true,
+      "span": {
+        "startOffset": 6000,
+        "endOffset": 11000
+      }
+    },
+    "dim_level_r1_auto_chain_3": {
+      "id": "dim_level_r1_auto_chain_3",
+      "category": "dimension",
+      "levelId": "level_r1",
+      "type": "linear",
+      "references": [
+        "w_level_r1_south_main"
+      ],
+      "offset": -2200,
+      "value": 5000,
+      "autoGenerated": true,
+      "span": {
+        "startOffset": 11000,
+        "endOffset": 16000
+      }
+    },
+    "dim_level_r2_overall_width": {
+      "id": "dim_level_r2_overall_width",
+      "category": "dimension",
+      "levelId": "level_r2",
+      "type": "linear",
+      "references": [
+        "w_level_r2_south_main"
+      ],
+      "offset": -900,
+      "value": 11000,
+      "customLabel": "11 000 mm"
+    },
+    "dim_level_r2_overall_depth": {
+      "id": "dim_level_r2_overall_depth",
+      "category": "dimension",
+      "levelId": "level_r2",
+      "type": "linear",
+      "references": [
+        "w_level_r2_west"
+      ],
+      "offset": -900,
+      "value": 12000,
+      "customLabel": "12 000 mm"
+    },
+    "dim_level_r2_main_bay": {
+      "id": "dim_level_r2_main_bay",
+      "category": "dimension",
+      "levelId": "level_r2",
+      "type": "aligned",
+      "references": [
+        "w_level_r2_south_main",
+        "w_level_r2_core_x6000"
+      ],
+      "offset": -1500,
+      "value": 6000
+    },
+    "dim_level_r2_central_bay": {
+      "id": "dim_level_r2_central_bay",
+      "category": "dimension",
+      "levelId": "level_r2",
+      "type": "aligned",
+      "references": [
+        "w_level_r2_core_x6000",
+        "w_level_r2_core_x11000"
+      ],
+      "offset": -1800,
+      "value": 5000
+    },
+    "dim_level_r2_free_room_width": {
+      "id": "dim_level_r2_free_room_width",
+      "category": "dimension",
+      "levelId": "level_r2",
+      "type": "aligned",
+      "references": [],
+      "offset": -650,
+      "value": 6000,
+      "startPoint": {
+        "x": 0,
+        "y": 0
+      },
+      "endPoint": {
+        "x": 6000,
+        "y": 0
+      },
+      "customLabel": "Largeur séjour"
+    },
+    "dim_level_r2_auto_chain_1": {
+      "id": "dim_level_r2_auto_chain_1",
+      "category": "dimension",
+      "levelId": "level_r2",
+      "type": "linear",
+      "references": [
+        "w_level_r2_south_main"
+      ],
+      "offset": -2200,
+      "value": 6000,
+      "autoGenerated": true,
+      "span": {
+        "startOffset": 0,
+        "endOffset": 6000
+      }
+    },
+    "dim_level_r2_auto_chain_2": {
+      "id": "dim_level_r2_auto_chain_2",
+      "category": "dimension",
+      "levelId": "level_r2",
+      "type": "linear",
+      "references": [
+        "w_level_r2_south_main"
+      ],
+      "offset": -2200,
+      "value": 5000,
+      "autoGenerated": true,
+      "span": {
+        "startOffset": 6000,
+        "endOffset": 11000
+      }
+    },
+    "dim_level_r2_auto_chain_3": {
+      "id": "dim_level_r2_auto_chain_3",
+      "category": "dimension",
+      "levelId": "level_r2",
+      "type": "linear",
+      "references": [
+        "w_level_r2_south_main"
+      ],
+      "offset": -2200,
+      "value": 5000,
+      "autoGenerated": true,
+      "span": {
+        "startOffset": 11000,
+        "endOffset": 16000
+      }
+    }
+  },
+  "stairs": {
+    "stair_level_rdc_level_r1": {
+      "id": "stair_level_rdc_level_r1",
+      "category": "stair",
+      "stairTypeId": "stair_rc_1000",
+      "bottomLevelId": "level_rdc",
+      "topLevelId": "level_r1",
+      "start": {
+        "x": 8000,
+        "y": 5000
+      },
+      "end": {
+        "x": 8000,
+        "y": 9700
+      },
+      "widthOverride": 1000,
+      "name": "Escalier RDC vers R+1"
+    },
+    "stair_level_r1_level_r2": {
+      "id": "stair_level_r1_level_r2",
+      "category": "stair",
+      "stairTypeId": "stair_rc_1000",
+      "bottomLevelId": "level_r1",
+      "topLevelId": "level_r2",
+      "start": {
+        "x": 8000,
+        "y": 5000
+      },
+      "end": {
+        "x": 8000,
+        "y": 9700
+      },
+      "widthOverride": 1000,
+      "name": "Escalier R+1 vers R+2"
+    }
+  },
+  "roofs": {
+    "roof_gable_main": {
+      "id": "roof_gable_main",
+      "category": "roof",
+      "roofTypeId": "roof_gable_30",
+      "levelId": "level_r2",
+      "footprint": [
+        {
+          "x": 0,
+          "y": 0
+        },
+        {
+          "x": 11000,
+          "y": 0
+        },
+        {
+          "x": 11000,
+          "y": 12000
+        },
+        {
+          "x": 0,
+          "y": 12000
+        }
+      ],
+      "baseOffset": 2800,
+      "ridgeAxis": {
+        "start": {
+          "x": 0,
+          "y": 6000
+        },
+        "end": {
+          "x": 11000,
+          "y": 6000
+        }
+      },
+      "name": "Toiture principale à deux pans"
+    },
+    "roof_flat_annex": {
+      "id": "roof_flat_annex",
+      "category": "roof",
+      "roofTypeId": "roof_type_flat_annex",
+      "levelId": "level_r2",
+      "footprint": [
+        {
+          "x": 11000,
+          "y": 0
+        },
+        {
+          "x": 16000,
+          "y": 0
+        },
+        {
+          "x": 16000,
+          "y": 12000
+        },
+        {
+          "x": 11000,
+          "y": 12000
+        }
+      ],
+      "baseOffset": 2800,
+      "name": "Toiture terrasse du volume annexe"
+    }
+  },
+  "roofOpenings": {
+    "roof_opening_skylight": {
+      "id": "roof_opening_skylight",
+      "category": "roofOpening",
+      "roofId": "roof_gable_main",
+      "offsetU": 4400,
+      "offsetV": 3300,
+      "width": 1000,
+      "height": 1200
+    },
+    "roof_opening_vent": {
+      "id": "roof_opening_vent",
+      "category": "roofOpening",
+      "roofId": "roof_flat_annex",
+      "offsetU": 1800,
+      "offsetV": 8200,
+      "width": 800,
+      "height": 800
+    }
+  },
+  "components": {
+    "cmp_level_rdc_sofa": {
+      "id": "cmp_level_rdc_sofa",
+      "category": "component",
+      "typeId": "comp_sofa",
+      "levelId": "level_rdc",
+      "placement": {
+        "x": 2400,
+        "y": 2500,
+        "rotation": 0
+      },
+      "showClearanceZone": true,
+      "name": "Canapé séjour"
+    },
+    "cmp_level_rdc_dining_table": {
+      "id": "cmp_level_rdc_dining_table",
+      "category": "component",
+      "typeId": "comp_table",
+      "levelId": "level_rdc",
+      "placement": {
+        "x": 4400,
+        "y": 1300,
+        "rotation": 0
+      },
+      "showClearanceZone": true,
+      "name": "Table 6 places"
+    },
+    "cmp_level_rdc_dining_chair_1": {
+      "id": "cmp_level_rdc_dining_chair_1",
+      "category": "component",
+      "typeId": "comp_chair",
+      "levelId": "level_rdc",
+      "placement": {
+        "x": 3500,
+        "y": 600,
+        "rotation": 0
+      },
+      "showClearanceZone": false,
+      "name": "Chaise repas 1"
+    },
+    "cmp_level_rdc_dining_chair_2": {
+      "id": "cmp_level_rdc_dining_chair_2",
+      "category": "component",
+      "typeId": "comp_chair",
+      "levelId": "level_rdc",
+      "placement": {
+        "x": 4500,
+        "y": 600,
+        "rotation": 0
+      },
+      "showClearanceZone": false,
+      "name": "Chaise repas 2"
+    },
+    "cmp_level_rdc_dining_chair_3": {
+      "id": "cmp_level_rdc_dining_chair_3",
+      "category": "component",
+      "typeId": "comp_chair",
+      "levelId": "level_rdc",
+      "placement": {
+        "x": 3500,
+        "y": 2100,
+        "rotation": 0
+      },
+      "showClearanceZone": false,
+      "name": "Chaise repas 3"
+    },
+    "cmp_level_rdc_dining_chair_4": {
+      "id": "cmp_level_rdc_dining_chair_4",
+      "category": "component",
+      "typeId": "comp_chair",
+      "levelId": "level_rdc",
+      "placement": {
+        "x": 4500,
+        "y": 2100,
+        "rotation": 0
+      },
+      "showClearanceZone": false,
+      "name": "Chaise repas 4"
+    },
+    "cmp_level_rdc_guest_bed": {
+      "id": "cmp_level_rdc_guest_bed",
+      "category": "component",
+      "typeId": "comp_bed_double",
+      "levelId": "level_rdc",
+      "placement": {
+        "x": 2600,
+        "y": 6600,
+        "rotation": 1.5707963267948966
+      },
+      "showClearanceZone": true,
+      "name": "Lit chambre invités"
+    },
+    "cmp_level_rdc_guest_wardrobe": {
+      "id": "cmp_level_rdc_guest_wardrobe",
+      "category": "component",
+      "typeId": "comp_wardrobe",
+      "levelId": "level_rdc",
+      "placement": {
+        "x": 5000,
+        "y": 6600,
+        "rotation": 1.5707963267948966
+      },
+      "showClearanceZone": false,
+      "name": "Armoire invités"
+    },
+    "cmp_level_rdc_office_desk": {
+      "id": "cmp_level_rdc_office_desk",
+      "category": "component",
+      "typeId": "comp_desk",
+      "levelId": "level_rdc",
+      "placement": {
+        "x": 3000,
+        "y": 9900,
+        "rotation": 0
+      },
+      "showClearanceZone": true,
+      "name": "Bureau de travail RDC"
+    },
+    "cmp_level_rdc_office_books": {
+      "id": "cmp_level_rdc_office_books",
+      "category": "component",
+      "typeId": "comp_bookcase",
+      "levelId": "level_rdc",
+      "placement": {
+        "x": 5000,
+        "y": 10500,
+        "rotation": 1.5707963267948966
+      },
+      "showClearanceZone": false,
+      "name": "Bibliothèque bureau"
+    },
+    "cmp_level_rdc_kitchen_run": {
+      "id": "cmp_level_rdc_kitchen_run",
+      "category": "component",
+      "typeId": "comp_kitchen",
+      "levelId": "level_rdc",
+      "placement": {
+        "x": 8500,
+        "y": 650,
+        "rotation": 0
+      },
+      "showClearanceZone": true,
+      "name": "Linéaire cuisine"
+    },
+    "cmp_level_rdc_kitchen_sink": {
+      "id": "cmp_level_rdc_kitchen_sink",
+      "category": "component",
+      "typeId": "comp_sink_unit",
+      "levelId": "level_rdc",
+      "placement": {
+        "x": 6800,
+        "y": 1800,
+        "rotation": 1.5707963267948966
+      },
+      "showClearanceZone": false,
+      "name": "Évier cuisine"
+    },
+    "cmp_level_rdc_kitchen_appliance": {
+      "id": "cmp_level_rdc_kitchen_appliance",
+      "category": "component",
+      "typeId": "comp_appliance",
+      "levelId": "level_rdc",
+      "placement": {
+        "x": 10000,
+        "y": 3800,
+        "rotation": 1.5707963267948966
+      },
+      "showClearanceZone": false,
+      "name": "Colonne four et réfrigérateur"
+    },
+    "cmp_level_rdc_bath_wc": {
+      "id": "cmp_level_rdc_bath_wc",
+      "category": "component",
+      "typeId": "comp_toilet",
+      "levelId": "level_rdc",
+      "placement": {
+        "x": 11700,
+        "y": 7900,
+        "rotation": 1.5707963267948966
+      },
+      "showClearanceZone": true,
+      "name": "WC RDC"
+    },
+    "cmp_level_rdc_bath_sink": {
+      "id": "cmp_level_rdc_bath_sink",
+      "category": "component",
+      "typeId": "comp_sink",
+      "levelId": "level_rdc",
+      "placement": {
+        "x": 13000,
+        "y": 5600,
+        "rotation": 3.141592653589793
+      },
+      "showClearanceZone": false,
+      "name": "Vasque RDC"
+    },
+    "cmp_level_rdc_bath_shower": {
+      "id": "cmp_level_rdc_bath_shower",
+      "category": "component",
+      "typeId": "comp_shower",
+      "levelId": "level_rdc",
+      "placement": {
+        "x": 11700,
+        "y": 5700,
+        "rotation": 0
+      },
+      "showClearanceZone": true,
+      "name": "Douche RDC"
+    },
+    "cmp_level_rdc_store_cabinet": {
+      "id": "cmp_level_rdc_store_cabinet",
+      "category": "component",
+      "typeId": "comp_storage",
+      "levelId": "level_rdc",
+      "placement": {
+        "x": 14700,
+        "y": 10500,
+        "rotation": 1.5707963267948966
+      },
+      "showClearanceZone": false,
+      "name": "Armoire réserve"
+    },
+    "cmp_level_r1_family_sofa": {
+      "id": "cmp_level_r1_family_sofa",
+      "category": "component",
+      "typeId": "comp_sofa",
+      "levelId": "level_r1",
+      "placement": {
+        "x": 2500,
+        "y": 2500,
+        "rotation": 0
+      },
+      "showClearanceZone": true,
+      "name": "Canapé salon familial"
+    },
+    "cmp_level_r1_master_bed": {
+      "id": "cmp_level_r1_master_bed",
+      "category": "component",
+      "typeId": "comp_bed_double",
+      "levelId": "level_r1",
+      "placement": {
+        "x": 8500,
+        "y": 2500,
+        "rotation": 1.5707963267948966
+      },
+      "showClearanceZone": true,
+      "name": "Lit suite parentale"
+    },
+    "cmp_level_r1_master_wardrobe": {
+      "id": "cmp_level_r1_master_wardrobe",
+      "category": "component",
+      "typeId": "comp_wardrobe",
+      "levelId": "level_r1",
+      "placement": {
+        "x": 10200,
+        "y": 4200,
+        "rotation": 1.5707963267948966
+      },
+      "showClearanceZone": false,
+      "name": "Dressing suite"
+    },
+    "cmp_level_r1_bed2_bed": {
+      "id": "cmp_level_r1_bed2_bed",
+      "category": "component",
+      "typeId": "comp_bed_double",
+      "levelId": "level_r1",
+      "placement": {
+        "x": 2600,
+        "y": 6600,
+        "rotation": 1.5707963267948966
+      },
+      "showClearanceZone": true,
+      "name": "Lit chambre enfant 1"
+    },
+    "cmp_level_r1_bed2_cabinet": {
+      "id": "cmp_level_r1_bed2_cabinet",
+      "category": "component",
+      "typeId": "comp_wardrobe",
+      "levelId": "level_r1",
+      "placement": {
+        "x": 5000,
+        "y": 6500,
+        "rotation": 1.5707963267948966
+      },
+      "showClearanceZone": false,
+      "name": "Armoire chambre enfant 1"
+    },
+    "cmp_level_r1_bed3_bed": {
+      "id": "cmp_level_r1_bed3_bed",
+      "category": "component",
+      "typeId": "comp_bed_double",
+      "levelId": "level_r1",
+      "placement": {
+        "x": 2600,
+        "y": 10100,
+        "rotation": 1.5707963267948966
+      },
+      "showClearanceZone": true,
+      "name": "Lit chambre enfant 2"
+    },
+    "cmp_level_r1_bed3_desk": {
+      "id": "cmp_level_r1_bed3_desk",
+      "category": "component",
+      "typeId": "comp_desk",
+      "levelId": "level_r1",
+      "placement": {
+        "x": 4500,
+        "y": 11000,
+        "rotation": 1.5707963267948966
+      },
+      "showClearanceZone": true,
+      "name": "Bureau chambre enfant 2"
+    },
+    "cmp_level_r1_bed4_bed": {
+      "id": "cmp_level_r1_bed4_bed",
+      "category": "component",
+      "typeId": "comp_bed_double",
+      "levelId": "level_r1",
+      "placement": {
+        "x": 13500,
+        "y": 2500,
+        "rotation": 1.5707963267948966
+      },
+      "showClearanceZone": true,
+      "name": "Lit chambre 4"
+    },
+    "cmp_level_r1_bath_wc": {
+      "id": "cmp_level_r1_bath_wc",
+      "category": "component",
+      "typeId": "comp_toilet",
+      "levelId": "level_r1",
+      "placement": {
+        "x": 11700,
+        "y": 7900,
+        "rotation": 1.5707963267948966
+      },
+      "showClearanceZone": true,
+      "name": "WC étage"
+    },
+    "cmp_level_r1_bath_sink": {
+      "id": "cmp_level_r1_bath_sink",
+      "category": "component",
+      "typeId": "comp_sink",
+      "levelId": "level_r1",
+      "placement": {
+        "x": 13000,
+        "y": 5600,
+        "rotation": 3.141592653589793
+      },
+      "showClearanceZone": false,
+      "name": "Vasque étage"
+    },
+    "cmp_level_r1_bath_bath": {
+      "id": "cmp_level_r1_bath_bath",
+      "category": "component",
+      "typeId": "comp_bath",
+      "levelId": "level_r1",
+      "placement": {
+        "x": 11700,
+        "y": 6200,
+        "rotation": 0
+      },
+      "showClearanceZone": true,
+      "name": "Baignoire étage"
+    },
+    "cmp_level_r1_linen": {
+      "id": "cmp_level_r1_linen",
+      "category": "component",
+      "typeId": "comp_storage",
+      "levelId": "level_r1",
+      "placement": {
+        "x": 14700,
+        "y": 10500,
+        "rotation": 1.5707963267948966
+      },
+      "showClearanceZone": false,
+      "name": "Lingerie R+1"
+    },
+    "cmp_level_r2_lounge_sofa": {
+      "id": "cmp_level_r2_lounge_sofa",
+      "category": "component",
+      "typeId": "comp_sofa",
+      "levelId": "level_r2",
+      "placement": {
+        "x": 2500,
+        "y": 2500,
+        "rotation": 0
+      },
+      "showClearanceZone": true,
+      "name": "Canapé salon R+2"
+    },
+    "cmp_level_r2_studio_desk": {
+      "id": "cmp_level_r2_studio_desk",
+      "category": "component",
+      "typeId": "comp_desk",
+      "levelId": "level_r2",
+      "placement": {
+        "x": 8200,
+        "y": 2500,
+        "rotation": 0
+      },
+      "showClearanceZone": true,
+      "name": "Grand bureau atelier"
+    },
+    "cmp_level_r2_studio_books": {
+      "id": "cmp_level_r2_studio_books",
+      "category": "component",
+      "typeId": "comp_bookcase",
+      "levelId": "level_r2",
+      "placement": {
+        "x": 10200,
+        "y": 4000,
+        "rotation": 1.5707963267948966
+      },
+      "showClearanceZone": false,
+      "name": "Rayonnage atelier"
+    },
+    "cmp_level_r2_guest_bed": {
+      "id": "cmp_level_r2_guest_bed",
+      "category": "component",
+      "typeId": "comp_bed_double",
+      "levelId": "level_r2",
+      "placement": {
+        "x": 2600,
+        "y": 6600,
+        "rotation": 1.5707963267948966
+      },
+      "showClearanceZone": true,
+      "name": "Lit chambre d’appoint"
+    },
+    "cmp_level_r2_library": {
+      "id": "cmp_level_r2_library",
+      "category": "component",
+      "typeId": "comp_bookcase",
+      "levelId": "level_r2",
+      "placement": {
+        "x": 4500,
+        "y": 10500,
+        "rotation": 1.5707963267948966
+      },
+      "showClearanceZone": false,
+      "name": "Bibliothèque R+2"
+    },
+    "cmp_level_r2_wc": {
+      "id": "cmp_level_r2_wc",
+      "category": "component",
+      "typeId": "comp_toilet",
+      "levelId": "level_r2",
+      "placement": {
+        "x": 11700,
+        "y": 7900,
+        "rotation": 1.5707963267948966
+      },
+      "showClearanceZone": true,
+      "name": "WC R+2"
+    },
+    "cmp_level_r2_washbasin": {
+      "id": "cmp_level_r2_washbasin",
+      "category": "component",
+      "typeId": "comp_sink",
+      "levelId": "level_r2",
+      "placement": {
+        "x": 13000,
+        "y": 5600,
+        "rotation": 3.141592653589793
+      },
+      "showClearanceZone": false,
+      "name": "Vasque R+2"
+    },
+    "cmp_level_r2_maintenance": {
+      "id": "cmp_level_r2_maintenance",
+      "category": "component",
+      "typeId": "comp_storage",
+      "levelId": "level_r2",
+      "placement": {
+        "x": 14700,
+        "y": 10500,
+        "rotation": 1.5707963267948966
+      },
+      "showClearanceZone": false,
+      "name": "Rangement entretien"
+    },
+    "cmp_level_r2_glazed_partition": {
+      "id": "cmp_level_r2_glazed_partition",
+      "category": "component",
+      "typeId": "comp_glazing_panel",
+      "levelId": "level_r2",
+      "placement": {
+        "x": 8500,
+        "y": 11200,
+        "rotation": 0
+      },
+      "showClearanceZone": false,
+      "name": "Cloison vitrée intérieure"
+    },
+    "cmp_level_r2_glazed_slider": {
+      "id": "cmp_level_r2_glazed_slider",
+      "category": "component",
+      "typeId": "comp_glazing_slider",
+      "levelId": "level_r2",
+      "placement": {
+        "x": 8500,
+        "y": 10800,
+        "rotation": 0
+      },
+      "showClearanceZone": false,
+      "name": "Porte coulissante vitrée"
+    }
+  },
+  "pipes": {
+    "pipe_ef_main": {
+      "id": "pipe_ef_main",
+      "category": "pipe",
+      "levelId": "level_rdc",
+      "systemId": "sys_ef_rdc",
+      "start": {
+        "x": 14900,
+        "y": 7000,
+        "z": 650
+      },
+      "end": {
+        "x": 14100,
+        "y": 7000,
+        "z": 650
+      },
+      "diameter": 25,
+      "thickness": 3,
+      "material": "PER",
+      "slope": 0,
+      "ports": [
+        {
+          "id": "port_ef_main_a",
+          "elementId": "pipe_ef_main",
+          "position": {
+            "x": 14900,
+            "y": 7000,
+            "z": 650
+          },
+          "direction": {
+            "x": 1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "domestic_cold_water",
+          "shape": "round",
+          "flowDirection": "in",
+          "diameter": 25
+        },
+        {
+          "id": "port_ef_main_b",
+          "elementId": "pipe_ef_main",
+          "position": {
+            "x": 14100,
+            "y": 7000,
+            "z": 650
+          },
+          "direction": {
+            "x": -1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "domestic_cold_water",
+          "shape": "round",
+          "flowDirection": "out",
+          "diameter": 25
+        }
+      ],
+      "name": "Collecteur EF principal"
+    },
+    "pipe_ef_branch": {
+      "id": "pipe_ef_branch",
+      "category": "pipe",
+      "levelId": "level_rdc",
+      "systemId": "sys_ef_rdc",
+      "start": {
+        "x": 14100,
+        "y": 7000,
+        "z": 650
+      },
+      "end": {
+        "x": 14100,
+        "y": 6200,
+        "z": 650
+      },
+      "diameter": 20,
+      "thickness": 3,
+      "material": "PER",
+      "slope": 0,
+      "ports": [
+        {
+          "id": "port_ef_branch_a",
+          "elementId": "pipe_ef_branch",
+          "position": {
+            "x": 14100,
+            "y": 7000,
+            "z": 650
+          },
+          "direction": {
+            "x": 0,
+            "y": 1,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "domestic_cold_water",
+          "shape": "round",
+          "flowDirection": "in",
+          "diameter": 20
+        },
+        {
+          "id": "port_ef_branch_b",
+          "elementId": "pipe_ef_branch",
+          "position": {
+            "x": 14100,
+            "y": 6200,
+            "z": 650
+          },
+          "direction": {
+            "x": 0,
+            "y": -1,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "domestic_cold_water",
+          "shape": "round",
+          "flowDirection": "out",
+          "diameter": 20
+        }
+      ],
+      "name": "Dérivation EF local technique"
+    },
+    "pipe_ef_outlet": {
+      "id": "pipe_ef_outlet",
+      "category": "pipe",
+      "levelId": "level_rdc",
+      "systemId": "sys_ef_rdc",
+      "start": {
+        "x": 14100,
+        "y": 7000,
+        "z": 650
+      },
+      "end": {
+        "x": 13500,
+        "y": 7000,
+        "z": 650
+      },
+      "diameter": 25,
+      "thickness": 3,
+      "material": "PER",
+      "slope": 0,
+      "ports": [
+        {
+          "id": "port_ef_outlet_a",
+          "elementId": "pipe_ef_outlet",
+          "position": {
+            "x": 14100,
+            "y": 7000,
+            "z": 650
+          },
+          "direction": {
+            "x": 1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "domestic_cold_water",
+          "shape": "round",
+          "flowDirection": "bidirectional",
+          "diameter": 25
+        },
+        {
+          "id": "port_ef_outlet_b",
+          "elementId": "pipe_ef_outlet",
+          "position": {
+            "x": 13500,
+            "y": 7000,
+            "z": 650
+          },
+          "direction": {
+            "x": -1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "domestic_cold_water",
+          "shape": "round",
+          "flowDirection": "bidirectional",
+          "diameter": 25
+        }
+      ],
+      "name": "Alimentation EF vers appareils"
+    },
+    "pipe_ecs_main": {
+      "id": "pipe_ecs_main",
+      "category": "pipe",
+      "levelId": "level_rdc",
+      "systemId": "sys_ecs_rdc",
+      "start": {
+        "x": 14950,
+        "y": 7800,
+        "z": 1300
+      },
+      "end": {
+        "x": 14000,
+        "y": 7800,
+        "z": 1300
+      },
+      "diameter": 20,
+      "thickness": 3,
+      "material": "multicouche",
+      "slope": 0,
+      "ports": [
+        {
+          "id": "port_ecs_main_a",
+          "elementId": "pipe_ecs_main",
+          "position": {
+            "x": 14950,
+            "y": 7800,
+            "z": 1300
+          },
+          "direction": {
+            "x": 1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "domestic_hot_water",
+          "shape": "round",
+          "flowDirection": "in",
+          "diameter": 20
+        },
+        {
+          "id": "port_ecs_main_b",
+          "elementId": "pipe_ecs_main",
+          "position": {
+            "x": 14000,
+            "y": 7800,
+            "z": 1300
+          },
+          "direction": {
+            "x": -1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "domestic_hot_water",
+          "shape": "round",
+          "flowDirection": "out",
+          "diameter": 20
+        }
+      ],
+      "name": "Départ ECS ballon"
+    },
+    "pipe_ecs_return": {
+      "id": "pipe_ecs_return",
+      "category": "pipe",
+      "levelId": "level_rdc",
+      "systemId": "sys_ecs_rdc",
+      "start": {
+        "x": 14000,
+        "y": 8000,
+        "z": 800
+      },
+      "end": {
+        "x": 14950,
+        "y": 8000,
+        "z": 800
+      },
+      "diameter": 20,
+      "thickness": 3,
+      "material": "multicouche",
+      "slope": 0,
+      "ports": [
+        {
+          "id": "port_ecs_return_a",
+          "elementId": "pipe_ecs_return",
+          "position": {
+            "x": 14000,
+            "y": 8000,
+            "z": 800
+          },
+          "direction": {
+            "x": -1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "domestic_hot_water",
+          "shape": "round",
+          "flowDirection": "in",
+          "diameter": 20
+        },
+        {
+          "id": "port_ecs_return_b",
+          "elementId": "pipe_ecs_return",
+          "position": {
+            "x": 14950,
+            "y": 8000,
+            "z": 800
+          },
+          "direction": {
+            "x": 1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "domestic_hot_water",
+          "shape": "round",
+          "flowDirection": "out",
+          "diameter": 20
+        }
+      ],
+      "name": "Retour ECS"
+    },
+    "pipe_probe_solid_wall": {
+      "id": "pipe_probe_solid_wall",
+      "category": "pipe",
+      "levelId": "level_rdc",
+      "systemId": "sys_clash_probes",
+      "start": {
+        "x": 5700,
+        "y": 2500,
+        "z": 1400
+      },
+      "end": {
+        "x": 6300,
+        "y": 2500,
+        "z": 1400
+      },
+      "diameter": 20,
+      "thickness": 3,
+      "material": "PER",
+      "slope": 0,
+      "ports": [
+        {
+          "id": "port_probe_wall_a",
+          "elementId": "pipe_probe_solid_wall",
+          "position": {
+            "x": 5700,
+            "y": 2500,
+            "z": 1400
+          },
+          "direction": {
+            "x": -1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "domestic_cold_water",
+          "shape": "round",
+          "flowDirection": "bidirectional",
+          "diameter": 20
+        },
+        {
+          "id": "port_probe_wall_b",
+          "elementId": "pipe_probe_solid_wall",
+          "position": {
+            "x": 6300,
+            "y": 2500,
+            "z": 1400
+          },
+          "direction": {
+            "x": 1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "domestic_cold_water",
+          "shape": "round",
+          "flowDirection": "bidirectional",
+          "diameter": 20
+        }
+      ],
+      "name": "PROBE — traversée volontaire d’un mur plein"
+    },
+    "pipe_probe_window_wall": {
+      "id": "pipe_probe_window_wall",
+      "category": "pipe",
+      "levelId": "level_rdc",
+      "systemId": "sys_clash_probes",
+      "start": {
+        "x": -250,
+        "y": 2200,
+        "z": 1500
+      },
+      "end": {
+        "x": 250,
+        "y": 2200,
+        "z": 1500
+      },
+      "diameter": 20,
+      "thickness": 3,
+      "material": "PER",
+      "slope": 0,
+      "ports": [
+        {
+          "id": "port_probe_window_a",
+          "elementId": "pipe_probe_window_wall",
+          "position": {
+            "x": -250,
+            "y": 2200,
+            "z": 1500
+          },
+          "direction": {
+            "x": -1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "domestic_cold_water",
+          "shape": "round",
+          "flowDirection": "bidirectional",
+          "diameter": 20
+        },
+        {
+          "id": "port_probe_window_b",
+          "elementId": "pipe_probe_window_wall",
+          "position": {
+            "x": 250,
+            "y": 2200,
+            "z": 1500
+          },
+          "direction": {
+            "x": 1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "domestic_cold_water",
+          "shape": "round",
+          "flowDirection": "bidirectional",
+          "diameter": 20
+        }
+      ],
+      "name": "PROBE — traversée volontaire dans une fenêtre existante"
+    },
+    "pipe_hydronic_hp_pump": {
+      "id": "pipe_hydronic_hp_pump",
+      "category": "pipe",
+      "levelId": "level_r2",
+      "systemId": "sys_hydronic_supply_r2",
+      "start": {
+        "x": 15200,
+        "y": 7000,
+        "z": 6600
+      },
+      "end": {
+        "x": 14900,
+        "y": 7000,
+        "z": 6600
+      },
+      "diameter": 32,
+      "thickness": 3,
+      "material": "cuivre",
+      "slope": 0,
+      "ports": [
+        {
+          "id": "port_hyd_hp_a",
+          "elementId": "pipe_hydronic_hp_pump",
+          "position": {
+            "x": 15200,
+            "y": 7000,
+            "z": 6600
+          },
+          "direction": {
+            "x": 1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "hydronic",
+          "systemType": "hydronic_supply",
+          "shape": "round",
+          "flowDirection": "in",
+          "diameter": 32
+        },
+        {
+          "id": "port_hyd_hp_b",
+          "elementId": "pipe_hydronic_hp_pump",
+          "position": {
+            "x": 14900,
+            "y": 7000,
+            "z": 6600
+          },
+          "direction": {
+            "x": -1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "hydronic",
+          "systemType": "hydronic_supply",
+          "shape": "round",
+          "flowDirection": "out",
+          "diameter": 32
+        }
+      ],
+      "name": "Départ PAC vers circulateur"
+    },
+    "pipe_hydronic_radiator": {
+      "id": "pipe_hydronic_radiator",
+      "category": "pipe",
+      "levelId": "level_r2",
+      "systemId": "sys_hydronic_supply_r2",
+      "start": {
+        "x": 14500,
+        "y": 7000,
+        "z": 6600
+      },
+      "end": {
+        "x": 14000,
+        "y": 7000,
+        "z": 6600
+      },
+      "diameter": 32,
+      "thickness": 3,
+      "material": "cuivre",
+      "slope": 0,
+      "ports": [
+        {
+          "id": "port_hyd_rad_a",
+          "elementId": "pipe_hydronic_radiator",
+          "position": {
+            "x": 14500,
+            "y": 7000,
+            "z": 6600
+          },
+          "direction": {
+            "x": 1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "hydronic",
+          "systemType": "hydronic_supply",
+          "shape": "round",
+          "flowDirection": "in",
+          "diameter": 32
+        },
+        {
+          "id": "port_hyd_rad_b",
+          "elementId": "pipe_hydronic_radiator",
+          "position": {
+            "x": 14000,
+            "y": 7000,
+            "z": 6600
+          },
+          "direction": {
+            "x": -1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "hydronic",
+          "systemType": "hydronic_supply",
+          "shape": "round",
+          "flowDirection": "out",
+          "diameter": 32
+        }
+      ],
+      "name": "Départ vers émetteur"
+    },
+    "pipe_drain_waste_rdc": {
+      "id": "pipe_drain_waste_rdc",
+      "category": "pipe",
+      "levelId": "level_rdc",
+      "systemId": "sys_drainage_waste_rdc",
+      "start": {
+        "x": 11800,
+        "y": 7600,
+        "z": 250
+      },
+      "end": {
+        "x": 12600,
+        "y": 7600,
+        "z": 234
+      },
+      "diameter": 100,
+      "thickness": 3,
+      "material": "PVC",
+      "slope": 0,
+      "ports": [
+        {
+          "id": "port_drain_a",
+          "elementId": "pipe_drain_waste_rdc",
+          "position": {
+            "x": 11800,
+            "y": 7600,
+            "z": 250
+          },
+          "direction": {
+            "x": -1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "drainage_waste",
+          "shape": "round",
+          "flowDirection": "in",
+          "diameter": 100,
+          "label": "Collecte EU"
+        },
+        {
+          "id": "port_drain_b",
+          "elementId": "pipe_drain_waste_rdc",
+          "position": {
+            "x": 12600,
+            "y": 7600,
+            "z": 234
+          },
+          "direction": {
+            "x": 1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "drainage_waste",
+          "shape": "round",
+          "flowDirection": "out",
+          "diameter": 100,
+          "label": "Départ EU"
+        }
+      ],
+      "name": "Collecteur eaux usées avec pente 2 %"
+    },
+    "pipe_loop_ab": {
+      "id": "pipe_loop_ab",
+      "category": "pipe",
+      "levelId": "level_r2",
+      "systemId": "sys_hydronic_closed_loop_r2",
+      "start": {
+        "x": 2000,
+        "y": 5500,
+        "z": 7000
+      },
+      "end": {
+        "x": 4000,
+        "y": 5500,
+        "z": 7000
+      },
+      "diameter": 20,
+      "thickness": 3,
+      "material": "cuivre",
+      "slope": 0,
+      "ports": [
+        {
+          "id": "port_loop_ab_a",
+          "elementId": "pipe_loop_ab",
+          "position": {
+            "x": 2000,
+            "y": 5500,
+            "z": 7000
+          },
+          "direction": {
+            "x": -1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "hydronic",
+          "systemType": "hydronic_supply",
+          "shape": "round",
+          "flowDirection": "bidirectional",
+          "diameter": 20
+        },
+        {
+          "id": "port_loop_ab_b",
+          "elementId": "pipe_loop_ab",
+          "position": {
+            "x": 4000,
+            "y": 5500,
+            "z": 7000
+          },
+          "direction": {
+            "x": 1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "hydronic",
+          "systemType": "hydronic_supply",
+          "shape": "round",
+          "flowDirection": "bidirectional",
+          "diameter": 20
+        }
+      ],
+      "name": "Boucle hydronique AB"
+    },
+    "pipe_loop_bc": {
+      "id": "pipe_loop_bc",
+      "category": "pipe",
+      "levelId": "level_r2",
+      "systemId": "sys_hydronic_closed_loop_r2",
+      "start": {
+        "x": 4000,
+        "y": 5500,
+        "z": 7000
+      },
+      "end": {
+        "x": 4000,
+        "y": 7500,
+        "z": 7000
+      },
+      "diameter": 20,
+      "thickness": 3,
+      "material": "cuivre",
+      "slope": 0,
+      "ports": [
+        {
+          "id": "port_loop_bc_b",
+          "elementId": "pipe_loop_bc",
+          "position": {
+            "x": 4000,
+            "y": 5500,
+            "z": 7000
+          },
+          "direction": {
+            "x": 0,
+            "y": -1,
+            "z": 0
+          },
+          "domain": "hydronic",
+          "systemType": "hydronic_supply",
+          "shape": "round",
+          "flowDirection": "bidirectional",
+          "diameter": 20
+        },
+        {
+          "id": "port_loop_bc_c",
+          "elementId": "pipe_loop_bc",
+          "position": {
+            "x": 4000,
+            "y": 7500,
+            "z": 7000
+          },
+          "direction": {
+            "x": 0,
+            "y": 1,
+            "z": 0
+          },
+          "domain": "hydronic",
+          "systemType": "hydronic_supply",
+          "shape": "round",
+          "flowDirection": "bidirectional",
+          "diameter": 20
+        }
+      ],
+      "name": "Boucle hydronique BC"
+    },
+    "pipe_loop_cd": {
+      "id": "pipe_loop_cd",
+      "category": "pipe",
+      "levelId": "level_r2",
+      "systemId": "sys_hydronic_closed_loop_r2",
+      "start": {
+        "x": 4000,
+        "y": 7500,
+        "z": 7000
+      },
+      "end": {
+        "x": 2000,
+        "y": 7500,
+        "z": 7000
+      },
+      "diameter": 20,
+      "thickness": 3,
+      "material": "cuivre",
+      "slope": 0,
+      "ports": [
+        {
+          "id": "port_loop_cd_c",
+          "elementId": "pipe_loop_cd",
+          "position": {
+            "x": 4000,
+            "y": 7500,
+            "z": 7000
+          },
+          "direction": {
+            "x": 1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "hydronic",
+          "systemType": "hydronic_supply",
+          "shape": "round",
+          "flowDirection": "bidirectional",
+          "diameter": 20
+        },
+        {
+          "id": "port_loop_cd_d",
+          "elementId": "pipe_loop_cd",
+          "position": {
+            "x": 2000,
+            "y": 7500,
+            "z": 7000
+          },
+          "direction": {
+            "x": -1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "hydronic",
+          "systemType": "hydronic_supply",
+          "shape": "round",
+          "flowDirection": "bidirectional",
+          "diameter": 20
+        }
+      ],
+      "name": "Boucle hydronique CD"
+    },
+    "pipe_loop_da": {
+      "id": "pipe_loop_da",
+      "category": "pipe",
+      "levelId": "level_r2",
+      "systemId": "sys_hydronic_closed_loop_r2",
+      "start": {
+        "x": 2000,
+        "y": 7500,
+        "z": 7000
+      },
+      "end": {
+        "x": 2000,
+        "y": 5500,
+        "z": 7000
+      },
+      "diameter": 20,
+      "thickness": 3,
+      "material": "cuivre",
+      "slope": 0,
+      "ports": [
+        {
+          "id": "port_loop_da_d",
+          "elementId": "pipe_loop_da",
+          "position": {
+            "x": 2000,
+            "y": 7500,
+            "z": 7000
+          },
+          "direction": {
+            "x": 0,
+            "y": 1,
+            "z": 0
+          },
+          "domain": "hydronic",
+          "systemType": "hydronic_supply",
+          "shape": "round",
+          "flowDirection": "bidirectional",
+          "diameter": 20
+        },
+        {
+          "id": "port_loop_da_a",
+          "elementId": "pipe_loop_da",
+          "position": {
+            "x": 2000,
+            "y": 5500,
+            "z": 7000
+          },
+          "direction": {
+            "x": 0,
+            "y": -1,
+            "z": 0
+          },
+          "domain": "hydronic",
+          "systemType": "hydronic_supply",
+          "shape": "round",
+          "flowDirection": "bidirectional",
+          "diameter": 20
+        }
+      ],
+      "name": "Boucle hydronique DA"
+    }
+  },
+  "ducts": {
+    "duct_supply_main": {
+      "id": "duct_supply_main",
+      "category": "duct",
+      "levelId": "level_rdc",
+      "systemId": "sys_hvac_supply",
+      "start": {
+        "x": 14600,
+        "y": 2500,
+        "z": 2450
+      },
+      "end": {
+        "x": 13200,
+        "y": 2500,
+        "z": 2450
+      },
+      "shape": "rectangular",
+      "width": 500,
+      "height": 300,
+      "insulationThickness": 25,
+      "ports": [
+        {
+          "id": "port_duct_supply_a",
+          "elementId": "duct_supply_main",
+          "position": {
+            "x": 14600,
+            "y": 2500,
+            "z": 2450
+          },
+          "direction": {
+            "x": 1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "hvac",
+          "systemType": "supply_air",
+          "shape": "rectangular",
+          "flowDirection": "in",
+          "width": 500,
+          "height": 300
+        },
+        {
+          "id": "port_duct_supply_b",
+          "elementId": "duct_supply_main",
+          "position": {
+            "x": 13200,
+            "y": 2500,
+            "z": 2450
+          },
+          "direction": {
+            "x": -1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "hvac",
+          "systemType": "supply_air",
+          "shape": "rectangular",
+          "flowDirection": "out",
+          "width": 500,
+          "height": 300
+        }
+      ],
+      "name": "Gaine soufflage principale"
+    },
+    "duct_extract_wc": {
+      "id": "duct_extract_wc",
+      "category": "duct",
+      "levelId": "level_rdc",
+      "systemId": "sys_hvac_extract",
+      "start": {
+        "x": 14800,
+        "y": 4200,
+        "z": 2400
+      },
+      "end": {
+        "x": 14000,
+        "y": 4200,
+        "z": 2400
+      },
+      "shape": "rectangular",
+      "width": 250,
+      "height": 250,
+      "insulationThickness": 25,
+      "ports": [
+        {
+          "id": "port_extract_a",
+          "elementId": "duct_extract_wc",
+          "position": {
+            "x": 14800,
+            "y": 4200,
+            "z": 2400
+          },
+          "direction": {
+            "x": 1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "hvac",
+          "systemType": "exhaust_air",
+          "shape": "round",
+          "flowDirection": "in",
+          "diameter": 250
+        },
+        {
+          "id": "port_extract_b",
+          "elementId": "duct_extract_wc",
+          "position": {
+            "x": 14000,
+            "y": 4200,
+            "z": 2400
+          },
+          "direction": {
+            "x": -1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "hvac",
+          "systemType": "exhaust_air",
+          "shape": "round",
+          "flowDirection": "out",
+          "diameter": 250
+        }
+      ],
+      "name": "Gaine extraction sanitaire"
+    }
+  },
+  "cableTrays": {
+    "tray_power_rdc": {
+      "id": "tray_power_rdc",
+      "category": "cableTray",
+      "levelId": "level_rdc",
+      "systemId": "sys_electrical_power",
+      "start": {
+        "x": 14800,
+        "y": 1200,
+        "z": 1600
+      },
+      "end": {
+        "x": 13500,
+        "y": 1200,
+        "z": 1600
+      },
+      "width": 100,
+      "height": 50,
+      "ports": [
+        {
+          "id": "port_tray_a",
+          "elementId": "tray_power_rdc",
+          "position": {
+            "x": 14800,
+            "y": 1200,
+            "z": 1600
+          },
+          "direction": {
+            "x": 1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "electrical",
+          "systemType": "power",
+          "shape": "rectangular",
+          "flowDirection": "in",
+          "width": 100,
+          "height": 50
+        },
+        {
+          "id": "port_tray_b",
+          "elementId": "tray_power_rdc",
+          "position": {
+            "x": 13500,
+            "y": 1200,
+            "z": 1600
+          },
+          "direction": {
+            "x": -1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "electrical",
+          "systemType": "power",
+          "shape": "rectangular",
+          "flowDirection": "out",
+          "width": 100,
+          "height": 50
+        }
+      ],
+      "name": "Chemin de câbles principal RDC"
+    },
+    "tray_telecom_r1": {
+      "id": "tray_telecom_r1",
+      "category": "cableTray",
+      "levelId": "level_r1",
+      "systemId": "sys_telecom_r1",
+      "start": {
+        "x": 14500,
+        "y": 1200,
+        "z": 3900
+      },
+      "end": {
+        "x": 13500,
+        "y": 1200,
+        "z": 3900
+      },
+      "width": 100,
+      "height": 50,
+      "ports": [
+        {
+          "id": "port_telecom_a",
+          "elementId": "tray_telecom_r1",
+          "position": {
+            "x": 14500,
+            "y": 1200,
+            "z": 3900
+          },
+          "direction": {
+            "x": 1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "electrical",
+          "systemType": "telecom",
+          "shape": "rectangular",
+          "flowDirection": "in",
+          "width": 100,
+          "height": 50
+        },
+        {
+          "id": "port_telecom_b",
+          "elementId": "tray_telecom_r1",
+          "position": {
+            "x": 13500,
+            "y": 1200,
+            "z": 3900
+          },
+          "direction": {
+            "x": -1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "electrical",
+          "systemType": "telecom",
+          "shape": "rectangular",
+          "flowDirection": "out",
+          "width": 100,
+          "height": 50
+        }
+      ],
+      "name": "Chemin de câbles VDI / télécom R+1"
+    }
+  },
+  "mepFittings": {
+    "fit_ef_tee": {
+      "id": "fit_ef_tee",
+      "category": "mepFitting",
+      "levelId": "level_rdc",
+      "systemId": "sys_ef_rdc",
+      "fittingType": "tee",
+      "domain": "plumbing",
+      "systemType": "domestic_cold_water",
+      "position": {
+        "x": 14100,
+        "y": 7000,
+        "z": 650
+      },
+      "ports": [
+        {
+          "id": "port_ef_tee_in",
+          "elementId": "fit_ef_tee",
+          "position": {
+            "x": 14100,
+            "y": 7000,
+            "z": 650
+          },
+          "direction": {
+            "x": 1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "domestic_cold_water",
+          "shape": "round",
+          "flowDirection": "bidirectional",
+          "diameter": 25
+        },
+        {
+          "id": "port_ef_tee_branch",
+          "elementId": "fit_ef_tee",
+          "position": {
+            "x": 14100,
+            "y": 7000,
+            "z": 650
+          },
+          "direction": {
+            "x": 0,
+            "y": -1,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "domestic_cold_water",
+          "shape": "round",
+          "flowDirection": "bidirectional",
+          "diameter": 20
+        },
+        {
+          "id": "port_ef_tee_out",
+          "elementId": "fit_ef_tee",
+          "position": {
+            "x": 14100,
+            "y": 7000,
+            "z": 650
+          },
+          "direction": {
+            "x": -1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "domestic_cold_water",
+          "shape": "round",
+          "flowDirection": "bidirectional",
+          "diameter": 25
+        }
+      ],
+      "name": "Té de distribution EF"
+    },
+    "fit_catalog_elbow": {
+      "id": "fit_catalog_elbow",
+      "category": "mepFitting",
+      "levelId": "level_r2",
+      "systemId": "sys_fitting_catalog_r2",
+      "fittingType": "elbow",
+      "domain": "plumbing",
+      "systemType": "domestic_cold_water",
+      "position": {
+        "x": 7000,
+        "y": 6000,
+        "z": 6250
+      },
+      "ports": [
+        {
+          "id": "port_elbow_a",
+          "elementId": "fit_catalog_elbow",
+          "position": {
+            "x": 7000,
+            "y": 6000,
+            "z": 6250
+          },
+          "direction": {
+            "x": -1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "domestic_cold_water",
+          "shape": "round",
+          "flowDirection": "bidirectional",
+          "diameter": 20
+        },
+        {
+          "id": "port_elbow_b",
+          "elementId": "fit_catalog_elbow",
+          "position": {
+            "x": 7000,
+            "y": 6100,
+            "z": 6250
+          },
+          "direction": {
+            "x": 0,
+            "y": 1,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "domestic_cold_water",
+          "shape": "round",
+          "flowDirection": "bidirectional",
+          "diameter": 20
+        }
+      ],
+      "name": "Raccord catalogue — coude 90°"
+    },
+    "fit_catalog_cross": {
+      "id": "fit_catalog_cross",
+      "category": "mepFitting",
+      "levelId": "level_r2",
+      "systemId": "sys_fitting_catalog_r2",
+      "fittingType": "cross",
+      "domain": "plumbing",
+      "systemType": "domestic_cold_water",
+      "position": {
+        "x": 7600,
+        "y": 6000,
+        "z": 6250
+      },
+      "ports": [
+        {
+          "id": "port_cross_w",
+          "elementId": "fit_catalog_cross",
+          "position": {
+            "x": 7600,
+            "y": 6000,
+            "z": 6250
+          },
+          "direction": {
+            "x": -1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "domestic_cold_water",
+          "shape": "round",
+          "flowDirection": "bidirectional",
+          "diameter": 20
+        },
+        {
+          "id": "port_cross_e",
+          "elementId": "fit_catalog_cross",
+          "position": {
+            "x": 7600,
+            "y": 6000,
+            "z": 6250
+          },
+          "direction": {
+            "x": 1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "domestic_cold_water",
+          "shape": "round",
+          "flowDirection": "bidirectional",
+          "diameter": 20
+        },
+        {
+          "id": "port_cross_s",
+          "elementId": "fit_catalog_cross",
+          "position": {
+            "x": 7600,
+            "y": 6000,
+            "z": 6250
+          },
+          "direction": {
+            "x": 0,
+            "y": -1,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "domestic_cold_water",
+          "shape": "round",
+          "flowDirection": "bidirectional",
+          "diameter": 20
+        },
+        {
+          "id": "port_cross_n",
+          "elementId": "fit_catalog_cross",
+          "position": {
+            "x": 7600,
+            "y": 6000,
+            "z": 6250
+          },
+          "direction": {
+            "x": 0,
+            "y": 1,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "domestic_cold_water",
+          "shape": "round",
+          "flowDirection": "bidirectional",
+          "diameter": 20
+        }
+      ],
+      "name": "Raccord catalogue — croix 4 voies"
+    },
+    "fit_catalog_transition": {
+      "id": "fit_catalog_transition",
+      "category": "mepFitting",
+      "levelId": "level_r2",
+      "systemId": "sys_fitting_catalog_r2",
+      "fittingType": "transition",
+      "domain": "plumbing",
+      "systemType": "domestic_cold_water",
+      "position": {
+        "x": 8200,
+        "y": 6000,
+        "z": 6250
+      },
+      "ports": [
+        {
+          "id": "port_transition_a",
+          "elementId": "fit_catalog_transition",
+          "position": {
+            "x": 8150,
+            "y": 6000,
+            "z": 6250
+          },
+          "direction": {
+            "x": -1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "domestic_cold_water",
+          "shape": "round",
+          "flowDirection": "bidirectional",
+          "diameter": 25
+        },
+        {
+          "id": "port_transition_b",
+          "elementId": "fit_catalog_transition",
+          "position": {
+            "x": 8250,
+            "y": 6000,
+            "z": 6250
+          },
+          "direction": {
+            "x": 1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "domestic_cold_water",
+          "shape": "round",
+          "flowDirection": "bidirectional",
+          "diameter": 15
+        }
+      ],
+      "name": "Raccord catalogue — réduction 25/15"
+    },
+    "fit_catalog_cap": {
+      "id": "fit_catalog_cap",
+      "category": "mepFitting",
+      "levelId": "level_r2",
+      "systemId": "sys_fitting_catalog_r2",
+      "fittingType": "cap",
+      "domain": "plumbing",
+      "systemType": "domestic_cold_water",
+      "position": {
+        "x": 8800,
+        "y": 6000,
+        "z": 6250
+      },
+      "ports": [
+        {
+          "id": "port_cap",
+          "elementId": "fit_catalog_cap",
+          "position": {
+            "x": 8800,
+            "y": 6000,
+            "z": 6250
+          },
+          "direction": {
+            "x": 1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "domestic_cold_water",
+          "shape": "round",
+          "flowDirection": "bidirectional",
+          "diameter": 20
+        }
+      ],
+      "name": "Raccord catalogue — bouchon"
+    },
+    "fit_loop_a": {
+      "id": "fit_loop_a",
+      "category": "mepFitting",
+      "levelId": "level_r2",
+      "systemId": "sys_hydronic_closed_loop_r2",
+      "fittingType": "elbow",
+      "domain": "hydronic",
+      "systemType": "hydronic_supply",
+      "position": {
+        "x": 2000,
+        "y": 5500,
+        "z": 7000
+      },
+      "ports": [
+        {
+          "id": "port_loop_a_1",
+          "elementId": "fit_loop_a",
+          "position": {
+            "x": 2000,
+            "y": 5500,
+            "z": 7000
+          },
+          "direction": {
+            "x": 0,
+            "y": 1,
+            "z": 0
+          },
+          "domain": "hydronic",
+          "systemType": "hydronic_supply",
+          "shape": "round",
+          "flowDirection": "bidirectional",
+          "diameter": 20
+        },
+        {
+          "id": "port_loop_a_2",
+          "elementId": "fit_loop_a",
+          "position": {
+            "x": 2000,
+            "y": 5500,
+            "z": 7000
+          },
+          "direction": {
+            "x": 1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "hydronic",
+          "systemType": "hydronic_supply",
+          "shape": "round",
+          "flowDirection": "bidirectional",
+          "diameter": 20
+        }
+      ],
+      "name": "Coude boucle A"
+    },
+    "fit_loop_b": {
+      "id": "fit_loop_b",
+      "category": "mepFitting",
+      "levelId": "level_r2",
+      "systemId": "sys_hydronic_closed_loop_r2",
+      "fittingType": "elbow",
+      "domain": "hydronic",
+      "systemType": "hydronic_supply",
+      "position": {
+        "x": 4000,
+        "y": 5500,
+        "z": 7000
+      },
+      "ports": [
+        {
+          "id": "port_loop_b_1",
+          "elementId": "fit_loop_b",
+          "position": {
+            "x": 4000,
+            "y": 5500,
+            "z": 7000
+          },
+          "direction": {
+            "x": -1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "hydronic",
+          "systemType": "hydronic_supply",
+          "shape": "round",
+          "flowDirection": "bidirectional",
+          "diameter": 20
+        },
+        {
+          "id": "port_loop_b_2",
+          "elementId": "fit_loop_b",
+          "position": {
+            "x": 4000,
+            "y": 5500,
+            "z": 7000
+          },
+          "direction": {
+            "x": 0,
+            "y": 1,
+            "z": 0
+          },
+          "domain": "hydronic",
+          "systemType": "hydronic_supply",
+          "shape": "round",
+          "flowDirection": "bidirectional",
+          "diameter": 20
+        }
+      ],
+      "name": "Coude boucle B"
+    },
+    "fit_loop_c": {
+      "id": "fit_loop_c",
+      "category": "mepFitting",
+      "levelId": "level_r2",
+      "systemId": "sys_hydronic_closed_loop_r2",
+      "fittingType": "elbow",
+      "domain": "hydronic",
+      "systemType": "hydronic_supply",
+      "position": {
+        "x": 4000,
+        "y": 7500,
+        "z": 7000
+      },
+      "ports": [
+        {
+          "id": "port_loop_c_1",
+          "elementId": "fit_loop_c",
+          "position": {
+            "x": 4000,
+            "y": 7500,
+            "z": 7000
+          },
+          "direction": {
+            "x": 0,
+            "y": -1,
+            "z": 0
+          },
+          "domain": "hydronic",
+          "systemType": "hydronic_supply",
+          "shape": "round",
+          "flowDirection": "bidirectional",
+          "diameter": 20
+        },
+        {
+          "id": "port_loop_c_2",
+          "elementId": "fit_loop_c",
+          "position": {
+            "x": 4000,
+            "y": 7500,
+            "z": 7000
+          },
+          "direction": {
+            "x": -1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "hydronic",
+          "systemType": "hydronic_supply",
+          "shape": "round",
+          "flowDirection": "bidirectional",
+          "diameter": 20
+        }
+      ],
+      "name": "Coude boucle C"
+    },
+    "fit_loop_d": {
+      "id": "fit_loop_d",
+      "category": "mepFitting",
+      "levelId": "level_r2",
+      "systemId": "sys_hydronic_closed_loop_r2",
+      "fittingType": "elbow",
+      "domain": "hydronic",
+      "systemType": "hydronic_supply",
+      "position": {
+        "x": 2000,
+        "y": 7500,
+        "z": 7000
+      },
+      "ports": [
+        {
+          "id": "port_loop_d_1",
+          "elementId": "fit_loop_d",
+          "position": {
+            "x": 2000,
+            "y": 7500,
+            "z": 7000
+          },
+          "direction": {
+            "x": 1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "hydronic",
+          "systemType": "hydronic_supply",
+          "shape": "round",
+          "flowDirection": "bidirectional",
+          "diameter": 20
+        },
+        {
+          "id": "port_loop_d_2",
+          "elementId": "fit_loop_d",
+          "position": {
+            "x": 2000,
+            "y": 7500,
+            "z": 7000
+          },
+          "direction": {
+            "x": 0,
+            "y": -1,
+            "z": 0
+          },
+          "domain": "hydronic",
+          "systemType": "hydronic_supply",
+          "shape": "round",
+          "flowDirection": "bidirectional",
+          "diameter": 20
+        }
+      ],
+      "name": "Coude boucle D"
+    }
+  },
+  "mepEquipments": {
+    "eq_meter_ef": {
+      "id": "eq_meter_ef",
+      "category": "mepEquipment",
+      "levelId": "level_rdc",
+      "family": "meter",
+      "position": {
+        "x": 15100,
+        "y": 7000,
+        "z": 650
+      },
+      "rotation": 0,
+      "width": 300,
+      "depth": 300,
+      "height": 650,
+      "ports": [
+        {
+          "id": "port_meter_ef_out",
+          "elementId": "eq_meter_ef",
+          "position": {
+            "x": 14900,
+            "y": 7000,
+            "z": 650
+          },
+          "direction": {
+            "x": -1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "domestic_cold_water",
+          "shape": "round",
+          "flowDirection": "out",
+          "diameter": 25,
+          "label": "EF départ"
+        }
+      ],
+      "name": "Compteur eau froide",
+      "systemId": "sys_ef_rdc"
+    },
+    "eq_valve_ef": {
+      "id": "eq_valve_ef",
+      "category": "mepEquipment",
+      "levelId": "level_rdc",
+      "family": "valve",
+      "position": {
+        "x": 14100,
+        "y": 6000,
+        "z": 650
+      },
+      "rotation": 0,
+      "width": 180,
+      "depth": 180,
+      "height": 250,
+      "ports": [
+        {
+          "id": "port_valve_ef",
+          "elementId": "eq_valve_ef",
+          "position": {
+            "x": 14100,
+            "y": 6200,
+            "z": 650
+          },
+          "direction": {
+            "x": 0,
+            "y": 1,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "domestic_cold_water",
+          "shape": "round",
+          "flowDirection": "bidirectional",
+          "diameter": 20
+        }
+      ],
+      "name": "Vanne de coupure EF",
+      "systemId": "sys_ef_rdc"
+    },
+    "eq_water_heater": {
+      "id": "eq_water_heater",
+      "category": "mepEquipment",
+      "levelId": "level_rdc",
+      "family": "water_heater",
+      "position": {
+        "x": 15300,
+        "y": 7800,
+        "z": 900
+      },
+      "rotation": 0,
+      "width": 650,
+      "depth": 700,
+      "height": 1800,
+      "ports": [
+        {
+          "id": "port_ecs_out",
+          "elementId": "eq_water_heater",
+          "position": {
+            "x": 14950,
+            "y": 7800,
+            "z": 1300
+          },
+          "direction": {
+            "x": -1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "domestic_hot_water",
+          "shape": "round",
+          "flowDirection": "out",
+          "diameter": 20,
+          "label": "ECS départ"
+        },
+        {
+          "id": "port_ecs_return",
+          "elementId": "eq_water_heater",
+          "position": {
+            "x": 14950,
+            "y": 8000,
+            "z": 800
+          },
+          "direction": {
+            "x": -1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "domestic_hot_water",
+          "shape": "round",
+          "flowDirection": "in",
+          "diameter": 20,
+          "label": "ECS retour"
+        }
+      ],
+      "name": "Ballon ECS 300 litres",
+      "systemId": "sys_ecs_rdc"
+    },
+    "eq_valve_ecs": {
+      "id": "eq_valve_ecs",
+      "category": "mepEquipment",
+      "levelId": "level_rdc",
+      "family": "valve",
+      "position": {
+        "x": 13750,
+        "y": 7800,
+        "z": 1300
+      },
+      "rotation": 0,
+      "width": 180,
+      "depth": 180,
+      "height": 250,
+      "ports": [
+        {
+          "id": "port_valve_ecs",
+          "elementId": "eq_valve_ecs",
+          "position": {
+            "x": 14000,
+            "y": 7800,
+            "z": 1300
+          },
+          "direction": {
+            "x": 1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "plumbing",
+          "systemType": "domestic_hot_water",
+          "shape": "round",
+          "flowDirection": "bidirectional",
+          "diameter": 20
+        }
+      ],
+      "name": "Vanne ECS",
+      "systemId": "sys_ecs_rdc"
+    },
+    "eq_ahu_rdc": {
+      "id": "eq_ahu_rdc",
+      "category": "mepEquipment",
+      "levelId": "level_rdc",
+      "family": "ahu",
+      "position": {
+        "x": 15100,
+        "y": 2500,
+        "z": 2450
+      },
+      "rotation": 0,
+      "width": 900,
+      "depth": 700,
+      "height": 900,
+      "ports": [
+        {
+          "id": "port_ahu_supply",
+          "elementId": "eq_ahu_rdc",
+          "position": {
+            "x": 14600,
+            "y": 2500,
+            "z": 2450
+          },
+          "direction": {
+            "x": -1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "hvac",
+          "systemType": "supply_air",
+          "shape": "rectangular",
+          "flowDirection": "out",
+          "width": 500,
+          "height": 300,
+          "label": "Soufflage"
+        }
+      ],
+      "name": "CTA compacte RDC",
+      "systemId": "sys_hvac_supply"
+    },
+    "eq_fan_supply": {
+      "id": "eq_fan_supply",
+      "category": "mepEquipment",
+      "levelId": "level_rdc",
+      "family": "fan",
+      "position": {
+        "x": 12700,
+        "y": 2500,
+        "z": 2450
+      },
+      "rotation": 0,
+      "width": 500,
+      "depth": 500,
+      "height": 500,
+      "ports": [
+        {
+          "id": "port_fan_supply",
+          "elementId": "eq_fan_supply",
+          "position": {
+            "x": 13200,
+            "y": 2500,
+            "z": 2450
+          },
+          "direction": {
+            "x": 1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "hvac",
+          "systemType": "supply_air",
+          "shape": "rectangular",
+          "flowDirection": "in",
+          "width": 500,
+          "height": 300
+        }
+      ],
+      "name": "Bouche / ventilateur terminal soufflage",
+      "systemId": "sys_hvac_supply"
+    },
+    "eq_extract_fan": {
+      "id": "eq_extract_fan",
+      "category": "mepEquipment",
+      "levelId": "level_rdc",
+      "family": "fan",
+      "position": {
+        "x": 15100,
+        "y": 4200,
+        "z": 2400
+      },
+      "rotation": 0,
+      "width": 450,
+      "depth": 450,
+      "height": 450,
+      "ports": [
+        {
+          "id": "port_extract_fan",
+          "elementId": "eq_extract_fan",
+          "position": {
+            "x": 14800,
+            "y": 4200,
+            "z": 2400
+          },
+          "direction": {
+            "x": -1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "hvac",
+          "systemType": "exhaust_air",
+          "shape": "round",
+          "flowDirection": "out",
+          "diameter": 250
+        }
+      ],
+      "name": "Extracteur sanitaire",
+      "systemId": "sys_hvac_extract"
+    },
+    "eq_panel_rdc": {
+      "id": "eq_panel_rdc",
+      "category": "mepEquipment",
+      "levelId": "level_rdc",
+      "family": "electrical_panel",
+      "position": {
+        "x": 15100,
+        "y": 1200,
+        "z": 1600
+      },
+      "rotation": 0,
+      "width": 600,
+      "depth": 250,
+      "height": 900,
+      "ports": [
+        {
+          "id": "port_panel_out",
+          "elementId": "eq_panel_rdc",
+          "position": {
+            "x": 14800,
+            "y": 1200,
+            "z": 1600
+          },
+          "direction": {
+            "x": -1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "electrical",
+          "systemType": "power",
+          "shape": "rectangular",
+          "flowDirection": "out",
+          "width": 100,
+          "height": 50,
+          "label": "Départ tableau"
+        }
+      ],
+      "name": "Tableau électrique divisionnaire RDC",
+      "systemId": "sys_electrical_power"
+    },
+    "eq_junction_box": {
+      "id": "eq_junction_box",
+      "category": "mepEquipment",
+      "levelId": "level_rdc",
+      "family": "electrical_panel",
+      "position": {
+        "x": 13300,
+        "y": 1200,
+        "z": 1600
+      },
+      "rotation": 0,
+      "width": 180,
+      "depth": 180,
+      "height": 180,
+      "ports": [
+        {
+          "id": "port_jbox",
+          "elementId": "eq_junction_box",
+          "position": {
+            "x": 13500,
+            "y": 1200,
+            "z": 1600
+          },
+          "direction": {
+            "x": 1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "electrical",
+          "systemType": "power",
+          "shape": "rectangular",
+          "flowDirection": "bidirectional",
+          "width": 100,
+          "height": 50
+        }
+      ],
+      "name": "Boîte de dérivation électrique",
+      "systemId": "sys_electrical_power"
+    },
+    "eq_heat_pump_r2": {
+      "id": "eq_heat_pump_r2",
+      "category": "mepEquipment",
+      "levelId": "level_r2",
+      "family": "heat_pump",
+      "position": {
+        "x": 15500,
+        "y": 7000,
+        "z": 6600
+      },
+      "rotation": 0,
+      "width": 900,
+      "depth": 650,
+      "height": 1200,
+      "ports": [
+        {
+          "id": "port_hp_supply",
+          "elementId": "eq_heat_pump_r2",
+          "position": {
+            "x": 15200,
+            "y": 7000,
+            "z": 6600
+          },
+          "direction": {
+            "x": -1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "hydronic",
+          "systemType": "hydronic_supply",
+          "shape": "round",
+          "flowDirection": "out",
+          "diameter": 32,
+          "label": "Départ chauffage"
+        }
+      ],
+      "name": "Pompe à chaleur air/eau",
+      "systemId": "sys_hydronic_supply_r2"
+    },
+    "eq_pump_r2": {
+      "id": "eq_pump_r2",
+      "category": "mepEquipment",
+      "levelId": "level_r2",
+      "family": "pump",
+      "position": {
+        "x": 14700,
+        "y": 7000,
+        "z": 6600
+      },
+      "rotation": 0,
+      "width": 400,
+      "depth": 350,
+      "height": 450,
+      "ports": [
+        {
+          "id": "port_pump_in",
+          "elementId": "eq_pump_r2",
+          "position": {
+            "x": 14900,
+            "y": 7000,
+            "z": 6600
+          },
+          "direction": {
+            "x": 1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "hydronic",
+          "systemType": "hydronic_supply",
+          "shape": "round",
+          "flowDirection": "in",
+          "diameter": 32
+        },
+        {
+          "id": "port_pump_out",
+          "elementId": "eq_pump_r2",
+          "position": {
+            "x": 14500,
+            "y": 7000,
+            "z": 6600
+          },
+          "direction": {
+            "x": -1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "hydronic",
+          "systemType": "hydronic_supply",
+          "shape": "round",
+          "flowDirection": "out",
+          "diameter": 32
+        }
+      ],
+      "name": "Circulateur chauffage",
+      "systemId": "sys_hydronic_supply_r2"
+    },
+    "eq_radiator_r2": {
+      "id": "eq_radiator_r2",
+      "category": "mepEquipment",
+      "levelId": "level_r2",
+      "family": "radiator",
+      "position": {
+        "x": 13800,
+        "y": 7000,
+        "z": 6600
+      },
+      "rotation": 0,
+      "width": 900,
+      "depth": 150,
+      "height": 600,
+      "ports": [
+        {
+          "id": "port_radiator_supply",
+          "elementId": "eq_radiator_r2",
+          "position": {
+            "x": 14000,
+            "y": 7000,
+            "z": 6600
+          },
+          "direction": {
+            "x": 1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "hydronic",
+          "systemType": "hydronic_supply",
+          "shape": "round",
+          "flowDirection": "in",
+          "diameter": 32
+        }
+      ],
+      "name": "Radiateur hydraulique de test",
+      "systemId": "sys_hydronic_supply_r2"
+    },
+    "eq_boiler_backup_r2": {
+      "id": "eq_boiler_backup_r2",
+      "category": "mepEquipment",
+      "levelId": "level_r2",
+      "family": "boiler",
+      "position": {
+        "x": 15500,
+        "y": 8100,
+        "z": 6600
+      },
+      "rotation": 0,
+      "width": 700,
+      "depth": 650,
+      "height": 1500,
+      "ports": [
+        {
+          "id": "port_boiler_supply",
+          "elementId": "eq_boiler_backup_r2",
+          "position": {
+            "x": 15200,
+            "y": 8100,
+            "z": 6600
+          },
+          "direction": {
+            "x": -1,
+            "y": 0,
+            "z": 0
+          },
+          "domain": "hydronic",
+          "systemType": "hydronic_supply",
+          "shape": "round",
+          "flowDirection": "out",
+          "diameter": 25,
+          "label": "Départ chaudière"
+        }
+      ],
+      "name": "Chaudière d’appoint — équipement de qualification",
+      "systemId": "sys_boiler_backup_r2"
+    }
+  },
+  "mepSystems": {
+    "sys_ef_rdc": {
+      "id": "sys_ef_rdc",
+      "category": "mepSystem",
+      "name": "Eau froide sanitaire — RDC",
+      "domain": "plumbing",
+      "systemType": "domestic_cold_water",
+      "elementIds": [
+        "eq_meter_ef",
+        "pipe_ef_main",
+        "fit_ef_tee",
+        "pipe_ef_branch",
+        "eq_valve_ef",
+        "pipe_ef_outlet"
+      ],
+      "color": "#1687D9"
+    },
+    "sys_ecs_rdc": {
+      "id": "sys_ecs_rdc",
+      "category": "mepSystem",
+      "name": "Eau chaude sanitaire — production et retour",
+      "domain": "plumbing",
+      "systemType": "domestic_hot_water",
+      "elementIds": [
+        "eq_water_heater",
+        "pipe_ecs_main",
+        "eq_valve_ecs",
+        "pipe_ecs_return"
+      ],
+      "color": "#E56B2F"
+    },
+    "sys_hvac_supply": {
+      "id": "sys_hvac_supply",
+      "category": "mepSystem",
+      "name": "Ventilation — air soufflé RDC",
+      "domain": "hvac",
+      "systemType": "supply_air",
+      "elementIds": [
+        "eq_ahu_rdc",
+        "duct_supply_main",
+        "eq_fan_supply"
+      ],
+      "color": "#159B78"
+    },
+    "sys_hvac_extract": {
+      "id": "sys_hvac_extract",
+      "category": "mepSystem",
+      "name": "Ventilation — extraction sanitaire",
+      "domain": "hvac",
+      "systemType": "exhaust_air",
+      "elementIds": [
+        "eq_extract_fan",
+        "duct_extract_wc"
+      ],
+      "color": "#6B7280"
+    },
+    "sys_electrical_power": {
+      "id": "sys_electrical_power",
+      "category": "mepSystem",
+      "name": "Distribution électrique — puissance RDC",
+      "domain": "electrical",
+      "systemType": "power",
+      "elementIds": [
+        "eq_panel_rdc",
+        "tray_power_rdc",
+        "eq_junction_box"
+      ],
+      "color": "#D5A21A"
+    },
+    "sys_clash_probes": {
+      "id": "sys_clash_probes",
+      "category": "mepSystem",
+      "name": "Sondes de qualification clash (non raccordées)",
+      "domain": "plumbing",
+      "systemType": "domestic_cold_water",
+      "elementIds": [
+        "pipe_probe_solid_wall",
+        "pipe_probe_window_wall"
+      ],
+      "color": "#D946EF"
+    },
+    "sys_hydronic_supply_r2": {
+      "id": "sys_hydronic_supply_r2",
+      "category": "mepSystem",
+      "name": "Chauffage hydronique — départ R+2",
+      "domain": "hydronic",
+      "systemType": "hydronic_supply",
+      "elementIds": [
+        "eq_heat_pump_r2",
+        "pipe_hydronic_hp_pump",
+        "eq_pump_r2",
+        "pipe_hydronic_radiator",
+        "eq_radiator_r2"
+      ],
+      "color": "#B45309"
+    },
+    "sys_boiler_backup_r2": {
+      "id": "sys_boiler_backup_r2",
+      "category": "mepSystem",
+      "name": "Production hydronique de secours R+2",
+      "domain": "hydronic",
+      "systemType": "hydronic_supply",
+      "elementIds": [
+        "eq_boiler_backup_r2"
+      ],
+      "color": "#C2410C"
+    },
+    "sys_drainage_waste_rdc": {
+      "id": "sys_drainage_waste_rdc",
+      "category": "mepSystem",
+      "name": "Évacuation eaux usées — RDC",
+      "domain": "plumbing",
+      "systemType": "drainage_waste",
+      "elementIds": [
+        "pipe_drain_waste_rdc"
+      ],
+      "color": "#795548"
+    },
+    "sys_telecom_r1": {
+      "id": "sys_telecom_r1",
+      "category": "mepSystem",
+      "name": "Courants faibles — VDI R+1",
+      "domain": "electrical",
+      "systemType": "telecom",
+      "elementIds": [
+        "tray_telecom_r1"
+      ],
+      "color": "#64748B"
+    },
+    "sys_fitting_catalog_r2": {
+      "id": "sys_fitting_catalog_r2",
+      "category": "mepSystem",
+      "name": "Catalogue de raccords MEP — éléments isolés de test",
+      "domain": "plumbing",
+      "systemType": "domestic_cold_water",
+      "elementIds": [
+        "fit_catalog_elbow",
+        "fit_catalog_cross",
+        "fit_catalog_transition",
+        "fit_catalog_cap"
+      ],
+      "color": "#8B5CF6"
+    },
+    "sys_hydronic_closed_loop_r2": {
+      "id": "sys_hydronic_closed_loop_r2",
+      "category": "mepSystem",
+      "name": "Boucle hydronique fermée de qualification — R+2",
+      "domain": "hydronic",
+      "systemType": "hydronic_supply",
+      "elementIds": [
+        "pipe_loop_ab",
+        "pipe_loop_bc",
+        "pipe_loop_cd",
+        "pipe_loop_da",
+        "fit_loop_a",
+        "fit_loop_b",
+        "fit_loop_c",
+        "fit_loop_d"
+      ],
+      "color": "#0F766E"
+    }
+  },
+  "mepConnectors": {
+    "conn_ef_01": {
+      "id": "conn_ef_01",
+      "category": "mepConnector",
+      "portAId": "port_meter_ef_out",
+      "portBId": "port_ef_main_a",
+      "systemId": "sys_ef_rdc",
+      "name": "Compteur vers collecteur"
+    },
+    "conn_ef_02": {
+      "id": "conn_ef_02",
+      "category": "mepConnector",
+      "portAId": "port_ef_main_b",
+      "portBId": "port_ef_tee_in",
+      "systemId": "sys_ef_rdc",
+      "name": "Collecteur vers té EF"
+    },
+    "conn_ef_03": {
+      "id": "conn_ef_03",
+      "category": "mepConnector",
+      "portAId": "port_ef_tee_branch",
+      "portBId": "port_ef_branch_a",
+      "systemId": "sys_ef_rdc",
+      "name": "Té vers dérivation"
+    },
+    "conn_ef_04": {
+      "id": "conn_ef_04",
+      "category": "mepConnector",
+      "portAId": "port_ef_branch_b",
+      "portBId": "port_valve_ef",
+      "systemId": "sys_ef_rdc",
+      "name": "Dérivation vers vanne"
+    },
+    "conn_ef_05": {
+      "id": "conn_ef_05",
+      "category": "mepConnector",
+      "portAId": "port_ef_tee_out",
+      "portBId": "port_ef_outlet_a",
+      "systemId": "sys_ef_rdc",
+      "name": "Té vers distribution"
+    },
+    "conn_ecs_01": {
+      "id": "conn_ecs_01",
+      "category": "mepConnector",
+      "portAId": "port_ecs_out",
+      "portBId": "port_ecs_main_a",
+      "systemId": "sys_ecs_rdc",
+      "name": "Ballon vers départ ECS"
+    },
+    "conn_ecs_02": {
+      "id": "conn_ecs_02",
+      "category": "mepConnector",
+      "portAId": "port_ecs_main_b",
+      "portBId": "port_valve_ecs",
+      "systemId": "sys_ecs_rdc",
+      "name": "Départ ECS vers vanne"
+    },
+    "conn_ecs_03": {
+      "id": "conn_ecs_03",
+      "category": "mepConnector",
+      "portAId": "port_ecs_return",
+      "portBId": "port_ecs_return_b",
+      "systemId": "sys_ecs_rdc",
+      "name": "Retour ECS vers ballon"
+    },
+    "conn_hvac_supply_01": {
+      "id": "conn_hvac_supply_01",
+      "category": "mepConnector",
+      "portAId": "port_ahu_supply",
+      "portBId": "port_duct_supply_a",
+      "systemId": "sys_hvac_supply",
+      "name": "CTA vers gaine soufflage"
+    },
+    "conn_hvac_supply_02": {
+      "id": "conn_hvac_supply_02",
+      "category": "mepConnector",
+      "portAId": "port_duct_supply_b",
+      "portBId": "port_fan_supply",
+      "systemId": "sys_hvac_supply",
+      "name": "Gaine vers terminal soufflage"
+    },
+    "conn_hvac_extract_01": {
+      "id": "conn_hvac_extract_01",
+      "category": "mepConnector",
+      "portAId": "port_extract_fan",
+      "portBId": "port_extract_a",
+      "systemId": "sys_hvac_extract",
+      "name": "Extracteur vers gaine"
+    },
+    "conn_power_01": {
+      "id": "conn_power_01",
+      "category": "mepConnector",
+      "portAId": "port_panel_out",
+      "portBId": "port_tray_a",
+      "systemId": "sys_electrical_power",
+      "name": "Tableau vers chemin de câbles"
+    },
+    "conn_power_02": {
+      "id": "conn_power_02",
+      "category": "mepConnector",
+      "portAId": "port_tray_b",
+      "portBId": "port_jbox",
+      "systemId": "sys_electrical_power",
+      "name": "Chemin de câbles vers boîte"
+    },
+    "conn_hyd_01": {
+      "id": "conn_hyd_01",
+      "category": "mepConnector",
+      "portAId": "port_hp_supply",
+      "portBId": "port_hyd_hp_a",
+      "systemId": "sys_hydronic_supply_r2",
+      "name": "PAC vers conduite"
+    },
+    "conn_hyd_02": {
+      "id": "conn_hyd_02",
+      "category": "mepConnector",
+      "portAId": "port_hyd_hp_b",
+      "portBId": "port_pump_in",
+      "systemId": "sys_hydronic_supply_r2",
+      "name": "Conduite vers circulateur"
+    },
+    "conn_hyd_03": {
+      "id": "conn_hyd_03",
+      "category": "mepConnector",
+      "portAId": "port_pump_out",
+      "portBId": "port_hyd_rad_a",
+      "systemId": "sys_hydronic_supply_r2",
+      "name": "Circulateur vers conduite émetteur"
+    },
+    "conn_hyd_04": {
+      "id": "conn_hyd_04",
+      "category": "mepConnector",
+      "portAId": "port_hyd_rad_b",
+      "portBId": "port_radiator_supply",
+      "systemId": "sys_hydronic_supply_r2",
+      "name": "Conduite vers radiateur"
+    },
+    "conn_loop_a1": {
+      "id": "conn_loop_a1",
+      "category": "mepConnector",
+      "portAId": "port_loop_da_a",
+      "portBId": "port_loop_a_1",
+      "systemId": "sys_hydronic_closed_loop_r2",
+      "name": "Boucle D vers coude A"
+    },
+    "conn_loop_a2": {
+      "id": "conn_loop_a2",
+      "category": "mepConnector",
+      "portAId": "port_loop_a_2",
+      "portBId": "port_loop_ab_a",
+      "systemId": "sys_hydronic_closed_loop_r2",
+      "name": "Coude A vers boucle AB"
+    },
+    "conn_loop_b1": {
+      "id": "conn_loop_b1",
+      "category": "mepConnector",
+      "portAId": "port_loop_ab_b",
+      "portBId": "port_loop_b_1",
+      "systemId": "sys_hydronic_closed_loop_r2",
+      "name": "Boucle AB vers coude B"
+    },
+    "conn_loop_b2": {
+      "id": "conn_loop_b2",
+      "category": "mepConnector",
+      "portAId": "port_loop_b_2",
+      "portBId": "port_loop_bc_b",
+      "systemId": "sys_hydronic_closed_loop_r2",
+      "name": "Coude B vers boucle BC"
+    },
+    "conn_loop_c1": {
+      "id": "conn_loop_c1",
+      "category": "mepConnector",
+      "portAId": "port_loop_bc_c",
+      "portBId": "port_loop_c_1",
+      "systemId": "sys_hydronic_closed_loop_r2",
+      "name": "Boucle BC vers coude C"
+    },
+    "conn_loop_c2": {
+      "id": "conn_loop_c2",
+      "category": "mepConnector",
+      "portAId": "port_loop_c_2",
+      "portBId": "port_loop_cd_c",
+      "systemId": "sys_hydronic_closed_loop_r2",
+      "name": "Coude C vers boucle CD"
+    },
+    "conn_loop_d1": {
+      "id": "conn_loop_d1",
+      "category": "mepConnector",
+      "portAId": "port_loop_cd_d",
+      "portBId": "port_loop_d_1",
+      "systemId": "sys_hydronic_closed_loop_r2",
+      "name": "Boucle CD vers coude D"
+    },
+    "conn_loop_d2": {
+      "id": "conn_loop_d2",
+      "category": "mepConnector",
+      "portAId": "port_loop_d_2",
+      "portBId": "port_loop_da_d",
+      "systemId": "sys_hydronic_closed_loop_r2",
+      "name": "Coude D vers boucle DA"
+    }
+  },
+  "sectionCuts": {
+    "section_AA": {
+      "id": "section_AA",
+      "category": "sectionCut",
+      "name": "Coupe longitudinale A-A",
+      "label": "A-A",
+      "kind": "section",
+      "start": {
+        "x": 0,
+        "y": 6000
+      },
+      "end": {
+        "x": 16000,
+        "y": 6000
+      },
+      "viewDirection": 1,
+      "depth": 12000,
+      "zMin": 0,
+      "zMax": 13000
+    },
+    "section_BB": {
+      "id": "section_BB",
+      "category": "sectionCut",
+      "name": "Coupe transversale B-B dans la cage d’escalier",
+      "label": "B-B",
+      "kind": "section",
+      "start": {
+        "x": 8000,
+        "y": 0
+      },
+      "end": {
+        "x": 8000,
+        "y": 12000
+      },
+      "viewDirection": -1,
+      "depth": 16000,
+      "zMin": 0,
+      "zMax": 13000
+    },
+    "elevation_south": {
+      "id": "elevation_south",
+      "category": "sectionCut",
+      "name": "Élévation façade sud",
+      "label": "SUD",
+      "kind": "elevation",
+      "start": {
+        "x": 0,
+        "y": 0
+      },
+      "end": {
+        "x": 16000,
+        "y": 0
+      },
+      "viewDirection": 1,
+      "depth": 10000,
+      "zMin": 0,
+      "zMax": 13000
+    },
+    "elevation_west": {
+      "id": "elevation_west",
+      "category": "sectionCut",
+      "name": "Élévation façade ouest et pignon",
+      "label": "OUEST",
+      "kind": "elevation",
+      "start": {
+        "x": 0,
+        "y": 12000
+      },
+      "end": {
+        "x": 0,
+        "y": 0
+      },
+      "viewDirection": 1,
+      "depth": 16000,
+      "zMin": 0,
+      "zMax": 13000
+    }
+  },
+  "document": {
+    "name": "TABAX — Résidence Horizon R+2",
+    "file": "tabax-r2-test-model-v2.json",
+    "schemaVersion": 2,
+    "units": "mm",
+    "coordinateSystem": "XY planimétrique, Z altimétrique (Z-up)",
+    "buildingFootprintMm": {
+      "width": 16000,
+      "depth": 12000
+    },
+    "storeyElevationsMm": {
+      "RDC": 0,
+      "R+1": 3000,
+      "R+2": 6000
+    },
+    "designIntent": "Résidence familiale R+2 avec volume principal à toiture à deux pans et aile technique à toiture terrasse."
+  },
+  "counts": {
+    "levels": 3,
+    "wallTypes": 4,
+    "slabTypes": 2,
+    "doorTypes": 5,
+    "windowTypes": 4,
+    "stairTypes": 1,
+    "roofTypes": 2,
+    "componentTypes": 17,
+    "walls": 41,
+    "slabs": 3,
+    "doors": 36,
+    "windows": 42,
+    "rooms": 30,
+    "dimensions": 24,
+    "stairs": 2,
+    "roofs": 2,
+    "roofOpenings": 2,
+    "components": 39,
+    "pipes": 14,
+    "ducts": 2,
+    "cableTrays": 2,
+    "mepFittings": 9,
+    "mepEquipments": 13,
+    "mepSystems": 12,
+    "mepConnectors": 25,
+    "sectionCuts": 4,
+    "total_document_records": 302
+  },
+  "design_program": [
+    {
+      "level": "RDC",
+      "spaces": [
+        "Séjour et salle à manger",
+        "Cuisine familiale",
+        "Chambre d’amis",
+        "Bureau RDC",
+        "Hall et cage d’escalier",
+        "Garage et atelier",
+        "Salle d’eau RDC",
+        "Local technique",
+        "Buanderie",
+        "Réserve RDC"
+      ]
+    },
+    {
+      "level": "R+1",
+      "spaces": [
+        "Salon familial",
+        "Suite parentale",
+        "Chambre enfant 1",
+        "Chambre enfant 2",
+        "Chambre 4",
+        "Palier et cage d’escalier",
+        "Salle de bains principale",
+        "Dressing",
+        "Salle d’eau secondaire",
+        "Lingerie"
+      ]
+    },
+    {
+      "level": "R+2",
+      "spaces": [
+        "Salon polyvalent",
+        "Atelier et studio",
+        "Chambre d’appoint",
+        "Bibliothèque",
+        "Palier et circulation",
+        "Espace lounge",
+        "Sanitaires",
+        "Locaux techniques et entretien"
+      ]
+    }
+  ],
+  "spatial_layout": {
+    "northDirection": "+Y",
+    "mainEntranceFacade": "south (Y=0)",
+    "footprintMm": {
+      "minX": 0,
+      "maxX": 16000,
+      "minY": 0,
+      "maxY": 12000
+    },
+    "structuralGridMm": {
+      "x": [
+        0,
+        6000,
+        11000,
+        13500,
+        16000
+      ],
+      "y": [
+        0,
+        5000,
+        8500,
+        12000
+      ]
+    },
+    "roofVolumes": [
+      {
+        "id": "roof_gable_main",
+        "zoneMm": {
+          "minX": 0,
+          "maxX": 11000,
+          "minY": 0,
+          "maxY": 12000
+        },
+        "family": "gable",
+        "slopeDeg": 30,
+        "ridgeMm": {
+          "start": [
+            0,
+            6000
+          ],
+          "end": [
+            11000,
+            6000
+          ]
+        }
+      },
+      {
+        "id": "roof_flat_annex",
+        "zoneMm": {
+          "minX": 11000,
+          "maxX": 16000,
+          "minY": 0,
+          "maxY": 12000
+        },
+        "family": "flat",
+        "acrotereHeightMm": 450
+      }
+    ],
+    "stairWellMm": {
+      "minX": 6900,
+      "maxX": 9100,
+      "minY": 4700,
+      "maxY": 11000
+    },
+    "serviceShaftMm": {
+      "minX": 12600,
+      "maxX": 13400,
+      "minY": 9000,
+      "maxY": 9800
+    },
+    "rooms": {
+      "RDC": [
+        {
+          "name": "Séjour et salle à manger",
+          "boundsMm": [
+            0,
+            0,
+            6000,
+            5000
+          ],
+          "grossCellAreaM2": 30
+        },
+        {
+          "name": "Chambre d’amis",
+          "boundsMm": [
+            0,
+            5000,
+            6000,
+            8500
+          ],
+          "grossCellAreaM2": 21
+        },
+        {
+          "name": "Bureau RDC",
+          "boundsMm": [
+            0,
+            8500,
+            6000,
+            12000
+          ],
+          "grossCellAreaM2": 21
+        },
+        {
+          "name": "Cuisine familiale",
+          "boundsMm": [
+            6000,
+            0,
+            11000,
+            5000
+          ],
+          "grossCellAreaM2": 25
+        },
+        {
+          "name": "Hall et cage d’escalier",
+          "boundsMm": [
+            6000,
+            5000,
+            11000,
+            12000
+          ],
+          "grossCellAreaM2": 35
+        },
+        {
+          "name": "Garage et atelier",
+          "boundsMm": [
+            11000,
+            0,
+            16000,
+            5000
+          ],
+          "grossCellAreaM2": 25
+        },
+        {
+          "name": "Salle d’eau RDC",
+          "boundsMm": [
+            11000,
+            5000,
+            13500,
+            8500
+          ],
+          "grossCellAreaM2": 8.75
+        },
+        {
+          "name": "Local technique",
+          "boundsMm": [
+            13500,
+            5000,
+            16000,
+            8500
+          ],
+          "grossCellAreaM2": 8.75
+        },
+        {
+          "name": "Buanderie",
+          "boundsMm": [
+            11000,
+            8500,
+            13500,
+            12000
+          ],
+          "grossCellAreaM2": 8.75
+        },
+        {
+          "name": "Réserve RDC",
+          "boundsMm": [
+            13500,
+            8500,
+            16000,
+            12000
+          ],
+          "grossCellAreaM2": 8.75
+        }
+      ],
+      "R+1": [
+        {
+          "name": "Salon familial",
+          "boundsMm": [
+            0,
+            0,
+            6000,
+            5000
+          ],
+          "grossCellAreaM2": 30
+        },
+        {
+          "name": "Chambre enfant 1",
+          "boundsMm": [
+            0,
+            5000,
+            6000,
+            8500
+          ],
+          "grossCellAreaM2": 21
+        },
+        {
+          "name": "Chambre enfant 2",
+          "boundsMm": [
+            0,
+            8500,
+            6000,
+            12000
+          ],
+          "grossCellAreaM2": 21
+        },
+        {
+          "name": "Suite parentale",
+          "boundsMm": [
+            6000,
+            0,
+            11000,
+            5000
+          ],
+          "grossCellAreaM2": 25
+        },
+        {
+          "name": "Palier et cage d’escalier",
+          "boundsMm": [
+            6000,
+            5000,
+            11000,
+            12000
+          ],
+          "grossCellAreaM2": 35
+        },
+        {
+          "name": "Chambre 4",
+          "boundsMm": [
+            11000,
+            0,
+            16000,
+            5000
+          ],
+          "grossCellAreaM2": 25
+        },
+        {
+          "name": "Salle de bains principale",
+          "boundsMm": [
+            11000,
+            5000,
+            13500,
+            8500
+          ],
+          "grossCellAreaM2": 8.75
+        },
+        {
+          "name": "Dressing",
+          "boundsMm": [
+            13500,
+            5000,
+            16000,
+            8500
+          ],
+          "grossCellAreaM2": 8.75
+        },
+        {
+          "name": "Salle d’eau secondaire",
+          "boundsMm": [
+            11000,
+            8500,
+            13500,
+            12000
+          ],
+          "grossCellAreaM2": 8.75
+        },
+        {
+          "name": "Lingerie",
+          "boundsMm": [
+            13500,
+            8500,
+            16000,
+            12000
+          ],
+          "grossCellAreaM2": 8.75
+        }
+      ],
+      "R+2": [
+        {
+          "name": "Salon polyvalent R+2",
+          "boundsMm": [
+            0,
+            0,
+            6000,
+            5000
+          ],
+          "grossCellAreaM2": 30
+        },
+        {
+          "name": "Chambre d’appoint R+2",
+          "boundsMm": [
+            0,
+            5000,
+            6000,
+            8500
+          ],
+          "grossCellAreaM2": 21
+        },
+        {
+          "name": "Bibliothèque",
+          "boundsMm": [
+            0,
+            8500,
+            6000,
+            12000
+          ],
+          "grossCellAreaM2": 21
+        },
+        {
+          "name": "Atelier et studio",
+          "boundsMm": [
+            6000,
+            0,
+            11000,
+            5000
+          ],
+          "grossCellAreaM2": 25
+        },
+        {
+          "name": "Palier et circulation R+2",
+          "boundsMm": [
+            6000,
+            5000,
+            11000,
+            12000
+          ],
+          "grossCellAreaM2": 35
+        },
+        {
+          "name": "Espace lounge sous toiture annexe",
+          "boundsMm": [
+            11000,
+            0,
+            16000,
+            5000
+          ],
+          "grossCellAreaM2": 25
+        },
+        {
+          "name": "Sanitaires R+2",
+          "boundsMm": [
+            11000,
+            5000,
+            13500,
+            8500
+          ],
+          "grossCellAreaM2": 8.75
+        },
+        {
+          "name": "Local technique toiture",
+          "boundsMm": [
+            13500,
+            5000,
+            16000,
+            8500
+          ],
+          "grossCellAreaM2": 8.75
+        },
+        {
+          "name": "Rangement toiture",
+          "boundsMm": [
+            11000,
+            8500,
+            13500,
+            12000
+          ],
+          "grossCellAreaM2": 8.75
+        },
+        {
+          "name": "Local entretien",
+          "boundsMm": [
+            13500,
+            8500,
+            16000,
+            12000
+          ],
+          "grossCellAreaM2": 8.75
+        }
+      ]
+    },
+    "areaNote": "Les surfaces listées sont des surfaces de cellules d’axes de murs, avant déduction des épaisseurs, doublages, gaines et ouvertures. Ce ne sont pas des surfaces nettes contractuelles."
+  },
+  "coverage": [
+    {
+      "id": "LOAD-01",
+      "area": "Document",
+      "actions": [
+        "Importer le JSON directement via le chargeur TABAX / BimDocument.fromJSON",
+        "Vérifier schemaVersion=2 et units=mm",
+        "Vérifier l’intégrité de toutes les références de niveau, types, hôtes et systèmes"
+      ],
+      "expected": "Aucune référence orpheline ; 3 niveaux ordonnés à 0, 3000 et 6000 mm."
+    },
+    {
+      "id": "GEO-01",
+      "area": "Géométrie des murs",
+      "actions": [
+        "Afficher les 3 niveaux en plan et en 3D",
+        "Inspecter jonctions L, T et X sur le quadrillage des refends",
+        "Inspecter les murs obliques de l’atelier R+2",
+        "Vérifier l’épaisseur, le sens des faces et les profils de murs sous toiture"
+      ],
+      "expected": "Contours fermés, pas de micro-fissures visibles aux intersections ; murs R+2 adaptés aux deux familles de toiture."
+    },
+    {
+      "id": "OPEN-01",
+      "area": "Portes et fenêtres",
+      "actions": [
+        "Sélectionner et déplacer des portes/fenêtres",
+        "Modifier type, dimensions, allège et sens d’ouverture",
+        "Tester les baies proches sur la façade nord",
+        "Tester les ouvertures proches des extrémités et les limites d’hébergement"
+      ],
+      "expected": "Ouvertures solidaires de leur mur hôte ; déductions géométriques et métriques cohérentes."
+    },
+    {
+      "id": "LEVEL-01",
+      "area": "Multi-niveaux",
+      "actions": [
+        "Filtrer RDC, R+1 et R+2 en vue 2D",
+        "Afficher le bâtiment entier en 3D",
+        "Modifier les élévations et vérifier les conséquences documentaires",
+        "Vérifier les deux escaliers entre niveaux consécutifs"
+      ],
+      "expected": "Les éléments restent affectés au bon niveau ; escaliers visibles sur les deux niveaux reliés."
+    },
+    {
+      "id": "SLAB-01",
+      "area": "Dalles et réservations",
+      "actions": [
+        "Inspecter les 3 dalles",
+        "Vérifier le vide de cage d’escalier sur R+1 et R+2",
+        "Vérifier le trou de gaine technique sur chaque dalle",
+        "Vérifier triangulation, faces inférieures, chants et watertightness"
+      ],
+      "expected": "Les trous ne sont pas remplis par le maillage ; volume fermé lorsque les surfaces et chants le permettent."
+    },
+    {
+      "id": "STAIR-01",
+      "area": "Escaliers",
+      "actions": [
+        "Calculer la géométrie des deux escaliers",
+        "Vérifier nombre de marches, hauteur, giron et Blondel",
+        "Vérifier l’échappée et les trémies",
+        "Modifier la largeur et les niveaux de départ/arrivée"
+      ],
+      "expected": "Pour chaque escalier : ΔZ=3000 mm, N=17, h≈176,47 mm, g≈276,47 mm, Blondel≈629,4 mm."
+    },
+    {
+      "id": "ROOF-01",
+      "area": "Toitures",
+      "actions": [
+        "Afficher la toiture principale à deux pans",
+        "Afficher la toiture terrasse de l’aile annexe",
+        "Vérifier faîtage, pente 30°, débords et acrotère",
+        "Inspecter les deux ouvertures de toiture",
+        "Vérifier le biseautage des murs sous toiture"
+      ],
+      "expected": "Deux familles de toiture actives ; profils de murs adaptés et ouvertures positionnées."
+    },
+    {
+      "id": "ROOM-01",
+      "area": "Pièces et métrés",
+      "actions": [
+        "Exécuter la détection automatique sur chaque niveau",
+        "Comparer les seeds et espaces détectés",
+        "Calculer surfaces, périmètres, linéaires et volumes",
+        "Modifier un mur séparatif puis vérifier l’invalidation des pièces"
+      ],
+      "expected": "Pièces fermées avec surfaces positives ; changements propagés aux métrés et vues."
+    },
+    {
+      "id": "COMP-01",
+      "area": "Composants et mobilier",
+      "actions": [
+        "Inspecter mobilier, lits, tables, armoires, cuisine, sanitaires et menuiseries vitrées",
+        "Activer les dégagements fonctionnels",
+        "Déplacer et faire pivoter les composants",
+        "Tester collisions et dépendance d’un composant hébergé si ajout manuel"
+      ],
+      "expected": "Composants affichés et sélectionnables ; propriétés et zones de dégagement mises à jour."
+    },
+    {
+      "id": "MEP-01",
+      "area": "MEP — topologie",
+      "actions": [
+        "Inspecter les systèmes EF, ECS, soufflage, extraction, puissance et sondes de clash",
+        "Suivre les ports et connecteurs dans le graphe",
+        "Inspecter coude, té, croix, transition et bouchon",
+        "Tester BFS, sous-réseaux et hasLoops sur le réseau rectangulaire fermé R+2",
+        "Inspecter les familles compteur, ballon ECS, PAC, circulateur, radiateur, chaudière, CTA, ventilateur, vanne et tableau électrique",
+        "Supprimer puis restaurer un élément ou un connecteur via Undo/Redo"
+      ],
+      "expected": "Ports des connecteurs coïncidents et compatibles ; chaque system.elementIds pointe vers un élément existant."
+    },
+    {
+      "id": "MEP-02",
+      "area": "MEP — routage et vues",
+      "actions": [
+        "Créer des trajets droits, L, Z et risers",
+        "Tester compatibilité de ports, sections rondes et rectangulaires",
+        "Afficher tuyaux, gaines, chemins de câbles, raccords et équipements en 2D/3D",
+        "Tester snap sur ports"
+      ],
+      "expected": "Segments et fittings cohérents ; routages refusés avec diagnostic lorsqu’une contrainte est impossible."
+    },
+    {
+      "id": "CLASH-01",
+      "area": "Clash detection",
+      "actions": [
+        "Lancer l’analyse de conflits sur la maquette",
+        "Repérer pipe_probe_solid_wall",
+        "Comparer pipe_probe_window_wall qui traverse intentionnellement une fenêtre",
+        "Filtrer par disciplines et sévérité"
+      ],
+      "expected": "Le premier probe doit signaler une intersection mur/conduite. Le second sert à mesurer le faux positif attendu de la primitive OBB qui ne soustrait pas encore les baies."
+    },
+    {
+      "id": "SECTION-01",
+      "area": "Coupes et élévations",
+      "actions": [
+        "Générer A-A, B-B, façade sud et façade ouest",
+        "Vérifier les intersections des murs, portes, fenêtres, dalles, escaliers, toitures et MEP",
+        "Inverser viewDirection et modifier profondeur/zMin/zMax",
+        "Comparer la coupe 2D avec le clipping 3D"
+      ],
+      "expected": "Projections cohérentes, synchronisées et stables après modification des éléments."
+    },
+    {
+      "id": "DIM-01",
+      "area": "Cotations",
+      "actions": [
+        "Inspecter les dimensions associatives murales",
+        "Inspecter les cotes entre murs et les cotes libres",
+        "Déplacer un mur référencé et vérifier le recalcul",
+        "Générer une chaîne automatique et relancer l’opération"
+      ],
+      "expected": "Les valeurs associatives suivent les références ; auto-cotation idempotente ; aucune cote auto dupliquée."
+    },
+    {
+      "id": "SNAP-01",
+      "area": "Outils et accrochage",
+      "actions": [
+        "Tester Select, Wall, Door, Window, MoveWall, MoveOpening, Slab, Stair, Roof, Component, MEP, Section et Dimension",
+        "Tester extrémités, milieux, alignements, intersections et ports MEP",
+        "Tester Shift, Space, Escape, Enter et raccourcis dédiés"
+      ],
+      "expected": "Transitions d’états déterministes ; prévisualisations temporaires sans mutation avant validation."
+    },
+    {
+      "id": "TX-01",
+      "area": "Transactions et historique",
+      "actions": [
+        "Déplacer un mur hôte de porte/fenêtre",
+        "Effectuer Undo/Redo",
+        "Tenter une mutation invalide et vérifier son rejet atomique",
+        "Supprimer un mur et inspecter les cascades de relations"
+      ],
+      "expected": "Pas de corruption du document, des références, du DAG ni de l’historique."
+    },
+    {
+      "id": "SAVE-01",
+      "area": "Persistance locale",
+      "actions": [
+        "Sauvegarder automatiquement",
+        "Recharger la page et restaurer le document",
+        "Exporter JSON puis réimporter",
+        "Simuler une erreur de stockage et vérifier le message non bloquant"
+      ],
+      "expected": "Restauration sans perte des entités, types, connecteurs, références et valeurs."
+    },
+    {
+      "id": "EXPORT-01",
+      "area": "Export CAO et PDF",
+      "actions": [
+        "Exporter chaque niveau en SVG et DXF R12",
+        "Exporter les coupes en SVG/DXF",
+        "Générer un carnet PDF multi-pages A4/A3",
+        "Contrôler calques, échelles, cartouches, hachures, cotations, métrés et pagination"
+      ],
+      "expected": "Fichiers ouvrables dans des lecteurs indépendants ; échelles et emprises correctes."
+    },
+    {
+      "id": "IFC-01",
+      "area": "OpenBIM IFC4",
+      "actions": [
+        "Exporter le modèle natif",
+        "Parser le STEP avec WebIFC",
+        "Inspecter hiérarchie, murs, baies, espaces, dalles, escaliers et toitures",
+        "Comparer géométrie 3D exportée à la scène TABAX"
+      ],
+      "expected": "Syntaxe IFC4 valide et entités attendues ; contrôler explicitement les profils des versants inclinés et la géométrie crénelée des escaliers."
+    },
+    {
+      "id": "FED-01",
+      "area": "Fédération IFC",
+      "actions": [
+        "Importer une maquette IFC externe distincte comme underlay/fédération",
+        "Vérifier unités, axes, transformations, AABB et propriétés",
+        "Afficher/masquer la référence et tester la sélection/coordination"
+      ],
+      "expected": "La maquette fédérée reste distincte du BimState natif ; coordonnées et unités correctement transformées."
+    },
+    {
+      "id": "PERF-01",
+      "area": "Performance",
+      "actions": [
+        "Mesurer temps de chargement, calcul rooms, resolveWallGeometry, validation transactionnelle, rendu 2D et 3D",
+        "Effectuer zoom/pan et changement de niveau",
+        "Profiler re-maillage différentiel après modification locale"
+      ],
+      "expected": "Publier P50/P95 avec matériel, navigateur, résolution, entités visibles et entités totales ; ne pas assimiler benchmark de noyau à FPS navigateur."
+    }
+  ],
+  "known_test_limitations": [
+    "Le fichier représente un seul bâtiment et trois niveaux, conformément au BimState v2 actuel ; il ne prétend pas tester une hiérarchie native multi-bâtiments.",
+    "Le générateur IFC actuel doit être qualifié pour les versants inclinés et les escaliers ; le simple succès de parsing STEP ne garantit pas la fidélité géométrique.",
+    "Le générateur IFC natif décrit dans le code ne produit pas encore les entités de distribution MEP ; les réseaux MEP de ce fichier servent à tester le modèle, le graphe, le rendu, le routage et les clashs, pas un export IFC MEP complet.",
+    "Les primitives de clash du moteur actuel simplifient murs et dalles en OBB ; les ouvertures et trémies peuvent donc générer des faux positifs.",
+    "Les réseaux MEP du fichier testent le modèle sémantique, ports, connecteurs, rendu et routage ; ils ne constituent pas un calcul de dimensionnement hydraulique ou aéraulique.",
+    "Les deux conduites PROBE sont intentionnelles et doivent être exclues de toute évaluation de conformité métier ; elles servent uniquement à la qualification clash."
+  ],
+  "import_instructions": {
+    "preferred": "Importer tabax-r2-test-model-v2.json comme snapshot BimState schemaVersion 2 (sans enveloppe metadata).",
+    "validation": "Charger puis vérifier BimDocument.fromJSON / serialization.fromJSON et exécuter les suites ciblées. Ne pas prendre le présent manifeste pour un fichier d’état BIM.",
+    "important": "Le fichier modèle est un état documentaire direct ; le manifeste est une feuille de qualification séparée.",
+    "note": "Ce fichier a été enrichi pour être directement chargeable comme BimDocument v2 dans Tabax tout en conservant l’intégralité des spécifications du plan de test et du manifeste de qualification."
+  }
+}

@@ -166,7 +166,9 @@ describe('Intégration BimDocument.execute() + DAG Minimal (T-EXEC-01 à 07)', (
     expect(res.changed).toContain('d_w');
     expect(res.changed).toContain('dim_w');
     expect(res.changed).toContain('room_1');
-    expect(res.changed).toEqual(['w_w', 'd_w', 'dim_w', 'room_1']);
+    expect(res.changed).toContain('w_s'); // Voisin connecté recalculé
+    expect(res.changed).toContain('w_n'); // Voisin connecté recalculé
+    expect(new Set(res.changed)).toEqual(new Set(['w_w', 'w_s', 'w_n', 'd_w', 'dim_w', 'room_1']));
   });
 
   it('T-EXEC-04: execute sur commande produisant un cycle lève CYCLE_DETECTED sans altérer l’historique', () => {

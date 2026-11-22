@@ -21,6 +21,12 @@ source-dump.txt
 source-*.txt
 maison-contemporaine-r1.json
 
+# Audit dumps & external uploads
+/Arborescence.txt
+/Code source.txt
+/Fichiers Markdown.txt
+/tabax-r2-test-*.json
 # IDE
 .vscode/
 .idea/
+

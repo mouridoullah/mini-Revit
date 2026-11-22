@@ -549,5 +549,28 @@ flowchart LR
   - Déclenchement en 1 clic via le bouton d'action `Coter Étage` dans la barre d'outils.
 - **Métriques Officielles :** **1 299 tests Vitest passants** sur 136 suites (100% verts), **11/11 tests Playwright E2E** réels, 0 erreur TypeScript, 0 warning ESLint. Consigné dans `ADR-066`.
 
+### Phase C — Consolidation Qualité, Anti-Duplication & Robustesse Pré-Étape 5 [LIVRÉE & QUALIFIÉE]
+- **Lot C1 — Fiabilité, Normalisation & Garde-fous CI :**
+  - Normalisation géométrique du générateur synthétique R+4 et suppression du warning `INVALID_SLAB_POLYGON`.
+  - Propagation 3D des murs voisins dans `CommandBus.getChangedIds()` garantissant l'invalidation instantanée des extrémités en Three.js.
+  - Packaging WASM `web-ifc` pour tests d'intégration fédérée.
+  - Mise à jour des tests d'étanchéité architecturale (`purity.test.ts`) interdisant Three.js/React dans le noyau et `@tabax/geometry` dans `apps/web`.
+  - Règle ESLint `no-restricted-imports` et encapsulation `ReadonlyDependencyGraph`.
+- **Lot C2 — Modèle Géométrique Intermédiaire `PlanScene`, Exporteuses Unifiées & Cockpit :**
+  - Création du sous-module `@tabax/view-2d/src/plan-scene/` et de `computePlanScene()`.
+  - Unification des exportateurs DXF R12, SVG et PDF consommant `PlanScene` (zéro duplication de résolution géométrique).
+  - Plafond d'historique transactionnel `DEFAULT_HISTORY_MAX_CAPACITY = 500` avec éviction FIFO.
+  - Composant React `<ErrorBoundary>` avec retry et sélecteur de type de mur dans la barre d'outils.
+- **Lot C3 — Modularisation du Domaine MEP & Industrialisation :**
+  - Découpage du monolithe `packages/core/src/mep/commands.ts` (1 565 LOC) en 6 sous-modules étanches (`helpers`, `segments`, `fittings`, `systems`, `topology`, `routing`).
+  - Documentation du compromis de minification sous Windows et nettoyage des artefacts temporaires.
+- **Métriques Officielles :** **1 311 tests Vitest passants** sur 139 suites (100% verts), 0 erreur TypeScript, 0 warning ESLint. Consigné dans `ADR-068`.
+
+### Étape 5 — Cadrage & Prochaines Étapes
+- Moteur de génération automatique de coupes multiples et élévations de façades vectorielles.
+- Intégration de la cotation associative sur les vues en coupe.
+- Exports DXF des coupes et façades.
+
+
 
 

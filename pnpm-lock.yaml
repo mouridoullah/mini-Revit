@@ -102,6 +102,9 @@ importers:
       ulid:
         specifier: ^3.0.2
         version: 3.0.2
+      web-ifc:
+        specifier: ^0.0.79
+        version: 0.0.79
     devDependencies:
       '@types/node':
         specifier: ^22.13.4
@@ -112,9 +115,6 @@ importers:
       vitest:
         specifier: ^3.0.5
         version: 3.2.7(@types/node@22.20.5)(jsdom@31.0.0)(supports-color@7.2.0)
-      web-ifc:
-        specifier: ^0.0.79
-        version: 0.0.79
 
   packages/geometry:
     dependencies:

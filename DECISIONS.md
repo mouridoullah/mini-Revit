@@ -76,6 +76,7 @@
 | **ADR-065** | Moteur de Mise en Page & Carnet de Plans PDF Multi-Pages Vectoriel Pur (Saison 3 - Étape 3 Lot B) | **Accepté**  | 22/11/2026 |
 | **ADR-066** | Outil de Cotation Interactive & Moteur de Cotation Automatique d'Étage (Saison 3 - Étape 4) | **Accepté**  | 22/11/2026 |
 | **ADR-067** | Identité de Marque Tabax & Renommage du Monorepo (@tabax/*) | **Accepté**  | 22/11/2026 |
+| **ADR-068** | Consolidation de la Fiabilité, Modèle Intermédiaire PlanScene, Découpage MEP et Préparation Étape 5 (Phase C) | **Accepté**  | 22/11/2026 |
 
 ---
 
@@ -2712,6 +2713,56 @@ Parmi les propositions explorées, le nom **Tabax** a été retenu à l'unanimit
 3. **D3 — Documentation & Gouvernance :**
    - `README.md` entièrement réécrit pour porter la vision et les principes fondateurs de Tabax.
    - Alignement d'`ARCHITECTURE.md`, `ROADMAP.md` et des spécifications techniques de sous-systèmes.
+
+---
+
+## ADR-068 : Consolidation de la Fiabilité, Modèle Intermédiaire PlanScene, Découpage MEP et Préparation Étape 5 (Phase C)
+
+### Contexte
+
+À l'issue de l'Étape 4 de la Saison 3, un audit externe approfondi (5 rapports d'audit spécialisés) a analysé la qualité logicielle, la maintenabilité et la robustesse de Tabax. L'audit a mis en évidence plusieurs points clés :
+1. **Propagation 3D et DAG :** Le déplacement ou la modification d'un mur modifie la géométrie des murs voisins connectés (biseaux/miters), mais `CommandBus.getChangedIds()` ne notifiait pas ces voisins, laissant la vue 3D temporairement désynchronisée sur leurs extrémités.
+2. **Duplication de logique 2D :** Les exportateurs DXF R12, SVG et PDF recalculaient chacun de leur côté les géométries 2D projetées (miters, baies, hachures 45°, étiquettes de pièces, cotations).
+3. **Monolithe MEP :** Le fichier `packages/core/src/mep/commands.ts` atteignait 1 565 lignes et regroupait l'ensemble des commandes tuyauterie, aéraulique, chemins de câbles, raccords, systèmes, connecteurs et algorithmes de piquage/routage.
+4. **Historique transactionnel non borné :** `HistoryStack` accumulait les snapshots de commande sans plafond, risquant une saturation mémoire sur sessions prolongées.
+5. **Garde-fous CI relâchés :** Règles ESLint `no-restricted-imports` et tests d'étanchéité architecturale (`purity.test.ts`) non alignés sur les nouveaux paquets `@tabax/*`.
+6. **Résilience UI :** Absence d'Error Boundaries globales autour des viewports et sélecteur de type de mur absent de la barre d'outils.
+
+### Décisions Clés
+
+1. **D1 — Propagation Déterministe des Murs Voisins Connectés (`CommandBus`) :**
+   - Dans `packages/core/src/document.ts`, lors de la modification ou du déplacement d'un mur, `CommandBus.getChangedIds()` inclut désormais automatiquement les identifiants de tous les murs adjacents partageant un nœud topologique.
+   - Garantit une invalidation instantanée du cache de maillage Three.js dans `@tabax/view-3d` sans désynchronisation visuelle.
+
+2. **D2 — Modèle Géométrique Intermédiaire `PlanScene` (`@tabax/view-2d`) :**
+   - Introduction du sous-module `packages/view-2d/src/plan-scene/` avec `computePlanScene()`.
+   - Modèle intermédiaire neutre résolvant en une passe unique : niveau actif, AABB/Bounds, murs résolus avec miters et hachures 45°, baies avec battements 90° et vitrages, dalles et réservations, escaliers avec contremarches et ligne de foulée, toitures, mobilier/composants, pièces avec centroïde et surface, cotations associatives/libres et réseaux MEP.
+   - Refactorisation des exportateurs `plan-dxf.ts`, `svg-exporter.ts` et `render-plan-page.ts` pour consommer directement `PlanScene`.
+
+3. **D3 — Découpage Modulaire du Domaine MEP (`@tabax/core/mep/commands/`) :**
+   - Découpage du fichier monolithique de 1 565 LOC en 6 sous-modules étanches :
+     - `helpers.ts` (détachement des connecteurs incidents, retrait des systèmes, identification du type).
+     - `segments.ts` (tuyaux, gaines aérauliques, chemins de câbles).
+     - `fittings.ts` (raccords paramétriques, équipements techniques).
+     - `systems.ts` (systèmes fluides et électriques).
+     - `topology.ts` (connexions, déconnexions et commandes polymorphiques).
+     - `routing.ts` (routage multi-tronçons, piquage de tés et transitions).
+   - Préservation du point d'entrée `packages/core/src/mep/commands.ts` par ré-export transparent (`export * from './commands/index.js'`) garantissant 100% de rétrocompatibilité.
+
+4. **D4 — Historique Transactionnel Borné (`HistoryStack`) :**
+   - Plafond configurable `DEFAULT_HISTORY_MAX_CAPACITY = 500` dans `@tabax/core/src/history.ts`.
+   - Éviction FIFO des entrées d'annulation les plus anciennes lorsque la pile dépasse la capacité maximale.
+
+5. **D5 — Garde-fous CI, Étanchéité Architecturale & Packaging :**
+   - Mise à jour de `purity.test.ts` pour interdire tout import Three.js/React dans `@tabax/core` et `@tabax/geometry`, et interdire tout import direct de `@tabax/geometry` dans `apps/web`.
+   - Règle ESLint `no-restricted-imports` interdisant les imports relatifs non typés ou non conformes.
+   - Encapsulation `ReadonlyDependencyGraph` pour protéger le graphe DAG contre les mutations accidentelles hors CommandBus.
+   - Packaging propre du parser WASM `web-ifc` dans les tests d'intégration fédérée.
+
+6. **D6 — Résilience UI & Ergonomie Cockpit :**
+   - Composant `<ErrorBoundary>` React enveloppant Viewport2D, Viewport3D, SectionViewport et les dock panels.
+   - Sélecteur de type de mur interactif (`<select data-testid="wall-type-selector">`) dans `Toolbar.tsx` relié à l'état actif du document.
+
 
 
 

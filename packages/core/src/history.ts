@@ -13,18 +13,27 @@ export interface HistoryEntry {
   readonly changed: readonly ElementId[];
 }
 
+export const DEFAULT_HISTORY_MAX_CAPACITY = 500;
+
 /**
  * Gestionnaire d'historique Undo / Redo basé sur les patchs différentiels Immer.
+ * Bounded history stack (éviction FIFO au-delà de maxCapacity pour éviter toute fuite mémoire).
  */
 export class HistoryStack {
   private readonly undoStack: HistoryEntry[] = [];
   private readonly redoStack: HistoryEntry[] = [];
 
+  public constructor(public readonly maxCapacity: number = DEFAULT_HISTORY_MAX_CAPACITY) {}
+
   /**
    * Enregistre une nouvelle transaction et vide la pile de Redo.
+   * Évince l'entrée la plus ancienne si la capacité maximale est atteinte.
    */
   public push(entry: HistoryEntry): void {
     this.undoStack.push(entry);
+    if (this.undoStack.length > this.maxCapacity) {
+      this.undoStack.shift();
+    }
     this.redoStack.length = 0; // Invalidation stricte du Redo
   }
 

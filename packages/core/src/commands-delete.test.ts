@@ -258,8 +258,8 @@ describe('DeleteWallCommand Refactoré — Équivalence Comportementale (T-CMD-0
     const cmd = new DeleteWallCommand('w_s');
     doc.execute(cmd);
 
-    // Sémantique Option B exacte : pivot en tête, cascades ordonnées, rooms
-    expect(cmd.getChangedIds()).toEqual(['w_s', 'd_1', 'd_2', 'dim_1', 'room_1']);
+    // Sémantique Option B exacte : pivot en tête, voisins connectés, cascades ordonnées, rooms
+    expect(cmd.getChangedIds()).toEqual(['w_s', 'w_e', 'w_w', 'd_1', 'd_2', 'dim_1', 'room_1']);
   });
 
   it('T-CMD-06: getAdditionalChangedIds() retourne les IDs des Rooms impactés (D1)', () => {

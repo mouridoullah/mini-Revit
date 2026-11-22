@@ -185,7 +185,7 @@ export {
   type ResolvedWall,
   type ResolvedOpening,
 } from './walls/resolve.js';
-export { DependencyGraph } from './dag/DependencyGraph.js';
+export { DependencyGraph, type ReadonlyDependencyGraph } from './dag/DependencyGraph.js';
 export { RELATIONS_REGISTRY } from './relations/registry.js';
 export {
   ENTITY_CATEGORY_DESCRIPTORS,

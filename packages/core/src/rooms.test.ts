@@ -476,8 +476,8 @@ describe('Détection des Pièces et Modèle Room (core)', () => {
       expect(doc.getState().rooms['room_cascade']).toBeDefined();
       expect(doc.getState().rooms['room_cascade']?.status).toBe('unenclosed');
 
-      // 2. getChangedIds inclut l'ID du mur et l'ID de la room modifiée
-      expect(deleteCmd.getChangedIds()).toEqual([wallWest.id, 'room_cascade']);
+      // 2. getChangedIds inclut l'ID du mur, ses voisins connectés et l'ID de la room modifiée
+      expect(deleteCmd.getChangedIds()).toEqual([wallWest.id, 'w_north', 'w_south', 'room_cascade']);
 
       // 3. Undo restaure à la fois le mur et le statut originel de la Room
       doc.undo();

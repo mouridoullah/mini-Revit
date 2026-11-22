@@ -64,10 +64,24 @@ export class AddWallCommand implements Command {
   }
 }
 
+function doWallsTouch2D(
+  w1: { start: Vec2; end: Vec2 },
+  w2: { start: Vec2; end: Vec2 },
+  tol = 50,
+): boolean {
+  return (
+    Math.hypot(w1.start.x - w2.start.x, w1.start.y - w2.start.y) < tol ||
+    Math.hypot(w1.start.x - w2.end.x, w1.start.y - w2.end.y) < tol ||
+    Math.hypot(w1.end.x - w2.start.x, w1.end.y - w2.start.y) < tol ||
+    Math.hypot(w1.end.x - w2.end.x, w1.end.y - w2.end.y) < tol
+  );
+}
+
 export class UpdateWallCommand implements Command {
   public readonly name = 'UpdateWall';
   private impactedDimensionIds: ElementId[] = [];
   private impactedRoomIds: ElementId[] = [];
+  private impactedWallIds: ElementId[] = [];
 
   public constructor(
     public readonly wallId: ElementId,
@@ -113,6 +127,17 @@ export class UpdateWallCommand implements Command {
     );
 
     if (footprintChanged) {
+      // Voisins topologiques connectés dont les jonctions doivent être recalculées
+      const connectedWallIds = new Set<ElementId>();
+      for (const [otherId, otherWall] of Object.entries(draft.walls)) {
+        if (otherId !== this.wallId && otherWall.levelId === existing.levelId) {
+          if (doWallsTouch2D(otherWall, existing) || doWallsTouch2D(otherWall, updatedWall)) {
+            connectedWallIds.add(otherId);
+          }
+        }
+      }
+      this.impactedWallIds = Array.from(connectedWallIds).sort();
+
       // Mise à jour associative des cotations qui référencent ce mur
       const impacted: ElementId[] = [];
       if (draft.dimensions) {
@@ -159,13 +184,14 @@ export class UpdateWallCommand implements Command {
       }
       this.impactedRoomIds = impactedRooms.sort();
     } else {
+      this.impactedWallIds = [];
       this.impactedDimensionIds = [];
       this.impactedRoomIds = [];
     }
   }
 
   public getChangedIds(): readonly ElementId[] {
-    return [this.wallId, ...this.impactedDimensionIds, ...this.impactedRoomIds];
+    return [this.wallId, ...this.impactedWallIds, ...this.impactedDimensionIds, ...this.impactedRoomIds];
   }
 }
 
@@ -508,6 +534,7 @@ export class DeleteWallCommand implements Command {
   public readonly name = 'DeleteWall';
   private cascadedIds: ElementId[] = [];
   private deletedRoomIds: ElementId[] = [];
+  private connectedWallIds: ElementId[] = [];
 
   public constructor(public readonly wallId: ElementId) {}
 
@@ -520,6 +547,17 @@ export class DeleteWallCommand implements Command {
       );
     }
     const levelId = wall.levelId;
+
+    // 0. Identifier les murs voisins connectés dont les jonctions doivent être recalculées
+    const neighbors: ElementId[] = [];
+    for (const [wId, otherWall] of Object.entries(draft.walls)) {
+      if (wId !== this.wallId && otherWall.levelId === levelId) {
+        if (doWallsTouch2D(otherWall, wall)) {
+          neighbors.push(wId);
+        }
+      }
+    }
+    this.connectedWallIds = neighbors.sort();
 
     // 1. Résolution déclarative générique des cascades (portes, fenêtres, cotations - ADR-038)
     const { cascadeDeletes } = resolveCascadeDeletions(draft, this.wallId);
@@ -583,7 +621,7 @@ export class DeleteWallCommand implements Command {
 
   public getChangedIds(): readonly ElementId[] {
     const others = this.cascadedIds.filter((id) => id !== this.wallId);
-    return [this.wallId, ...others, ...this.deletedRoomIds];
+    return [this.wallId, ...this.connectedWallIds, ...others, ...this.deletedRoomIds];
   }
 
   public getAdditionalChangedIds(): readonly ElementId[] {

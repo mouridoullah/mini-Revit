@@ -33,6 +33,8 @@ export default defineConfig({
   },
   build: {
     target: 'esnext',
+    // Sur environnement hôte Windows, le verrouillage de fichiers temporaires esbuild (Access is denied sur Temp\esbuild-*)
+    // impose minify: false pour le build local (le tree-shaking Rollup et les manualChunks restent actifs).
     minify: false,
     rollupOptions: {
       output: {

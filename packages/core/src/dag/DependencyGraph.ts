@@ -6,11 +6,26 @@ import { isWallCoveredByRoof } from '../roofs/top-profile.js';
 import { getEntitiesForCategory, getEntityFieldValue } from '../relations/cascade.js';
 
 /**
+ * Interface de consultation en lecture seule du graphe de dépendances (ADR-041 / Audit P1.2).
+ * Empêche toute mutation arbitraire du DAG interne de BimDocument hors transaction.
+ */
+export interface ReadonlyDependencyGraph {
+  getDependents(id: ElementId): readonly ElementId[];
+  getDependencies(id: ElementId): readonly ElementId[];
+  hasCycle(): boolean;
+  findCycleNodes(candidateNodes?: readonly ElementId[]): ElementId[];
+  equals(other: ReadonlyDependencyGraph): boolean;
+  clone(): DependencyGraph;
+  getForwardMap(): ReadonlyMap<ElementId, ReadonlySet<ElementId>>;
+  getBackwardMap(): ReadonlyMap<ElementId, ReadonlySet<ElementId>>;
+}
+
+/**
  * Graphe de dépendances dirigé acyclique (DAG minimal) pour la propagation d'invalidation.
  * Dans ce graphe : parent -> enfant (dépendant).
  * Exemple : wall -> door (si wall change, door est invalidée).
  */
-export class DependencyGraph {
+export class DependencyGraph implements ReadonlyDependencyGraph {
   private forward = new Map<ElementId, Set<ElementId>>(); // parent -> children
   private backward = new Map<ElementId, Set<ElementId>>(); // child -> parents
   private isShared = false;
@@ -142,19 +157,21 @@ export class DependencyGraph {
   /**
    * Compare bit-à-bit deux graphes de dépendances.
    */
-  public equals(other: DependencyGraph): boolean {
-    if (this.forward.size !== other.forward.size || this.backward.size !== other.backward.size) {
+  public equals(other: ReadonlyDependencyGraph): boolean {
+    const otherForward = other.getForwardMap();
+    const otherBackward = other.getBackwardMap();
+    if (this.forward.size !== otherForward.size || this.backward.size !== otherBackward.size) {
       return false;
     }
     for (const [parent, children] of this.forward) {
-      const otherChildren = other.forward.get(parent);
+      const otherChildren = otherForward.get(parent);
       if (!otherChildren || otherChildren.size !== children.size) return false;
       for (const c of children) {
         if (!otherChildren.has(c)) return false;
       }
     }
     for (const [child, parents] of this.backward) {
-      const otherParents = other.backward.get(child);
+      const otherParents = otherBackward.get(child);
       if (!otherParents || otherParents.size !== parents.size) return false;
       for (const p of parents) {
         if (!otherParents.has(p)) return false;
