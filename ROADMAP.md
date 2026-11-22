@@ -8,7 +8,7 @@
 
 ## 1. Vue d'Ensemble des Phases
 
-Le développement de Mini-BIM est structuré en deux grandes saisons selon une progression incrémentale stricte où chaque phase produit un livrable exécutable, testé et documenté avant tout passage à la phase suivante.
+Le développement de Mini-BIM est structuré en trois grandes saisons selon une progression incrémentale stricte où chaque phase produit un livrable exécutable, testé et documenté avant tout passage à la phase suivante.
 
 ```mermaid
 flowchart TD
@@ -28,7 +28,15 @@ flowchart TD
         P8 --> P9["Phase 9<br/>MEP, Clashs & Fédération IFC"]
     end
 
+    subgraph S3 ["SAISON 3 (LIVRABLES PROFESSIONNELS, SCALABILITÉ 10K & ÉDITION DOCUMENTAIRE)"]
+        direction LR
+        P10["Phase 10<br/>Scalabilité 10k & Lazy WeakMap"] --> E1["Étape 1<br/>Architecture Hooks & Finitions Plan"]
+        E1 --> E2["Étape 2<br/>Coupes 2D & Synchro 3D"]
+        E2 --> E3["Étape 3<br/>Moteur DXF R12 & Carnet PDF Multi-Pages"]
+    end
+
     S1 ==> S2
+    S2 ==> S3
 ```
 
 ---
@@ -473,4 +481,47 @@ flowchart LR
     - **Purge et Robustesse des Outils :** Résolution des régressions d'outils, conditional rendering du ruban métier, gestion complète des raccourcis clavier et suppression transactionnelle des éléments MEP (`DeleteMepElementCommand`).
     - **Validation Métrologique & E2E :** Validation sur maquette étalon complète « Immeuble R+4 » (78 murs, 6 dalles, 1 toit, 31 portes, 36 fenêtres, 108 composants mobilier, 5 réseaux MEP complets).
     - **Métriques Officielles :** **1 214 tests Vitest passants** sur 125 suites (100% verts), **8/8 tests Playwright E2E** sur Chromium réel avec capture `graphite-engineering.png`, 0 erreur TypeScript strict (`pnpm typecheck`), 0 warning ESLint (`pnpm lint`). Consigné dans `ADR-061`.
+
+---
+
+### Phase 10 — Scalabilité du Noyau 10 000 Entités [LIVRÉE & QUALIFIÉE]
+
+- **Objectif :** Lever définitivement le verrou de scalabilité du noyau BIM pour les maquettes massives (10k entités).
+- **Réalisations :**
+  - **Indexation Paresseuse $\mathcal{O}(1)$ via `WeakMap` (`ADR-062`) :** Index `LazyWallResolutionIndex` indexé sur `WeakMap<BimState, WallResolutionIndex>` avec getters paresseux mémoïsés (`doorsByHostWallId`, `windowsByHostWallId`, `componentsByLevelId`, `slabsByLevelId`, `roofs`).
+  - **Partage Structurel CSG :** Mise en cache des contours effectifs de dalles via `WeakMap<Slab, EffectiveSlabResult>`.
+  - **Maintenance Incrémentale Différentielle du DAG :** Préservation de l'instance `DependencyGraph` dans `BimDocument`, court-circuit `isTopologicalInvariant = true` pour les translations pures, et atomicité stricte en cas de violation d'invariant (`validateDirty`).
+  - **Gains de Performance Mesurés :**
+    - Résolution de 4 000 murs : passage de 6 708 ms à **34,25 ms** ($\times 195$).
+    - Mutation unitaire sur 10 000 entités : passage de 6 931 ms à **17,53 ms** ($\times 395$).
+- **Métriques Officielles :** **1 220 tests Vitest passants** sur 126 suites (100% verts), 0 erreur TypeScript, 0 warning ESLint. Consigné dans `ADR-062`.
+
+---
+
+## 3. Saison 3 — Édition Documentaire, Coupes & Livrables CAO / PDF
+
+### Étape 1 — Refactorisation d'Architecture & Hooks Découplés [LIVRÉE & QUALIFIÉE]
+- **Découpage modulaire d'`App.tsx` :** Extraction de 4 hooks métier étanches (`useBimDocument`, `useBimSelection`, `useBimExport`, `useBimFederation`).
+- **Garde-fous :** Dé-proxification `bypassUnwrap: true` sur `LazyWallResolutionIndex` et repli niveau complet dans `detectRooms`.
+- **Métriques :** 1 220 tests Vitest passants, 0 warning ESLint.
+
+### Étape 2 — Coupes 2D Dynamiques, Élévations & Synchronisation 3D [LIVRÉE & QUALIFIÉE]
+- **Modèle `SectionCut` unifié (`ADR-063`) :** Contrat fonctionnel borné 2D (`start`, `end`, `viewDirection`, `depth`, `zMin`, `zMax`).
+- **Moteur Analytique `computeSectionScene` :** Découpe segment-polygone exacte (`sliceSegmentWithPolygon`), déduction des baies, trémies, escaliers, toitures biseautées et réseaux MEP.
+- **Rendu & Clipping 3D :** Synchronisation temps réel Three.js (`localClippingEnabled = true`, `THREE.Plane`) et filtrage du raycasting 3D pour picking derrière la coupe.
+- **Cockpit Interactif :** Outil `SectionTool` (`X`) avec snap 45°/90°, inversion `Space`, onglet Coupe dans `SplitViewport`, inspecteur `SectionInspector` et export SVG vectoriel ISO normalisé.
+- **Métriques :** **1 254 tests Vitest passants** sur 131 suites, **9/9 tests Playwright E2E** réels. Consigné dans `ADR-063`.
+
+### Étape 3 — Livrables Professionnels CAO & Impression [LIVRÉE & QUALIFIÉE]
+- **Lot 3.A — Moteur d'Export DXF R12 Pur TypeScript (`ADR-064`) :**
+  - Conformité stricte DXF R12 (`AC1009`, DOS/Windows CRLF), repère ModelSpace 1:1 en mm, emprise `$EXTMIN`/`$EXTMAX` pour `ZOOM E`.
+  - Hachures analytiques en primitives `LINE` à 45° (`sliceSegmentWithPolygonWithHoles`).
+  - Charte de calques normalisée ACI (`ARCH-WALLS`, `ARCH-HATCH`, `SECTION-CUT`, `MEP-*`).
+- **Lot 3.B — Moteur de Mise en Page & Carnet PDF Multi-Pages Vectoriel Pur (`ADR-065`) :**
+  - Moteur vectoriel PDF 1.4 pur TypeScript (`PdfWriter`) conforme ISO 32000-1 (zéro dépendance externe, conversion $1\text{ mm} = \frac{72}{25.4}\text{ pt}$, encodage Windows-1252 mono-octet, table `xref` 20 octets fixe).
+  - Formats A4/A3 paysage avec cadre double, zone utile clippée, cartouche architectural $155 \times 40\text{ mm}$ avec échelle graphique graduée et rose des vents.
+  - 4 types de planches ordonnées : PL-01 Garde/Sommaire, PL-02..k Plans d'étages avec poché/hachures et MEP, PL-(k+1)..m Coupes analytiques, PL-N Synthèse des métrés avec tableaux multi-colonnes et pagination automatique.
+  - Modale `ExportPdfModal.tsx` aux tokens Graphite Engineering et intégration ruban `Toolbar.tsx`.
+- **Métriques Officielles :** **1 283 tests Vitest passants** sur 135 suites (100% verts), **10/10 tests Playwright E2E** réels, 0 erreur TypeScript, 0 warning ESLint. Consigné dans `ADR-064` et `ADR-065`.
+
 

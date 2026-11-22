@@ -16,6 +16,7 @@ import { ProjectBrowser } from './components/ProjectBrowser.js';
 import { RightDockPanel, type DockTab } from './components/RightDockPanel.js';
 import { SplitViewport, type ViewMode } from './components/SplitViewport.js';
 import { SectionViewport } from './components/SectionViewport.js';
+import { ExportPdfModal } from './components/ExportPdfModal.js';
 import styles from './components/Cockpit.module.css';
 import { useActiveTool } from './tools/useActiveTool.js';
 import { ComponentTool } from './tools/ComponentTool.js';
@@ -62,6 +63,7 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
   const [isClashPanelOpen, setIsClashPanelOpen] = useState(false);
   const [rightDockTab, setRightDockTab] = useState<DockTab>('properties');
   const [isBrowserCollapsed, setIsBrowserCollapsed] = useState(false);
+  const [isExportPdfOpen, setIsExportPdfOpen] = useState(false);
   const [isMetricsCollapsed, setIsMetricsCollapsed] = useState(true);
   const ifcFileInputRef = useRef<HTMLInputElement>(null);
   const [activeClashes, setActiveClashes] = useState<readonly ClashResult[]>([]);
@@ -150,6 +152,8 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
     handleSave,
     handleExportIfc,
     handleExportSvg,
+    handleExportPlanDxf,
+    handleExportPdfBook,
     handleLoadFile,
     handleLoadR4Demo,
   } = useBimExport({
@@ -282,6 +286,8 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
         onLoadR4Demo={handleLoadR4Demo}
         onExportIfc={handleExportIfc}
         onExportSvg={handleExportSvg}
+        onExportPlanDxf={handleExportPlanDxf}
+        onExportPdfBook={() => setIsExportPdfOpen(true)}
         levels={Object.values(doc.getState().levels)}
         activeLevelId={activeLevelId}
         onSelectLevel={setActiveLevelId}
@@ -550,6 +556,12 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
         activeToolKind={activeToolKind}
         drawingLength={drawingLength}
         activeLevelId={activeLevelId}
+      />
+
+      <ExportPdfModal
+        isOpen={isExportPdfOpen}
+        onClose={() => setIsExportPdfOpen(false)}
+        onExport={handleExportPdfBook}
       />
     </div>
   );
