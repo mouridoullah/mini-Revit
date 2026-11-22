@@ -46,6 +46,40 @@ export class HistoryStack {
   }
 
   /**
+   * Retourne l'entrée candidate à l'annulation sans altérer la pile (contrat d'atomicité).
+   */
+  public peekUndo(): HistoryEntry | null {
+    return this.undoStack[this.undoStack.length - 1] ?? null;
+  }
+
+  /**
+   * Confirme l'annulation et déplace l'entrée vers la pile redo.
+   */
+  public commitUndo(): HistoryEntry | null {
+    const entry = this.undoStack.pop();
+    if (!entry) return null;
+    this.redoStack.push(entry);
+    return entry;
+  }
+
+  /**
+   * Retourne l'entrée candidate au rétablissement sans altérer la pile (contrat d'atomicité).
+   */
+  public peekRedo(): HistoryEntry | null {
+    return this.redoStack[this.redoStack.length - 1] ?? null;
+  }
+
+  /**
+   * Confirme le rétablissement et déplace l'entrée vers la pile undo.
+   */
+  public commitRedo(): HistoryEntry | null {
+    const entry = this.redoStack.pop();
+    if (!entry) return null;
+    this.undoStack.push(entry);
+    return entry;
+  }
+
+  /**
    * Annule la dernière transaction en appliquant les patchs inverses.
    */
   public undo(

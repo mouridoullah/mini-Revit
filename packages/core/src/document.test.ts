@@ -3,6 +3,7 @@ import { vec2 } from '@tabax/geometry';
 import { BimDocument } from './document.js';
 import * as Commands from './commands.js';
 import { type Wall, type WallType, type Level, type Door, type Window } from './types.js';
+import { DependencyGraph } from './dag/DependencyGraph.js';
 
 describe('BimDocument & CommandBus (document.ts)', () => {
   it('constructeur initialise un état vide valide', () => {
@@ -720,6 +721,101 @@ describe('BimDocument & CommandBus (document.ts)', () => {
       expect(() =>
         doc.execute(new Commands.UpdateWindowCommand('win_raise', { sillHeight: 1500 })),
       ).toThrowError(/INVALID_OPENING_HEIGHT/);
+    });
+  });
+
+  describe('Atomicité transactionnelle et résilience du DAG sur undo() et redo() (ADR-070)', () => {
+    it('maintient l’état, le DAG et canUndo/canRedo strictement inchangés par référence si une exception survient pendant undo()', () => {
+      const doc = BimDocument.createDefaultProject();
+      const typeId = Object.keys(doc.getState().wallTypes)[0]!;
+      const levelId = Object.keys(doc.getState().levels)[0]!;
+      const wallId = 'w_atomic_1';
+      doc.execute(
+        new Commands.AddWallCommand({
+          id: wallId,
+          category: 'wall',
+          typeId,
+          levelId,
+          start: vec2(0, 0),
+          end: vec2(4000, 0),
+        }),
+      );
+
+      const stateBeforeUndo = doc.getState();
+      const dagBeforeUndo = doc.getDependencyGraph();
+      expect(doc.canUndo()).toBe(true);
+      expect(doc.canRedo()).toBe(false);
+
+      // Injection de panne : espion sur updateElements qui lève une exception
+      const updateElementsSpy = vi
+        .spyOn(DependencyGraph.prototype, 'updateElements')
+        .mockImplementationOnce(() => {
+          throw new Error('Panne simulée du calcul DAG lors de l’annulation');
+        });
+
+      // L'appel à undo() doit échouer sans corrompre doc
+      expect(() => doc.undo()).toThrow('Panne simulée du calcul DAG lors de l’annulation');
+
+      // Vérification stricte d'atomicité : aucun changement d'état ni de pointeurs de pile
+      expect(doc.getState()).toBe(stateBeforeUndo);
+      expect(doc.getDependencyGraph()).toBe(dagBeforeUndo);
+      expect(doc.canUndo()).toBe(true);
+      expect(doc.canRedo()).toBe(false);
+
+      updateElementsSpy.mockRestore();
+
+      // Vérifier que le undo() suivant fonctionne normalement après rétablissement
+      const undoResult = doc.undo();
+      expect(undoResult).toBe(true);
+      expect(doc.getState().walls[wallId]).toBeUndefined();
+      expect(doc.canUndo()).toBe(false);
+      expect(doc.canRedo()).toBe(true);
+    });
+
+    it('maintient l’état, le DAG et canUndo/canRedo strictement inchangés par référence si une exception survient pendant redo()', () => {
+      const doc = BimDocument.createDefaultProject();
+      const typeId = Object.keys(doc.getState().wallTypes)[0]!;
+      const levelId = Object.keys(doc.getState().levels)[0]!;
+      const wallId = 'w_atomic_2';
+      doc.execute(
+        new Commands.AddWallCommand({
+          id: wallId,
+          category: 'wall',
+          typeId,
+          levelId,
+          start: vec2(0, 0),
+          end: vec2(4000, 0),
+        }),
+      );
+
+      doc.undo();
+      expect(doc.canRedo()).toBe(true);
+
+      const stateBeforeRedo = doc.getState();
+      const dagBeforeRedo = doc.getDependencyGraph();
+
+      // Injection de panne sur hasCycle pour simuler un rejet de cycle de dépendances
+      const hasCycleSpy = vi
+        .spyOn(DependencyGraph.prototype, 'hasCycle')
+        .mockReturnValueOnce(true);
+
+      // L'appel à redo() doit lever DEPENDENCY_CYCLE
+      expect(() => doc.redo()).toThrowError(/DEPENDENCY_CYCLE/);
+
+      // Vérification stricte d'atomicité
+      expect(doc.getState()).toBe(stateBeforeRedo);
+      expect(doc.getDependencyGraph()).toBe(dagBeforeRedo);
+      expect(doc.canRedo()).toBe(true);
+      expect(doc.canUndo()).toBe(false);
+
+      hasCycleSpy.mockRestore();
+
+      // Vérifier que le redo() suivant fonctionne normalement
+      const redoResult = doc.redo();
+      expect(redoResult).toBe(true);
+      expect(doc.getState().walls[wallId]).toBeDefined();
+      expect(doc.canRedo()).toBe(false);
+      expect(doc.canUndo()).toBe(true);
     });
   });
 });

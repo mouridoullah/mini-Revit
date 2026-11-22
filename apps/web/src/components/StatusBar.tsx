@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useBimDocument } from '../hooks/useBimDocument.js';
 import { type ToolKind } from '../tools/types.js';
-import { detectRooms } from '@tabax/core';
+import { detectRooms, auditDocumentState } from '@tabax/core';
 
 export interface StatusBarProps {
   readonly activeToolKind?: ToolKind;
@@ -43,6 +43,7 @@ export function StatusBar({
     () => (detectedRooms.reduce((acc, r) => acc + r.areaMm2, 0) / 1e6).toFixed(2),
     [detectedRooms],
   );
+  const issues = useMemo(() => auditDocumentState(state), [state]);
 
   let toolMessage = 'Outil : Sélectionner (S)';
   if (activeToolKind === 'wall') {
@@ -145,6 +146,15 @@ export function StatusBar({
         {dimensionCount > 0 && (
           <span>
             Cotes : <strong style={{ color: 'var(--text-primary)' }}>{dimensionCount}</strong>
+          </span>
+        )}
+        {issues.length > 0 && (
+          <span
+            data-testid="status-issues-indicator"
+            title={issues.map((i) => `[${i.code}] ${i.message}`).join('\n')}
+            style={{ color: '#d97706', cursor: 'help' }}
+          >
+            ⚠️ Issues : <strong style={{ color: '#d97706' }}>{issues.length}</strong>
           </span>
         )}
       </div>

@@ -587,6 +587,26 @@ flowchart LR
   - Bascule instantanée vers `SectionViewport` et synchronisation dynamique.
 - **Métriques Officielles :** **1 315 tests Vitest passants** sur 140 suites (100% verts), **11/11 tests Playwright E2E** réels, 0 erreur TypeScript, 0 warning ESLint. Consigné dans `ADR-069`.
 
+### Étape 6 — Volet A : Exploitation, Intégrité & Résilience [LIVRÉ & QUALIFIÉ]
+- **Axe 1 — Concurrence Multi-Onglets & Migration IndexedDB (`Web Locks API` & `BroadcastChannel`) :**
+  - Migration transparente à sens unique : détection au démarrage de `tabax_autosave` ou recopie depuis `mini_bim_autosave` sans perte de maquettes existantes.
+  - Coordination par verrou non-bloquant `WebLockCoordinator` (`tabax-project-lock`).
+  - Suspension immédiate de la sauvegarde automatique sur onglet passif (`setDisabled(true)`) et bannière d'avertissement `multi-tab-warning-banner`.
+  - Notification inter-onglets sur `BroadcastChannel('tabax-sync')` avec bouton interactif `[Recharger la dernière version]` (`reload-latest-btn`).
+- **Axe 2 — Atomicité Stricte du DAG sur Annulation et Rétablissement (`undo()` / `redo()`) :**
+  - Pattern transactionnel en 3 temps dans `BimDocument` avec `peekUndo()` / `commitUndo()` et `peekRedo()` / `commitRedo()`.
+  - Validation et détection de cycle topologique (`hasCycle()`) sur clone du graphe avant toute mutation de l'état ou de la pile d'historique.
+  - Garantie d'invariance par référence (`toBe`) de `state`, `_dag`, `canUndo()` et `canRedo()` en cas d'erreur ou d'interruption.
+- **Axe 3 — Diagnostic Passif au Chargement (`auditDocumentState`) :**
+  - Fonction pure `auditDocumentState(state)` dans `@tabax/core/src/rules/audit.ts` et méthode `doc.getValidationIssues()`.
+  - Détection non destructive des anomalies architecturales (murs courts $< 100\text{ mm}$, ouvertures débordantes/chevauchées, escaliers hors Blondel, pièces non closes, cotations orphelines).
+  - Indicateur passif dans la barre d'état `status-issues-indicator` sans auto-réparation silencieuse non sollicitée.
+- **Axe 4 — Qualification Globale & Gouvernance :**
+  - Extension des scénarios Playwright E2E dans `apps/web/e2e/smoke.spec.ts` (test 13 persistance/reload et test 14 garde-fou multi-onglets Web Locks).
+  - Rédaction et enregistrement officiel d'`ADR-070` dans `DECISIONS.md`.
+- **Métriques Officielles :** **1 330 tests Vitest passants** sur 141 suites (100% verts), **14/14 tests Playwright E2E** réels, 0 erreur TypeScript, 0 warning ESLint. Consigné dans `ADR-070`.
+
+
 
 
 

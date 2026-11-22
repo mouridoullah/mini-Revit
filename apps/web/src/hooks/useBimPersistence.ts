@@ -1,6 +1,12 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { BimDocument, createComplexVillaDocument } from '@tabax/core';
-import { AutoSaveManager, loadFromIndexedDB } from '../persistence/autoSave.js';
+import {
+  AutoSaveManager,
+  loadFromIndexedDB,
+  WebLockCoordinator,
+  TABAX_SYNC_CHANNEL,
+  type TabaxSyncMessage,
+} from '../persistence/autoSave.js';
 
 export interface UseBimPersistenceOptions {
   readonly doc: BimDocument;
@@ -8,12 +14,21 @@ export interface UseBimPersistenceOptions {
   readonly setDocument: (newDoc: BimDocument) => void;
   readonly setActiveLevelId: (levelId: string) => void;
   readonly setInfoMessage: (msg: string | null) => void;
+  readonly onLockConflictChange?: (isConflict: boolean) => void;
+}
+
+export interface UseBimPersistenceResult {
+  readonly isSecondaryTab: boolean;
+  readonly hasNewerVersion: boolean;
+  readonly reloadLatestVersion: () => Promise<void>;
 }
 
 /**
- * Hook gérant la persistance globale du document Mini-BIM :
+ * Hook gérant la persistance globale du document Tabax :
  * - Restauration initiale unique (ADR-051 §D4) : URL demo (?demo=...) ou IndexedDB
- * - Sauvegarde automatique réactive cadencée par debounce via AutoSaveManager
+ * - Migration silencieuse automatique à sens unique mini_bim_autosave -> tabax_autosave (ADR-070)
+ * - Coordination multi-onglets Web Locks API avec suspension de sauvegarde (ADR-070)
+ * - Synchronisation BroadcastChannel inter-onglets (ADR-070)
  * - Nettoyage et flush atomique sur événement beforeunload
  */
 export function useBimPersistence({
@@ -22,15 +37,63 @@ export function useBimPersistence({
   setDocument,
   setActiveLevelId,
   setInfoMessage,
-}: UseBimPersistenceOptions): void {
+  onLockConflictChange,
+}: UseBimPersistenceOptions): UseBimPersistenceResult {
   const autoSaveManagerRef = useRef<AutoSaveManager | null>(null);
   if (!autoSaveManagerRef.current) {
     autoSaveManagerRef.current = new AutoSaveManager(500);
   }
 
+  const [isSecondaryTab, setIsSecondaryTab] = useState(false);
+  const [hasNewerVersion, setHasNewerVersion] = useState(false);
   const hasRestoredRef = useRef(false);
 
-  // Restauration automatique au montage initial depuis IndexedDB (S2-8 / ADR-051 §D4) ou chargement démo ?demo=...
+  // 1. Gestion du verrou exclusif multi-onglets (Web Locks API / ADR-070)
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function evaluateTabLock() {
+      const acquired = await WebLockCoordinator.requestLock();
+      if (isCancelled) return;
+
+      if (!acquired) {
+        setIsSecondaryTab(true);
+        autoSaveManagerRef.current?.setDisabled(true);
+        onLockConflictChange?.(true);
+      } else {
+        setIsSecondaryTab(false);
+        autoSaveManagerRef.current?.setDisabled(false);
+        onLockConflictChange?.(false);
+      }
+    }
+
+    void evaluateTabLock();
+
+    // Écoute des synchronisations inter-onglets via BroadcastChannel
+    let channel: BroadcastChannel | null = null;
+    if (typeof BroadcastChannel !== 'undefined') {
+      try {
+        channel = new BroadcastChannel(TABAX_SYNC_CHANNEL);
+        channel.onmessage = (event: MessageEvent<TabaxSyncMessage>) => {
+          if (event.data?.type === 'TABAX_AUTOSAVE_SAVED') {
+            setHasNewerVersion(true);
+          }
+        };
+      } catch {
+        // BroadcastChannel non supporté dans cet environnement
+      }
+    }
+
+    return () => {
+      isCancelled = true;
+      if (channel) {
+        channel.close();
+      }
+      WebLockCoordinator.releaseLock();
+    };
+  }, [onLockConflictChange]);
+
+  // 2. Restauration automatique au montage initial depuis IndexedDB (ou URL ?demo=...)
   useEffect(() => {
     if (hasInitialDoc || hasRestoredRef.current) {
       return;
@@ -81,7 +144,11 @@ export function useBimPersistence({
         if (result && !isCancelled) {
           const restoredDoc = BimDocument.fromJSON(result.json);
           setDocument(restoredDoc);
-          setInfoMessage('Projet restauré depuis la sauvegarde automatique');
+          if (result.migratedFromLegacy) {
+            setInfoMessage('Projet migré et restauré depuis mini_bim_autosave vers tabax_autosave');
+          } else {
+            setInfoMessage('Projet restauré depuis la sauvegarde automatique');
+          }
         }
       } catch (err) {
         console.warn('[AutoSave] Impossible de charger la sauvegarde automatique :', err);
@@ -95,7 +162,22 @@ export function useBimPersistence({
     };
   }, [hasInitialDoc, setDocument, setActiveLevelId, setInfoMessage]);
 
-  // Sauvegarde automatique réactive à chaque mutation documentaire (S2-8)
+  // 3. Rechargement manuel de la dernière version enregistrée par un autre onglet
+  const reloadLatestVersion = useCallback(async () => {
+    try {
+      const result = await loadFromIndexedDB();
+      if (result) {
+        const reloadedDoc = BimDocument.fromJSON(result.json);
+        setDocument(reloadedDoc);
+        setHasNewerVersion(false);
+        setInfoMessage('Projet rechargé avec succès depuis la dernière version enregistrée.');
+      }
+    } catch (err) {
+      console.warn('[AutoSave] Impossible de recharger la dernière version :', err);
+    }
+  }, [setDocument, setInfoMessage]);
+
+  // 4. Sauvegarde automatique réactive à chaque mutation documentaire
   useEffect(() => {
     const unsubscribe = doc.subscribe(() => {
       autoSaveManagerRef.current?.scheduleSave(doc);
@@ -106,8 +188,14 @@ export function useBimPersistence({
     };
   }, [doc]);
 
-  // Flush avant déchargement de page (S2-8)
+  // 5. Flush avant déchargement de page
   useEffect(() => {
     return autoSaveManagerRef.current?.attachBeforeUnload(doc);
   }, [doc]);
+
+  return {
+    isSecondaryTab,
+    hasNewerVersion,
+    reloadLatestVersion,
+  };
 }

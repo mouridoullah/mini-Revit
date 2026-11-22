@@ -78,6 +78,7 @@
 | **ADR-067** | Identité de Marque Tabax & Renommage du Monorepo (@tabax/*) | **Accepté**  | 22/11/2026 |
 | **ADR-068** | Consolidation de la Fiabilité, Modèle Intermédiaire PlanScene, Découpage MEP et Préparation Étape 5 (Phase C) | **Accepté**  | 22/11/2026 |
 | **ADR-069** | Coupes Multiples Automatiques, Élévations Vectorielles Opaques & Cotations Verticales Normalisées (Saison 3 - Étape 5) | **Accepté**  | 22/11/2026 |
+| **ADR-070** | Résilience d'Exploitation — Verrou Multi-Onglets (Web Locks), Atomicité DAG sur Annulation/Rétablissement & Audit Passif au Chargement (Saison 3 - Étape 6 Volet A) | **Accepté**  | 22/11/2026 |
 
 ---
 
@@ -2818,8 +2819,42 @@ Cependant, la production d'un dossier complet d'avant-projet ou d'exécution (DC
 - Génération instantanée (< 10 ms) du dossier complet de 6 vues réglementaires d'un projet.
 - Zéro régression : maintien de l'étanchéité stricte des paquets et couverture intégrale à 1 315 tests unitaires et 11 tests E2E Playwright.
 
+---
 
+## ADR-070 : Résilience d'Exploitation — Verrou Multi-Onglets (Web Locks), Atomicité DAG sur Annulation/Rétablissement & Audit Passif au Chargement (Saison 3 - Étape 6 Volet A)
 
+### Contexte
 
+Lors des audits d'architecture et de sécurité opérationnelle conduits à la fin de l'Étape 4 et consolidés en Phase C, plusieurs risques d'intégrité et de robustesse en production ont été identifiés :
+1. **Concurrence multi-onglets & écrasements silencieux (Levée de la Clause V1 d'ADR-051) :** Dans l'implémentation initiale de l'autosave (ADR-051 §D6), la concurrence multi-onglets n'était pas gérée (*Last-Write-Wins* aveugle). L'édition sur un second onglet écrasait silencieusement la sauvegarde du premier dans `mini_bim_autosave`.
+2. **Rebranding et continuité de persistance :** Le renommage en Tabax (ADR-067) imposait d'adopter le nom `tabax_autosave` sans perte des projets existants dans `mini_bim_autosave`.
+3. **Atomicité non stricte du DAG sur `undo()` et `redo()` :** Dans `@tabax/core/src/document.ts`, `undo()` et `redo()` mutaient l'historique avant de valider le DAG. En cas d'erreur inattendue sur le DAG, le document se retrouvait partiellement altéré.
+4. **Diagnostic de conformité vs auto-réparation silencieuse :** Réparer silencieusement des anomalies (murs trop courts, ouvertures hors limites, escaliers hors Blondel) corromprait la maquette à l'insu de l'utilisateur.
 
+### Décisions Clés
+
+1. **D1 — Migration Silencieuse à Sens Unique d'IndexedDB (`apps/web`) :**
+   - Base officielle `tabax_autosave`, base historique `mini_bim_autosave`.
+   - `loadFromIndexedDB()` lit d'abord `tabax_autosave`. Si vide, il vérifie `mini_bim_autosave` et recopie l'entrée dans `tabax_autosave`. Aucune perte de données existantes.
+
+2. **D2 — Orchestration Concurrente Multi-Onglets (`Web Locks API` & `BroadcastChannel`) :**
+   - Verrou exclusif non-bloquant `tabax-project-lock` (`navigator.locks.request` avec `ifAvailable: true`).
+   - L'onglet titulaire est le seul autorisé à sauvegarder. Le second onglet suspend son autosave (`setDisabled(true)`) et affiche la bannière d'alerte `multi-tab-warning-banner`.
+   - Synchronisation inter-onglets via `BroadcastChannel('tabax-sync')` avec bouton interactif `[Recharger la dernière version]` (`reload-latest-btn`).
+   - Repli transparent en environnement sans Web Locks (Node, test, navigateurs anciens).
+
+3. **D3 — Atomicité Stricte du DAG sur Annulation et Rétablissement (`undo()` / `redo()`) :**
+   - Pattern transactionnel en 3 temps sans mutation prématurée : pré-visualisation du patch (`peekUndo()` / `peekRedo()`), synchronisation et vérification d'absence de cycles sur un clone du graphe (`nextDag.hasCycle()`), puis commit atomique simultané (`commitUndo()` / `commitRedo()`).
+   - En cas d'exception, `state`, `_dag`, `canUndo()` et `canRedo()` restent strictement invariants par référence (`toBe`).
+
+4. **D4 — Diagnostic Passif au Chargement (`auditDocumentState`) :**
+   - Fonction pure `auditDocumentState(state)` dans `@tabax/core/src/rules/audit.ts` et méthode `doc.getValidationIssues()`.
+   - Détection sans altération : murs trop courts, ouvertures hors limites/chevauchées, escaliers non conformes Blondel, pièces non closes, cotations orphelines.
+   - Signalement non-bloquant dans la barre d'état (`status-issues-indicator`).
+
+### Conséquences
+
+- Zéro écrasement accidentel en multi-onglets, migration transparente des sauvegardes existantes.
+- Atomicité transactionnelle absolue et zéro auto-réparation destructive non sollicitée.
+- Couverture : 1 330 tests unitaires/intégration sur 141 fichiers de test, 14 / 14 tests Playwright E2E réels, 0 erreur TypeScript, 0 warning ESLint.
 

@@ -499,4 +499,71 @@ test.describe('Mini-BIM E2E Smoke Tests (Playwright Real Browser)', () => {
 
     expect(consoleErrors).toEqual([]);
   });
+
+  test('persistance et restauration automatique IndexedDB après page.reload() (ADR-070)', async ({ page }) => {
+    const consoleErrors: string[] = [];
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') consoleErrors.push(msg.text());
+    });
+    page.on('pageerror', (err) => consoleErrors.push(err.message));
+
+    await page.goto('/');
+
+    // 1. Déclencher une modification (cotation automatique d'étage)
+    const autoDimBtn = page.locator('[data-testid="auto-dimension-floor-btn"]');
+    await expect(autoDimBtn).toBeVisible();
+    await autoDimBtn.click();
+
+    // Vérifier l'augmentation des cotes (1 existante + 10 = 11)
+    await expect(page.locator('[data-testid="status-bar"]')).toContainText('Cotes : 11');
+
+    // 2. Attendre l'expiration du debounce de sauvegarde automatique (500 ms) + marge
+    await page.waitForTimeout(800);
+
+    // 3. Recharger la page
+    await page.reload();
+
+    // 4. Vérifier la restauration automatique depuis IndexedDB
+    const infoBanner = page.locator('[data-testid="info-banner"]');
+    await expect(infoBanner).toBeVisible();
+    await expect(infoBanner).toContainText('sauvegarde automatique');
+
+    // Vérifier que les cotes sont bien restaurées
+    await expect(page.locator('[data-testid="status-bar"]')).toContainText('Cotes : 11');
+
+    expect(consoleErrors).toEqual([]);
+  });
+
+  test('garde-fou multi-onglets Web Locks et bannière de suspension (ADR-070)', async ({ page }) => {
+    const consoleErrors: string[] = [];
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') consoleErrors.push(msg.text());
+    });
+    page.on('pageerror', (err) => consoleErrors.push(err.message));
+
+    // 1. Onglet principal détient le verrou
+    await page.goto('/');
+    await expect(page.locator('canvas[data-testid="viewport-2d-canvas"]')).toBeVisible();
+
+    // L'onglet principal n'a PAS la bannière de conflit
+    await expect(page.locator('[data-testid="multi-tab-warning-banner"]')).toHaveCount(0);
+
+    // 2. Ouverture d'un second onglet dans le même contexte de navigateur
+    const context = page.context();
+    const page2 = await context.newPage();
+    await page2.goto('/');
+
+    // 3. Le second onglet doit détecter le conflit Web Locks et afficher la bannière
+    const warningBanner = page2.locator('[data-testid="multi-tab-warning-banner"]');
+    await expect(warningBanner).toBeVisible();
+    await expect(warningBanner).toContainText('Projet déjà ouvert dans un autre onglet');
+
+    const reloadBtn = page2.locator('[data-testid="reload-latest-btn"]');
+    await expect(reloadBtn).toBeVisible();
+
+    // 4. Fermeture propre du second onglet
+    await page2.close();
+
+    expect(consoleErrors).toEqual([]);
+  });
 });
