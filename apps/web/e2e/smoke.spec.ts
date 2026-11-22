@@ -458,4 +458,45 @@ test.describe('Mini-BIM E2E Smoke Tests (Playwright Real Browser)', () => {
 
     expect(consoleErrors).toEqual([]);
   });
+
+  test('génère automatiquement les coupes et élévations avec cotations verticales (ADR-069)', async ({ page }) => {
+    const consoleErrors: string[] = [];
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') consoleErrors.push(msg.text());
+    });
+    page.on('pageerror', (err) => consoleErrors.push(err.message));
+
+    await page.goto('/');
+
+    // 1. Bouton "Générer Vues" dans la Toolbar (onglet Architecture)
+    const autoViewsBtn = page.locator('[data-testid="auto-generate-views-btn"]');
+    await expect(autoViewsBtn).toBeVisible();
+    await autoViewsBtn.click();
+
+    // 2. Vérifier la présence des 6 vues générées dans le ProjectBrowser
+    const southElevBtn = page.locator('button[data-testid^="project-section-"]:has-text("Élévation Façade Sud")');
+    await expect(southElevBtn).toBeVisible();
+
+    const northElevBtn = page.locator('button[data-testid^="project-section-"]:has-text("Élévation Façade Nord")');
+    await expect(northElevBtn).toBeVisible();
+
+    const cutAABtn = page.locator('button[data-testid^="project-section-"]:has-text("Coupe transversale A-A\'")');
+    await expect(cutAABtn).toBeVisible();
+
+    // 3. Ouvrir l'Élévation Sud
+    await southElevBtn.click();
+
+    // 4. Vérifier l'affichage dans SectionViewport
+    const viewport = page.locator('[data-testid="section-viewport"]');
+    await expect(viewport).toBeVisible();
+
+    const title = page.locator('[data-testid="section-active-title"]');
+    await expect(title).toBeVisible();
+    await expect(title).toContainText('Élévation Façade Sud');
+
+    const canvas = page.locator('canvas[data-testid="section-canvas"]');
+    await expect(canvas).toBeVisible();
+
+    expect(consoleErrors).toEqual([]);
+  });
 });

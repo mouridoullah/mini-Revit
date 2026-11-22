@@ -40,7 +40,10 @@ export function generateSectionSvg(scene: SectionScene, options: SectionSvgOptio
   const printHeightMm = paperHeightMm - 2 * marginMm - 20; // 20 mm réservés pour le cartouche
 
   // Conversion 1 mm maquette = 1 / scaleRatio mm papier
-  const sceneWidthOnPaper = scene.cutLength / scaleRatio;
+  const sMin = scene.bounds.sMin ?? 0;
+  const sMax = scene.bounds.sMax ?? scene.cutLength;
+  const sSpan = Math.max(1000, sMax - sMin);
+  const sceneWidthOnPaper = sSpan / scaleRatio;
   const zSpan = Math.max(1000, scene.bounds.zMax - scene.bounds.zMin);
   const sceneHeightOnPaper = zSpan / scaleRatio;
 
@@ -52,8 +55,8 @@ export function generateSectionSvg(scene: SectionScene, options: SectionSvgOptio
 
   const mmPerStateMm = (1 / scaleRatio) * autoZoom;
 
-  // Centrage de la scène dans la zone utile
-  const originX = marginMm + (printWidthMm - scene.cutLength * mmPerStateMm) / 2;
+  // Centrage de la scène (s'étendant de sMin à sMax) dans la zone utile
+  const originX = marginMm + (printWidthMm - sSpan * mmPerStateMm) / 2 - sMin * mmPerStateMm;
   const originY =
     marginMm +
     printHeightMm -
@@ -80,7 +83,7 @@ export function generateSectionSvg(scene: SectionScene, options: SectionSvgOptio
       <circle cx="3" cy="3" r="0.25" fill="#475569" />
     </pattern>
     <pattern id="hatch-insulation" width="3" height="3" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
-      <line x1="0" y1="0" x2="0" y2="3" stroke="#92400e" stroke-width="0.25" />
+      <line x1="0" y1="0" x2="3" y2="0" stroke="#92400e" stroke-width="0.25" />
       <line x1="0" y1="0" x2="3" y2="0" stroke="#92400e" stroke-width="0.25" />
     </pattern>
   </defs>`);
@@ -93,8 +96,8 @@ export function generateSectionSvg(scene: SectionScene, options: SectionSvgOptio
 
   // Ligne de sol
   parts.push(`  <!-- Ligne de référence sol -->`);
-  const solStartX = (originX - 10).toFixed(2);
-  const solEndX = (originX + scene.cutLength * mmPerStateMm + 10).toFixed(2);
+  const solStartX = toSvgX(Math.min(-500, sMin));
+  const solEndX = toSvgX(Math.max(scene.cutLength + 500, sMax));
   const solY = toSvgY(0);
   parts.push(
     `  <line x1="${solStartX}" y1="${solY}" x2="${solEndX}" y2="${solY}" stroke="#0f172a" stroke-width="0.6" stroke-dasharray="6,2" />`,

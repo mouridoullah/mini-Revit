@@ -21,11 +21,14 @@ export function renderSectionPage(
 ): void {
   const viewport = getDrawingViewportBox(format);
 
-  // 1. Dimensions du modèle de coupe en mm
+  // 1. Dimensions du modèle de coupe en mm (prenant en compte les cotes et repères déportés)
   const cutLenMm = Math.max(1000, scene.cutLength);
+  const sMinMm = scene.bounds.sMin ?? 0;
+  const sMaxMm = scene.bounds.sMax ?? cutLenMm;
+  const sSpanMm = Math.max(1000, sMaxMm - sMinMm);
+  const sMidMm = (sMinMm + sMaxMm) / 2;
   const zSpanMm = Math.max(1500, scene.bounds.zMax - scene.bounds.zMin);
   const zMidMm = (scene.bounds.zMin + scene.bounds.zMax) / 2;
-  const sMidMm = cutLenMm / 2;
 
   // 2. Détermination de l'échelle architecturale
   let scaleRatio: number = 100;
@@ -33,8 +36,8 @@ export function renderSectionPage(
 
   if (!options.scale || options.scale === 'auto') {
     isAuto = true;
-    const fitScaleX = (cutLenMm * 1.35) / viewport.widthMm;
-    const fitScaleY = (zSpanMm * 1.35) / viewport.heightMm;
+    const fitScaleX = (sSpanMm * 1.15) / viewport.widthMm;
+    const fitScaleY = (zSpanMm * 1.25) / viewport.heightMm;
     const fitScale = Math.max(fitScaleX, fitScaleY);
 
     if (fitScale <= 50) scaleRatio = 50;
@@ -51,7 +54,7 @@ export function renderSectionPage(
   const viewCenterXPt = viewport.xMinPt + viewport.widthPt / 2;
   const viewCenterYPt = viewport.yMinPt + viewport.heightPt / 2;
 
-  // Fonctions de projection : s -> X pt, z -> Y pt
+  // Fonctions de projection : s -> X pt, z -> Y pt (centrées sur le milieu effectif de la scène)
   const toPdfX = (s: number): number => viewCenterXPt + (s - sMidMm) * ptPerWorldMm;
   const toPdfY = (z: number): number => viewCenterYPt + (z - zMidMm) * ptPerWorldMm;
 
@@ -62,8 +65,8 @@ export function renderSectionPage(
   // ---------------------------------------------------------------------------
   // A. Ligne de sol Z = 0
   // ---------------------------------------------------------------------------
-  const groundS1 = -1500;
-  const groundS2 = cutLenMm + 1500;
+  const groundS1 = Math.min(-1500, sMinMm);
+  const groundS2 = Math.max(cutLenMm + 1500, sMaxMm);
   const groundYPt = toPdfY(0);
 
   content.line(toPdfX(groundS1), groundYPt, toPdfX(groundS2), groundYPt, {

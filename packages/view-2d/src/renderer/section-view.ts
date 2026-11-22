@@ -86,15 +86,18 @@ export function renderSectionView(
 
   // 2. Calcul du cadrage (mapping s, z -> canvasX, canvasY)
   const cutLen = Math.max(100, scene.cutLength);
+  const sMin = scene.bounds.sMin ?? 0;
+  const sMax = scene.bounds.sMax ?? cutLen;
+  const sSpan = Math.max(100, sMax - sMin);
   const zSpan = Math.max(500, scene.bounds.zMax - scene.bounds.zMin);
 
   const availW = Math.max(50, width - padding * 2);
   const availH = Math.max(50, height - padding * 2);
 
-  const fitScale = Math.min(availW / cutLen, availH / zSpan);
+  const fitScale = Math.min(availW / sSpan, availH / zSpan);
   const scale = options.scale ?? fitScale;
 
-  const offX = options.offset?.x ?? (padding + (availW - cutLen * scale) / 2);
+  const offX = options.offset?.x ?? (padding + (availW - sSpan * scale) / 2 - sMin * scale);
   const offY =
     options.offset?.y ?? (height - padding - (availH - zSpan * scale) / 2);
 
@@ -105,8 +108,8 @@ export function renderSectionView(
   ctx.strokeStyle = '#0f172a';
   ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.moveTo(toX(-500), toY(0));
-  ctx.lineTo(toX(scene.cutLength + 500), toY(0));
+  ctx.moveTo(toX(Math.min(-500, sMin)), toY(0));
+  ctx.lineTo(toX(Math.max(scene.cutLength + 500, sMax)), toY(0));
   ctx.stroke();
 
   // 4. Éléments projetés en arrière-plan (traits fins)

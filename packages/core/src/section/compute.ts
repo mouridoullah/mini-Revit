@@ -832,6 +832,37 @@ export function computeSectionScene(state: BimState, cut: SectionCut): SectionSc
     }
   }
 
+  // Calcul rigoureux des bornes horizontales sMin / sMax englobant la géométrie,
+  // les cotations déportées (s < 0) et les repères altimétriques
+  let sMin = 0;
+  let sMax = cutLen;
+
+  for (const item of cutItems) {
+    for (const pt of item.polygon) {
+      if (pt.x < sMin) sMin = pt.x;
+      if (pt.x > sMax) sMax = pt.x;
+    }
+  }
+
+  for (const item of projectedItems) {
+    for (const pt of item.polygon) {
+      if (pt.x < sMin) sMin = pt.x;
+      if (pt.x > sMax) sMax = pt.x;
+    }
+  }
+
+  for (const dim of dimensions) {
+    const dimLeft = dim.s - 700; // Marge pour le texte de cote aligné à droite
+    if (dimLeft < sMin) sMin = dimLeft;
+    if (dim.s > sMax) sMax = dim.s;
+  }
+
+  if (sortedLevels.length > 0) {
+    // Les lignes de niveaux s'étendent de s = -1200 (avec triangle et texte de niveau à gauche) à cutLen + 1000
+    if (-1800 < sMin) sMin = -1800;
+    if (cutLen + 1000 > sMax) sMax = cutLen + 1000;
+  }
+
   return {
     cutId: cut.id,
     cutName: cut.name,
@@ -840,8 +871,8 @@ export function computeSectionScene(state: BimState, cut: SectionCut): SectionSc
     cutLength: cutLen,
     depth: cut.depth,
     bounds: {
-      sMin: 0,
-      sMax: cutLen,
+      sMin: Math.round(sMin),
+      sMax: Math.round(sMax),
       zMin,
       zMax,
     },
