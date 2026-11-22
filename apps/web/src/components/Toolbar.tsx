@@ -13,8 +13,8 @@ import {
   Building2,
   ChevronDown,
   DoorOpen,
-  Download,
   FileBox,
+  FileDown,
   FolderOpen,
   Layers,
   Move,
@@ -25,7 +25,6 @@ import {
   Search,
   Sparkles,
   Undo2,
-  Upload,
   Waypoints,
   Ruler,
   Square,
@@ -316,9 +315,10 @@ export function Toolbar({
               className={styles.action}
               data-testid="export-svg-btn"
               onClick={() => onExportSvg?.(scale)}
+              title="Exporter le plan actif au format vectoriel SVG"
             >
-              <Upload size={15} />
-              Plan SVG
+              <FileDown size={15} />
+              Exporter SVG
             </button>
             <select
               aria-label="Échelle du plan SVG"
@@ -335,10 +335,10 @@ export function Toolbar({
             className={styles.action}
             data-testid="export-plan-dxf-btn"
             onClick={onExportPlanDxf}
-            title="Exporter le plan d'étage en DXF R12 1:1"
+            title="Exporter le plan actif en AutoCAD DXF R12 1:1"
           >
-            <Download size={15} />
-            Plan DXF
+            <FileDown size={15} />
+            Exporter DXF
           </button>
           <button
             className={styles.action}
@@ -347,7 +347,7 @@ export function Toolbar({
             title="Générer le carnet de plans multi-pages (PDF vectoriel pur)"
           >
             <BookOpen size={15} />
-            Carnet PDF
+            Exporter PDF
           </button>
         </div>
       </div>

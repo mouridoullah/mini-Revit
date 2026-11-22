@@ -1617,6 +1617,16 @@ describe('App Integration & Squelette Double Viewport (apps/web)', () => {
       expect(banner).not.toBeNull();
       expect(banner?.textContent).toContain('Projet déjà ouvert dans un autre onglet');
       expect(getByTestId('reload-latest-btn')).toBeDefined();
+      expect(getByTestId('claim-lock-btn')).toBeDefined();
+      expect(getByTestId('dismiss-lock-banner-btn')).toBeDefined();
+    });
+
+    // Clic sur le bouton de fermeture pour masquer la bannière
+    const dismissBtn = getByTestId('dismiss-lock-banner-btn');
+    fireEvent.click(dismissBtn);
+
+    await waitFor(() => {
+      expect(queryByTestId('multi-tab-warning-banner')).toBeNull();
     });
 
     lockSpy.mockRestore();

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { computeSectionScene } from '@tabax/core';
 import { renderSectionView, generateSectionSvg, generateSectionDxf } from '@tabax/view-2d';
-import { Download, Scissors, Eye, EyeOff, ZoomIn, Building2 } from 'lucide-react';
+import { Download, Scissors, Eye, EyeOff, ZoomIn, ZoomOut, Maximize2, Building2 } from 'lucide-react';
 import { useBimDocument } from '../hooks/useBimDocument.js';
 import { useResizeObserver } from '../hooks/useResizeObserver.js';
 
@@ -23,8 +23,10 @@ export function SectionViewport({
     width: 800,
     height: 600,
   });
-  const [userZoom, setUserZoom] = useState<number>(1);
-  const [userOffset, setUserOffset] = useState<{ x: number; y: number } | null>(null);
+  const [zoomFactor, setZoomFactor] = useState<number>(1);
+  const [panOffset, setPanOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartRef = useRef<{ x: number; y: number } | null>(null);
 
   useResizeObserver(containerRef, (width, height) => {
     setDimensions({ width, height });
@@ -54,6 +56,20 @@ export function SectionViewport({
     canvas.width = width;
     canvas.height = height;
 
+    const cutLen = Math.max(100, scene.cutLength);
+    const sMin = scene.bounds.sMin ?? 0;
+    const sMax = scene.bounds.sMax ?? cutLen;
+    const sSpan = Math.max(100, sMax - sMin);
+    const zSpan = Math.max(500, scene.bounds.zMax - scene.bounds.zMin);
+    const padding = 60;
+    const availW = Math.max(50, width - padding * 2);
+    const availH = Math.max(50, height - padding * 2);
+    const baseFitScale = Math.min(availW / sSpan, availH / zSpan);
+    const scale = baseFitScale * zoomFactor;
+
+    const baseOffX = padding + (availW - sSpan * scale) / 2 - sMin * scale;
+    const baseOffY = height - padding - (availH - zSpan * scale) / 2;
+
     const renderOptions = {
       width,
       height,
@@ -61,12 +77,15 @@ export function SectionViewport({
       showLevels: true,
       showHatch: true,
       backgroundColor: '#1e293b',
-      ...(userOffset ? { offset: userOffset } : {}),
-      ...(userZoom !== 1 ? { scale: userZoom } : {}),
+      scale,
+      offset: {
+        x: baseOffX + panOffset.x,
+        y: baseOffY + panOffset.y,
+      },
     };
 
     renderSectionView(ctx, scene, renderOptions);
-  }, [scene, dimensions, userZoom, userOffset]);
+  }, [scene, dimensions, zoomFactor, panOffset]);
 
   const handleExportSvg = () => {
     if (!scene) return;
@@ -107,9 +126,49 @@ export function SectionViewport({
     }
   };
 
+  const handleZoomIn = () => {
+    setZoomFactor((z) => Math.min(10, Math.round(z * 1.25 * 100) / 100));
+  };
+
+  const handleZoomOut = () => {
+    setZoomFactor((z) => Math.max(0.1, Math.round((z / 1.25) * 100) / 100));
+  };
+
   const handleZoomFit = () => {
-    setUserZoom(1);
-    setUserOffset(null);
+    setZoomFactor(1);
+    setPanOffset({ x: 0, y: 0 });
+  };
+
+  const handleWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    const factor = e.deltaY < 0 ? 1.15 : 0.87;
+    setZoomFactor((z) => Math.min(10, Math.max(0.1, Math.round(z * factor * 100) / 100)));
+  };
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (e.button === 0 || e.button === 1) {
+      dragStartRef.current = { x: e.clientX, y: e.clientY };
+      setIsDragging(true);
+      e.currentTarget.setPointerCapture(e.pointerId);
+    }
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!dragStartRef.current) return;
+    const dx = e.clientX - dragStartRef.current.x;
+    const dy = e.clientY - dragStartRef.current.y;
+    dragStartRef.current = { x: e.clientX, y: e.clientY };
+    setPanOffset((prev) => ({ x: prev.x + dx, y: prev.y + dy }));
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    dragStartRef.current = null;
+    setIsDragging(false);
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {
+      // ignore
+    }
   };
 
   if (!sectionCut || !scene) {
@@ -275,38 +334,112 @@ export function SectionViewport({
             DXF
           </button>
 
-          <button
-            type="button"
-            data-testid="zoom-fit-section-btn"
-            onClick={handleZoomFit}
-            title="Ajuster la vue à la coupe"
+          {/* Contrôles de Zoom et Cadrage */}
+          <div
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '5px',
-              padding: '4px 8px',
-              fontSize: '11px',
-              borderRadius: '4px',
+              gap: '2px',
               backgroundColor: 'var(--bg-elevated)',
-              color: 'var(--text-primary)',
+              borderRadius: '4px',
               border: '1px solid var(--border-subtle)',
-              cursor: 'pointer',
+              padding: '2px 4px',
             }}
           >
-            <ZoomIn size={13} />
-            Fit
-          </button>
+            <button
+              type="button"
+              data-testid="zoom-out-section-btn"
+              onClick={handleZoomOut}
+              title="Zoom Arrière"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '22px',
+                height: '22px',
+                borderRadius: '3px',
+                backgroundColor: 'transparent',
+                color: 'var(--text-primary)',
+                border: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              <ZoomOut size={13} />
+            </button>
+            <span
+              data-testid="zoom-level-text"
+              style={{
+                fontSize: '11px',
+                fontWeight: 600,
+                minWidth: '38px',
+                textAlign: 'center',
+                color: 'var(--text-secondary)',
+                userSelect: 'none',
+              }}
+            >
+              {Math.round(zoomFactor * 100)}%
+            </span>
+            <button
+              type="button"
+              data-testid="zoom-in-section-btn"
+              onClick={handleZoomIn}
+              title="Zoom Avant"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '22px',
+                height: '22px',
+                borderRadius: '3px',
+                backgroundColor: 'transparent',
+                color: 'var(--text-primary)',
+                border: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              <ZoomIn size={13} />
+            </button>
+            <button
+              type="button"
+              data-testid="zoom-fit-section-btn"
+              onClick={handleZoomFit}
+              title="Ajuster la vue à la coupe (Cadrer)"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '3px 8px',
+                marginLeft: '3px',
+                fontSize: '11px',
+                borderRadius: '3px',
+                backgroundColor: 'var(--bg-canvas-chrome)',
+                color: 'var(--text-primary)',
+                border: '1px solid var(--border-subtle)',
+                cursor: 'pointer',
+              }}
+            >
+              <Maximize2 size={12} />
+              Cadrer
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Canvas 2D de rendu de coupe */}
+      {/* Canvas 2D de rendu de coupe avec support Zoom Molette & Pan Glisser */}
       <canvas
         ref={canvasRef}
         data-testid="section-canvas"
+        onWheel={handleWheel}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
         style={{
           display: 'block',
           width: '100%',
           height: '100%',
+          cursor: isDragging ? 'grabbing' : 'grab',
+          touchAction: 'none',
         }}
       />
     </div>

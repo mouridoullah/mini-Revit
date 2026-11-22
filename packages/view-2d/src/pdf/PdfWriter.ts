@@ -6,6 +6,9 @@ export interface TextOptions {
   readonly color?: readonly [number, number, number] | undefined; // RGB 0..1 (défaut : [0,0,0])
   readonly align?: 'left' | 'center' | 'right' | undefined;
   readonly rotationDeg?: number | undefined;
+  readonly maxWidth?: number | undefined;
+  readonly backgroundBox?: boolean | undefined;
+  readonly backgroundPadding?: number | undefined;
 }
 
 export interface PathOptions {
@@ -20,7 +23,7 @@ export interface PathOptions {
 /**
  * Estimation de la largeur d'une chaîne en police Helvetica / Helvetica-Bold.
  */
-function estimateTextWidthPt(text: string, fontSizePt: number, isBold: boolean = false): number {
+export function estimateTextWidthPt(text: string, fontSizePt: number, isBold: boolean = false): number {
   let totalUnits = 0;
   for (let i = 0; i < text.length; i++) {
     const code = text.charCodeAt(i);
@@ -47,6 +50,21 @@ function estimateTextWidthPt(text: string, fontSizePt: number, isBold: boolean =
   }
   const factor = isBold ? 1.05 : 1.0;
   return (totalUnits / 1000) * fontSizePt * factor;
+}
+
+/**
+ * Tronque proprement une chaîne pour qu'elle tienne dans la largeur impartie.
+ */
+export function truncateText(text: string, maxWidthPt: number, fontSizePt: number, isBold: boolean = false): string {
+  if (maxWidthPt <= 0 || estimateTextWidthPt(text, fontSizePt, isBold) <= maxWidthPt) {
+    return text;
+  }
+  let current = text;
+  const ellipsis = '...';
+  while (current.length > 1 && estimateTextWidthPt(current + ellipsis, fontSizePt, isBold) > maxWidthPt) {
+    current = current.slice(0, -1);
+  }
+  return current.length > 0 ? current + ellipsis : text;
 }
 
 /**
@@ -380,16 +398,30 @@ export class PdfPageContent {
     const isBold = options.font === 'bold';
     const align = options.align ?? 'left';
 
+    let displayStr = str;
+    if (options.maxWidth && options.maxWidth > 0) {
+      displayStr = truncateText(str, options.maxWidth, size, isBold);
+    }
+
+    const textWidth = estimateTextWidthPt(displayStr, size, isBold);
+
     let effX = x;
     const effY = y;
 
     if (align !== 'left') {
-      const textWidth = estimateTextWidthPt(str, size, isBold);
       if (align === 'center') {
         effX -= textWidth / 2;
       } else if (align === 'right') {
         effX -= textWidth;
       }
+    }
+
+    // Fond opaque facultatif (pour les cotations traversant des lignes)
+    if (options.backgroundBox) {
+      const pad = options.backgroundPadding ?? 1.5;
+      this.rect(effX - pad, effY - pad * 0.5, textWidth + pad * 2, size + pad, {
+        fillColor: [1, 1, 1],
+      });
     }
 
     const rad = ((options.rotationDeg ?? 0) * Math.PI) / 180;
@@ -411,7 +443,7 @@ export class PdfPageContent {
       `${cos.toFixed(4)} ${sin.toFixed(4)} ${(-sin).toFixed(4)} ${cos.toFixed(4)} ${effX.toFixed(2)} ${effY.toFixed(2)} Tm\n`,
     );
 
-    const literalBytes = encodePdfLiteralString(str);
+    const literalBytes = encodePdfLiteralString(displayStr);
     this.appendBytes(literalBytes);
     this.appendAscii(' Tj\n');
     this.appendAscii('ET\n');

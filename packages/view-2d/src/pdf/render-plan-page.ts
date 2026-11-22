@@ -313,12 +313,14 @@ export function renderPlanPage(
       { strokeColor: [0.55, 0.25, 0.55], lineWidth: 0.8 },
     );
 
-    // Texte de cote
+    // Texte de cote avec masque d'arrière-plan opaque
     const valText = dim.value >= 1000 ? `${(dim.value / 1000).toFixed(2)} m` : `${Math.round(dim.value)} mm`;
     content.text(valText, toPdfX(dim.textPos.x), toPdfY(dim.textPos.y), {
       size: 6.5,
       align: 'center',
       color: [0.4, 0.1, 0.4],
+      backgroundBox: true,
+      backgroundPadding: 2,
     });
   }
 

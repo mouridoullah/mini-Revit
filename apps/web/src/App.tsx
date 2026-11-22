@@ -69,6 +69,7 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
   const [isBrowserCollapsed, setIsBrowserCollapsed] = useState(false);
   const [isExportPdfOpen, setIsExportPdfOpen] = useState(false);
   const [isMetricsCollapsed, setIsMetricsCollapsed] = useState(true);
+  const [dismissMultiTab, setDismissMultiTab] = useState(false);
   const ifcFileInputRef = useRef<HTMLInputElement>(null);
   const [activeClashes, setActiveClashes] = useState<readonly ClashResult[]>([]);
   const [clashFocusPoint, setClashFocusPoint] = useState<{
@@ -87,14 +88,35 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
     activeSectionCutFor3D,
   } = useSectionCuts(doc);
   useEffect(() => {
-    if (selectedIds.length > 0) setRightDockTab('properties');
-  }, [selectedIds]);
+    if (selectedIds.length > 0 && rightDockTab !== 'clashes' && rightDockTab !== 'ifc') {
+      setRightDockTab('properties');
+    }
+  }, [selectedIds, rightDockTab]);
 
-  const handleSelectClash = useCallback((clash: ClashResult) => {
-    setSelectedIds([clash.elementA, clash.elementB]);
-    setClashFocusPoint(clash.point);
-    setRightDockTab('properties');
-  }, []);
+  const handleSelectClash = useCallback(
+    (clash: ClashResult) => {
+      setSelectedIds([clash.elementA, clash.elementB]);
+      const state = doc.getState();
+      const levelId =
+        state.walls[clash.elementA]?.levelId ??
+        state.pipes?.[clash.elementA]?.levelId ??
+        state.ducts?.[clash.elementA]?.levelId ??
+        state.cableTrays?.[clash.elementA]?.levelId ??
+        state.slabs?.[clash.elementA]?.levelId ??
+        state.walls[clash.elementB]?.levelId ??
+        state.pipes?.[clash.elementB]?.levelId ??
+        state.ducts?.[clash.elementB]?.levelId ??
+        state.cableTrays?.[clash.elementB]?.levelId ??
+        state.slabs?.[clash.elementB]?.levelId;
+
+      if (levelId) {
+        setActiveLevelId(levelId);
+      }
+      setClashFocusPoint(clash.point);
+      setRightDockTab('clashes');
+    },
+    [doc],
+  );
 
   // 1. Hook de Fédération IFC (Sous-phase 9.5)
   const {
@@ -143,7 +165,7 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
   }, []);
 
   // 2. Hook de Persistance (IndexedDB, AutoSave réactif, Web Locks & BroadcastChannel)
-  const { isSecondaryTab, reloadLatestVersion } = useBimPersistence({
+  const { isSecondaryTab, reloadLatestVersion, claimLock } = useBimPersistence({
     doc,
     hasInitialDoc,
     setDocument,
@@ -408,7 +430,7 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
       )}
 
       {/* Bannière de conflit multi-onglets (ADR-070) */}
-      {isSecondaryTab && (
+      {isSecondaryTab && !dismissMultiTab && (
         <aside
           data-testid="multi-tab-warning-banner"
           style={{
@@ -422,26 +444,70 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
             fontWeight: 500,
             zIndex: 50,
             boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+            gap: '12px',
           }}
         >
           <span>Projet déjà ouvert dans un autre onglet — sauvegarde automatique suspendue</span>
-          <button
-            type="button"
-            data-testid="reload-latest-btn"
-            onClick={() => void reloadLatestVersion()}
-            style={{
-              backgroundColor: '#ffffff',
-              color: '#92400e',
-              border: 'none',
-              borderRadius: '4px',
-              padding: '4px 10px',
-              fontSize: '12px',
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
-          >
-            Recharger la dernière version
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              type="button"
+              data-testid="claim-lock-btn"
+              onClick={async () => {
+                const acquired = await claimLock();
+                if (acquired) {
+                  setDismissMultiTab(true);
+                }
+              }}
+              style={{
+                backgroundColor: '#ffffff',
+                color: '#92400e',
+                border: 'none',
+                borderRadius: '4px',
+                padding: '4px 10px',
+                fontSize: '12px',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+              title="Prendre la main sur la sauvegarde automatique dans cet onglet"
+            >
+              Prendre la main
+            </button>
+            <button
+              type="button"
+              data-testid="reload-latest-btn"
+              onClick={() => void reloadLatestVersion()}
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                color: '#ffffff',
+                border: '1px solid rgba(255, 255, 255, 0.4)',
+                borderRadius: '4px',
+                padding: '4px 10px',
+                fontSize: '12px',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              Recharger
+            </button>
+            <button
+              type="button"
+              data-testid="dismiss-lock-banner-btn"
+              onClick={() => setDismissMultiTab(true)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#ffffff',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                padding: '2px',
+                opacity: 0.85,
+              }}
+              title="Fermer cet avertissement"
+            >
+              <X size={16} />
+            </button>
+          </div>
         </aside>
       )}
 
@@ -600,6 +666,8 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
                 onToggleCollapse={() => setIsClashPanelOpen((open) => !open)}
                 onSelectClash={handleSelectClash}
                 onClashesChanged={setActiveClashes}
+                onSelectLevel={setActiveLevelId}
+                onFocusPoint={(point) => setClashFocusPoint(point)}
               />
             </ErrorBoundary>
           }

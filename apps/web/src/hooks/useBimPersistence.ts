@@ -21,6 +21,7 @@ export interface UseBimPersistenceResult {
   readonly isSecondaryTab: boolean;
   readonly hasNewerVersion: boolean;
   readonly reloadLatestVersion: () => Promise<void>;
+  readonly claimLock: () => Promise<boolean>;
 }
 
 /**
@@ -49,25 +50,48 @@ export function useBimPersistence({
   const hasRestoredRef = useRef(false);
 
   // 1. Gestion du verrou exclusif multi-onglets (Web Locks API / ADR-070)
+  const evaluateTabLock = useCallback(async () => {
+    const acquired = await WebLockCoordinator.requestLock();
+    if (!acquired) {
+      setIsSecondaryTab(true);
+      autoSaveManagerRef.current?.setDisabled(true);
+      onLockConflictChange?.(true);
+    } else {
+      setIsSecondaryTab(false);
+      autoSaveManagerRef.current?.setDisabled(false);
+      onLockConflictChange?.(false);
+    }
+    return acquired;
+  }, [onLockConflictChange]);
+
+  const claimLock = useCallback(async () => {
+    const acquired = await WebLockCoordinator.forceAcquireLock();
+    if (acquired) {
+      setIsSecondaryTab(false);
+      autoSaveManagerRef.current?.setDisabled(false);
+      onLockConflictChange?.(false);
+      setInfoMessage('Verrou exclusif obtenu : sauvegarde automatique activée dans cet onglet.');
+      return true;
+    }
+    return false;
+  }, [onLockConflictChange, setInfoMessage]);
+
   useEffect(() => {
     let isCancelled = false;
 
-    async function evaluateTabLock() {
-      const acquired = await WebLockCoordinator.requestLock();
-      if (isCancelled) return;
-
-      if (!acquired) {
-        setIsSecondaryTab(true);
-        autoSaveManagerRef.current?.setDisabled(true);
-        onLockConflictChange?.(true);
-      } else {
-        setIsSecondaryTab(false);
-        autoSaveManagerRef.current?.setDisabled(false);
-        onLockConflictChange?.(false);
-      }
-    }
-
     void evaluateTabLock();
+
+    // Ré-évaluation automatique au focus et visibilité
+    const handleFocusOrVisible = () => {
+      if (!isCancelled && !WebLockCoordinator.isHolding()) {
+        void evaluateTabLock();
+      }
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('focus', handleFocusOrVisible);
+      document.addEventListener('visibilitychange', handleFocusOrVisible);
+    }
 
     // Écoute des synchronisations inter-onglets via BroadcastChannel
     let channel: BroadcastChannel | null = null;
@@ -77,6 +101,19 @@ export function useBimPersistence({
         channel.onmessage = (event: MessageEvent<TabaxSyncMessage>) => {
           if (event.data?.type === 'TABAX_AUTOSAVE_SAVED') {
             setHasNewerVersion(true);
+          } else if (event.data?.type === 'TABAX_LOCK_RELEASED') {
+            if (!isCancelled) {
+              void evaluateTabLock();
+            }
+          } else if (event.data?.type === 'TABAX_LOCK_CLAIM_REQUEST') {
+            // Un autre onglet demande expressément à prendre la main
+            if (WebLockCoordinator.isHolding()) {
+              WebLockCoordinator.releaseLock();
+              setIsSecondaryTab(true);
+              autoSaveManagerRef.current?.setDisabled(true);
+              onLockConflictChange?.(true);
+              setInfoMessage('Le verrou a été cédé à un autre onglet.');
+            }
           }
         };
       } catch {
@@ -86,12 +123,16 @@ export function useBimPersistence({
 
     return () => {
       isCancelled = true;
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('focus', handleFocusOrVisible);
+        document.removeEventListener('visibilitychange', handleFocusOrVisible);
+      }
       if (channel) {
         channel.close();
       }
       WebLockCoordinator.releaseLock();
     };
-  }, [onLockConflictChange]);
+  }, [evaluateTabLock, onLockConflictChange, setInfoMessage]);
 
   // 2. Restauration automatique au montage initial depuis IndexedDB (ou URL ?demo=...)
   useEffect(() => {
@@ -197,5 +238,6 @@ export function useBimPersistence({
     isSecondaryTab,
     hasNewerVersion,
     reloadLatestVersion,
+    claimLock,
   };
 }

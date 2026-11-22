@@ -34,9 +34,9 @@ export function calculateMetricsSheetCount(state: BimState, format: PageFormatDe
     return 1 + Math.ceil((allRoomsCount - 40) / 64);
   } else {
     // Sur A4 paysage (297 x 210 mm) :
-    // Page 1 accueille Tableau 1, Tableau 3 et jusqu'à 10 pièces.
+    // Page 1 accueille Tableau 1, Tableau 3 et jusqu'à 10 pièces protégées à gauche du cartouche.
     if (allRoomsCount <= 10) return 1;
-    // Les pages suivantes accueillent jusqu'à 24 pièces.
+    // Les pages suivantes accueillent jusqu'à 24 pièces réparties en 2 colonnes sécurisées au-dessus du cartouche.
     return 1 + Math.ceil((allRoomsCount - 10) / 24);
   }
 }
@@ -127,6 +127,7 @@ function drawRoomsTableColumn(
         size: 7,
         align: col.align,
         color: [0.15, 0.2, 0.3],
+        maxWidth: col.w - 5 * MM_TO_PT,
       });
       cx += col.w;
     }
@@ -163,10 +164,10 @@ export function renderMetricsPage(
   const headerHeightPt = 7.5 * MM_TO_PT;
 
   const t2Cols = [
-    { title: 'PIÈCE', w: (isA3 ? 48 : 42) * MM_TO_PT, align: 'left' as const },
-    { title: 'NIVEAU', w: (isA3 ? 34 : 30) * MM_TO_PT, align: 'left' as const },
-    { title: 'SURFACE HABITABLE', w: (isA3 ? 36 : 32) * MM_TO_PT, align: 'right' as const },
-    { title: 'PÉRIMÈTRE', w: (isA3 ? 28 : 24) * MM_TO_PT, align: 'right' as const },
+    { title: 'PIÈCE', w: (isA3 ? 48 : 34) * MM_TO_PT, align: 'left' as const },
+    { title: 'NIVEAU', w: (isA3 ? 34 : 26) * MM_TO_PT, align: 'left' as const },
+    { title: 'SURFACE HABITABLE', w: (isA3 ? 36 : 26) * MM_TO_PT, align: 'right' as const },
+    { title: 'PÉRIMÈTRE', w: (isA3 ? 28 : 20) * MM_TO_PT, align: 'right' as const },
   ];
 
   // ===========================================================================
@@ -295,6 +296,7 @@ export function renderMetricsPage(
           size: 7,
           align: col.align,
           color: [0.15, 0.2, 0.3],
+          maxWidth: col.w - 5 * MM_TO_PT,
         });
         cx += col.w;
       }
@@ -330,6 +332,7 @@ export function renderMetricsPage(
         size: 7,
         align: col.align,
         color: [0.05, 0.15, 0.3],
+        maxWidth: col.w - 5 * MM_TO_PT,
       });
       totX += col.w;
     }
@@ -343,8 +346,8 @@ export function renderMetricsPage(
     const t3YPt = isA3 ? t1YPt : curT1Y - 10 * MM_TO_PT;
 
     const t3Cols = [
-      { title: 'SYSTÈME MEP', w: (isA3 ? 44 : 40) * MM_TO_PT, align: 'left' as const },
-      { title: 'DOMAINE', w: (isA3 ? 34 : 30) * MM_TO_PT, align: 'left' as const },
+      { title: 'SYSTÈME MEP', w: (isA3 ? 75 : 65) * MM_TO_PT, align: 'left' as const },
+      { title: 'DOMAINE', w: (isA3 ? 35 : 30) * MM_TO_PT, align: 'left' as const },
       { title: 'LINÉAIRE TOTAL', w: (isA3 ? 30 : 28) * MM_TO_PT, align: 'right' as const },
     ];
     const t3TotalWidth = t3Cols.reduce((acc, c) => acc + c.w, 0);
@@ -424,78 +427,84 @@ export function renderMetricsPage(
           size: 7,
           align: col.align,
           color: [0.15, 0.2, 0.3],
+          maxWidth: col.w - 5 * MM_TO_PT,
         });
         cx += col.w;
       }
     }
 
     // -------------------------------------------------------------------------
-    // Tableau 2 : Détail des Pièces & Surfaces
+    // Tableau 2 : Détail des Pièces & Surfaces (Page 1)
     // -------------------------------------------------------------------------
-    const t2YPt = isA3
-      ? Math.min(curT1Y, curT3Y) - 10 * MM_TO_PT
-      : curT3Y - 10 * MM_TO_PT;
-
-    content.text('2. TABLEAU DÉTAILLÉ DES PIÈCES ET SURFACES', leftXPt, t2YPt, {
-      font: 'bold',
-      size: 8.5,
-      color: [0.1, 0.45, 0.85],
-    });
-
+    // Sur A3, jusqu'à 40 pièces réparties en 2 colonnes équilibrées.
+    // Sur A4, jusqu'à 10 pièces protégées à gauche (largeur 106 mm < 132 mm du cartouche).
     const page1RoomsCapacity = isA3 ? 40 : 10;
     const page1Rooms = allRooms.slice(0, page1RoomsCapacity);
-    const t2TableY = t2YPt - 4 * MM_TO_PT;
 
-    if (isA3 && page1Rooms.length > 18) {
-      // Sur A3, division en 2 colonnes équilibrées
-      const mid = Math.ceil(page1Rooms.length / 2);
-      const col1Rooms = page1Rooms.slice(0, mid);
-      const col2Rooms = page1Rooms.slice(mid);
-      const col1Width = t2Cols.reduce((acc, c) => acc + c.w, 0);
+    if (page1Rooms.length > 0) {
+      const t2YPt = isA3
+        ? Math.min(curT1Y, curT3Y) - 10 * MM_TO_PT
+        : curT3Y - 10 * MM_TO_PT;
 
-      drawRoomsTableColumn(content, col1Rooms, leftXPt, t2TableY, t2Cols, rowHeightPt, headerHeightPt);
-      drawRoomsTableColumn(
-        content,
-        col2Rooms,
-        leftXPt + col1Width + 12 * MM_TO_PT,
-        t2TableY,
-        t2Cols,
-        rowHeightPt,
-        headerHeightPt,
-      );
-    } else {
-      drawRoomsTableColumn(content, page1Rooms, leftXPt, t2TableY, t2Cols, rowHeightPt, headerHeightPt);
+      content.text('2. TABLEAU DÉTAILLÉ DES PIÈCES ET SURFACES', leftXPt, t2YPt, {
+        font: 'bold',
+        size: 8.5,
+        color: [0.1, 0.45, 0.85],
+      });
+      const t2TableY = t2YPt - 4 * MM_TO_PT;
+
+      if (isA3 && page1Rooms.length > 18) {
+        // Sur A3, division en 2 colonnes équilibrées
+        const mid = Math.ceil(page1Rooms.length / 2);
+        const col1Rooms = page1Rooms.slice(0, mid);
+        const col2Rooms = page1Rooms.slice(mid);
+        const col1Width = t2Cols.reduce((acc, c) => acc + c.w, 0);
+
+        drawRoomsTableColumn(content, col1Rooms, leftXPt, t2TableY, t2Cols, rowHeightPt, headerHeightPt);
+        drawRoomsTableColumn(
+          content,
+          col2Rooms,
+          leftXPt + col1Width + 12 * MM_TO_PT,
+          t2TableY,
+          t2Cols,
+          rowHeightPt,
+          headerHeightPt,
+        );
+      } else {
+        drawRoomsTableColumn(content, page1Rooms, leftXPt, t2TableY, t2Cols, rowHeightPt, headerHeightPt);
+      }
     }
   } else {
     // =========================================================================
     // CAS B : Planche de continuation (metricsPageIndex > 0)
     // =========================================================================
-    const continuationTitle = `TABLEAU DÉTAILLÉ DES PIÈCES ET SURFACES (SUITE - PAGE ${metricsPageIndex + 1} / ${totalMetricsPages})`;
+    const continuationTitle = `TABLEAU DÉTAILLÉ DES PIÈCES ET SURFACES (PAGE ${metricsPageIndex + 1} / ${totalMetricsPages})`;
     content.text(continuationTitle, leftXPt, topYPt - 6 * MM_TO_PT, {
       font: 'bold',
       size: 13,
       color: [0.08, 0.15, 0.28],
     });
 
-    const page1RoomsCapacity = isA3 ? 40 : 10;
-    const subsequentCapacity = isA3 ? 64 : 24;
-    const startIdx = page1RoomsCapacity + (metricsPageIndex - 1) * subsequentCapacity;
-    const endIdx = startIdx + subsequentCapacity;
+    const page1Cap = isA3 ? 40 : 10;
+    const subsequentCap = isA3 ? 64 : 24;
+    const startIdx = page1Cap + (metricsPageIndex - 1) * subsequentCap;
+    const endIdx = startIdx + subsequentCap;
     const pageRooms = allRooms.slice(startIdx, endIdx);
 
     const t2TableY = topYPt - 16 * MM_TO_PT;
+    const col1Width = t2Cols.reduce((acc, c) => acc + c.w, 0);
 
-    if (isA3 && pageRooms.length > 32) {
+    // Sur A4 comme sur A3, division systématique en 2 colonnes pour éviter tout débordement vertical
+    if (pageRooms.length > 10) {
       const mid = Math.ceil(pageRooms.length / 2);
       const col1Rooms = pageRooms.slice(0, mid);
       const col2Rooms = pageRooms.slice(mid);
-      const col1Width = t2Cols.reduce((acc, c) => acc + c.w, 0);
 
       drawRoomsTableColumn(content, col1Rooms, leftXPt, t2TableY, t2Cols, rowHeightPt, headerHeightPt);
       drawRoomsTableColumn(
         content,
         col2Rooms,
-        leftXPt + col1Width + 12 * MM_TO_PT,
+        leftXPt + col1Width + (isA3 ? 12 : 10) * MM_TO_PT,
         t2TableY,
         t2Cols,
         rowHeightPt,

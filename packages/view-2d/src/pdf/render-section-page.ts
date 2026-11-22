@@ -240,7 +240,7 @@ export function renderSectionPage(
         });
       }
 
-      // Texte de cotation
+      // Texte de cotation avec masque d'arrière-plan opaque
       const yMidPt = (y1Pt + y2Pt) / 2;
       const text = dim.label ? `${dim.label} ${dim.formattedValue}` : dim.formattedValue;
       content.text(text, xPt - 4, yMidPt - 2, {
@@ -248,6 +248,8 @@ export function renderSectionPage(
         size: 5.5,
         align: 'right',
         color: [0.15, 0.2, 0.25],
+        backgroundBox: true,
+        backgroundPadding: 1.5,
       });
     }
   }

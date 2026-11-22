@@ -104,4 +104,42 @@ describe('Composant <ClashPanel /> (Clash Detection UI)', () => {
     // Aucun clearance dans ce modèle de test, donc message vide
     expect(screen.getByTestId('no-clashes-msg')).toBeDefined();
   });
+
+  it('affiche la fiche détaillée du conflit sélectionné et permet la navigation 2D / 3D', () => {
+    const doc = createDocWithClash();
+    const handleSelectLevel = vi.fn();
+    const handleFocusPoint = vi.fn();
+
+    render(
+      <ClashPanel
+        doc={doc}
+        isCollapsed={false}
+        onSelectLevel={handleSelectLevel}
+        onFocusPoint={handleFocusPoint}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('run-clash-btn'));
+    const firstRow = screen.getByTestId(/^clash-row-/);
+    fireEvent.click(firstRow);
+
+    // La fiche détaillée doit être visible
+    const detailCard = screen.getByTestId('clash-detail-card');
+    expect(detailCard).toBeDefined();
+
+    // Bouton de cadrage 3D
+    const btn3d = screen.getByTestId('center-3d-cam-btn');
+    fireEvent.click(btn3d);
+    expect(handleFocusPoint).toHaveBeenCalledTimes(1);
+
+    // Bouton de navigation 2D
+    const btn2d = screen.getByTestId('locate-2d-plan-btn');
+    fireEvent.click(btn2d);
+    expect(handleSelectLevel).toHaveBeenCalledTimes(1);
+
+    // Fermeture de la fiche
+    const closeBtn = screen.getByTestId('close-clash-detail-btn');
+    fireEvent.click(closeBtn);
+    expect(screen.queryByTestId('clash-detail-card')).toBeNull();
+  });
 });

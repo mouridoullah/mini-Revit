@@ -22,10 +22,19 @@ export interface AutoSaveLoadResult {
   readonly migratedFromLegacy?: boolean;
 }
 
-export interface TabaxSyncMessage {
-  readonly type: 'TABAX_AUTOSAVE_SAVED';
-  readonly timestamp: number;
-}
+export type TabaxSyncMessage =
+  | {
+      readonly type: 'TABAX_AUTOSAVE_SAVED';
+      readonly timestamp: number;
+    }
+  | {
+      readonly type: 'TABAX_LOCK_RELEASED';
+      readonly timestamp: number;
+    }
+  | {
+      readonly type: 'TABAX_LOCK_CLAIM_REQUEST';
+      readonly timestamp: number;
+    };
 
 function getIDBFactory(customFactory?: IDBFactory): IDBFactory {
   const factory =
@@ -137,7 +146,21 @@ export const WebLockCoordinator = {
       lockReleasePromise();
       lockReleasePromise = null;
     }
+    const hadLock = isHoldingProjectLock;
     isHoldingProjectLock = false;
+    if (hadLock) {
+      broadcastSync({ type: 'TABAX_LOCK_RELEASED', timestamp: Date.now() });
+    }
+  },
+
+  /**
+   * Demande aux autres onglets de céder le verrou et tente de l'acquérir en priorité.
+   */
+  async forceAcquireLock(): Promise<boolean> {
+    broadcastSync({ type: 'TABAX_LOCK_CLAIM_REQUEST', timestamp: Date.now() });
+    // Attendre que l'autre onglet cède le verrou
+    await new Promise((resolve) => setTimeout(resolve, 80));
+    return this.requestLock();
   },
 };
 

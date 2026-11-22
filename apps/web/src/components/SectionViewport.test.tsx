@@ -138,4 +138,58 @@ describe('SectionViewport Component (apps/web/src/components/SectionViewport.tsx
     expect(getByTestId('section-active-title').textContent).toBe('Façade Sud');
     expect(getByTestId('section-canvas')).toBeDefined();
   });
+
+  it('gère les contrôles de zoom interactifs (Zoom In, Zoom Out, Cadrer, Molette)', () => {
+    const doc = new BimDocument();
+    doc.execute(
+      new AddLevelCommand({
+        id: 'lvl_0',
+        name: 'RDC',
+        elevation: 0,
+        height: 2800,
+      }),
+    );
+    doc.execute(
+      new AddSectionCutCommand({
+        id: 'cut_test',
+        category: 'sectionCut',
+        name: 'Coupe Test',
+        label: 'T',
+        kind: 'section',
+        start: { x: 0, y: 1000 },
+        end: { x: 8000, y: 1000 },
+        viewDirection: 1,
+        depth: 4000,
+      }),
+    );
+
+    const { getByTestId } = render(
+      <BimDocumentProvider initialDoc={doc}>
+        <SectionViewport sectionCutId="cut_test" />
+      </BimDocumentProvider>,
+    );
+
+    const zoomText = getByTestId('zoom-level-text');
+    expect(zoomText.textContent).toBe('100%');
+
+    // Zoom avant
+    const zoomInBtn = getByTestId('zoom-in-section-btn');
+    fireEvent.click(zoomInBtn);
+    expect(zoomText.textContent).toBe('125%');
+
+    // Zoom arrière
+    const zoomOutBtn = getByTestId('zoom-out-section-btn');
+    fireEvent.click(zoomOutBtn);
+    expect(zoomText.textContent).toBe('100%');
+
+    // Zoom molette
+    const canvas = getByTestId('section-canvas');
+    fireEvent.wheel(canvas, { deltaY: -100 });
+    expect(zoomText.textContent).toBe('115%');
+
+    // Cadrer (reset)
+    const fitBtn = getByTestId('zoom-fit-section-btn');
+    fireEvent.click(fitBtn);
+    expect(zoomText.textContent).toBe('100%');
+  });
 });
