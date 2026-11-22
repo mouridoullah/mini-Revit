@@ -22,6 +22,20 @@ model.levels['level_r3'].name = 'Étage R+3';
 model.levels['level_r4'].name = 'Étage R+4';
 model.levels['level_r5'].name = 'Toiture Terrasse & Attique';
 
+// 1b. Normalisation des dalles (baseOffset: 0 pour affleurement exact avec le niveau selon ADR-035)
+for (const slab of Object.values(model.slabs || {})) {
+  slab.baseOffset = 0;
+}
+
+// 1c. Normalisation des rotations en radians pour tous les composants existants
+for (const comp of Object.values(model.components || {})) {
+  if (comp.placement) {
+    if (comp.placement.rotation === 180) comp.placement.rotation = Math.PI;
+    else if (comp.placement.rotation === 90) comp.placement.rotation = Math.PI / 2;
+    else if (comp.placement.rotation === 270) comp.placement.rotation = (3 * Math.PI) / 2;
+  }
+}
+
 // 2. Initialisation des dictionnaires si manquants
 model.ducts = model.ducts || {};
 model.cableTrays = model.cableTrays || {};
@@ -523,7 +537,7 @@ for (let i = 0; i < floorLevels.length; i++) {
       placement: {
         x: 1200 + offsetX,
         y: -2500 + offsetY,
-        rotation: c < 2 ? 0 : 180,
+        rotation: c < 2 ? 0 : Math.PI,
       },
     };
   }
@@ -539,7 +553,7 @@ for (let i = 0; i < floorLevels.length; i++) {
     placement: {
       x: 1800,
       y: 800,
-      rotation: 90,
+      rotation: Math.PI / 2,
     },
   };
 
@@ -574,11 +588,8 @@ for (let i = 0; i < floorLevels.length; i++) {
   };
 }
 
-// 9. Écriture du fichier consolidé
+// 9. Écriture du fichier consolidé dans apps/web/public pour chargement direct
 const outputJson = JSON.stringify(model, null, 2);
-fs.writeFileSync('immeuble-r4-complet.json', outputJson, 'utf8');
-
-// Écriture également dans apps/web/public pour chargement direct dans le navigateur
 const publicDest = path.join('apps', 'web', 'public', 'demo-immeuble-r4.json');
 fs.writeFileSync(publicDest, outputJson, 'utf8');
 

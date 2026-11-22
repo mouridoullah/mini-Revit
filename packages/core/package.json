@@ -22,12 +22,12 @@
     "@tabax/geometry": "workspace:*",
     "immer": "^11.0.0",
     "polygon-clipping": "^0.15.7",
-    "ulid": "^3.0.2"
+    "ulid": "^3.0.2",
+    "web-ifc": "^0.0.79"
   },
   "devDependencies": {
     "@types/node": "^22.13.4",
     "fast-check": "^4.10.2",
-    "vitest": "^3.0.5",
-    "web-ifc": "^0.0.79"
+    "vitest": "^3.0.5"
   }
 }

@@ -1,0 +1,1172 @@
+{
+  "schema": "tabax.test-plan/v1",
+  "id": "TABAX-REF-R2",
+  "name": "Maison-atelier Tabax R+2 — maquette de référence et plan de recette fonctionnelle",
+  "version": "1.0.0",
+  "date": "2026-11-22",
+  "language": "fr",
+  "status": "proposal",
+  "objective": "Construire une maquette unique, cohérente et volontairement riche, permettant de tester toutes les fonctionnalités du logiciel Tabax sans réutiliser les exemples de démonstration existants.",
+  "whyR2": "R+2 couvre trois niveaux, deux volées d'escalier, les sous-plans, les trémies superposées, les gaines verticales, une toiture en partie haute et un garage en rez-de-chaussée.",
+  "nonGoals": [
+    "Aucune nouvelle fonctionnalité logicielle.",
+    "Aucun backend, aucune collaboration temps réel, aucun CRDT.",
+    "Aucun élément non supporté : pas de poteaux, poutres, voiles, garde-corps ou terrains.",
+    "Le JSON est une spécification de construction et de recette, pas un BimState importable tel quel."
+  ],
+  "conventions": {
+    "units": "mm",
+    "coordinates": "X est, Y nord, Z haut. Origine au coin sud-ouest du corps principal.",
+    "wallLocationLine": "center",
+    "angles": "radians",
+    "polygonOrientation": "Contours CCW, trous CW. Le noyau normalise via computeEffectiveSlabPolygon.",
+    "mepWaypoints": "[x, y, z] en mm absolus. Les segments sont découpés aux changements de direction."
+  },
+  "formats": {
+    "wall": ["id", "levelId", "typeId", "x1", "y1", "x2", "y2", "topConstraint", "isExternal", "loadBearing", "role"],
+    "door": ["id", "hostWallId", "doorTypeId", "offsetAlong", "swingSide", "swingDirection", "name"],
+    "window": ["id", "hostWallId", "windowTypeId", "offsetAlong", "sillHeight", "name"],
+    "component": ["id", "typeId", "levelId", "x", "y", "rotation", "elevationOffset", "hostWallId", "name"],
+    "room": ["id", "levelId", "x", "y", "name"],
+    "route": ["id", "category", "domain", "systemType", "systemId", "levelId", "size", "height", "waypoints", "note"],
+    "topConstraint": "level:<levelId> | roof:<roofId> | null"
+  },
+  "site": {
+    "plot": [20000, 15000],
+    "orientation": "Façade principale au sud",
+    "climate": "Zone H2b — isolation renforcée",
+    "grossFloorArea": 354,
+    "garageArea": 30,
+    "netAreaExcludingGarage": 324,
+    "mainBody": [12000, 9000, 108],
+    "garage": [5000, 6000, 30]
+  },
+  "levels": [
+    { "id": "lvl_rdc", "name": "RDC", "elevation": 0, "height": 2800, "floorToFloor": 3000, "use": "Séjour, bureau, hall, WC, local technique, garage" },
+    { "id": "lvl_r1", "name": "R+1", "elevation": 3000, "height": 2800, "floorToFloor": 3000, "use": "Chambres 1-3, salle de bain, bureau, corridor" },
+    { "id": "lvl_r2", "name": "R+2", "elevation": 6000, "height": 2800, "floorToFloor": 2800, "use": "Suite parentale, chambre 4, salle d'eau, mezzanine, studio" }
+  ],
+  "catalog": {
+    "wallTypes": [
+      { "id": "wt_ext_200", "name": "Mur extérieur béton armé 200", "thickness": 200, "height": 2800, "isExternal": true, "loadBearing": true, "layers": [{ "materialId": "beton_arme", "thickness": 200 }] },
+      { "id": "wt_int_150", "name": "Mur porteur intérieur 150", "thickness": 150, "height": 2800, "isExternal": false, "loadBearing": true, "layers": [{ "materialId": "beton_arme", "thickness": 150 }] },
+      { "id": "wt_int_100", "name": "Cloison plâtre 100", "thickness": 100, "height": 2800, "isExternal": false, "loadBearing": false, "layers": [{ "materialId": "platre", "thickness": 100 }] }
+    ],
+    "slabTypes": [
+      { "id": "st_ground_250", "name": "Dalle sur terre-plein 250", "thickness": 250, "materialId": "beton_arme" },
+      { "id": "st_floor_200", "name": "Dalle BA 200", "thickness": 200, "materialId": "beton_arme" },
+      { "id": "st_terrace_200", "name": "Dalle terrasse 200", "thickness": 200, "materialId": "beton_arme" }
+    ],
+    "doorTypes": [
+      { "id": "dt_900x2100", "name": "Porte intérieure 900x2100", "width": 900, "height": 2100 },
+      { "id": "dt_1000x2100", "name": "Porte d'entrée 1000x2100", "width": 1000, "height": 2100 },
+      { "id": "dt_800x2100", "name": "Porte 800x2100", "width": 800, "height": 2100 },
+      { "id": "dt_700x2100", "name": "Porte 700x2100", "width": 700, "height": 2100 },
+      { "id": "dt_2400x2100", "name": "Porte de garage 2400x2100", "width": 2400, "height": 2100 }
+    ],
+    "windowTypes": [
+      { "id": "wtn_1200x1400_s900", "name": "Fenêtre 1200x1400 allège 900", "width": 1200, "height": 1400, "defaultSillHeight": 900 },
+      { "id": "wtn_1800x1400_s900", "name": "Fenêtre 1800x1400 allège 900", "width": 1800, "height": 1400, "defaultSillHeight": 900 },
+      { "id": "wtn_2400x1400_s900", "name": "Baie 2400x1400 allège 900", "width": 2400, "height": 1400, "defaultSillHeight": 900 },
+      { "id": "wtn_600x600_s1500", "name": "Fenêtre 600x600 allège 1500", "width": 600, "height": 600, "defaultSillHeight": 1500 },
+      { "id": "wtn_1200x1000_s1200", "name": "Fenêtre garage 1200x1000 allège 1200", "width": 1200, "height": 1000, "defaultSillHeight": 1200 }
+    ],
+    "stairTypes": [
+      { "id": "st_1000", "name": "Escalier droit béton 1000", "width": 1000, "materialId": "beton_arme" }
+    ],
+    "roofTypes": [
+      { "id": "rt_gable_35", "name": "Toiture 2 pans tuiles 35°", "category": "roofType", "family": "gable", "thickness": 250, "slopeDeg": 35, "overhangMm": 500, "materialId": "tuile_terre_cuite" },
+      { "id": "rt_flat_200", "name": "Toiture terrasse 200", "category": "roofType", "family": "flat", "thickness": 200, "acrotereHeight": 300, "materialId": "beton_arme" }
+    ],
+    "componentTypes": [
+      { "id": "ct_toilet_wall_hung", "name": "WC Suspendu 36x54", "category": "componentType", "family": "sanitary", "subType": "toilet", "width": 360, "depth": 540, "height": 400, "clearanceDepth": 800, "ifcEntity": "IfcSanitaryTerminal" },
+      { "id": "ct_sink_vanity", "name": "Meuble Vasque 80x50", "category": "componentType", "family": "sanitary", "subType": "sink", "width": 800, "depth": 500, "height": 850, "ifcEntity": "IfcSanitaryTerminal" },
+      { "id": "ct_shower_tray", "name": "Douche Italienne 90x90", "category": "componentType", "family": "sanitary", "subType": "shower", "width": 900, "depth": 900, "height": 60, "clearanceDepth": 600, "ifcEntity": "IfcSanitaryTerminal" },
+      { "id": "ct_bath_tub", "name": "Baignoire Droite 170x75", "category": "componentType", "family": "sanitary", "subType": "bath", "width": 1700, "depth": 750, "height": 550, "ifcEntity": "IfcSanitaryTerminal" },
+      { "id": "ct_kitchen_base_60", "name": "Meuble Bas Cuisine 60cm", "category": "componentType", "family": "kitchen", "subType": "kitchen_base", "width": 600, "depth": 600, "height": 850, "ifcEntity": "IfcFurniture" },
+      { "id": "ct_kitchen_sink_unit", "name": "Évier Cuisine 2 Bacs 120cm", "category": "componentType", "family": "kitchen", "subType": "sink_unit", "width": 1200, "depth": 600, "height": 850, "ifcEntity": "IfcFurniture" },
+      { "id": "ct_kitchen_wall_60", "name": "Meuble Haut Cuisine 60cm", "category": "componentType", "family": "kitchen", "subType": "kitchen_wall", "width": 600, "depth": 350, "height": 700, "defaultElevationOffset": 1450, "ifcEntity": "IfcFurniture" },
+      { "id": "ct_kitchen_fridge", "name": "Réfrigérateur 60x65", "category": "componentType", "family": "kitchen", "subType": "appliance", "width": 600, "depth": 650, "height": 1850, "ifcEntity": "IfcFurniture" },
+      { "id": "ct_bed_double", "name": "Lit Double 160x200", "category": "componentType", "family": "furniture", "subType": "bed", "width": 1600, "depth": 2000, "height": 500, "ifcEntity": "IfcFurniture" },
+      { "id": "ct_dining_table", "name": "Table À Manger 160x90", "category": "componentType", "family": "furniture", "subType": "table", "width": 1600, "depth": 900, "height": 750, "ifcEntity": "IfcFurniture" },
+      { "id": "ct_chair", "name": "Chaise 45x45", "category": "componentType", "family": "furniture", "subType": "chair", "width": 450, "depth": 450, "height": 850, "ifcEntity": "IfcFurniture" },
+      { "id": "ct_sofa_3p", "name": "Canapé 3 Places 220x90", "category": "componentType", "family": "furniture", "subType": "sofa", "width": 2200, "depth": 900, "height": 800, "ifcEntity": "IfcFurniture" },
+      { "id": "ct_wardrobe", "name": "Armoire Dressing 150x60", "category": "componentType", "family": "furniture", "subType": "cabinet", "width": 1500, "depth": 600, "height": 2100, "ifcEntity": "IfcFurniture" },
+      { "id": "ct_sliding_door", "name": "Baie Coulissante 2 Vantaux 240x215", "category": "componentType", "family": "glazing", "subType": "sliding_door", "width": 2400, "depth": 150, "height": 2150, "clearanceDepth": 0, "ifcEntity": "IfcDoor" },
+      { "id": "ct_french_window", "name": "Porte-Fenêtre 2 Vantaux 140x215", "category": "componentType", "family": "glazing", "subType": "french_window", "width": 1400, "depth": 150, "height": 2150, "clearanceDepth": 0, "ifcEntity": "IfcWindow" }
+    ]
+  },
+  "architecture": {
+    "footprint": {
+      "main": [[0, 0], [12000, 0], [12000, 9000], [0, 9000]],
+      "garage": [[12000, 0], [17000, 0], [17000, 6000], [12000, 6000]],
+      "combined": [[0, 0], [12000, 0], [17000, 0], [17000, 6000], [12000, 6000], [12000, 9000], [0, 9000]]
+    },
+    "walls": [
+      ["w_rdc_s", "lvl_rdc", "wt_ext_200", 0, 0, 12000, 0, "level:lvl_r1", true, true, "Façade sud du corps principal"],
+      ["w_rdc_e1", "lvl_rdc", "wt_ext_200", 12000, 0, 12000, 6000, "level:lvl_r1", true, true, "Mur mitoyen corps principal / garage"],
+      ["w_rdc_e2", "lvl_rdc", "wt_ext_200", 12000, 6000, 12000, 9000, "level:lvl_r1", true, true, "Façade est au nord du garage"],
+      ["w_rdc_n", "lvl_rdc", "wt_ext_200", 12000, 9000, 0, 9000, "level:lvl_r1", true, true, "Façade nord"],
+      ["w_rdc_w", "lvl_rdc", "wt_ext_200", 0, 9000, 0, 0, "level:lvl_r1", true, true, "Façade ouest"],
+      ["w_rdc_g_s", "lvl_rdc", "wt_ext_200", 12000, 0, 17000, 0, "roof:roof_garage", true, true, "Façade sud du garage"],
+      ["w_rdc_g_e", "lvl_rdc", "wt_ext_200", 17000, 0, 17000, 6000, "roof:roof_garage", true, true, "Façade est du garage"],
+      ["w_rdc_g_n", "lvl_rdc", "wt_ext_200", 17000, 6000, 12000, 6000, "roof:roof_garage", true, true, "Façade nord du garage"],
+      ["w_rdc_stair_e", "lvl_rdc", "wt_int_150", 3000, 0, 3000, 6500, null, false, true, "Cloison est de la cage d'escalier"],
+      ["w_rdc_stair_n", "lvl_rdc", "wt_int_150", 0, 6500, 3000, 6500, null, false, true, "Cloison nord de la cage d'escalier"],
+      ["w_rdc_sejour_n", "lvl_rdc", "wt_int_100", 3000, 5500, 7000, 5500, null, false, false, "Séparation séjour / corridor"],
+      ["w_rdc_corr_n", "lvl_rdc", "wt_int_100", 3000, 6500, 7000, 6500, null, false, false, "Séparation corridor / bureau"],
+      ["w_rdc_west_e", "lvl_rdc", "wt_int_150", 7000, 0, 7000, 9000, null, false, true, "Épine centrale est"],
+      ["w_rdc_hall_n", "lvl_rdc", "wt_int_100", 7000, 4500, 12000, 4500, null, false, false, "Séparation hall / WC et local"],
+      ["w_rdc_wc_split", "lvl_rdc", "wt_int_100", 9500, 4500, 9500, 9000, null, false, false, "Séparation WC / local", 2600],
+      ["w_r1_s", "lvl_r1", "wt_ext_200", 0, 0, 12000, 0, "level:lvl_r2", true, true, "Façade sud R+1"],
+      ["w_r1_e", "lvl_r1", "wt_ext_200", 12000, 0, 12000, 9000, "level:lvl_r2", true, true, "Façade est R+1"],
+      ["w_r1_n", "lvl_r1", "wt_ext_200", 12000, 9000, 0, 9000, "level:lvl_r2", true, true, "Façade nord R+1"],
+      ["w_r1_w", "lvl_r1", "wt_ext_200", 0, 9000, 0, 0, "level:lvl_r2", true, true, "Façade ouest R+1"],
+      ["w_r1_stair_e", "lvl_r1", "wt_int_150", 3000, 0, 3000, 6500, null, false, true, "Cage d'escalier R+1 est"],
+      ["w_r1_stair_n", "lvl_r1", "wt_int_150", 0, 6500, 3000, 6500, null, false, true, "Cage d'escalier R+1 nord"],
+      ["w_r1_sejour_n", "lvl_r1", "wt_int_100", 3000, 5500, 7000, 5500, null, false, false, "Chambre 1 / corridor R+1"],
+      ["w_r1_corr_n", "lvl_r1", "wt_int_100", 3000, 6500, 7000, 6500, null, false, false, "Corridor / chambre 2 R+1"],
+      ["w_r1_west_e", "lvl_r1", "wt_int_150", 7000, 0, 7000, 9000, null, false, true, "Épine centrale R+1"],
+      ["w_r1_hall_n", "lvl_r1", "wt_int_100", 7000, 4500, 12000, 4500, null, false, false, "Salle de bain / chambre 3 R+1"],
+      ["w_r1_wc_split", "lvl_r1", "wt_int_100", 9500, 4500, 9500, 9000, null, false, false, "Chambre 3 / bureau R+1", 2600],
+      ["w_r2_s", "lvl_r2", "wt_ext_200", 0, 0, 12000, 0, "roof:roof_main", true, true, "Façade sud R+2 sous toiture"],
+      ["w_r2_e", "lvl_r2", "wt_ext_200", 12000, 0, 12000, 9000, "roof:roof_main", true, true, "Façade est R+2 sous toiture"],
+      ["w_r2_n", "lvl_r2", "wt_ext_200", 12000, 9000, 0, 9000, "roof:roof_main", true, true, "Façade nord R+2 sous toiture"],
+      ["w_r2_w", "lvl_r2", "wt_ext_200", 0, 9000, 0, 0, "roof:roof_main", true, true, "Façade ouest R+2 sous toiture"],
+      ["w_r2_stair_e", "lvl_r2", "wt_int_150", 3000, 0, 3000, 6500, null, false, true, "Cage d'escalier R+2 est"],
+      ["w_r2_stair_n", "lvl_r2", "wt_int_150", 0, 6500, 3000, 6500, null, false, true, "Cage d'escalier R+2 nord"],
+      ["w_r2_sejour_n", "lvl_r2", "wt_int_100", 3000, 5500, 7000, 5500, null, false, false, "Suite / corridor R+2"],
+      ["w_r2_corr_n", "lvl_r2", "wt_int_100", 3000, 6500, 7000, 6500, null, false, false, "Corridor / chambre 4 R+2"],
+      ["w_r2_west_e", "lvl_r2", "wt_int_150", 7000, 0, 7000, 9000, null, false, true, "Épine centrale R+2"],
+      ["w_r2_hall_n", "lvl_r2", "wt_int_100", 7000, 4500, 12000, 4500, null, false, false, "Salle d'eau / mezzanine R+2"],
+      ["w_r2_wc_split", "lvl_r2", "wt_int_100", 9500, 4500, 9500, 9000, null, false, false, "Mezzanine / studio R+2", 2600]
+    ],
+    "doors": [
+      ["d_rdc_entree", "w_rdc_s", "dt_1000x2100", 8200, "right", "in", "Porte d'entrée"],
+      ["d_rdc_garage", "w_rdc_g_s", "dt_2400x2100", 1300, "left", "out", "Porte de garage"],
+      ["d_rdc_stair_sejour", "w_rdc_stair_e", "dt_900x2100", 1000, "right", "in", "Cage d'escalier vers séjour"],
+      ["d_rdc_stair_bureau", "w_rdc_stair_n", "dt_900x2100", 1000, "left", "in", "Cage d'escalier vers bureau"],
+      ["d_rdc_sejour_corridor", "w_rdc_sejour_n", "dt_900x2100", 1500, "right", "in", "Séjour vers corridor"],
+      ["d_rdc_corridor_bureau", "w_rdc_corr_n", "dt_900x2100", 1500, "left", "in", "Corridor vers bureau"],
+      ["d_rdc_sejour_hall", "w_rdc_west_e", "dt_900x2100", 2000, "right", "in", "Séjour vers hall"],
+      ["d_rdc_corridor_hall", "w_rdc_west_e", "dt_900x2100", 5500, "left", "in", "Corridor vers hall"],
+      ["d_rdc_hall_wc", "w_rdc_hall_n", "dt_800x2100", 1000, "right", "in", "Hall vers WC"],
+      ["d_rdc_hall_local", "w_rdc_hall_n", "dt_800x2100", 3000, "left", "in", "Hall vers local technique"],
+      ["d_rdc_hall_garage", "w_rdc_e1", "dt_900x2100", 2000, "right", "in", "Hall vers garage"],
+      ["d_r1_stair_chambre1", "w_r1_stair_e", "dt_900x2100", 1000, "right", "in", "Cage d'escalier vers chambre 1"],
+      ["d_r1_stair_chambre2", "w_r1_stair_n", "dt_900x2100", 1000, "left", "in", "Cage d'escalier vers chambre 2"],
+      ["d_r1_chambre1_corridor", "w_r1_sejour_n", "dt_900x2100", 1500, "right", "in", "Chambre 1 vers corridor"],
+      ["d_r1_corridor_chambre2", "w_r1_corr_n", "dt_900x2100", 1500, "left", "in", "Corridor vers chambre 2"],
+      ["d_r1_chambre1_bain", "w_r1_west_e", "dt_800x2100", 2000, "right", "in", "Chambre 1 vers salle de bain"],
+      ["d_r1_corridor_chambre3", "w_r1_west_e", "dt_800x2100", 5500, "left", "in", "Corridor vers chambre 3"],
+      ["d_r1_chambre3_bureau", "w_r1_wc_split", "dt_800x2100", 2000, "right", "in", "Chambre 3 vers bureau"],
+      ["d_r2_stair_suite", "w_r2_stair_e", "dt_900x2100", 1000, "right", "in", "Cage d'escalier vers suite"],
+      ["d_r2_stair_chambre4", "w_r2_stair_n", "dt_900x2100", 1000, "left", "in", "Cage d'escalier vers chambre 4"],
+      ["d_r2_suite_corridor", "w_r2_sejour_n", "dt_900x2100", 1500, "right", "in", "Suite vers corridor"],
+      ["d_r2_corridor_chambre4", "w_r2_corr_n", "dt_900x2100", 1500, "left", "in", "Corridor vers chambre 4"],
+      ["d_r2_suite_salle_eau", "w_r2_west_e", "dt_800x2100", 2000, "right", "in", "Suite vers salle d'eau"],
+      ["d_r2_corridor_mezzanine", "w_r2_west_e", "dt_800x2100", 5500, "left", "in", "Corridor vers mezzanine"],
+      ["d_r2_mezzanine_studio", "w_r2_wc_split", "dt_800x2100", 2000, "right", "in", "Mezzanine vers studio"]
+    ],
+    "windows": [
+      ["w_rdc_stair_sud", "w_rdc_s", "wtn_1200x1400_s900", 800, 900, "Fenêtre cage d'escalier sud"],
+      ["w_rdc_sejour_sud", "w_rdc_s", "wtn_1800x1400_s900", 3400, 900, "Fenêtre séjour sud"],
+      ["w_rdc_hall_sud", "w_rdc_s", "wtn_1200x1400_s900", 10200, 900, "Fenêtre hall sud"],
+      ["w_rdc_bureau_ouest", "w_rdc_w", "wtn_1200x1400_s900", 1000, 900, "Fenêtre bureau ouest"],
+      ["w_rdc_stair_ouest", "w_rdc_w", "wtn_1200x1400_s900", 5000, 900, "Fenêtre cage d'escalier ouest"],
+      ["w_rdc_local_nord", "w_rdc_n", "wtn_1200x1400_s900", 1000, 900, "Fenêtre local nord"],
+      ["w_rdc_wc_nord", "w_rdc_n", "wtn_600x600_s1500", 3000, 1500, "Fenêtre WC nord"],
+      ["w_rdc_bureau_nord", "w_rdc_n", "wtn_1200x1400_s900", 8000, 900, "Fenêtre bureau nord"],
+      ["w_rdc_local_est", "w_rdc_e2", "wtn_1200x1400_s900", 800, 900, "Fenêtre local est"],
+      ["w_rdc_garage_est", "w_rdc_g_e", "wtn_1200x1000_s1200", 2200, 1200, "Fenêtre garage est"],
+      ["w_rdc_garage_nord", "w_rdc_g_n", "wtn_1200x1000_s1200", 1900, 1200, "Fenêtre garage nord"],
+      ["w_r1_stair_sud", "w_r1_s", "wtn_1200x1400_s900", 800, 900, "Fenêtre cage d'escalier R+1 sud"],
+      ["w_r1_chambre1_sud", "w_r1_s", "wtn_1800x1400_s900", 3400, 900, "Fenêtre chambre 1 sud"],
+      ["w_r1_bain_sud", "w_r1_s", "wtn_1200x1400_s900", 10200, 900, "Fenêtre salle de bain sud"],
+      ["w_r1_chambre2_ouest", "w_r1_w", "wtn_1200x1400_s900", 1000, 900, "Fenêtre chambre 2 ouest"],
+      ["w_r1_stair_ouest", "w_r1_w", "wtn_1200x1400_s900", 5000, 900, "Fenêtre cage d'escalier R+1 ouest"],
+      ["w_r1_chambre2_nord", "w_r1_n", "wtn_1200x1400_s900", 8000, 900, "Fenêtre chambre 2 nord"],
+      ["w_r1_chambre3_nord", "w_r1_n", "wtn_600x600_s1500", 3000, 1500, "Fenêtre chambre 3 nord"],
+      ["w_r1_bureau_nord", "w_r1_n", "wtn_1200x1400_s900", 1000, 900, "Fenêtre bureau R+1 nord"],
+      ["w_r1_bureau_est", "w_r1_e", "wtn_1200x1400_s900", 800, 900, "Fenêtre bureau R+1 est"],
+      ["w_r2_stair_sud", "w_r2_s", "wtn_1200x1400_s900", 800, 900, "Fenêtre cage d'escalier R+2 sud"],
+      ["w_r2_suite_sud", "w_r2_s", "wtn_2400x1400_s900", 3400, 900, "Baie suite parentale sud"],
+      ["w_r2_salle_eau_sud", "w_r2_s", "wtn_1200x1400_s900", 10200, 900, "Fenêtre salle d'eau sud"],
+      ["w_r2_chambre4_ouest", "w_r2_w", "wtn_1200x1400_s900", 1000, 900, "Fenêtre chambre 4 ouest"],
+      ["w_r2_stair_ouest", "w_r2_w", "wtn_1200x1400_s900", 5000, 900, "Fenêtre cage d'escalier R+2 ouest"],
+      ["w_r2_chambre4_nord", "w_r2_n", "wtn_1200x1400_s900", 8000, 900, "Fenêtre chambre 4 nord"],
+      ["w_r2_mezzanine_nord", "w_r2_n", "wtn_600x600_s1500", 3000, 1500, "Fenêtre mezzanine nord"],
+      ["w_r2_studio_nord", "w_r2_n", "wtn_1200x1400_s900", 1000, 900, "Fenêtre studio nord"],
+      ["w_r2_studio_est", "w_r2_e", "wtn_1200x1400_s900", 800, 900, "Fenêtre studio est"]
+    ],
+    "slabs": [
+      ["slab_rdc", "lvl_rdc", "st_ground_250", [0, 0, 12000, 0, 17000, 0, 17000, 6000, 12000, 6000, 12000, 9000, 0, 9000], [[15000, 3000, 15000, 3600, 15600, 3600, 15600, 3000]], [], "Dalle RDC sur terre-plein avec fosse de relevage"],
+      ["slab_r1", "lvl_r1", "st_floor_200", [0, 0, 12000, 0, 12000, 9000, 0, 9000], [[800, 1300, 800, 6460, 2200, 6460, 2200, 1300]], [[10000, 7600, 10000, 8800, 11200, 8800, 11200, 7600]], "Dalle R+1 avec trémie d'escalier et gaine technique"],
+      ["slab_r2", "lvl_r2", "st_floor_200", [0, 0, 12000, 0, 12000, 9000, 0, 9000], [[800, 1300, 800, 6460, 2200, 6460, 2200, 1300]], [[10000, 7600, 10000, 8800, 11200, 8800, 11200, 7600]], "Dalle R+2 avec trémie d'escalier et gaine technique"]
+    ],
+    "stairs": [
+      ["stair_rdc_r1", "st_1000", "lvl_rdc", "lvl_r1", 1500, 1500, 1500, 6260, 1000, "Volée RDC vers R+1"],
+      ["stair_r1_r2", "st_1000", "lvl_r1", "lvl_r2", 1500, 1500, 1500, 6260, 1000, "Volée R+1 vers R+2"]
+    ],
+    "roofs": [
+      {
+        "id": "roof_main",
+        "category": "roof",
+        "roofTypeId": "rt_gable_35",
+        "levelId": "lvl_r2",
+        "footprint": [{ "x": 0, "y": 0 }, { "x": 12000, "y": 0 }, { "x": 12000, "y": 9000 }, { "x": 0, "y": 9000 }],
+        "baseOffset": 2800,
+        "ridgeAxis": { "start": { "x": 0, "y": 4500 }, "end": { "x": 12000, "y": 4500 } },
+        "slopeOverrideDeg": 30,
+        "overhangOverrideMm": 600,
+        "name": "Toiture 2 pans du corps principal"
+      },
+      {
+        "id": "roof_garage",
+        "category": "roof",
+        "roofTypeId": "rt_flat_200",
+        "levelId": "lvl_rdc",
+        "footprint": [{ "x": 12000, "y": 0 }, { "x": 17000, "y": 0 }, { "x": 17000, "y": 6000 }, { "x": 12000, "y": 6000 }],
+        "baseOffset": 3000,
+        "name": "Toiture terrasse du garage"
+      }
+    ],
+    "roofOpenings": [
+      { "id": "roof_window_main", "category": "roofOpening", "roofId": "roof_main", "offsetU": 4000, "offsetV": 3000, "width": 1200, "height": 1200 }
+    ],
+    "components": [
+      ["c_kitchen_base_1", "ct_kitchen_base_60", "lvl_rdc", 6500, 800, 1.5707963267948966, 0, "w_rdc_west_e", "Meuble bas cuisine 1"],
+      ["c_kitchen_base_2", "ct_kitchen_base_60", "lvl_rdc", 6500, 1500, 1.5707963267948966, 0, "w_rdc_west_e", "Meuble bas cuisine 2"],
+      ["c_kitchen_base_3", "ct_kitchen_base_60", "lvl_rdc", 6500, 2200, 1.5707963267948966, 0, "w_rdc_west_e", "Meuble bas cuisine 3"],
+      ["c_kitchen_sink", "ct_kitchen_sink_unit", "lvl_rdc", 6500, 3200, 1.5707963267948966, 0, "w_rdc_west_e", "Évier double bac"],
+      ["c_kitchen_fridge", "ct_kitchen_fridge", "lvl_rdc", 6500, 4400, 1.5707963267948966, 0, "w_rdc_west_e", "Réfrigérateur"],
+      ["c_kitchen_wall", "ct_kitchen_wall_60", "lvl_rdc", 6700, 1200, 1.5707963267948966, 1450, "w_rdc_west_e", "Meuble haut cuisine"],
+      ["c_dining_table", "ct_dining_table", "lvl_rdc", 5000, 3000, 0, 0, null, "Table à manger"],
+      ["c_chair_1", "ct_chair", "lvl_rdc", 4600, 2200, 0, 0, null, "Chaise 1"],
+      ["c_chair_2", "ct_chair", "lvl_rdc", 5400, 2200, 0, 0, null, "Chaise 2"],
+      ["c_chair_3", "ct_chair", "lvl_rdc", 4600, 3800, 3.141592653589793, 0, null, "Chaise 3"],
+      ["c_chair_4", "ct_chair", "lvl_rdc", 5400, 3800, 3.141592653589793, 0, null, "Chaise 4"],
+      ["c_sofa", "ct_sofa_3p", "lvl_rdc", 5000, 700, 0, 0, null, "Canapé séjour"],
+      ["c_wc_toilet", "ct_toilet_wall_hung", "lvl_rdc", 8800, 8500, 0, 0, "w_rdc_n", "WC suspendu"],
+      ["c_wc_sink", "ct_sink_vanity", "lvl_rdc", 7700, 8200, 0, 0, "w_rdc_west_e", "Vasque WC"],
+      ["c_garage_bench", "ct_dining_table", "lvl_rdc", 14500, 1500, 0, 0, null, "Établi garage"],
+      ["c_sliding_door", "ct_sliding_door", "lvl_rdc", 7000, 4200, 1.5707963267948966, 0, "w_rdc_west_e", "Baie coulissante séjour / hall"],
+      ["c_r1_bed_1", "ct_bed_double", "lvl_r1", 5000, 2000, 0, 0, null, "Lit chambre 1"],
+      ["c_r1_wardrobe_1", "ct_wardrobe", "lvl_r1", 6500, 4500, 1.5707963267948966, 0, "w_r1_west_e", "Armoire chambre 1"],
+      ["c_r1_bed_2", "ct_bed_double", "lvl_r1", 2000, 7500, 0, 0, null, "Lit chambre 2"],
+      ["c_r1_wardrobe_2", "ct_wardrobe", "lvl_r1", 6000, 8500, 0, 0, "w_r1_n", "Armoire chambre 2"],
+      ["c_r1_bath", "ct_bath_tub", "lvl_r1", 8000, 1000, 0, 0, null, "Baignoire"],
+      ["c_r1_toilet", "ct_toilet_wall_hung", "lvl_r1", 11000, 1000, 0, 0, "w_r1_e", "WC salle de bain"],
+      ["c_r1_sink", "ct_sink_vanity", "lvl_r1", 7700, 3000, 0, 0, "w_r1_west_e", "Vasque salle de bain"],
+      ["c_r1_bed_3", "ct_bed_double", "lvl_r1", 8000, 6500, 0, 0, null, "Lit chambre 3"],
+      ["c_r1_desk", "ct_dining_table", "lvl_r1", 10500, 6500, 0, 0, null, "Bureau R+1"],
+      ["c_r1_chair", "ct_chair", "lvl_r1", 10500, 7500, 3.141592653589793, 0, null, "Chaise bureau R+1"],
+      ["c_french_window", "ct_french_window", "lvl_r1", 5500, 9000, 0, 0, "w_r1_n", "Porte-fenêtre chambre 2"],
+      ["c_r2_bed_suite", "ct_bed_double", "lvl_r2", 5000, 2000, 0, 0, null, "Lit suite parentale"],
+      ["c_r2_wardrobe_suite", "ct_wardrobe", "lvl_r2", 6500, 4500, 1.5707963267948966, 0, "w_r2_west_e", "Armoire suite parentale"],
+      ["c_r2_bed_4", "ct_bed_double", "lvl_r2", 2000, 7500, 0, 0, null, "Lit chambre 4"],
+      ["c_r2_wardrobe_4", "ct_wardrobe", "lvl_r2", 6000, 8500, 0, 0, "w_r2_n", "Armoire chambre 4"],
+      ["c_r2_shower", "ct_shower_tray", "lvl_r2", 8000, 1000, 0, 0, null, "Douche italienne"],
+      ["c_r2_toilet", "ct_toilet_wall_hung", "lvl_r2", 11000, 1000, 0, 0, "w_r2_e", "WC salle d'eau"],
+      ["c_r2_sink", "ct_sink_vanity", "lvl_r2", 7700, 3000, 0, 0, "w_r2_west_e", "Vasque salle d'eau"],
+      ["c_r2_sofa", "ct_sofa_3p", "lvl_r2", 8250, 6000, 0, 0, null, "Canapé mezzanine"],
+      ["c_r2_table", "ct_dining_table", "lvl_r2", 10700, 6000, 0, 0, null, "Table studio"],
+      ["c_r2_chair", "ct_chair", "lvl_r2", 10700, 7000, 3.141592653589793, 0, null, "Chaise studio"]
+    ],
+    "rooms": [
+      ["room_rdc_stair", "lvl_rdc", 1500, 3000, "Cage d'escalier"],
+      ["room_rdc_sejour", "lvl_rdc", 5000, 2500, "Séjour"],
+      ["room_rdc_corridor", "lvl_rdc", 5000, 6000, "Dégagement"],
+      ["room_rdc_bureau", "lvl_rdc", 3500, 7500, "Bureau"],
+      ["room_rdc_hall", "lvl_rdc", 8500, 2500, "Hall d'entrée"],
+      ["room_rdc_wc", "lvl_rdc", 8000, 7000, "WC"],
+      ["room_rdc_local", "lvl_rdc", 10800, 7000, "Local technique"],
+      ["room_rdc_garage", "lvl_rdc", 14500, 3000, "Garage"],
+      ["room_r1_stair", "lvl_r1", 1500, 3000, "Cage d'escalier R+1"],
+      ["room_r1_chambre1", "lvl_r1", 5000, 2500, "Chambre 1"],
+      ["room_r1_corridor", "lvl_r1", 5000, 6000, "Corridor R+1"],
+      ["room_r1_chambre2", "lvl_r1", 3500, 7500, "Chambre 2"],
+      ["room_r1_bain", "lvl_r1", 8500, 2500, "Salle de bain"],
+      ["room_r1_chambre3", "lvl_r1", 8000, 7000, "Chambre 3"],
+      ["room_r1_bureau", "lvl_r1", 10800, 7000, "Bureau R+1"],
+      ["room_r2_stair", "lvl_r2", 1500, 3000, "Cage d'escalier R+2"],
+      ["room_r2_suite", "lvl_r2", 5000, 2500, "Suite parentale"],
+      ["room_r2_corridor", "lvl_r2", 5000, 6000, "Corridor R+2"],
+      ["room_r2_chambre4", "lvl_r2", 3500, 7500, "Chambre 4"],
+      ["room_r2_salle_eau", "lvl_r2", 8500, 2500, "Salle d'eau"],
+      ["room_r2_mezzanine", "lvl_r2", 8000, 7000, "Mezzanine"],
+      ["room_r2_studio", "lvl_r2", 10800, 7000, "Studio"]
+    ]
+  },
+  "mep": {
+    "systems": [
+      { "id": "sys_ef", "name": "Eau froide sanitaire", "domain": "plumbing", "systemType": "domestic_cold_water", "color": "#1E88E5" },
+      { "id": "sys_ecs", "name": "Eau chaude sanitaire", "domain": "plumbing", "systemType": "domestic_hot_water", "color": "#E53935" },
+      { "id": "sys_eu", "name": "Eaux usées ménagères", "domain": "plumbing", "systemType": "drainage_waste", "color": "#8E24AA" },
+      { "id": "sys_ev", "name": "Eaux vannes", "domain": "plumbing", "systemType": "drainage_soil", "color": "#5E35B1" },
+      { "id": "sys_air_supply", "name": "Air neuf soufflé", "domain": "hvac", "systemType": "supply_air", "color": "#43A047" },
+      { "id": "sys_air_return", "name": "Air repris", "domain": "hvac", "systemType": "return_air", "color": "#FB8C00" },
+      { "id": "sys_air_exhaust", "name": "Air extrait", "domain": "hvac", "systemType": "exhaust_air", "color": "#FDD835" },
+      { "id": "sys_hyd_supply", "name": "Départ chauffage", "domain": "hydronic", "systemType": "hydronic_supply", "color": "#D81B60" },
+      { "id": "sys_hyd_return", "name": "Retour chauffage", "domain": "hydronic", "systemType": "hydronic_return", "color": "#00897B" },
+      { "id": "sys_power", "name": "Courants forts", "domain": "electrical", "systemType": "power", "color": "#F4511E" },
+      { "id": "sys_telecom", "name": "Courants faibles", "domain": "electrical", "systemType": "telecom", "color": "#3949AB" }
+    ],
+    "equipment": [
+      ["eq_water_meter", "lvl_rdc", "meter", 9700, 4700, 1200, 300, 200, 300, "sys_ef", "Compteur d'eau général", "entrée ouest / sortie est", 0],
+      ["eq_water_heater", "lvl_rdc", "water_heater", 11500, 5000, 0, 600, 600, 1800, "sys_ecs", "Ballon ECS 300 L", "EF entrante / ECS sortante", 0],
+      ["eq_heat_pump", "lvl_rdc", "heat_pump", 11500, 6100, 0, 1000, 800, 1200, "sys_hyd_supply", "Pompe à chaleur air/eau", "départ / retour hydraulique", 0],
+      ["eq_boiler_backup", "lvl_rdc", "boiler", 11000, 6900, 0, 800, 700, 1200, "sys_hyd_supply", "Chaudière gaz de secours", "départ / retour hydraulique", 0],
+      ["eq_hyd_pump", "lvl_rdc", "pump", 9900, 5000, 0, 300, 300, 300, "sys_hyd_supply", "Circulateur chauffage", "aspiration / refoulement", 0],
+      ["eq_valve_supply", "lvl_rdc", "valve", 9900, 5500, 800, 150, 150, 150, "sys_hyd_supply", "Vanne de régulation départ", "entrée / sortie", 0],
+      ["eq_valve_return", "lvl_rdc", "valve", 9900, 5800, 800, 150, 150, 150, "sys_hyd_return", "Vanne de régulation retour", "entrée / sortie", 0],
+      ["eq_ahu", "lvl_rdc", "ahu", 11600, 8300, 0, 800, 600, 1200, "sys_air_supply", "Centrale de traitement d'air", "reprise / soufflage", 0],
+      ["eq_extract_fan", "lvl_rdc", "fan", 11600, 7500, 0, 400, 400, 400, "sys_air_exhaust", "Extracteur d'air vicié", "aspiration / rejet", 0],
+      ["eq_panel_main", "lvl_rdc", "electrical_panel", 9850, 6200, 1200, 600, 200, 800, "sys_power", "Tableau général TGBT", "arrivée / départs", 0],
+      ["eq_panel_r1", "lvl_r1", "electrical_panel", 7200, 6000, 3000, 400, 150, 600, "sys_power", "Tableau divisionnaire R+1", "arrivée / départs", 0],
+      ["eq_panel_r2", "lvl_r2", "electrical_panel", 7200, 6000, 6000, 400, 150, 600, "sys_power", "Tableau divisionnaire R+2", "arrivée / départs", 0],
+      ["eq_rad_rdc_sejour", "lvl_rdc", "radiator", 5000, 400, 300, 1000, 100, 600, "sys_hyd_supply", "Radiateur séjour", "départ / retour", 0],
+      ["eq_rad_r1_chambre1", "lvl_r1", "radiator", 3800, 400, 3000, 1000, 100, 600, "sys_hyd_supply", "Radiateur chambre 1", "départ / retour", 0],
+      ["eq_rad_r1_chambre2", "lvl_r1", "radiator", 1500, 8700, 3000, 1000, 100, 600, "sys_hyd_supply", "Radiateur chambre 2", "départ / retour", 0],
+      ["eq_rad_r1_chambre3", "lvl_r1", "radiator", 7600, 4700, 3000, 1000, 100, 600, "sys_hyd_supply", "Radiateur chambre 3", "départ / retour", 0],
+      ["eq_rad_r2_suite", "lvl_r2", "radiator", 3800, 400, 6000, 1000, 100, 600, "sys_hyd_supply", "Radiateur suite parentale", "départ / retour", 0],
+      ["eq_rad_r2_chambre4", "lvl_r2", "radiator", 1500, 8700, 6000, 1000, 100, 600, "sys_hyd_supply", "Radiateur chambre 4", "départ / retour", 0],
+      ["eq_rad_r2_mezzanine", "lvl_r2", "radiator", 7600, 4700, 6000, 1000, 100, 600, "sys_hyd_supply", "Radiateur mezzanine", "départ / retour", 0]
+    ],
+    "routes": [
+      ["p_ef_meter_heater", "pipe", "plumbing", "domestic_cold_water", "sys_ef", "lvl_rdc", 20, [9700, 4700, 1200, 11000, 4700, 1200, 11000, 5000, 1200, 11200, 5000, 1200], "Compteur → ballon ECS"],
+      ["p_ef_riser", "pipe", "plumbing", "domestic_cold_water", "sys_ef", "lvl_rdc", 25, [10600, 8550, 1200, 10600, 8550, 8400], "Colonne montante EF dans la gaine"],
+      ["p_ef_r1_header", "pipe", "plumbing", "domestic_cold_water", "sys_ef", "lvl_r1", 20, [10600, 8550, 5400, 9000, 8550, 5400, 7700, 8550, 5400, 7700, 3000, 5400, 7700, 3000, 3300], "Alimentation R+1 : vasque, WC, baignoire"],
+      ["p_ef_r2_header", "pipe", "plumbing", "domestic_cold_water", "sys_ef", "lvl_r2", 20, [10600, 8550, 8400, 9000, 8550, 8400, 7700, 8550, 8400, 7700, 3000, 8400, 7700, 3000, 6300], "Alimentation R+2 : vasque, WC, douche"],
+      ["p_ecs_heater_riser", "pipe", "plumbing", "domestic_hot_water", "sys_ecs", "lvl_rdc", 20, [11500, 5000, 1500, 10700, 5000, 1500, 10700, 8550, 1500, 10700, 8550, 8400], "Ballon → colonne ECS"],
+      ["p_ecs_r1_header", "pipe", "plumbing", "domestic_hot_water", "sys_ecs", "lvl_r1", 20, [10700, 8550, 5400, 9200, 8550, 5400, 7700, 8550, 5400, 7700, 3000, 5400, 7700, 3000, 3300], "ECS R+1"],
+      ["p_ecs_r2_header", "pipe", "plumbing", "domestic_hot_water", "sys_ecs", "lvl_r2", 20, [10700, 8550, 8400, 9200, 8550, 8400, 7700, 8550, 8400, 7700, 3000, 8400, 7700, 3000, 6300], "ECS R+2"],
+      ["p_eu_kitchen_rdc", "pipe", "plumbing", "drainage_waste", "sys_eu", "lvl_rdc", 50, [6500, 3200, 300, 6500, 4800, 300, 10600, 7850, 300], "Évier cuisine → colonne EU, pente 1%"],
+      ["p_eu_stack", "pipe", "plumbing", "drainage_waste", "sys_eu", "lvl_rdc", 110, [10600, 7850, 8400, 10600, 7850, 0], "Colonne EU traversante"],
+      ["p_eu_r1_branch", "pipe", "plumbing", "drainage_waste", "sys_eu", "lvl_r1", 50, [7700, 3000, 3250, 9000, 3000, 3250, 10600, 7850, 3250], "Vasque et baignoire R+1 → EU"],
+      ["p_eu_r2_branch", "pipe", "plumbing", "drainage_waste", "sys_eu", "lvl_r2", 50, [7700, 3000, 6250, 9000, 3000, 6250, 10600, 7850, 6250], "Vasque et douche R+2 → EU"],
+      ["p_ev_wc_rdc", "pipe", "plumbing", "drainage_soil", "sys_ev", "lvl_rdc", 100, [8800, 8500, 250, 10000, 8500, 250, 10750, 7900, 250], "WC RDC → colonne EV"],
+      ["p_ev_stack", "pipe", "plumbing", "drainage_soil", "sys_ev", "lvl_rdc", 110, [10750, 7900, 8400, 10750, 7900, 0], "Colonne EV traversante"],
+      ["p_ev_r1_branch", "pipe", "plumbing", "drainage_soil", "sys_ev", "lvl_r1", 100, [11000, 1000, 3250, 11000, 3000, 3250, 10750, 7900, 3250], "WC R+1 → EV"],
+      ["p_ev_r2_branch", "pipe", "plumbing", "drainage_soil", "sys_ev", "lvl_r2", 100, [11000, 1000, 6250, 11000, 3000, 6250, 10750, 7900, 6250], "WC R+2 → EV"],
+      ["d_supply_riser", "duct", "hvac", "supply_air", "sys_air_supply", "lvl_rdc", "400x250", [10250, 8100, 1200, 10250, 8100, 8400], "Colonne de soufflage"],
+      ["d_supply_rdc", "duct", "hvac", "supply_air", "sys_air_supply", "lvl_rdc", "400x250", [10250, 8100, 2500, 9000, 8100, 2500, 9000, 2500, 2500, 8000, 2500, 2500], "Soufflage hall et séjour RDC"],
+      ["d_supply_r1", "duct", "hvac", "supply_air", "sys_air_supply", "lvl_r1", "400x250", [10250, 8100, 5500, 9000, 8100, 5500, 9000, 2500, 5500, 8000, 2500, 5500], "Soufflage chambres R+1"],
+      ["d_supply_r2", "duct", "hvac", "supply_air", "sys_air_supply", "lvl_r2", "400x250", [10250, 8100, 8500, 9000, 8100, 8500, 9000, 2500, 8500, 8000, 2500, 8500], "Soufflage suite et mezzanine R+2"],
+      ["d_return_riser", "duct", "hvac", "return_air", "sys_air_return", "lvl_rdc", "400x250", [10950, 8100, 1200, 10950, 8100, 8400], "Colonne de reprise"],
+      ["d_return_rdc", "duct", "hvac", "return_air", "sys_air_return", "lvl_rdc", "400x250", [10950, 8100, 2500, 9000, 8100, 2500, 9000, 6000, 2500, 8000, 6000, 2500], "Reprise RDC"],
+      ["d_return_r1", "duct", "hvac", "return_air", "sys_air_return", "lvl_r1", "400x250", [10950, 8100, 5500, 9000, 8100, 5500, 9000, 6000, 5500, 8000, 6000, 5500], "Reprise R+1"],
+      ["d_return_r2", "duct", "hvac", "return_air", "sys_air_return", "lvl_r2", "400x250", [10950, 8100, 8500, 9000, 8100, 8500, 9000, 6000, 8500, 8000, 6000, 8500], "Reprise R+2"],
+      ["d_exhaust_riser", "duct", "hvac", "exhaust_air", "sys_air_exhaust", "lvl_rdc", "300x200", [10250, 8550, 1200, 10250, 8550, 8400], "Colonne d'extraction"],
+      ["d_exhaust_rdc", "duct", "hvac", "exhaust_air", "sys_air_exhaust", "lvl_rdc", "300x200", [10250, 8550, 2500, 8800, 8550, 2500, 8800, 8500, 2500], "Extraction WC RDC"],
+      ["d_exhaust_r1", "duct", "hvac", "exhaust_air", "sys_air_exhaust", "lvl_r1", "300x200", [10250, 8550, 5500, 11000, 8550, 5500, 11000, 3000, 5500, 11000, 3000, 3400], "Extraction salle de bain R+1"],
+      ["d_exhaust_r2", "duct", "hvac", "exhaust_air", "sys_air_exhaust", "lvl_r2", "300x200", [10250, 8550, 8500, 11000, 8550, 8500, 11000, 3000, 8500, 11000, 3000, 6400], "Extraction salle d'eau R+2"],
+      ["p_hyd_supply_riser", "pipe", "hydronic", "hydronic_supply", "sys_hyd_supply", "lvl_rdc", 25, [10100, 7850, 1200, 10100, 7850, 8400], "Colonne départ chauffage"],
+      ["p_hyd_return_riser", "pipe", "hydronic", "hydronic_return", "sys_hyd_return", "lvl_rdc", 25, [10200, 7850, 1200, 10200, 7850, 8400], "Colonne retour chauffage"],
+      ["p_hyd_supply_rdc", "pipe", "hydronic", "hydronic_supply", "sys_hyd_supply", "lvl_rdc", 20, [10100, 7850, 2500, 8000, 7850, 2500, 5000, 7850, 2500, 5000, 400, 2500, 5000, 400, 900], "Départ radiateur séjour"],
+      ["p_hyd_return_rdc", "pipe", "hydronic", "hydronic_return", "sys_hyd_return", "lvl_rdc", 20, [10200, 7850, 2400, 8000, 7850, 2400, 5000, 7850, 2400, 5000, 400, 2400, 5000, 400, 900], "Retour radiateur séjour"],
+      ["p_hyd_supply_r1", "pipe", "hydronic", "hydronic_supply", "sys_hyd_supply", "lvl_r1", 20, [10100, 7850, 5500, 8000, 7850, 5500, 3800, 7850, 5500, 3800, 400, 5500, 3800, 400, 3900], "Départ radiateur chambre 1"],
+      ["p_hyd_return_r1", "pipe", "hydronic", "hydronic_return", "sys_hyd_return", "lvl_r1", 20, [10200, 7850, 5400, 8000, 7850, 5400, 3800, 7850, 5400, 3800, 400, 5400, 3800, 400, 3900], "Retour radiateur chambre 1"],
+      ["p_hyd_supply_r2", "pipe", "hydronic", "hydronic_supply", "sys_hyd_supply", "lvl_r2", 20, [10100, 7850, 8500, 8000, 7850, 8500, 3800, 7850, 8500, 3800, 400, 8500, 3800, 400, 6900], "Départ radiateur suite"],
+      ["p_hyd_return_r2", "pipe", "hydronic", "hydronic_return", "sys_hyd_return", "lvl_r2", 20, [10200, 7850, 8400, 8000, 7850, 8400, 3800, 7850, 8400, 3800, 400, 8400, 3800, 400, 6900], "Retour radiateur suite"],
+      ["ct_power_riser", "cableTray", "electrical", "power", "sys_power", "lvl_rdc", "200x60", [10150, 7650, 1200, 10150, 7650, 8600], "Colonne montante courants forts"],
+      ["ct_power_rdc", "cableTray", "electrical", "power", "sys_power", "lvl_rdc", "200x60", [10150, 7650, 2600, 9000, 7650, 2600, 8000, 7650, 2600, 8000, 3000, 2600], "Distribution RDC"],
+      ["ct_power_r1", "cableTray", "electrical", "power", "sys_power", "lvl_r1", "200x60", [10150, 7650, 5600, 9000, 7650, 5600, 8000, 7650, 5600, 8000, 3000, 5600], "Distribution R+1"],
+      ["ct_power_r2", "cableTray", "electrical", "power", "sys_power", "lvl_r2", "200x60", [10150, 7650, 8600, 9000, 7650, 8600, 8000, 7650, 8600, 8000, 3000, 8600], "Distribution R+2"],
+      ["ct_telecom_riser", "cableTray", "electrical", "telecom", "sys_telecom", "lvl_rdc", "100x50", [10100, 7750, 1200, 10100, 7750, 8600], "Colonne montante courants faibles"],
+      ["ct_telecom_rdc", "cableTray", "electrical", "telecom", "sys_telecom", "lvl_rdc", "100x50", [10100, 7750, 2700, 8500, 7750, 2700, 8500, 2500, 2700], "VDI RDC"],
+      ["ct_telecom_r1", "cableTray", "electrical", "telecom", "sys_telecom", "lvl_r1", "100x50", [10100, 7750, 5700, 8500, 7750, 5700, 8500, 2500, 5700], "VDI R+1"],
+      ["ct_telecom_r2", "cableTray", "electrical", "telecom", "sys_telecom", "lvl_r2", "100x50", [10100, 7750, 8700, 8500, 7750, 8700, 8500, 2500, 8700], "VDI R+2"]
+    ],
+    "fittings": [
+      ["fit_ef_base", "elbow", "plumbing", "domestic_cold_water", "sys_ef", "lvl_rdc", 10600, 8550, 1200, "Coude pied de colonne EF"],
+      ["fit_ef_tee_r1", "tee", "plumbing", "domestic_cold_water", "sys_ef", "lvl_r1", 10600, 8550, 5400, "Té de dérivation EF R+1"],
+      ["fit_ef_tee_r2", "tee", "plumbing", "domestic_cold_water", "sys_ef", "lvl_r2", 10600, 8550, 8400, "Té de dérivation EF R+2"],
+      ["fit_ecs_base", "elbow", "plumbing", "domestic_hot_water", "sys_ecs", "lvl_rdc", 10700, 8550, 1500, "Coude pied de colonne ECS"],
+      ["fit_eu_base", "elbow", "plumbing", "drainage_waste", "sys_eu", "lvl_rdc", 10600, 7850, 300, "Coude pied de colonne EU"],
+      ["fit_ev_base", "elbow", "plumbing", "drainage_soil", "sys_ev", "lvl_rdc", 10750, 7900, 250, "Coude pied de colonne EV"],
+      ["fit_supply_base", "elbow", "hvac", "supply_air", "sys_air_supply", "lvl_rdc", 10250, 8100, 2500, "Coude pied de gaine de soufflage"],
+      ["fit_supply_tee_r1", "tee", "hvac", "supply_air", "sys_air_supply", "lvl_r1", 10250, 8100, 5500, "Té de soufflage R+1"],
+      ["fit_return_base", "elbow", "hvac", "return_air", "sys_air_return", "lvl_rdc", 10950, 8100, 2500, "Coude pied de gaine de reprise"],
+      ["fit_exhaust_base", "elbow", "hvac", "exhaust_air", "sys_air_exhaust", "lvl_rdc", 10250, 8550, 2500, "Coude pied de gaine d'extraction"],
+      ["fit_hyd_supply_tee_r1", "tee", "hydronic", "hydronic_supply", "sys_hyd_supply", "lvl_r1", 10100, 7850, 5500, "Té départ chauffage R+1"],
+      ["fit_hyd_return_tee_r1", "tee", "hydronic", "hydronic_return", "sys_hyd_return", "lvl_r1", 10200, 7850, 5400, "Té retour chauffage R+1"],
+      ["fit_power_base", "elbow", "electrical", "power", "sys_power", "lvl_rdc", 10150, 7650, 2600, "Coude chemin de câbles courant fort"],
+      ["fit_telecom_base", "elbow", "electrical", "telecom", "sys_telecom", "lvl_rdc", 10100, 7750, 2700, "Coude chemin de câbles courant faible"],
+      ["fit_cap_eu", "cap", "plumbing", "drainage_waste", "sys_eu", "lvl_rdc", 10600, 7850, 0, "Bouchon de pied de colonne EU"],
+      ["fit_cap_ev", "cap", "plumbing", "drainage_soil", "sys_ev", "lvl_rdc", 10750, 7900, 0, "Bouchon de pied de colonne EV"],
+      ["fit_transition_supply", "transition", "hvac", "supply_air", "sys_air_supply", "lvl_rdc", 10250, 8100, 1200, "Réduction 500x300 → 400x250"],
+      ["fit_elbow_return_top", "elbow", "hvac", "return_air", "sys_air_return", "lvl_r2", 10950, 8100, 8400, "Coude haut de colonne de reprise"]
+    ],
+    "connectors": [
+      ["cx_meter_ef", "eq_water_meter", "p_ef_meter_heater", "sys_ef", "Sortie compteur vers ballon"],
+      ["cx_heater_ecs", "eq_water_heater", "p_ecs_heater_riser", "sys_ecs", "Sortie ECS du ballon"],
+      ["cx_ahu_supply", "eq_ahu", "d_supply_riser", "sys_air_supply", "Soufflage CTA"],
+      ["cx_ahu_return", "eq_ahu", "d_return_riser", "sys_air_return", "Reprise CTA"],
+      ["cx_fan_exhaust", "eq_extract_fan", "d_exhaust_riser", "sys_air_exhaust", "Aspiration extracteur"],
+      ["cx_pump_supply", "eq_hyd_pump", "p_hyd_supply_riser", "sys_hyd_supply", "Refoulement circulateur"],
+      ["cx_valve_supply", "eq_valve_supply", "p_hyd_supply_riser", "sys_hyd_supply", "Vanne départ"],
+      ["cx_valve_return", "eq_valve_return", "p_hyd_return_riser", "sys_hyd_return", "Vanne retour"],
+      ["cx_panel_power", "eq_panel_main", "ct_power_riser", "sys_power", "Départ général courants forts"],
+      ["cx_panel_telecom", "eq_panel_main", "ct_telecom_riser", "sys_telecom", "Départ général courants faibles"],
+      ["cx_ef_tee_r1", "p_ef_riser", "p_ef_r1_header", "sys_ef", "Dérivation EF R+1"],
+      ["cx_ef_tee_r2", "p_ef_riser", "p_ef_r2_header", "sys_ef", "Dérivation EF R+2"],
+      ["cx_eu_stack_kitchen", "p_eu_kitchen_rdc", "p_eu_stack", "sys_eu", "Raccord évier / colonne EU"],
+      ["cx_ev_stack_wc", "p_ev_wc_rdc", "p_ev_stack", "sys_ev", "Raccord WC / colonne EV"]
+    ]
+  },
+  "documentation": {
+    "dimensions": [
+      ["dim_rdc_s_1", "lvl_rdc", "linear", ["w_rdc_w", "w_rdc_stair_e"], -1500, 3000, "Trame sud 1 : 0 → 3000"],
+      ["dim_rdc_s_2", "lvl_rdc", "linear", ["w_rdc_stair_e", "w_rdc_west_e"], -1500, 4000, "Trame sud 2 : 3000 → 7000"],
+      ["dim_rdc_s_3", "lvl_rdc", "linear", ["w_rdc_west_e", "w_rdc_e1"], -1500, 5000, "Trame sud 3 : 7000 → 12000"],
+      ["dim_rdc_s_total", "lvl_rdc", "linear", ["w_rdc_s"], 1200, 12000, "Longueur façade sud"],
+      ["dim_rdc_n_1", "lvl_rdc", "linear", ["w_rdc_w", "w_rdc_west_e"], 1500, 7000, "Trame nord 1 : 0 → 7000"],
+      ["dim_rdc_n_2", "lvl_rdc", "linear", ["w_rdc_west_e", "w_rdc_e2"], 1500, 5000, "Trame nord 2 : 7000 → 12000"],
+      ["dim_rdc_stair", "lvl_rdc", "linear", ["w_rdc_stair_n"], 500, 3000, "Largeur cage d'escalier"],
+      ["dim_rdc_garage", "lvl_rdc", "linear", ["w_rdc_g_s"], -1000, 5000, "Longueur garage"],
+      ["dim_rdc_wc_split", "lvl_rdc", "linear", ["w_rdc_wc_split"], 500, 4500, "Profondeur WC / local"],
+      ["dim_rdc_hall", "lvl_rdc", "linear", ["w_rdc_hall_n"], 500, 5000, "Largeur hall"],
+      ["dim_r1_s_total", "lvl_r1", "linear", ["w_r1_s"], 1200, 12000, "Longueur façade sud R+1"],
+      ["dim_r1_e_total", "lvl_r1", "linear", ["w_r1_e"], 1200, 9000, "Longueur façade est R+1"],
+      ["dim_r2_s_total", "lvl_r2", "linear", ["w_r2_s"], 1200, 12000, "Longueur façade sud R+2"],
+      ["dim_r2_w_total", "lvl_r2", "linear", ["w_r2_w"], 1200, 9000, "Longueur façade ouest R+2"]
+    ],
+    "sectionCuts": [
+      { "id": "sc_a", "category": "sectionCut", "name": "Coupe transversale A-A", "label": "A", "kind": "section", "start": { "x": 5000, "y": -2000 }, "end": { "x": 5000, "y": 11000 }, "viewDirection": 1, "depth": 20000, "zMin": -500, "zMax": 12000 },
+      { "id": "sc_b", "category": "sectionCut", "name": "Coupe longitudinale B-B", "label": "B", "kind": "section", "start": { "x": -2000, "y": 3000 }, "end": { "x": 19000, "y": 3000 }, "viewDirection": 1, "depth": 20000, "zMin": -500, "zMax": 12000 },
+      { "id": "sc_elev_sud", "category": "sectionCut", "name": "Élévation Sud", "label": "ES", "kind": "elevation", "start": { "x": 0, "y": -3000 }, "end": { "x": 17000, "y": -3000 }, "viewDirection": 1, "depth": 15000, "zMin": -500, "zMax": 12000 },
+      { "id": "sc_elev_nord", "category": "sectionCut", "name": "Élévation Nord", "label": "EN", "kind": "elevation", "start": { "x": 17000, "y": 12000 }, "end": { "x": 0, "y": 12000 }, "viewDirection": -1, "depth": 15000, "zMin": -500, "zMax": 12000 },
+      { "id": "sc_elev_est", "category": "sectionCut", "name": "Élévation Est", "label": "EE", "kind": "elevation", "start": { "x": 19000, "y": 0 }, "end": { "x": 19000, "y": 9000 }, "viewDirection": -1, "depth": 15000, "zMin": -500, "zMax": 12000 },
+      { "id": "sc_elev_ouest", "category": "sectionCut", "name": "Élévation Ouest", "label": "EO", "kind": "elevation", "start": { "x": -2000, "y": 9000 }, "end": { "x": -2000, "y": 0 }, "viewDirection": 1, "depth": 15000, "zMin": -500, "zMax": 12000 }
+    ],
+    "views": [
+      { "levelId": "lvl_rdc", "name": "Plan RDC", "underlay": null, "scale": "1:100" },
+      { "levelId": "lvl_r1", "name": "Plan R+1", "underlay": "lvl_rdc", "scale": "1:100" },
+      { "levelId": "lvl_r2", "name": "Plan R+2", "underlay": "lvl_r1", "scale": "1:100" }
+    ]
+  },
+  "expectedCounts": {
+    "levels": 3,
+    "wallTypes": 3,
+    "slabTypes": 3,
+    "doorTypes": 5,
+    "windowTypes": 5,
+    "stairTypes": 1,
+    "roofTypes": 2,
+    "componentTypes": 15,
+    "walls": 37,
+    "doors": 25,
+    "windows": 29,
+    "slabs": 3,
+    "stairs": 2,
+    "roofs": 2,
+    "roofOpenings": 1,
+    "components": 37,
+    "rooms": 22,
+    "dimensions": 14,
+    "sectionCuts": 6,
+    "mepSystems": 11,
+    "mepEquipment": 19,
+    "mepRoutes": 43,
+    "mepFittings": 18,
+    "mepConnectors": 14
+  },
+  "expectedRoomAreas": [
+    ["room_rdc_stair", 19.5, 10],
+    ["room_rdc_sejour", 22.0, 10],
+    ["room_rdc_corridor", 4.0, 15],
+    ["room_rdc_bureau", 17.5, 10],
+    ["room_rdc_hall", 22.5, 10],
+    ["room_rdc_wc", 11.25, 10],
+    ["room_rdc_local", 11.25, 10],
+    ["room_rdc_garage", 30.0, 10],
+    ["room_r1_stair", 19.5, 10],
+    ["room_r1_chambre1", 22.0, 10],
+    ["room_r1_corridor", 4.0, 15],
+    ["room_r1_chambre2", 17.5, 10],
+    ["room_r1_bain", 22.5, 10],
+    ["room_r1_chambre3", 11.25, 10],
+    ["room_r1_bureau", 11.25, 10],
+    ["room_r2_stair", 19.5, 10],
+    ["room_r2_suite", 22.0, 10],
+    ["room_r2_corridor", 4.0, 15],
+    ["room_r2_chambre4", 17.5, 10],
+    ["room_r2_salle_eau", 22.5, 10],
+    ["room_r2_mezzanine", 11.25, 10],
+    ["room_r2_studio", 11.25, 10]
+  ],
+  "intentionalAnomalies": [
+    { "id": "anom_door_bounds", "mutation": "d_rdc_entree.offsetAlong = 11000", "expectedCode": "INVALID_OPENING_POSITION", "reason": "10000 + 1000 > 12000" },
+    { "id": "anom_door_overlap", "mutation": "Ajouter une porte 900 sur w_rdc_s à offset 8500", "expectedCode": "OPENING_OVERLAP", "reason": "Chevauchement avec la porte d'entrée 8200-9200" },
+    { "id": "anom_opening_clearance", "mutation": "Ajouter une fenêtre sur w_rdc_west_e à offset 2950", "expectedCode": "INVALID_OPENING_CLEARANCE", "reason": "Trumeau de 50 mm avec la baie coulissante 3000-5400" },
+    { "id": "anom_opening_height", "mutation": "w_rdc_wc_nord.sillHeight = 2400 (600x600)", "expectedCode": "INVALID_OPENING_HEIGHT", "reason": "2400 + 600 = 3000 > 2800 de hauteur de mur" },
+    { "id": "anom_stair_adjacency", "mutation": "stair_r1_r2.topLevelId = lvl_rdc", "expectedCode": "STAIR_LEVELS_NOT_ADJACENT", "reason": "Niveaux non consécutifs" },
+    { "id": "anom_stair_run", "mutation": "stair_rdc_r1.end = { x: 1500, y: 2000 }", "expectedCode": "INVALID_STAIR_GEOMETRY", "reason": "Longueur de volée 500 < largeur 1000" },
+    { "id": "anom_ridge_outside", "mutation": "roof_main.ridgeAxis = (0,12000)-(12000,12000)", "expectedCode": "RIDGE_OUTSIDE_FOOTPRINT", "reason": "Faîtage hors emprise" },
+    { "id": "anom_roof_slope", "mutation": "roof_main.slopeOverrideDeg = 75", "expectedCode": "INVALID_ROOF_SLOPE", "reason": "Pente hors 5°-60°" },
+    { "id": "anom_slab_boundary", "mutation": "slab_r1.boundary = polygone croisé (0,0)-(12000,9000)-(12000,0)-(0,9000)", "expectedCode": "INVALID_SLAB_BOUNDARY", "reason": "Contour auto-intersecté" },
+    { "id": "anom_room_seed", "mutation": "room_rdc_garage.seed = { x: 12500, y: 7500 }", "expectedCode": "ROOM_SEED_NOT_IN_CLOSED_AREA", "reason": "Point hors enceinte close" },
+    { "id": "anom_component_collision", "mutation": "c_kitchen_base_2.placement = { x: 6500, y: 800 }", "expectedCode": "COMPONENT_COLLISION", "reason": "Deux meubles bas superposés" },
+    { "id": "anom_component_host", "mutation": "c_sliding_door.placement.hostWallId = w_rdc_n (position inchangée 7000,4200)", "expectedCode": "INVALID_HOST_WALL_DISTANCE", "reason": "Distance orthogonale 4800 mm > tolérance d'encastrement" },
+    { "id": "anom_mep_degenerate", "mutation": "p_ef_riser.end = p_ef_riser.start", "expectedCode": "MEP_DEGENERATE_PIPE_LENGTH", "reason": "Segment de longueur nulle" },
+    { "id": "anom_mep_system", "mutation": "p_ef_riser.systemId = sys_unknown", "expectedCode": "MEP_UNKNOWN_SYSTEM", "reason": "Système inexistant" },
+    { "id": "anom_mep_connector", "mutation": "Connecter p_ef_riser à p_eu_stack", "expectedCode": "MEP_SYSTEM_TYPE_MISMATCH", "reason": "EF et EU incompatibles" },
+    { "id": "anom_delete_level", "mutation": "Supprimer lvl_r1", "expectedCode": "RESTRICTED_DELETE", "reason": "Niveau référencé par murs, dalles, escaliers et équipements" },
+    { "id": "anom_delete_wall", "mutation": "Supprimer w_rdc_west_e", "expectedCode": "RESTRICTED_DELETE", "reason": "Mur hôte de portes et d'une baie composant" },
+    { "id": "anom_delete_wall_type", "mutation": "Supprimer wt_int_100", "expectedCode": "RESTRICTED_DELETE", "reason": "Type utilisé par 6 murs" }
+  ],
+  "featureCoverage": [
+    { "feature": "Création / édition des niveaux", "coverage": "3 niveaux (0 / 3000 / 6000)", "expected": "Projet 3 étages, sélecteur de niveau fonctionnel" },
+    { "feature": "Tracé de murs", "coverage": "37 murs, 3 types, 3 niveaux", "expected": "Géométrie et jonctions correctes" },
+    { "feature": "Déplacement / édition de mur", "coverage": "Scénario T03 sur w_rdc_west_e", "expected": "Ouvertures et pièces suivent, 3D se remaille" },
+    { "feature": "Surcharge de hauteur de mur", "coverage": "3 murs wc_split à 2600 mm", "expected": "Mur plus bas que le type, sans erreur" },
+    { "feature": "Contrainte haute par niveau", "coverage": "Murs RDC et R+1", "expected": "Hauteur limitée au niveau supérieur" },
+    { "feature": "Contrainte haute par toiture", "coverage": "Murs R+2 + garage", "expected": "Profil haut épousant la toiture" },
+    { "feature": "Insertion de portes", "coverage": "25 portes, 5 types", "expected": "Hébergement, battement, allège nulle" },
+    { "feature": "Édition du battement", "coverage": "Portes left/right, in/out", "expected": "Sens persisté et rendu 2D" },
+    { "feature": "Insertion de fenêtres", "coverage": "29 fenêtres, 5 types, allèges 900/1200/1500", "expected": "Hébergement et hauteur corrects" },
+    { "feature": "Déplacement d'ouverture", "coverage": "Scénario T04", "expected": "Recalcul des trumeaux et des cotations" },
+    { "feature": "Validation des trumeaux (50 mm)", "coverage": "Anomalies anom_opening_clearance", "expected": "INVALID_OPENING_CLEARANCE" },
+    { "feature": "Dalle sur contour", "coverage": "Dalle RDC en L (138 m²)", "expected": "Contour CCW, aire correcte" },
+    { "feature": "Réservations de dalle (holes)", "coverage": "Fosse garage 600x600", "expected": "Trou CW, volume 3D évidé" },
+    { "feature": "Trémies de dalle (openings)", "coverage": "Escalier 1400x5160 + gaine 1200x1200", "expected": "Trémies traversantes R+1 et R+2" },
+    { "feature": "Escalier droit", "coverage": "2 volées RDC→R+1→R+2", "expected": "18 contremarches, 17 marches, Blondel 613 mm" },
+    { "feature": "Adjacence des niveaux d'escalier", "coverage": "Anomalie anom_stair_adjacency", "expected": "STAIR_LEVELS_NOT_ADJACENT" },
+    { "feature": "Toiture 2 pans", "coverage": "roof_main, pente surchargée 30°, débord 600", "expected": "Faîtage à y=4500, 2 versants" },
+    { "feature": "Toiture plate + acrotère", "coverage": "roof_garage 3000 mm", "expected": "Acrotère 300 mm, terrasse accessible" },
+    { "feature": "Ouverture de toiture", "coverage": "Fenêtre de toit 1200x1200", "expected": "Percement sur le versant sud" },
+    { "feature": "Composants sanitaires", "coverage": "WC, vasques, douche, baignoire", "expected": "Emprises et dégagements corrects" },
+    { "feature": "Composants cuisine", "coverage": "3 meubles bas, évier, frigo, meuble haut", "expected": "Alignement le long de w_rdc_west_e" },
+    { "feature": "Composants mobilier", "coverage": "Lits, tables, chaises, canapés, armoires", "expected": "37 composants sans collision" },
+    { "feature": "Menuiserie composant coulissante", "coverage": "c_sliding_door 2400 sur w_rdc_west_e", "expected": "Ouverture 3000-5400, trumeaux 100 mm" },
+    { "feature": "Menuiserie composant porte-fenêtre", "coverage": "c_french_window 1400 sur w_r1_n", "expected": "Ouverture 4800-6200, sans conflit" },
+    { "feature": "Collision de composants", "coverage": "Anomalie anom_component_collision", "expected": "COMPONENT_COLLISION" },
+    { "feature": "Détection de pièces", "coverage": "22 pièces sur 3 niveaux", "expected": "Toutes enclosed, surfaces calculées" },
+    { "feature": "Pièce non close", "coverage": "Anomalie anom_room_seed", "expected": "ROOM_SEED_NOT_IN_CLOSED_AREA" },
+    { "feature": "Cotations associatives", "coverage": "14 cotations sur murs et trames", "expected": "Valeurs recalculées après édition" },
+    { "feature": "Cotation automatique d'étage", "coverage": "Scénario T12", "expected": "Chaîne de cotations générée sans doublon" },
+    { "feature": "Coupes", "coverage": "A-A et B-B", "expected": "Coupe à travers 3 niveaux et toiture" },
+    { "feature": "Élévations", "coverage": "Sud, Nord, Est, Ouest", "expected": "4 élévations cotées" },
+    { "feature": "Sous-plan (underlay)", "coverage": "R+1 sous RDC, R+2 sous R+1", "expected": "Affichage grisé non sélectionnable" },
+    { "feature": "Systèmes MEP", "coverage": "11 systèmes, 4 domaines", "expected": "Couleurs et types persistés" },
+    { "feature": "Tuyauterie", "coverage": "15 tuyaux EF/ECS/EU/EV + 8 hydroniques", "expected": "Diamètres, pentes, ports" },
+    { "feature": "Gaines", "coverage": "12 gaines soufflage/reprise/extraction", "expected": "Sections rectangulaires, ports" },
+    { "feature": "Chemins de câbles", "coverage": "8 chemins courants forts/faibles", "expected": "Largeurs 200/100, continuité verticale" },
+    { "feature": "Équipements MEP", "coverage": "19 équipements (PAC, ballon, CTA, radiateurs, tableaux)", "expected": "Ports et encombrements corrects" },
+    { "feature": "Raccords MEP", "coverage": "18 coudes, tés, réduction, bouchons", "expected": "Nombre de ports conforme au type" },
+    { "feature": "Connecteurs MEP", "coverage": "14 connexions planifiées", "expected": "Ports compatibles, pas de double connexion" },
+    { "feature": "Routage MEP", "coverage": "solveMepRoute sur 43 tracés", "expected": "Polylignes orthogonales, pas de collision majeure" },
+    { "feature": "Piquage en té", "coverage": "InsertTeeBranchCommand sur colonnes EF/ECS/EU/EV", "expected": "Té inséré, segments scindés" },
+    { "feature": "Détection de clashes", "coverage": "Scénario T19 sur MEP vs structure", "expected": "Liste triée, sévérités correctes" },
+    { "feature": "Filtrage des clashes", "coverage": "Scénario T20 par domaine et sévérité", "expected": "Filtres combinables, compteur cohérent" },
+    { "feature": "Export IFC", "coverage": "Scénario T21", "expected": "IfcBuilding + 3 storeys + produits" },
+    { "feature": "Import IFC", "coverage": "Scénario T21 round-trip", "expected": "Géométrie et types préservés" },
+    { "feature": "IFC fédéré", "coverage": "Scénario T22 archi + MEP", "expected": "Deux modèles superposés, clashes inter-modèles" },
+    { "feature": "Export DXF", "coverage": "Scénario T23", "expected": "Calques par catégorie, unités mm" },
+    { "feature": "Export SVG", "coverage": "Scénario T24", "expected": "Vue 2D vectorielle fidèle" },
+    { "feature": "Export PDF (book)", "coverage": "Scénario T25", "expected": "Plans + coupes + élévations + légendes" },
+    { "feature": "Sauvegarde / chargement JSON", "coverage": "Scénario T26", "expected": "Round-trip strict, schemaVersion 2" },
+    { "feature": "Autosave IndexedDB", "coverage": "Scénario T27", "expected": "Restauration après rechargement" },
+    { "feature": "Undo / Redo", "coverage": "Scénario T28 sur 20 opérations", "expected": "État identique à l'aller-retour" },
+    { "feature": "Suppression restreinte", "coverage": "Anomalies de suppression", "expected": "Suppression refusée avec motif" },
+    { "feature": "Panneau métriques", "coverage": "Scénario T29", "expected": "Compteurs et surfaces conformes" },
+    { "feature": "Inspecteur de propriétés", "coverage": "Scénario T04/T08", "expected": "Édition typée, validation immédiate" },
+    { "feature": "Navigateur de projet", "coverage": "Scénario T02", "expected": "Arborescence niveaux/types/éléments" },
+    { "feature": "Barre de statut", "coverage": "Scénario T02", "expected": "Coordonnées, zoom, niveau, unités" },
+    { "feature": "Vue 3D", "coverage": "Scénario T01/T03", "expected": "Maillage complet, matériaux par catégorie" },
+    { "feature": "Vue 2D", "coverage": "Scénario T01", "expected": "Murs, ouvertures, composants, cotations" },
+    { "feature": "Performance", "coverage": "Scénario T30 (37 murs, 54 ouvertures, 37 composants, 43 tracés)", "expected": "Interaction fluide, pas de fuite mémoire" },
+    { "feature": "Régression remaillage 3D", "coverage": "Scénario T31", "expected": "Voisins remaillés après édition de mur" },
+    { "feature": "Résilience UI", "coverage": "Scénario T32", "expected": "Erreur contenue, session récupérable" },
+    { "feature": "Smoke E2E", "coverage": "Scénario T33", "expected": "Parcours complet vert" }
+  ],
+  "testScenarios": [
+    {
+      "id": "T01",
+      "title": "Matérialiser la maquette de référence",
+      "priority": "P0",
+      "preconditions": "Projet vide, catalogue par défaut chargé",
+      "steps": [
+        "Créer les 3 niveaux avec leurs élévations et hauteurs.",
+        "Créer les 3 types de murs, 3 types de dalles, 5 types de portes, 5 types de fenêtres, 1 type d'escalier, 2 types de toiture, 15 types de composants.",
+        "Créer les 37 murs dans l'ordre RDC → R+1 → R+2.",
+        "Créer les 3 dalles, puis les 2 escaliers, les 2 toitures et l'ouverture de toit.",
+        "Créer les 25 portes et 29 fenêtres.",
+        "Créer les 37 composants, puis les 22 pièces.",
+        "Créer les 14 cotations et 6 coupes/élévations.",
+        "Créer les 11 systèmes, 19 équipements, 43 tracés, 18 raccords et 14 connecteurs."
+      ],
+      "expected": [
+        "Compteurs strictement égaux à expectedCounts.",
+        "Aucune erreur de validation.",
+        "Les 22 pièces sont 'enclosed'.",
+        "La 3D affiche 3 niveaux, 2 volées, 2 toitures et le garage."
+      ]
+    },
+    {
+      "id": "T02",
+      "title": "Navigation 2D/3D, niveaux, underlay et barre de statut",
+      "priority": "P0",
+      "preconditions": "T01 réussi",
+      "steps": [
+        "Basculer successivement RDC, R+1, R+2 dans le sélecteur de niveau.",
+        "Activer le sous-plan RDC sur R+1, puis R+1 sur R+2.",
+        "Passer en vue 3D, orbiter, zoomer, cadrer l'ensemble.",
+        "Survoler un mur et lire les coordonnées dans la barre de statut.",
+        "Ouvrir le navigateur de projet et déplier niveaux, types et éléments."
+      ],
+      "expected": [
+        "Chaque niveau affiche uniquement ses éléments.",
+        "Le sous-plan est grisé et non sélectionnable.",
+        "La 3D reste fluide et centrée.",
+        "La barre de statut affiche X/Y en mm et le niveau actif.",
+        "Le navigateur liste 37 murs, 25 portes, 29 fenêtres, 37 composants."
+      ]
+    },
+    {
+      "id": "T03",
+      "title": "Édition d'un mur porteur et remaillage des voisins",
+      "priority": "P0",
+      "preconditions": "T01 réussi, vue 2D RDC",
+      "steps": [
+        "Sélectionner w_rdc_west_e et le déplacer de x=7000 à x=7200.",
+        "Observer les portes hébergées, la baie coulissante et les pièces adjacentes.",
+        "Vérifier la 3D, puis annuler le déplacement.",
+        "Répéter avec w_rdc_sejour_n déplacé de y=5500 à y=5600."
+      ],
+      "expected": [
+        "Les ouvertures restent hébergées et se déplacent avec le mur.",
+        "Les pièces séjour/corridor/hall se recalculent.",
+        "Les murs adjacents et la 3D sont remaillés sans trou.",
+        "L'annulation restaure exactement l'état initial."
+      ]
+    },
+    {
+      "id": "T04",
+      "title": "Insertion, déplacement et édition d'ouvertures",
+      "priority": "P0",
+      "preconditions": "T01 réussi, vue 2D R+1",
+      "steps": [
+        "Insérer une porte 800x2100 sur w_r1_corr_n à offset 2500.",
+        "La déplacer à offset 2800, puis changer son battement de left/in à right/out.",
+        "Insérer une fenêtre 1200x1400 sur w_r1_e à offset 4000, allège 900.",
+        "Modifier l'allège à 1100 et vérifier la hauteur.",
+        "Supprimer la porte et la fenêtre ajoutées."
+      ],
+      "expected": [
+        "Chaque insertion est validée et rendue immédiatement.",
+        "Le déplacement respecte les trumeaux de 50 mm.",
+        "Le battement est persisté et visible en 2D.",
+        "L'allège modifie la position verticale sans erreur.",
+        "La suppression nettoie les cotations associées."
+      ]
+    },
+    {
+      "id": "T05",
+      "title": "Validations négatives des ouvertures",
+      "priority": "P0",
+      "preconditions": "Copie de travail de T01",
+      "steps": [
+        "Appliquer anom_door_bounds, anom_door_overlap, anom_opening_clearance, anom_opening_height.",
+        "Pour chaque mutation, tenter la validation.",
+        "Comparer le code et les identifiants fautifs.",
+        "Annuler chaque mutation avant la suivante."
+      ],
+      "expected": [
+        "INVALID_OPENING_POSITION, OPENING_OVERLAP, INVALID_OPENING_CLEARANCE, INVALID_OPENING_HEIGHT.",
+        "Aucune mutation invalide n'entre dans l'état.",
+        "Les messages citent les IDs attendus."
+      ]
+    },
+    {
+      "id": "T06",
+      "title": "Escaliers multi-niveaux et Blondel",
+      "priority": "P0",
+      "preconditions": "T01 réussi",
+      "steps": [
+        "Sélectionner stair_rdc_r1, vérifier niveaux bas/haut et largeur.",
+        "Vérifier l'alignement avec la trémie de slab_r1.",
+        "Passer en 3D et contrôler la continuité RDC→R+1→R+2.",
+        "Appliquer anom_stair_adjacency et anom_stair_run.",
+        "Restaurer l'état valide."
+      ],
+      "expected": [
+        "Les deux volées sont adjacentes et traversent les trémies.",
+        "Blondel calculé à 613 mm (18 contremarches, 17 marches de 280).",
+        "STAIR_LEVELS_NOT_ADJACENT et INVALID_STAIR_GEOMETRY sont levés.",
+        "Aucun dépassement de dalle."
+      ]
+    },
+    {
+      "id": "T07",
+      "title": "Toitures, pente, débord et ouverture",
+      "priority": "P0",
+      "preconditions": "T01 réussi, vue 3D",
+      "steps": [
+        "Sélectionner roof_main, vérifier pente 30°, débord 600, faîtage y=4500.",
+        "Vérifier que les murs R+2 épousent la toiture.",
+        "Sélectionner roof_garage, vérifier acrotère 300 mm.",
+        "Déplacer roof_window_main de offsetU 4000 à 5000.",
+        "Appliquer anom_ridge_outside et anom_roof_slope."
+      ],
+      "expected": [
+        "La toiture 2 pans couvre 12x9 m avec débord.",
+        "L'acrotère garage est visible et fermé.",
+        "L'ouverture de toit reste sur le versant sud.",
+        "RIDGE_OUTSIDE_FOOTPRINT et INVALID_ROOF_SLOPE sont levés."
+      ]
+    },
+    {
+      "id": "T08",
+      "title": "Composants et menuiseries hébergées",
+      "priority": "P0",
+      "preconditions": "T01 réussi",
+      "steps": [
+        "Sélectionner c_sliding_door et vérifier l'ouverture 3000-5400 sur w_rdc_west_e.",
+        "Vérifier les trumeaux de 100 mm avec les portes 2000-2900 et 5500-6400.",
+        "Sélectionner c_french_window et vérifier l'ouverture 4800-6200 sur w_r1_n.",
+        "Déplacer c_sliding_door de y=4200 à y=4000 et vérifier le recalcul.",
+        "Afficher les zones de dégagement des sanitaires."
+      ],
+      "expected": [
+        "Les ouvertures composants sont détectées comme ouvertures réelles.",
+        "Aucun chevauchement ni trumeau < 50 mm.",
+        "Le déplacement met à jour la réservation murale.",
+        "Les zones de dégagement sont rendues sans collision."
+      ]
+    },
+    {
+      "id": "T09",
+      "title": "Collisions et hébergement de composants",
+      "priority": "P1",
+      "preconditions": "Copie de travail de T01",
+      "steps": [
+        "Appliquer anom_component_collision.",
+        "Appliquer anom_component_host.",
+        "Vérifier les messages et identifiants.",
+        "Restaurer l'état."
+      ],
+      "expected": [
+        "COMPONENT_COLLISION sur les deux meubles bas.",
+        "INVALID_HOST_WALL_DISTANCE sur la baie coulissante.",
+        "Aucune insertion invalide."
+      ]
+    },
+    {
+      "id": "T10",
+      "title": "Détection de pièces et surfaces",
+      "priority": "P0",
+      "preconditions": "T01 réussi",
+      "steps": [
+        "Ouvrir le panneau pièces du RDC, vérifier les 8 pièces.",
+        "Comparer chaque surface à expectedRoomAreas avec tolérance.",
+        "Vérifier les 7 pièces de R+1 et les 7 de R+2.",
+        "Appliquer anom_room_seed.",
+        "Restaurer l'état."
+      ],
+      "expected": [
+        "22 pièces 'enclosed' avec surfaces dans la tolérance.",
+        "Les noms et niveaux sont corrects.",
+        "ROOM_SEED_NOT_IN_CLOSED_AREA est levé pour la graine hors enceinte."
+      ]
+    },
+    {
+      "id": "T11",
+      "title": "Cotations associatives",
+      "priority": "P1",
+      "preconditions": "T01 réussi, vue 2D RDC",
+      "steps": [
+        "Sélectionner dim_rdc_s_total et vérifier 12000.",
+        "Déplacer w_rdc_stair_e de x=3000 à x=3200.",
+        "Vérifier dim_rdc_s_1 (3000→3200) et dim_rdc_s_2 (4000→3800).",
+        "Annuler et vérifier le retour aux valeurs initiales."
+      ],
+      "expected": [
+        "Les cotations se recalculent automatiquement.",
+        "Les valeurs restent cohérentes avec la géométrie.",
+        "L'annulation restaure 3000 et 4000."
+      ]
+    },
+    {
+      "id": "T12",
+      "title": "Cotation automatique d'étage",
+      "priority": "P1",
+      "preconditions": "T01 réussi, vue 2D R+2",
+      "steps": [
+        "Lancer l'auto-dimension sur les murs sud de R+2.",
+        "Vérifier la chaîne de cotations générée.",
+        "Relancer l'auto-dimension.",
+        "Supprimer une cotation auto et relancer."
+      ],
+      "expected": [
+        "Chaîne complète sans doublon au second lancement.",
+        "Les cotations sont marquées autoGenerated.",
+        "La suppression puis régénération ne duplique pas les existantes."
+      ]
+    },
+    {
+      "id": "T13",
+      "title": "Coupes et élévations",
+      "priority": "P0",
+      "preconditions": "T01 réussi",
+      "steps": [
+        "Ouvrir sc_a et vérifier la coupe à x=5000 sur 3 niveaux.",
+        "Ouvrir sc_b et vérifier la coupe longitudinale.",
+        "Ouvrir les 4 élévations.",
+        "Vérifier la présence de la toiture, du garage et des ouvertures."
+      ],
+      "expected": [
+        "Les coupes montrent murs, dalles, escaliers et toiture.",
+        "Les élévations sont complètes et orientées correctement.",
+        "Aucune coupe vide ou dégénérée."
+      ]
+    },
+    {
+      "id": "T14",
+      "title": "Systèmes et équipements MEP",
+      "priority": "P0",
+      "preconditions": "T01 réussi",
+      "steps": [
+        "Vérifier les 11 systèmes et leurs couleurs.",
+        "Sélectionner chaque équipement et contrôler famille, dimensions et ports.",
+        "Vérifier les 7 radiateurs sur 3 niveaux.",
+        "Vérifier les 3 tableaux électriques."
+      ],
+      "expected": [
+        "11 systèmes, 19 équipements, ports conformes.",
+        "Aucun équipement hors niveau ou hors pièce technique.",
+        "Les radiateurs sont rattachés au système hydraulique."
+      ]
+    },
+    {
+      "id": "T15",
+      "title": "Routage des tuyaux EF/ECS/EU/EV",
+      "priority": "P0",
+      "preconditions": "T01 réussi",
+      "steps": [
+        "Exécuter solveMepRoute pour p_ef_riser, p_ecs_heater_riser, p_eu_stack, p_ev_stack.",
+        "Appliquer RouteMepPathCommand pour chaque tracé.",
+        "Vérifier les pentes EU/EV à 1%.",
+        "Contrôler les pénétrations de dalle dans la gaine 1200x1200."
+      ],
+      "expected": [
+        "Tracés orthogonaux, ports aux extrémités.",
+        "Colonnes traversantes alignées sur les trémies.",
+        "Aucun segment dégénéré.",
+        "Les 4 systèmes sont peuplés et colorés."
+      ]
+    },
+    {
+      "id": "T16",
+      "title": "Routage des gaines et piquage en té",
+      "priority": "P0",
+      "preconditions": "T15 réussi",
+      "steps": [
+        "Router d_supply_riser et d_return_riser.",
+        "Router les branches RDC/R+1/R+2.",
+        "Insérer un té sur d_supply_riser à z=5500 avec InsertTeeBranchCommand.",
+        "Insérer un té sur d_exhaust_riser à z=5500.",
+        "Vérifier les raccords générés."
+      ],
+      "expected": [
+        "Gaines rectangulaires 400x250 et 300x200.",
+        "Le té scinde la colonne et crée 3 ports.",
+        "Les branches restent connectées.",
+        "Aucun chevauchement de gaine dans la gaine technique."
+      ]
+    },
+    {
+      "id": "T17",
+      "title": "Chemins de câbles et colonnes électriques",
+      "priority": "P1",
+      "preconditions": "T01 réussi",
+      "steps": [
+        "Router ct_power_riser et ct_telecom_riser.",
+        "Router les 3 distributions de chaque système.",
+        "Vérifier les largeurs 200 et 100 mm.",
+        "Contrôler la continuité avec eq_panel_main, eq_panel_r1, eq_panel_r2."
+      ],
+      "expected": [
+        "8 chemins de câbles créés.",
+        "Continuité verticale sans rupture.",
+        "Les tableaux sont connectés aux colonnes."
+      ]
+    },
+    {
+      "id": "T18",
+      "title": "Compatibilité des connecteurs MEP",
+      "priority": "P0",
+      "preconditions": "T15 et T16 réussis",
+      "steps": [
+        "Créer les 14 connecteurs planifiés.",
+        "Tenter de connecter p_ef_riser à p_eu_stack (anom_mep_connector).",
+        "Tenter de connecter deux ports déjà connectés.",
+        "Vérifier les codes d'erreur."
+      ],
+      "expected": [
+        "Les 14 connexions valides passent.",
+        "MEP_SYSTEM_TYPE_MISMATCH sur EF/EU.",
+        "PORT_ALREADY_CONNECTED sur double connexion.",
+        "Aucun connecteur orphelin."
+      ]
+    },
+    {
+      "id": "T19",
+      "title": "Détection de clashes",
+      "priority": "P0",
+      "preconditions": "T01 et T15-T17 réussis",
+      "steps": [
+        "Lancer la détection sur architecture + MEP.",
+        "Vérifier la liste, les sévérités et les IDs.",
+        "Trier par sévérité puis par niveau.",
+        "Sélectionner un clash et zoomer sur les éléments."
+      ],
+      "expected": [
+        "Les clashes réels (traversées de murs sans fourreau) sont listés.",
+        "Aucun faux positif sur les éléments contenus dans la gaine.",
+        "Le zoom cible les deux éléments."
+      ]
+    },
+    {
+      "id": "T20",
+      "title": "Filtrage des clashes",
+      "priority": "P1",
+      "preconditions": "T19 réussi",
+      "steps": [
+        "Filtrer par domaine plumbing.",
+        "Ajouter le filtre sévérité haute.",
+        "Filtrer par niveau R+2.",
+        "Réinitialiser les filtres."
+      ],
+      "expected": [
+        "Les compteurs suivent les filtres.",
+        "Les filtres sont combinables.",
+        "La réinitialisation restaure la liste complète."
+      ]
+    },
+    {
+      "id": "T21",
+      "title": "Export / import IFC round-trip",
+      "priority": "P0",
+      "preconditions": "T01 réussi",
+      "steps": [
+        "Exporter le projet en IFC.",
+        "Vérifier IfcBuilding, 3 IfcBuildingStorey, murs, dalles, ouvertures, escaliers, toitures.",
+        "Réimporter l'IFC dans un projet vide.",
+        "Comparer compteurs et géométrie."
+      ],
+      "expected": [
+        "IFC valide et hiérarchisé.",
+        "Round-trip sans perte des 37 murs, 54 ouvertures, 3 dalles.",
+        "Les types et matériaux sont préservés.",
+        "Aucun élément dupliqué."
+      ]
+    },
+    {
+      "id": "T22",
+      "title": "IFC fédéré architecture + MEP",
+      "priority": "P1",
+      "preconditions": "T21 réussi",
+      "steps": [
+        "Charger le modèle architecture et le modèle MEP en fédération.",
+        "Vérifier la superposition et les décalages.",
+        "Lancer une détection de clashes inter-modèles.",
+        "Isoler un réseau et vérifier le contexte."
+      ],
+      "expected": [
+        "Les deux modèles sont alignés.",
+        "Les clashes inter-modèles sont détectés.",
+        "L'isolation masque correctement les autres disciplines."
+      ]
+    },
+    {
+      "id": "T23",
+      "title": "Export DXF",
+      "priority": "P1",
+      "preconditions": "T01 réussi",
+      "steps": [
+        "Exporter le plan RDC en DXF.",
+        "Ouvrir le fichier dans un lecteur DXF.",
+        "Vérifier calques, unités et fermeture des contours."
+      ],
+      "expected": [
+        "Calques par catégorie (murs, portes, fenêtres, composants, cotations).",
+        "Unités en mm.",
+        "Contours fermés et échelle correcte."
+      ]
+    },
+    {
+      "id": "T24",
+      "title": "Export SVG",
+      "priority": "P1",
+      "preconditions": "T01 réussi",
+      "steps": [
+        "Exporter la vue 2D R+1 en SVG.",
+        "Ouvrir dans un navigateur.",
+        "Comparer avec la vue écran."
+      ],
+      "expected": [
+        "Géométrie vectorielle fidèle.",
+        "Textes et cotations lisibles.",
+        "Aucun élément manquant."
+      ]
+    },
+    {
+      "id": "T25",
+      "title": "Export PDF (book)",
+      "priority": "P1",
+      "preconditions": "T01 réussi",
+      "steps": [
+        "Générer le book PDF avec plans, coupes et élévations.",
+        "Vérifier l'ordre des pages et les légendes.",
+        "Contrôler la résolution et les échelles."
+      ],
+      "expected": [
+        "PDF complet et paginé.",
+        "Chaque vue est légendée et à l'échelle.",
+        "Aucune page vide."
+      ]
+    },
+    {
+      "id": "T26",
+      "title": "Sauvegarde / chargement JSON",
+      "priority": "P0",
+      "preconditions": "T01 réussi",
+      "steps": [
+        "Sauvegarder le projet en JSON.",
+        "Recharger le fichier dans une session vide.",
+        "Comparer tous les compteurs et une empreinte de géométrie.",
+        "Vérifier schemaVersion et units."
+      ],
+      "expected": [
+        "Round-trip strict, aucune perte.",
+        "schemaVersion = 2, units = mm.",
+        "Les IDs sont stables."
+      ]
+    },
+    {
+      "id": "T27",
+      "title": "Autosave IndexedDB et récupération",
+      "priority": "P1",
+      "preconditions": "T01 réussi",
+      "steps": [
+        "Effectuer 5 modifications.",
+        "Attendre l'autosave.",
+        "Recharger l'onglet.",
+        "Vérifier la restauration et le bandeau de récupération."
+      ],
+      "expected": [
+        "Les 5 modifications sont restaurées.",
+        "Aucun doublon de projet.",
+        "L'utilisateur peut repartir du dernier état."
+      ]
+    },
+    {
+      "id": "T28",
+      "title": "Undo / Redo sur 20 opérations",
+      "priority": "P0",
+      "preconditions": "T01 réussi",
+      "steps": [
+        "Enchaîner 20 opérations (murs, ouvertures, composants, MEP).",
+        "Annuler 20 fois.",
+        "Refaire 20 fois.",
+        "Comparer les empreintes d'état."
+      ],
+      "expected": [
+        "Retour exact à l'état initial après 20 annulations.",
+        "Retour exact à l'état final après 20 rétablissements.",
+        "Aucune opération perdue ou dupliquée."
+      ]
+    },
+    {
+      "id": "T29",
+      "title": "Métriques et suppressions restreintes",
+      "priority": "P1",
+      "preconditions": "T01 réussi",
+      "steps": [
+        "Ouvrir le panneau métriques et vérifier les compteurs.",
+        "Tenter de supprimer lvl_r1, w_rdc_west_e et wt_int_100.",
+        "Vérifier les motifs de refus.",
+        "Supprimer un élément non référencé (c_garage_bench) et vérifier."
+      ],
+      "expected": [
+        "Métriques conformes à expectedCounts.",
+        "Suppressions référencées refusées avec motif.",
+        "Suppression libre autorisée et réversible."
+      ]
+    },
+    {
+      "id": "T30",
+      "title": "Performance et stabilité",
+      "priority": "P2",
+      "preconditions": "T01 réussi",
+      "steps": [
+        "Mesurer le temps de chargement et de navigation 2D/3D.",
+        "Orbiter 60 s en 3D.",
+        "Effectuer 50 éditions de murs.",
+        "Surveiller la mémoire et les erreurs console."
+      ],
+      "expected": [
+        "Chargement < 3 s sur machine de référence.",
+        "Interaction fluide (pas de blocage > 200 ms).",
+        "Mémoire stable après éditions.",
+        "Aucune erreur console."
+      ]
+    },
+    {
+      "id": "T31",
+      "title": "Régression remaillage 3D après édition de mur",
+      "priority": "P0",
+      "preconditions": "T01 réussi, vue 3D",
+      "steps": [
+        "Supprimer w_rdc_wc_split.",
+        "Observer les murs adjacents w_rdc_hall_n et w_rdc_n.",
+        "Ajouter un mur de remplacement au même emplacement.",
+        "Comparer le maillage avant/après."
+      ],
+      "expected": [
+        "Aucun trou ni face manquante aux jonctions.",
+        "Les murs adjacents sont remaillés.",
+        "Le mur ajouté s'unit correctement aux existants."
+      ]
+    },
+    {
+      "id": "T32",
+      "title": "Résilience UI",
+      "priority": "P1",
+      "preconditions": "T01 réussi",
+      "steps": [
+        "Provoquer une erreur de rendu (donnée MEP invalide injectée en mémoire).",
+        "Vérifier le comportement de l'interface.",
+        "Recharger et restaurer l'autosave."
+      ],
+      "expected": [
+        "L'erreur est contenue sans page blanche totale.",
+        "Un message clair est affiché.",
+        "La session est récupérable après rechargement."
+      ]
+    },
+    {
+      "id": "T33",
+      "title": "Smoke E2E du parcours complet",
+      "priority": "P0",
+      "preconditions": "Build de production",
+      "steps": [
+        "Créer un niveau, tracer 4 murs, insérer une porte et une fenêtre.",
+        "Ajouter une dalle, un escalier et une toiture.",
+        "Placer un composant et créer une pièce.",
+        "Ajouter un tuyau MEP, sauvegarder, recharger.",
+        "Exporter en IFC."
+      ],
+      "expected": [
+        "Parcours complet sans erreur.",
+        "Toutes les étapes sont persistées.",
+        "L'export IFC est généré."
+      ]
+    }
+  ],
+  "acceptanceCriteria": [],
+  "buildOrder": [],
+  "knownGaps": []
+}

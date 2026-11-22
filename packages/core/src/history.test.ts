@@ -354,9 +354,9 @@ describe('Gestionnaire d’Historique Transactionnel (history.ts)', () => {
     // Mémoriser l'état complet avant suppression
     const stateBeforeDelete = doc.getState();
 
-    // Suppression du mur Ouest : la pièce n'est plus close -> cascade Option B
+    // Suppression du mur Ouest : la pièce n'est plus close -> cascade Option B (avec murs connectés notifiés)
     const delRes = doc.execute(new Commands.DeleteWallCommand('w_hist_w'));
-    expect(delRes.changed).toEqual(['w_hist_w', 'room_hist_cascade']);
+    expect(delRes.changed).toEqual(['w_hist_w', 'w_hist_n', 'w_hist_s', 'room_hist_cascade']);
 
     // 1. Invariant Phase 7.6 : le mur a disparu du state, la Room conserve son entité avec statut 'unenclosed'
     expect(doc.getState().walls['w_hist_w']).toBeUndefined();

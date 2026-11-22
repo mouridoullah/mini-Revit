@@ -338,6 +338,36 @@ describe('Viewport3D React Wrapper (apps/web)', () => {
     expect(removedIds).toContain('door_demo');
   });
 
+  it('P1.1 — la suppression d’un mur re-maille immédiatement les murs voisins connectés en mode incrémental', () => {
+    const doc = createDemoDocument();
+    const updateMeshBatchSpy = vi.spyOn(Scene3DModule.Scene3D.prototype, 'updateMeshBatch');
+    const removeMeshSpy = vi.spyOn(Scene3DModule.Scene3D.prototype, 'removeMesh');
+
+    render(
+      <BimDocumentProvider initialDoc={doc}>
+        <Viewport3D />
+      </BimDocumentProvider>,
+    );
+
+    updateMeshBatchSpy.mockClear();
+    removeMeshSpy.mockClear();
+
+    // Suppression de wall_south (qui touche wall_east et wall_west)
+    act(() => {
+      doc.execute(new Commands.DeleteWallCommand('wall_south'));
+    });
+
+    // 1. wall_south et door_demo sont bien retirés
+    const removedIds = removeMeshSpy.mock.calls.map((c) => c[0]);
+    expect(removedIds).toContain('wall_south');
+    expect(removedIds).toContain('door_demo');
+
+    // 2. Les murs voisins connectés (wall_east et wall_west) sont immédiatement re-maillés
+    const updatedBatchIds = updateMeshBatchSpy.mock.calls.map((c) => c[0]);
+    expect(updatedBatchIds).toContain('wall_east');
+    expect(updatedBatchIds).toContain('wall_west');
+  });
+
   it('update propagation : quand une porte est déplacée via MoveOpeningCommand, le mur hôte est régénéré (re-calcul du perçage) et l’ancien maillage est disposé', () => {
     const doc = createDemoDocument();
     const createWallMeshWithOpeningsSpy = vi.spyOn(Scene3DModule, 'createWallMeshWithOpenings');

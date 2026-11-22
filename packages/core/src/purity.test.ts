@@ -36,7 +36,7 @@ describe('Pureté Architecturale et Absence de Dépendance Parasite (T-PUR-01 à
 
     const dagFiles = [...scanDir(dagDir, /\.(ts|tsx)$/), ...scanDir(relDir, /\.(ts|tsx)$/)];
 
-    const forbiddenGeometry = /from\s+['"]@mini-bim\/geometry['"]/i;
+    const forbiddenGeometry = /from\s+['"]@tabax\/geometry['"]/i;
 
     for (const file of dagFiles) {
       const content = fs.readFileSync(file, 'utf8');
@@ -44,6 +44,19 @@ describe('Pureté Architecturale et Absence de Dépendance Parasite (T-PUR-01 à
       expect(hasForbidden, `Forbidden @tabax/geometry import in DAG/relations: ${file}`).toBe(
         false,
       );
+    }
+  });
+
+  it('T-PUR-02-WEB: apps/web/src ne dépend PAS directement de @tabax/geometry (ADR-022)', () => {
+    const webSrcDir = path.resolve(__dirname, '../../apps/web/src');
+    const webFiles = scanDir(webSrcDir, /\.(ts|tsx)$/);
+
+    const forbiddenGeometry = /from\s+['"]@tabax\/geometry['"]/i;
+
+    for (const file of webFiles) {
+      const content = fs.readFileSync(file, 'utf8');
+      const hasForbidden = forbiddenGeometry.test(content);
+      expect(hasForbidden, `Forbidden @tabax/geometry import in web app: ${file}`).toBe(false);
     }
   });
 

@@ -11,7 +11,7 @@ import { type Command } from './commands.js';
 import { HistoryStack } from './history.js';
 import { toJSON, fromJSON } from './serialization.js';
 import { generateId } from './ids.js';
-import { DependencyGraph } from './dag/DependencyGraph.js';
+import { DependencyGraph, type ReadonlyDependencyGraph } from './dag/DependencyGraph.js';
 import { validateDirty, BimValidationError } from './rules.js';
 import { createDefaultComponentTypes } from './components/catalog.js';
 
@@ -310,9 +310,9 @@ export class BimDocument {
   }
 
   /**
-   * Retourne l'instance active du graphe de dépendances (ADR-041).
+   * Retourne l'instance active du graphe de dépendances en lecture seule (ADR-041 / Audit P1.2).
    */
-  public getDependencyGraph(): DependencyGraph {
+  public getDependencyGraph(): ReadonlyDependencyGraph {
     return this._dag;
   }
 
