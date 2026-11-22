@@ -28,6 +28,7 @@ export interface Viewport2DProps {
   readonly mepConfig?: MepToolConfig;
   readonly mepDisplayMode?: 'single-line' | 'double-line';
   readonly onZoomFitReady?: (zoomFit: () => void) => void;
+  readonly focusPoint?: { readonly x: number; readonly y: number; readonly triggerId?: number } | null;
 }
 
 /**
@@ -50,6 +51,7 @@ export function Viewport2D({
   mepConfig: mepConfigProp,
   mepDisplayMode: mepDisplayModeProp,
   onZoomFitReady,
+  focusPoint,
 }: Viewport2DProps = {}) {
   const { doc, state } = useBimDocument();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -158,6 +160,13 @@ export function Viewport2D({
       viewRef.current.setMepRenderConfig({ mode: mepDisplayModeProp });
     }
   }, [mepDisplayModeProp]);
+
+  // Centrage dynamique de la vue 2D sur un point d'intérêt / conflit
+  useEffect(() => {
+    if (viewRef.current && focusPoint) {
+      viewRef.current.focusOnPoint({ x: focusPoint.x, y: focusPoint.y }, 0.12);
+    }
+  }, [focusPoint]);
 
   // Invalidation réactive de l'underlay cache sur doc.subscribe (S1-2)
   useEffect(() => {

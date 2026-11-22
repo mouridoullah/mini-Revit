@@ -1,12 +1,13 @@
 import { useRef, useState, type ReactNode } from 'react';
-import { Columns2, Moon, PanelLeft, PanelRight, Scissors, Sun, ZoomIn } from 'lucide-react';
+import { AlertTriangle, Columns2, Moon, PanelLeft, PanelRight, Scissors, Sun, ZoomIn } from 'lucide-react';
 import styles from './Cockpit.module.css';
 
-export type ViewMode = '2d' | 'split' | '3d' | 'section';
+export type ViewMode = '2d' | 'split' | '3d' | 'section' | 'clashes';
 export function SplitViewport({
   twoD,
   threeD,
   section,
+  clashes,
   levelName,
   activeSectionName: _activeSectionName,
   mode: controlledMode,
@@ -19,6 +20,7 @@ export function SplitViewport({
   twoD: ReactNode;
   threeD: ReactNode;
   section?: ReactNode | undefined;
+  clashes?: ReactNode | undefined;
   levelName: string;
   activeSectionName?: string | undefined;
   mode?: ViewMode | undefined;
@@ -62,6 +64,7 @@ export function SplitViewport({
             ['split', Columns2, '2D | 3D'],
             ['3d', PanelRight, '3D'],
             ['section', Scissors, 'Coupe'],
+            ['clashes', AlertTriangle, 'Conflits'],
           ] as const
         ).map(([value, Icon, label]) => (
           <button
@@ -157,6 +160,14 @@ export function SplitViewport({
           style={{ flex: '1 1 100%' }}
         >
           {section}
+        </section>
+      )}
+      {mode === 'clashes' && (
+        <section
+          className={styles.viewportFrame}
+          style={{ flex: '1 1 100%' }}
+        >
+          {clashes}
         </section>
       )}
     </div>

@@ -142,4 +142,46 @@ describe('Composant <ClashPanel /> (Clash Detection UI)', () => {
     fireEvent.click(closeBtn);
     expect(screen.queryByTestId('clash-detail-card')).toBeNull();
   });
+
+  it('propose le raccourci vers l’espace dédié plein écran et appelle onOpenDedicatedView', () => {
+    const doc = createDocWithClash();
+    const handleOpenDedicated = vi.fn();
+
+    render(
+      <ClashPanel
+        doc={doc}
+        isCollapsed={false}
+        embedded={true}
+        onOpenDedicatedView={handleOpenDedicated}
+      />,
+    );
+
+    const btn = screen.getByTestId('open-dedicated-clash-workspace-btn');
+    expect(btn).toBeDefined();
+    fireEvent.click(btn);
+    expect(handleOpenDedicated).toHaveBeenCalledTimes(1);
+  });
+
+  it('appelle onLocate2D avec les coordonnées et le niveau du conflit', () => {
+    const doc = createDocWithClash();
+    const handleLocate2D = vi.fn();
+
+    render(
+      <ClashPanel
+        doc={doc}
+        isCollapsed={false}
+        onLocate2D={handleLocate2D}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('run-clash-btn'));
+    const firstRow = screen.getByTestId(/^clash-row-/);
+    fireEvent.click(firstRow);
+
+    const btn2d = screen.getByTestId('locate-2d-plan-btn');
+    fireEvent.click(btn2d);
+    expect(handleLocate2D).toHaveBeenCalledTimes(1);
+    expect(handleLocate2D.mock.calls[0]?.[0]).toHaveProperty('x');
+    expect(handleLocate2D.mock.calls[0]?.[0]).toHaveProperty('y');
+  });
 });

@@ -20,31 +20,52 @@ export interface RoomMetricItem {
 }
 
 /**
+ * Détermine la capacité d'accueil de pièces sur la première planche de synthèse
+ * en garantissant une marge de sécurité absolue au-dessus du cartouche (Y >= 56 mm).
+ */
+export function getPage1RoomsCapacity(state: BimState, format: PageFormatDef): number {
+  const isA3 = format.widthMm >= 400;
+  if (isA3) {
+    return 44;
+  }
+  // Sur A4 (297 x 210 mm) :
+  const levelsCount = Object.keys(state.levels ?? {}).length;
+  const t1Height = 7.5 + (levelsCount + 1) * 6.5;
+  const mepCount = Object.keys(state.mepSystems ?? {}).length;
+  const t3Height = mepCount > 0 ? 7.5 + mepCount * 6.5 : 0;
+  const usedHeightMm = 15 + 16 + t1Height + (mepCount > 0 ? 10 + t3Height : 0);
+  const availableMm = 210 - usedHeightMm - 56;
+  if (availableMm >= 45) {
+    return Math.min(8, Math.floor((availableMm - 12) / 6.5));
+  }
+  return 0;
+}
+
+/**
  * Calcule le nombre de planches requises pour les métrés et surfaces selon le format papier et le volume de pièces.
  */
 export function calculateMetricsSheetCount(state: BimState, format: PageFormatDef): number {
-  const allRoomsCount = Object.keys(state.rooms ?? {}).length;
-  const isA3 = format.widthMm >= 400;
+  const levels: Level[] = Object.values(state.levels ?? {}).sort(
+    (a, b) => a.elevation - b.elevation,
+  );
+  const allRooms = extractAllRooms(state, levels);
+  const allRoomsCount = allRooms.length;
+  if (allRoomsCount === 0) return 1;
 
-  if (isA3) {
-    // Sur A3 paysage (420 x 297 mm) :
-    // Page 1 accueille Tableau 1 (Niveaux), Tableau 3 (MEP) et jusqu'à 40 pièces (2 colonnes de 20).
-    if (allRoomsCount <= 40) return 1;
-    // Les pages suivantes accueillent 2 colonnes de 32 pièces = 64 pièces par page.
-    return 1 + Math.ceil((allRoomsCount - 40) / 64);
-  } else {
-    // Sur A4 paysage (297 x 210 mm) :
-    // Page 1 accueille Tableau 1, Tableau 3 et jusqu'à 10 pièces protégées à gauche du cartouche.
-    if (allRoomsCount <= 10) return 1;
-    // Les pages suivantes accueillent jusqu'à 24 pièces réparties en 2 colonnes sécurisées au-dessus du cartouche.
-    return 1 + Math.ceil((allRoomsCount - 10) / 24);
+  const isA3 = format.widthMm >= 400;
+  const page1Cap = getPage1RoomsCapacity(state, format);
+  if (allRoomsCount <= page1Cap) {
+    return 1;
   }
+  const remainingRooms = allRoomsCount - page1Cap;
+  const subsequentCap = isA3 ? 64 : 32;
+  return 1 + Math.ceil(remainingRooms / subsequentCap);
 }
 
 /**
  * Extrait la liste ordonnée de toutes les pièces avec leurs métrés associés.
  */
-function extractAllRooms(state: BimState, levels: Level[]): RoomMetricItem[] {
+export function extractAllRooms(state: BimState, levels: Level[]): RoomMetricItem[] {
   const result: RoomMetricItem[] = [];
   for (const lvl of levels) {
     try {
@@ -436,9 +457,7 @@ export function renderMetricsPage(
     // -------------------------------------------------------------------------
     // Tableau 2 : Détail des Pièces & Surfaces (Page 1)
     // -------------------------------------------------------------------------
-    // Sur A3, jusqu'à 40 pièces réparties en 2 colonnes équilibrées.
-    // Sur A4, jusqu'à 10 pièces protégées à gauche (largeur 106 mm < 132 mm du cartouche).
-    const page1RoomsCapacity = isA3 ? 40 : 10;
+    const page1RoomsCapacity = getPage1RoomsCapacity(state, format);
     const page1Rooms = allRooms.slice(0, page1RoomsCapacity);
 
     if (page1Rooms.length > 0) {
@@ -485,8 +504,8 @@ export function renderMetricsPage(
       color: [0.08, 0.15, 0.28],
     });
 
-    const page1Cap = isA3 ? 40 : 10;
-    const subsequentCap = isA3 ? 64 : 24;
+    const page1Cap = getPage1RoomsCapacity(state, format);
+    const subsequentCap = isA3 ? 64 : 32;
     const startIdx = page1Cap + (metricsPageIndex - 1) * subsequentCap;
     const endIdx = startIdx + subsequentCap;
     const pageRooms = allRooms.slice(startIdx, endIdx);
@@ -494,11 +513,13 @@ export function renderMetricsPage(
     const t2TableY = topYPt - 16 * MM_TO_PT;
     const col1Width = t2Cols.reduce((acc, c) => acc + c.w, 0);
 
-    // Sur A4 comme sur A3, division systématique en 2 colonnes pour éviter tout débordement vertical
-    if (pageRooms.length > 10) {
-      const mid = Math.ceil(pageRooms.length / 2);
-      const col1Rooms = pageRooms.slice(0, mid);
-      const col2Rooms = pageRooms.slice(mid);
+    // Sur A4 comme sur A3, division en 2 colonnes avec arrêt strict de la colonne 2 au-dessus du cartouche (Y >= 56mm)
+    if (pageRooms.length > (isA3 ? 20 : 16)) {
+      // Sur A4, la colonne 1 (à gauche du cartouche) peut contenir jusqu'à 20 pièces,
+      // la colonne 2 (au-dessus du cartouche) contient au maximum 16 pièces.
+      const col1Count = isA3 ? Math.ceil(pageRooms.length / 2) : Math.min(20, Math.ceil(pageRooms.length / 2));
+      const col1Rooms = pageRooms.slice(0, col1Count);
+      const col2Rooms = pageRooms.slice(col1Count);
 
       drawRoomsTableColumn(content, col1Rooms, leftXPt, t2TableY, t2Cols, rowHeightPt, headerHeightPt);
       drawRoomsTableColumn(

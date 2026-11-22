@@ -31,7 +31,7 @@ export interface Viewport3DProps {
   readonly selection?: readonly string[];
   readonly onSelectionChanged?: (ids: readonly string[]) => void;
   readonly clashes?: readonly ClashOverlayItem[];
-  readonly focusPoint?: { readonly x: number; readonly y: number; readonly z: number } | null;
+  readonly focusPoint?: { readonly x: number; readonly y: number; readonly z: number; readonly triggerId?: number } | null;
   readonly federatedModels?: readonly FederatedModelVisual[];
   readonly federatedSelection?: { readonly modelId: string; readonly expressId: number } | null;
   readonly onSelectFederatedEntity?: (modelId: string | null, expressId: number | null) => void;

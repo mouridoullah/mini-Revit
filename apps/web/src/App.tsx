@@ -16,6 +16,7 @@ import { ProjectBrowser } from './components/ProjectBrowser.js';
 import { RightDockPanel, type DockTab } from './components/RightDockPanel.js';
 import { SplitViewport, type ViewMode } from './components/SplitViewport.js';
 import { SectionViewport } from './components/SectionViewport.js';
+import { ClashWorkspace } from './components/ClashWorkspace.js';
 import { ExportPdfModal } from './components/ExportPdfModal.js';
 import { ErrorBoundary } from './components/ErrorBoundary.js';
 import styles from './components/Cockpit.module.css';
@@ -76,6 +77,12 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
     readonly x: number;
     readonly y: number;
     readonly z: number;
+    readonly triggerId?: number;
+  } | null>(null);
+  const [focus2DPoint, setFocus2DPoint] = useState<{
+    readonly x: number;
+    readonly y: number;
+    readonly triggerId?: number;
   } | null>(null);
 
   // 1b. Hook de Coupes & Élévations 2D / 3D (ADR-063)
@@ -112,10 +119,43 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
       if (levelId) {
         setActiveLevelId(levelId);
       }
-      setClashFocusPoint(clash.point);
+      setClashFocusPoint({
+        x: clash.point.x,
+        y: clash.point.y,
+        z: clash.point.z,
+        triggerId: Date.now() + Math.random(),
+      });
       setRightDockTab('clashes');
     },
     [doc],
+  );
+
+  const handleFocusPoint3D = useCallback(
+    (point: { readonly x: number; readonly y: number; readonly z: number }) => {
+      setClashFocusPoint({
+        x: point.x,
+        y: point.y,
+        z: point.z,
+        triggerId: Date.now() + Math.random(),
+      });
+      setViewMode((current) => (current === '2d' || current === 'section' ? 'split' : current));
+    },
+    [],
+  );
+
+  const handleLocate2D = useCallback(
+    (point: { readonly x: number; readonly y: number }, levelId?: string) => {
+      if (levelId) {
+        setActiveLevelId(levelId);
+      }
+      setFocus2DPoint({
+        x: point.x,
+        y: point.y,
+        triggerId: Date.now() + Math.random(),
+      });
+      setViewMode((current) => (current === '3d' || current === 'section' ? 'split' : current));
+    },
+    [],
   );
 
   // 1. Hook de Fédération IFC (Sous-phase 9.5)
@@ -613,6 +653,60 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
                 mepConfig={mepConfig}
                 mepDisplayMode={mepDisplayMode}
                 onZoomFitReady={setZoomFit}
+                focusPoint={focus2DPoint}
+              />
+            </ErrorBoundary>
+          }
+          clashes={
+            <ErrorBoundary name="Espace Dédié Coordination & Conflits">
+              <ClashWorkspace
+                doc={doc}
+                clashes={activeClashes}
+                onClashesChanged={setActiveClashes}
+                onFocusPoint3D={handleFocusPoint3D}
+                onLocate2D={handleLocate2D}
+                onClose={() => setViewMode('split')}
+                viewport3D={
+                  <ErrorBoundary name="Vue 3D Conflits">
+                    <Viewport3D
+                      isWhiteMode={isWhiteMode}
+                      selection={selectedIds}
+                      onSelectionChanged={setSelectedIds}
+                      clashes={activeClashes}
+                      focusPoint={clashFocusPoint}
+                      federatedModels={federatedVisuals}
+                      activeSectionCut={activeSectionCutFor3D}
+                      federatedSelection={
+                        selectedFederatedEntity
+                          ? {
+                              modelId: selectedFederatedEntity.modelId,
+                              expressId: selectedFederatedEntity.entity.expressId,
+                            }
+                          : null
+                      }
+                      onSelectFederatedEntity={handleSelectFederatedEntity}
+                    />
+                  </ErrorBoundary>
+                }
+                viewport2D={
+                  <ErrorBoundary name="Vue 2D Conflits">
+                    <Viewport2D
+                      tool={activeTool}
+                      selection={selectedIds}
+                      onSelectionChanged={handlePlanSelectionChanged}
+                      onDrawingLengthChange={setDrawingLength}
+                      onErrorChange={setErrorMessage}
+                      activeLevelId={activeLevelId}
+                      activeWallTypeId={activeWallTypeId}
+                      underlayLevelId={underlayLevelId}
+                      snapToUnderlay={underlayEnabled}
+                      activeComponentTypeId={activeComponentTypeId}
+                      mepConfig={mepConfig}
+                      mepDisplayMode={mepDisplayMode}
+                      focusPoint={focus2DPoint}
+                    />
+                  </ErrorBoundary>
+                }
               />
             </ErrorBoundary>
           }
@@ -667,7 +761,9 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
                 onSelectClash={handleSelectClash}
                 onClashesChanged={setActiveClashes}
                 onSelectLevel={setActiveLevelId}
-                onFocusPoint={(point) => setClashFocusPoint(point)}
+                onFocusPoint={handleFocusPoint3D}
+                onLocate2D={handleLocate2D}
+                onOpenDedicatedView={() => setViewMode('clashes')}
               />
             </ErrorBoundary>
           }

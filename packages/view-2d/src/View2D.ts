@@ -499,6 +499,17 @@ export class View2D {
   }
 
   /**
+   * Centre la caméra 2D sur un point du monde architectural et ajuste optionnellement l'échelle de zoom.
+   */
+  public focusOnPoint(worldPoint: { readonly x: number; readonly y: number }, targetScale?: number): void {
+    this.transform.origin = vec2(worldPoint.x, worldPoint.y);
+    if (targetScale !== undefined && targetScale > 0) {
+      this.transform.scale = targetScale;
+    }
+    this.render();
+  }
+
+  /**
    * Ajuste la résolution et l'affichage lors d'un redimensionnement externe du canvas.
    */
   public resize(width: number, height: number): void {

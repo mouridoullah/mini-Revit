@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
-import { ChevronDown, ChevronUp, Search, X, Zap } from 'lucide-react';
+import { ChevronDown, ChevronUp, Maximize2, Search, X, Zap } from 'lucide-react';
 import {
   type BimDocument,
   type BimState,
@@ -17,6 +17,8 @@ export interface ClashPanelProps {
   readonly onClashesChanged?: (clashes: readonly ClashResult[]) => void;
   readonly onSelectLevel?: (levelId: string) => void;
   readonly onFocusPoint?: (point: { readonly x: number; readonly y: number; readonly z: number }) => void;
+  readonly onLocate2D?: (point: { readonly x: number; readonly y: number }, levelId?: string) => void;
+  readonly onOpenDedicatedView?: () => void;
 }
 
 export type DisciplineFilter = 'all' | 'mep-structure' | 'mep-architecture' | 'mep-mep';
@@ -193,6 +195,8 @@ export function ClashPanel({
   onClashesChanged,
   onSelectLevel,
   onFocusPoint,
+  onLocate2D,
+  onOpenDedicatedView,
 }: ClashPanelProps) {
   const [internalCollapsed, setInternalCollapsed] = useState(isCollapsed);
   const [clashes, setClashes] = useState<readonly ClashResult[]>([]);
@@ -376,6 +380,32 @@ export function ClashPanel({
             gap: '10px',
           }}
         >
+          {/* Raccourci vers l'Espace Dédié Conflits */}
+          {onOpenDedicatedView && (
+            <button
+              type="button"
+              data-testid="open-dedicated-clash-workspace-btn"
+              onClick={onOpenDedicatedView}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                padding: '8px 12px',
+                backgroundColor: 'rgba(37, 99, 235, 0.15)',
+                color: '#60a5fa',
+                border: '1px solid rgba(59, 130, 246, 0.4)',
+                borderRadius: '6px',
+                fontSize: '11px',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              <Maximize2 size={13} />
+              Ouvrir l'Espace Coordination Plein Écran
+            </button>
+          )}
+
           {/* Barre d'actions et filtres */}
           <div
             style={{
@@ -657,9 +687,16 @@ export function ClashPanel({
               </div>
 
               {/* Cartes descriptives des deux éléments */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: embedded ? 'column' : 'row',
+                  gap: '8px',
+                }}
+              >
                 <div
                   style={{
+                    flex: 1,
                     padding: '6px 8px',
                     backgroundColor: 'var(--bg-canvas-chrome)',
                     borderRadius: '4px',
@@ -682,6 +719,7 @@ export function ClashPanel({
 
                 <div
                   style={{
+                    flex: 1,
                     padding: '6px 8px',
                     backgroundColor: 'var(--bg-canvas-chrome)',
                     borderRadius: '4px',
@@ -717,13 +755,17 @@ export function ClashPanel({
                   Impact : X={Math.round(selectedClash.point.x)} Y={Math.round(selectedClash.point.y)} Z={Math.round(selectedClash.point.z)} mm
                 </span>
                 <div style={{ display: 'flex', gap: '6px' }}>
-                  {(selectedElementInfo.infoA.levelId ?? selectedElementInfo.infoB.levelId) && onSelectLevel && (
+                  {(selectedElementInfo.infoA.levelId ?? selectedElementInfo.infoB.levelId) && (onLocate2D || onSelectLevel) && (
                     <button
                       type="button"
                       data-testid="locate-2d-plan-btn"
                       onClick={() => {
                         const lvl = selectedElementInfo.infoA.levelId ?? selectedElementInfo.infoB.levelId;
-                        if (lvl) onSelectLevel(lvl);
+                        if (onLocate2D) {
+                          onLocate2D(selectedClash.point, lvl);
+                        } else if (lvl && onSelectLevel) {
+                          onSelectLevel(lvl);
+                        }
                       }}
                       style={{
                         padding: '4px 8px',
