@@ -60,4 +60,26 @@ describe('Toolbar (apps/web/src/components/Toolbar.tsx — Audit P0.4)', () => {
     fireEvent.click(getByTestId('ribbon-tab-structure'));
     expect(getByTestId('add-level-btn')).toBeDefined();
   });
+
+  it('déclenche le callback d’export DXF de plan au clic sur le bouton Plan DXF', () => {
+    const onExportPlanDxf = vi.fn();
+    const { getByTestId } = render(
+      <Toolbar
+        activeToolKind="select"
+        onSelectTool={vi.fn()}
+        canUndo={false}
+        canRedo={false}
+        onUndo={vi.fn()}
+        onRedo={vi.fn()}
+        onSave={vi.fn()}
+        onLoadFile={vi.fn()}
+        onExportPlanDxf={onExportPlanDxf}
+      />,
+    );
+
+    const btn = getByTestId('export-plan-dxf-btn');
+    expect(btn).toBeDefined();
+    fireEvent.click(btn);
+    expect(onExportPlanDxf).toHaveBeenCalledTimes(1);
+  });
 });

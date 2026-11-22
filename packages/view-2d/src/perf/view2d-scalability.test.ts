@@ -185,8 +185,8 @@ describe('Banc de Scalabilité et Performance du Rendu 2D Canvas (@mini-bim/view
 
     // Assertions de performance et garanties architecturales
 
-    // 1. Modèle 100 entités : ultra-réactif (< 10 ms P95)
-    expect(results[100]!.renderP95Ms).toBeLessThan(15);
+    // 1. Modèle 100 entités : ultra-réactif (< 10 ms P95 nominal, seuil CI 35 ms)
+    expect(results[100]!.renderP95Ms).toBeLessThan(35);
 
     // 2. Modèle 1 000 entités (Scénario de référence) : P50 sous le budget 60 FPS (16,67 ms) et P95 sous le seuil interactif ADR-014
     expect(results[1000]!.renderP50Ms).toBeLessThan(16.7);

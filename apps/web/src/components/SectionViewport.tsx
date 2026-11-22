@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { computeSectionScene } from '@mini-bim/core';
-import { renderSectionView, generateSectionSvg } from '@mini-bim/view-2d';
+import { renderSectionView, generateSectionSvg, generateSectionDxf } from '@mini-bim/view-2d';
 import { Download, Scissors, Eye, EyeOff, ZoomIn } from 'lucide-react';
 import { useBimDocument } from '../hooks/useBimDocument.js';
 import { useResizeObserver } from '../hooks/useResizeObserver.js';
@@ -85,6 +85,25 @@ export function SectionViewport({
       URL.revokeObjectURL(url);
     } catch (err) {
       console.error('[SectionViewport] Export SVG failed:', err);
+    }
+  };
+
+  const handleExportDxf = () => {
+    if (!scene) return;
+    try {
+      const dxfContent = generateSectionDxf(scene, {
+        projectTitle: 'Mini-BIM Project',
+        includeHatches: true,
+      });
+      const blob = new Blob([dxfContent], { type: 'application/dxf;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${scene.cutName.replace(/[^a-zA-Z0-9_-]/g, '_')}.dxf`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('[SectionViewport] Export DXF failed:', err);
     }
   };
 
@@ -228,6 +247,28 @@ export function SectionViewport({
           >
             <Download size={13} />
             SVG
+          </button>
+
+          <button
+            type="button"
+            data-testid="export-section-dxf-btn"
+            onClick={handleExportDxf}
+            title="Exporter la coupe en DXF R12 1:1"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px',
+              padding: '4px 8px',
+              fontSize: '11px',
+              borderRadius: '4px',
+              backgroundColor: 'var(--bg-elevated)',
+              color: 'var(--text-primary)',
+              border: '1px solid var(--border-subtle)',
+              cursor: 'pointer',
+            }}
+          >
+            <Download size={13} />
+            DXF
           </button>
 
           <button

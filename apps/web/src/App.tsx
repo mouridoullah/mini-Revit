@@ -150,6 +150,7 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
     handleSave,
     handleExportIfc,
     handleExportSvg,
+    handleExportPlanDxf,
     handleLoadFile,
     handleLoadR4Demo,
   } = useBimExport({
@@ -282,6 +283,7 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
         onLoadR4Demo={handleLoadR4Demo}
         onExportIfc={handleExportIfc}
         onExportSvg={handleExportSvg}
+        onExportPlanDxf={handleExportPlanDxf}
         levels={Object.values(doc.getState().levels)}
         activeLevelId={activeLevelId}
         onSelectLevel={setActiveLevelId}

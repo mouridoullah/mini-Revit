@@ -149,6 +149,7 @@ flowchart TD
   - Rendu en plan horizontal interactif au niveau de coupe standard (1,20 m au-dessus du niveau actif).
   - Indexation spatiale par niveau avec frustum culling 2D garantissant $P_{95} < 16,67\text{ ms}$ (ADR-057).
   - Tracé vectoriel optimisé des murs, pièces, dalles, cotations, symboles MEP et Underlay N-1.
+  - Moteur d'exportation DXF R12 pur TypeScript (`AC1009`, ADR-064) pour les plans d'étages et coupes/élévations analytiques avec hachures linéaires `LINE` et calques ACI normalisés.
 
 ### 3.5 Persistance et Échange (`apps/web/src/persistence` & `@mini-bim/core/ifc`)
 
@@ -159,6 +160,7 @@ flowchart TD
   - Import/Export de snapshots JSON versionnés (`schemaVersion: 2`).
   - Migration ascendante sans perte `migrateSchemaV1toV2` (ADR-043).
   - Générateur IFC4 STEP ISO 10303-21 natif pur TypeScript (`IfcWall`, `IfcDoor`, `IfcWindow`, `IfcSlab`, `IfcSpace`, `IfcBuildingStorey`).
+  - Exportation vectorielle et CAO professionnelle : SVG normalisé et DXF R12 `AC1009` (ADR-063, ADR-064).
   - Importation et inspection fédérée de maquettes IFC externes via `web-ifc` (ADR-060).
 
 ---

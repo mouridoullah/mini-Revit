@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { BimDocument, exportToIfc, detectRooms } from '@mini-bim/core';
-import { generatePlanSvg } from '@mini-bim/view-2d';
+import { generatePlanSvg, generatePlanDxf } from '@mini-bim/view-2d';
 import { exportToFile, importFromFile } from '../persistence/jsonIO.js';
 import type { ToolKind } from '../tools/types.js';
 
@@ -21,6 +21,7 @@ export interface UseBimExportResult {
   readonly handleSave: () => void;
   readonly handleExportIfc: () => void;
   readonly handleExportSvg: (scale: 50 | 100 | 200) => void;
+  readonly handleExportPlanDxf: () => void;
   readonly handleLoadFile: (file: File) => Promise<void>;
   readonly handleLoadR4Demo: () => Promise<void>;
 }
@@ -114,6 +115,47 @@ export function useBimExport({
     [doc, activeLevelId, setErrorMessage, setInfoMessage],
   );
 
+  const handleExportPlanDxf = useCallback(() => {
+    try {
+      const docState = doc.getState();
+      const targetLevelId =
+        activeLevelId && docState.levels[activeLevelId]
+          ? activeLevelId
+          : (Object.keys(docState.levels)[0] ?? '');
+      const levelName = targetLevelId ? (docState.levels[targetLevelId]?.name ?? 'Étage') : 'Étage';
+      const detected = targetLevelId ? detectRooms(docState, targetLevelId) : [];
+      const roomsForDxf = detected.map((d) => ({
+        id: d.existingRoomId ?? `room_${d.seed.x}_${d.seed.y}`,
+        polygon: d.polygon,
+        areaMm2: d.areaMm2,
+        seed: d.seed,
+        name: (d.existingRoomId && docState.rooms[d.existingRoomId]?.name) || 'Pièce',
+      }));
+
+      const dxfContent = generatePlanDxf(doc, {
+        levelId: targetLevelId,
+        rooms: roomsForDxf,
+        includeHatches: true,
+        includeMep: true,
+      });
+
+      const blob = new Blob([dxfContent], { type: 'application/dxf;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `plan-${levelName.toLowerCase().replace(/[^a-z0-9_-]/gi, '_')}.dxf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setInfoMessage('Plan DXF (R12) exporté.');
+    } catch (err) {
+      setErrorMessage(
+        err instanceof Error ? err.message : 'Erreur lors de l’exportation du plan DXF.',
+      );
+    }
+  }, [doc, activeLevelId, setErrorMessage, setInfoMessage]);
+
   const handleLoadFile = useCallback(
     async (file: File) => {
       try {
@@ -178,6 +220,7 @@ export function useBimExport({
     handleSave,
     handleExportIfc,
     handleExportSvg,
+    handleExportPlanDxf,
     handleLoadFile,
     handleLoadR4Demo,
   };

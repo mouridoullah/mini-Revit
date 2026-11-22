@@ -12,6 +12,7 @@ import {
   Building2,
   ChevronDown,
   DoorOpen,
+  Download,
   FileBox,
   FolderOpen,
   Layers,
@@ -119,6 +120,7 @@ export interface ToolbarProps {
   readonly onToggleMetrics?: () => void;
   readonly onExportIfc?: () => void;
   readonly onExportSvg?: (scale: 50 | 100 | 200) => void;
+  readonly onExportPlanDxf?: () => void;
   readonly levels?: readonly Level[];
   readonly activeLevelId?: string;
   readonly onSelectLevel?: (levelId: string) => void;
@@ -148,6 +150,7 @@ export function Toolbar({
   onToggleMetrics,
   onExportIfc,
   onExportSvg,
+  onExportPlanDxf,
   levels = [],
   activeLevelId,
   onSelectLevel,
@@ -307,6 +310,15 @@ export function Toolbar({
               <option value={200}>1:200</option>
             </select>
           </div>
+          <button
+            className={styles.action}
+            data-testid="export-plan-dxf-btn"
+            onClick={onExportPlanDxf}
+            title="Exporter le plan d'étage en DXF R12 1:1"
+          >
+            <Download size={15} />
+            Plan DXF
+          </button>
         </div>
       </div>
       <div className={styles.toolRow}>
