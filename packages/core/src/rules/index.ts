@@ -9,4 +9,5 @@ export * from './slabs.js';
 export * from './stairs.js';
 export * from './roofs.js';
 export * from './components.js';
+export * from './section-cuts.js';
 export * from './dirty.js';

@@ -31,6 +31,7 @@ import {
   checkMepSystemViolations,
   checkConnectorViolations,
 } from '../mep/rules.js';
+import { checkSectionCutViolations } from './section-cuts.js';
 
 // ---------------------------------------------------------------------------
 // Validation Différentielle Post-Condition (Phase 6.0b / ADR-041 §6)
@@ -134,6 +135,10 @@ export const CATEGORY_VALIDATORS: readonly ((
   (id, state) => {
     const conn = state.mepConnectors?.[id];
     return conn ? checkConnectorViolations(conn, state) : [];
+  },
+  (id, state) => {
+    const cut = state.sectionCuts?.[id];
+    return cut ? checkSectionCutViolations(cut, state) : [];
   },
 ];
 

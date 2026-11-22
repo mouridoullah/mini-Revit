@@ -25,7 +25,8 @@ export type EntityCategory =
   | 'mepFitting'
   | 'mepEquipment'
   | 'mepSystem'
-  | 'mepConnector';
+  | 'mepConnector'
+  | 'sectionCut';
 
 export interface RelationDef {
   readonly sourceCategory: EntityCategory;

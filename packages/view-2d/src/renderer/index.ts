@@ -11,3 +11,4 @@ export * from './stairs.js';
 export * from './roofs.js';
 export * from './mep.js';
 export * from './plan-view.js';
+export * from './section-view.js';

@@ -47,6 +47,7 @@ export type {
   V1BimState,
   V1Door,
   V1Window,
+  SectionCut,
 } from './types.js';
 export * as Commands from './commands.js';
 export {
@@ -102,6 +103,9 @@ export {
   AddComponentCommand,
   UpdateComponentCommand,
   DeleteComponentCommand,
+  AddSectionCutCommand,
+  UpdateSectionCutCommand,
+  DeleteSectionCutCommand,
 } from './commands.js';
 export {
   BimValidationError,
@@ -130,6 +134,8 @@ export {
   canDeleteRoofType,
   validateComponent,
   validateComponentType,
+  validateSectionCut,
+  checkSectionCutViolations,
   checkComponentViolations,
   checkComponentTypeViolations,
   checkComponentCollisions,
@@ -207,3 +213,4 @@ export * from './mep/index.js';
 export * from './clash/index.js';
 export * as Federation from './federation/index.js';
 export * from './federation/types.js';
+export * from './section/index.js';

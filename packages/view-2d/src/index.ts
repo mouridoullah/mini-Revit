@@ -41,6 +41,8 @@ export {
   drawOpenings,
   drawRoomDiagnostics,
   renderPlanView,
+  renderSectionView,
+  type SectionRenderOptions,
 } from './renderer.js';
 export {
   UnderlayCache,
@@ -51,6 +53,7 @@ export {
 } from './underlay/UnderlayCache.js';
 export { View2D } from './View2D.js';
 export { generatePlanSvg, type PlanSvgOptions } from './svg-exporter.js';
+export { generateSectionSvg, type SectionSvgOptions } from './section-svg-exporter.js';
 export {
   isPointInsideOrNearFootprint,
   hitTestWall,

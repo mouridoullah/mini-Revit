@@ -33,6 +33,7 @@ export const ENTITY_CATEGORY_DESCRIPTORS: readonly CategoryDescriptor[] = [
   { category: 'mepEquipment', stateField: 'mepEquipments', label: 'Équipement MEP' },
   { category: 'mepSystem', stateField: 'mepSystems', label: 'Système MEP' },
   { category: 'mepConnector', stateField: 'mepConnectors', label: 'Connexion MEP' },
+  { category: 'sectionCut', stateField: 'sectionCuts', label: 'Coupe / Élévation' },
 ] as const;
 
 const DESCRIPTOR_BY_CATEGORY: ReadonlyMap<EntityCategory, CategoryDescriptor> = new Map(

@@ -439,6 +439,24 @@ export interface Component {
 }
 
 /**
+ * Ligne et plan de coupe dynamique / élévation (ADR-063).
+ * Définit une projection orthogonale 2D d'une tranche ou d'une façade du bâtiment.
+ */
+export interface SectionCut {
+  readonly id: ElementId;
+  readonly category: 'sectionCut';
+  readonly name: string; // ex. "Coupe transversale A-A'"
+  readonly label: string; // ex. "A"
+  readonly kind: 'section' | 'elevation';
+  readonly start: Vec2; // Extrémité gauche de la coupe (mm)
+  readonly end: Vec2; // Extrémité droite de la coupe (mm)
+  readonly viewDirection: 1 | -1; // Côté observé par rapport au segment (-1 ou 1)
+  readonly depth: number; // Profondeur de vue en mm (far plane)
+  readonly zMin?: number | undefined; // Borne verticale basse optionnelle (mm)
+  readonly zMax?: number | undefined; // Borne verticale haute optionnelle (mm)
+}
+
+/**
  * État documentaire immuable complet du projet Mini-BIM (Schéma v2 / Saison 2).
  * Normalisé sous forme de dictionnaires indexés par ElementId.
  */
@@ -470,6 +488,7 @@ export interface BimState {
   readonly mepEquipments?: Record<ElementId, MepEquipment>;
   readonly mepSystems?: Record<ElementId, MepSystem>;
   readonly mepConnectors?: Record<ElementId, Connector>;
+  readonly sectionCuts?: Record<ElementId, SectionCut>;
 }
 
 /**

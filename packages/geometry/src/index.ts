@@ -15,3 +15,4 @@ export * from './junctions/index.js';
 export * from './openings/index.js';
 export * from './mesh/index.js';
 export * from './slabs/effective.js';
+export * from './section/index.js';
