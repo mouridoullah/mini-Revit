@@ -7,6 +7,8 @@ import type {
   ClashDiscipline,
   ClashClassification,
 } from '../types.js';
+import { isPointInPolygon, type Vec2 } from '@tabax/geometry';
+import { computeStairShaft } from '../../stairs.js';
 
 export function getElementCategory(id: ElementId, state: BimState): ClashCategory | null {
   if (state.walls && state.walls[id]) return 'wall';
@@ -94,17 +96,116 @@ export function isExcludedLegitimateContact(
 
   // 5. Escalier dans sa trémie de dalle
   if ((catA === 'stair' && catB === 'slab') || (catA === 'slab' && catB === 'stair')) {
-    const stair = (state.stairs && (state.stairs[idA] || state.stairs[idB])) as {
-      bottomLevelId: string;
-      topLevelId: string;
-    } | undefined;
-    const slab = (state.slabs && (state.slabs[idA] || state.slabs[idB])) as {
-      levelId: string;
-      holes?: unknown[];
-    } | undefined;
+    const stairId = catA === 'stair' ? idA : idB;
+    const slabId = catA === 'slab' ? idA : idB;
+    const stair = state.stairs?.[stairId];
+    const slab = state.slabs?.[slabId];
     if (stair && slab && (slab.levelId === stair.topLevelId || slab.levelId === stair.bottomLevelId)) {
-      if (slab.holes && slab.holes.length > 0) {
+      return true;
+    }
+  }
+
+  // 6. Mur et toiture attachée
+  if ((catA === 'wall' && catB === 'roof') || (catA === 'roof' && catB === 'wall')) {
+    const wallId = catA === 'wall' ? idA : idB;
+    const roofId = catA === 'roof' ? idA : idB;
+    const wall = state.walls?.[wallId];
+    if (wall && wall.topConstraint?.kind === 'roof' && wall.topConstraint.roofId === roofId) {
+      return true;
+    }
+  }
+
+  // 7. Conduit MEP passant par une réservation / trémie de dalle (ADR-071)
+  if (isMepCategory(catA) && catB === 'slab') {
+    if (isMepPassingThroughSlabVoid(idA, idB, state)) {
+      return true;
+    }
+  }
+  if (catA === 'slab' && isMepCategory(catB)) {
+    if (isMepPassingThroughSlabVoid(idB, idA, state)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Vérifie si un conduit MEP (tuyau, gaine, chemin de câbles) traverse une dalle
+ * au travers d'une trémie ou réservation autorisée (ADR-071).
+ */
+export function isMepPassingThroughSlabVoid(
+  mepId: ElementId,
+  slabId: ElementId,
+  state: BimState,
+): boolean {
+  const slab = state.slabs?.[slabId];
+  if (!slab) return false;
+
+  const mep =
+    state.pipes?.[mepId] ??
+    state.ducts?.[mepId] ??
+    state.cableTrays?.[mepId];
+
+  if (!mep) return false;
+
+  const level = state.levels?.[slab.levelId];
+  const typeId = slab.slabTypeId ?? (slab as unknown as { typeId?: ElementId }).typeId;
+  const slabType = typeId && state.slabTypes ? state.slabTypes[typeId] : undefined;
+  const zBase = (level?.elevation ?? 0) + (slab.baseOffset ?? 0);
+  const thickness = slabType?.thickness ?? (slab as unknown as { thickness?: number }).thickness ?? 200;
+  const zTop = zBase;
+  const zBottom = zBase - thickness;
+  const zMid = (zTop + zBottom) * 0.5;
+
+  const startZ = mep.start.z;
+  const endZ = mep.end.z;
+
+  let pt2D: Vec2;
+  const dz = endZ - startZ;
+  if (Math.abs(dz) > 1e-4) {
+    const t = (zMid - startZ) / dz;
+    // Vérifier si le segment coupe l'intervalle altimétrique de la dalle avec tolérance
+    if (t < -0.1 || t > 1.1) return false;
+    const clampedT = Math.max(0, Math.min(1, t));
+    pt2D = {
+      x: mep.start.x + clampedT * (mep.end.x - mep.start.x),
+      y: mep.start.y + clampedT * (mep.end.y - mep.start.y),
+    };
+  } else {
+    // Segment horizontal : vérifier le milieu
+    pt2D = {
+      x: (mep.start.x + mep.end.x) * 0.5,
+      y: (mep.start.y + mep.end.y) * 0.5,
+    };
+  }
+
+  // 1. Trous manuels de la dalle (slab.holes)
+  if (slab.holes) {
+    for (const hole of slab.holes) {
+      if (hole.length >= 3 && isPointInPolygon(pt2D, hole)) {
         return true;
+      }
+    }
+  }
+
+  // 2. Trémies géométriques de la dalle (slab.openings)
+  if (slab.openings) {
+    for (const opening of slab.openings) {
+      if (opening.length >= 3 && isPointInPolygon(pt2D, opening)) {
+        return true;
+      }
+    }
+  }
+
+  // 3. Trémies dérivées des escaliers connectés au niveau de la dalle (computeStairShaft)
+  if (state.stairs) {
+    for (const stair of Object.values(state.stairs)) {
+      if (stair.topLevelId === slab.levelId || stair.bottomLevelId === slab.levelId) {
+        const shaft = computeStairShaft(stair, state);
+        if (shaft.length >= 3 && isPointInPolygon(pt2D, shaft)) {
+          return true;
+        }
       }
     }
   }

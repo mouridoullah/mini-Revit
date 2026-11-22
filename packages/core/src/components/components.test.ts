@@ -27,6 +27,7 @@ import {
   toJSON,
   fromJSON,
   exportToIfc,
+  escapeStepString,
 } from '../index.js';
 
 describe('Composants architecturaux et mobilier paramétrique (Phase 8.1 - Core Model)', () => {
@@ -659,8 +660,8 @@ describe('Composants architecturaux et mobilier paramétrique (Phase 8.1 - Core 
       expect(ifcString).toContain('IFCSANITARYTERMINAL(');
       expect(ifcString).toContain('IFCSANITARYTERMINALTYPE(');
       expect(ifcString).toContain('IFCRELDEFINESBYTYPE(');
-      expect(ifcString).toContain('Grande Table Salle à Manger');
-      expect(ifcString).toContain('WC Suspendu RDC');
+      expect(ifcString).toContain(escapeStepString('Grande Table Salle à Manger'));
+      expect(ifcString).toContain(escapeStepString('WC Suspendu RDC'));
 
       // Validation industrielle stricte avec WebIFC C++/WASM
       const ifcApi = new WebIFC.IfcAPI();

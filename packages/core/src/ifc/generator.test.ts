@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { exportToIfc } from './generator.js';
+import { exportToIfc, escapeStepString } from './generator.js';
 import { createIfcGuid } from './guid.js';
 import { BimDocument } from '../document.js';
 import { type BimState } from '../types.js';
@@ -118,7 +118,7 @@ describe('Générateur IFC4 ISO 10303-21 (packages/core/ifc)', () => {
     expect(ifc).toContain('IFCSITE(');
     expect(ifc).toContain('IFCBUILDING(');
     expect(ifc).toContain('IFCBUILDINGSTOREY(');
-    expect(ifc).toContain('Rez-de-chauss\u00e9e'); // ou Rez-de-chaussée
+    expect(ifc).toContain(escapeStepString('Rez-de-chaussée'));
     expect(ifc).toContain('IFCRELAGGREGATES(');
   });
 
