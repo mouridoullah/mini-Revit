@@ -48,6 +48,26 @@ export interface SectionProjectedItem {
   readonly metadata?: Record<string, unknown> | undefined;
 }
 
+export type SectionDimensionKind =
+  | 'floor_height'
+  | 'ceiling_height'
+  | 'total_height'
+  | 'opening_height'
+  | 'level_marker';
+
+export interface SectionDimension {
+  readonly id: string;
+  readonly kind: SectionDimensionKind;
+  readonly s: number; // Abscisse sur l'axe de coupe (mm)
+  readonly z1: number; // Point bas (ou altimétrie de référence)
+  readonly z2: number; // Point haut (pour les cotes de hauteur)
+  readonly offset: number; // Déport le long de s (mm)
+  readonly valueMm: number; // Valeur nette mesurée (mm)
+  readonly formattedValue: string; // Libellé formaté (ex. "3.00 m", "+3.00", "2.50 m")
+  readonly label?: string | undefined; // Libellé architectural optionnel (ex. "H.S.P.", "R+1", "Faîtage")
+  readonly isExterior?: boolean | undefined;
+}
+
 export interface SectionScene {
   readonly cutId: ElementId;
   readonly cutName: string;
@@ -64,4 +84,5 @@ export interface SectionScene {
   readonly levels: readonly SectionLevelDatum[];
   readonly cutItems: readonly SectionCutItem[];
   readonly projectedItems: readonly SectionProjectedItem[];
+  readonly dimensions: readonly SectionDimension[];
 }

@@ -231,13 +231,69 @@ export function renderSectionView(
     ctx.restore();
   }
 
+  // 6.b Cotations architecturales verticales (ADR-069)
+  if (scene.dimensions && scene.dimensions.length > 0) {
+    ctx.save();
+    ctx.font = '10px sans-serif';
+    ctx.strokeStyle = '#334155';
+    ctx.fillStyle = '#1e293b';
+    ctx.lineWidth = 1;
+
+    for (const dim of scene.dimensions) {
+      if (dim.kind === 'level_marker') continue; // Déjà géré par les lignes de niveaux
+
+      const xDim = toX(dim.s);
+      const y1 = toY(dim.z1);
+      const y2 = toY(dim.z2);
+
+      // Ligne de cote verticale
+      ctx.beginPath();
+      ctx.moveTo(xDim, y1);
+      ctx.lineTo(xDim, y2);
+      ctx.stroke();
+
+      // Ticks à 45° aux extrémités
+      const tick = 4;
+      ctx.beginPath();
+      ctx.moveTo(xDim - tick, y1 + tick);
+      ctx.lineTo(xDim + tick, y1 - tick);
+      ctx.moveTo(xDim - tick, y2 + tick);
+      ctx.lineTo(xDim + tick, y2 - tick);
+      ctx.stroke();
+
+      // Lignes de rappel horizontales vers le bâtiment
+      if (dim.isExterior) {
+        const xAttOrigin = toX(0);
+        ctx.save();
+        ctx.strokeStyle = '#94a3b8';
+        ctx.setLineDash([2, 2]);
+        ctx.beginPath();
+        ctx.moveTo(xAttOrigin, y1);
+        ctx.lineTo(xDim, y1);
+        ctx.moveTo(xAttOrigin, y2);
+        ctx.lineTo(xDim, y2);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Texte de cotation
+      const yMid = (y1 + y2) / 2;
+      const text = dim.label ? `${dim.label} ${dim.formattedValue}` : dim.formattedValue;
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, xDim - 6, yMid);
+    }
+    ctx.restore();
+  }
+
   // 7. Cartouche / En-tête de coupe
   ctx.save();
   ctx.font = 'bold 13px sans-serif';
   ctx.fillStyle = '#0f172a';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'top';
-  const title = `COUPE ${scene.cutLabel}-${scene.cutLabel}' : ${scene.cutName.toUpperCase()}`;
+  const kindLabel = scene.kind === 'elevation' ? 'ÉLÉVATION' : 'COUPE';
+  const title = `${kindLabel} ${scene.cutLabel}-${scene.cutLabel}' : ${scene.cutName.toUpperCase()}`;
   ctx.fillText(title, padding, 16);
   ctx.restore();
 

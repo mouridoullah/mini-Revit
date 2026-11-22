@@ -103,4 +103,39 @@ describe('SectionViewport Component (apps/web/src/components/SectionViewport.tsx
 
     clickSpy.mockRestore();
   });
+
+  it('affiche une élévation de façade avec le titre et l’icône bâtiment', () => {
+    const doc = new BimDocument();
+    doc.execute(
+      new AddLevelCommand({
+        id: 'lvl_0',
+        name: 'RDC',
+        elevation: 0,
+        height: 2800,
+      }),
+    );
+    doc.execute(
+      new AddSectionCutCommand({
+        id: 'elev_sud',
+        category: 'sectionCut',
+        name: 'Façade Sud',
+        label: 'S',
+        kind: 'elevation',
+        start: { x: -1500, y: -1500 },
+        end: { x: 11500, y: -1500 },
+        viewDirection: 1,
+        depth: 20000,
+      }),
+    );
+
+    const { getByTestId } = render(
+      <BimDocumentProvider initialDoc={doc}>
+        <SectionViewport sectionCutId="elev_sud" />
+      </BimDocumentProvider>,
+    );
+
+    expect(getByTestId('section-viewport')).toBeDefined();
+    expect(getByTestId('section-active-title').textContent).toBe('Façade Sud');
+    expect(getByTestId('section-canvas')).toBeDefined();
+  });
 });

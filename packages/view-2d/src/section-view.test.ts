@@ -64,6 +64,44 @@ describe('Saison 3 — Lot 2.A : Rendu Canvas 2D & Export SVG de Coupe (ADR-063)
         style: { stroke: '#92400e', strokeWidth: 1.2, fill: 'rgba(254, 243, 199, 0.6)' },
       },
     ],
+    dimensions: [
+      {
+        id: 'dim_lvl_0',
+        kind: 'level_marker',
+        s: -350,
+        z1: 0,
+        z2: 0,
+        offset: -350,
+        valueMm: 0,
+        formattedValue: '+0.00',
+        label: 'RDC',
+        isExterior: true,
+      },
+      {
+        id: 'dim_floor_0_1',
+        kind: 'floor_height',
+        s: -150,
+        z1: 0,
+        z2: 2800,
+        offset: -150,
+        valueMm: 2800,
+        formattedValue: '2.80 m',
+        label: 'H. Ét.',
+        isExterior: true,
+      },
+      {
+        id: 'dim_total',
+        kind: 'total_height',
+        s: -550,
+        z1: 0,
+        z2: 5600,
+        offset: -550,
+        valueMm: 5600,
+        formattedValue: '5.60 m',
+        label: 'Total',
+        isExterior: true,
+      },
+    ],
   };
 
   describe('renderSectionView (Canvas 2D API)', () => {
@@ -113,7 +151,12 @@ describe('Saison 3 — Lot 2.A : Rendu Canvas 2D & Export SVG de Coupe (ADR-063)
       expect(svg).toContain('id="cut-items"');
       expect(svg).toContain('id="projected-items"');
       expect(svg).toContain('id="levels"');
+      expect(svg).toContain('id="section-dimensions"');
       expect(svg).toContain('id="cartouche"');
+
+      // Vérifie les cotations verticales
+      expect(svg).toContain('2.80 m');
+      expect(svg).toContain('5.60 m');
 
       // Vérifie les libellés altimétriques
       expect(svg).toContain('RDC +0.00 m');

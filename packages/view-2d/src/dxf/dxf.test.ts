@@ -500,6 +500,20 @@ describe('Saison 3 — Lot 3.A : Moteur DXF R12 Pur TypeScript (ADR-063)', () =>
             lines: [[vec2(4700, 900), vec2(4700, 2100)]],
           },
         ],
+        dimensions: [
+          {
+            id: 'dim_fl_0',
+            kind: 'floor_height',
+            s: -150,
+            z1: 0,
+            z2: 2800,
+            offset: -150,
+            valueMm: 2800,
+            formattedValue: '2.80 m',
+            label: 'H. Ét.',
+            isExterior: true,
+          },
+        ],
       };
 
       const dxf = generateSectionDxf(sampleScene, {
@@ -516,6 +530,7 @@ describe('Saison 3 — Lot 3.A : Moteur DXF R12 Pur TypeScript (ADR-063)', () =>
       expect(report.layers.has('SECTION-HATCH')).toBe(true);
       expect(report.layers.has('SECTION-PROJ')).toBe(true);
       expect(report.layers.has('SECTION-LEVELS')).toBe(true);
+      expect(report.layers.has('SECTION-DIMENSIONS')).toBe(true);
       expect(report.layers.has('SECTION-GROUND')).toBe(true);
       expect(report.layers.has('SECTION-ANNOTATIONS')).toBe(true);
 

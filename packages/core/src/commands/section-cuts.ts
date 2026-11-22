@@ -84,3 +84,6 @@ export class DeleteSectionCutCommand implements Command {
     return [this.sectionCutId];
   }
 }
+
+export { AutoGenerateViewsCommand, computeAutoSectionViews } from '../section/auto-generate.js';
+

@@ -194,6 +194,61 @@ export function renderSectionPage(
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // E. Cotations architecturales verticales (ADR-069)
+  // ---------------------------------------------------------------------------
+  if (scene.dimensions && scene.dimensions.length > 0) {
+    for (const dim of scene.dimensions) {
+      if (dim.kind === 'level_marker') continue;
+
+      const xPt = toPdfX(dim.s);
+      const y1Pt = toPdfY(dim.z1);
+      const y2Pt = toPdfY(dim.z2);
+
+      // Ligne principale de cote verticale
+      content.line(xPt, y1Pt, xPt, y2Pt, {
+        strokeColor: [0.2, 0.25, 0.3],
+        lineWidth: 0.5,
+      });
+
+      // Ticks à 45°
+      const tickPt = 1.2 * MM_TO_PT;
+      content.line(xPt - tickPt, y1Pt - tickPt, xPt + tickPt, y1Pt + tickPt, {
+        strokeColor: [0.2, 0.25, 0.3],
+        lineWidth: 0.6,
+      });
+      content.line(xPt - tickPt, y2Pt - tickPt, xPt + tickPt, y2Pt + tickPt, {
+        strokeColor: [0.2, 0.25, 0.3],
+        lineWidth: 0.6,
+      });
+
+      // Lignes de rappel
+      if (dim.isExterior) {
+        const xOriginPt = toPdfX(0);
+        content.line(xOriginPt, y1Pt, xPt, y1Pt, {
+          strokeColor: [0.6, 0.65, 0.7],
+          lineWidth: 0.3,
+          lineDash: [2, 2],
+        });
+        content.line(xOriginPt, y2Pt, xPt, y2Pt, {
+          strokeColor: [0.6, 0.65, 0.7],
+          lineWidth: 0.3,
+          lineDash: [2, 2],
+        });
+      }
+
+      // Texte de cotation
+      const yMidPt = (y1Pt + y2Pt) / 2;
+      const text = dim.label ? `${dim.label} ${dim.formattedValue}` : dim.formattedValue;
+      content.text(text, xPt - 4, yMidPt - 2, {
+        font: 'regular',
+        size: 5.5,
+        align: 'right',
+        color: [0.15, 0.2, 0.25],
+      });
+    }
+  }
+
   content.restore(); // Fin du clipping
 
   // 4. Cadre et Cartouche
