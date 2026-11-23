@@ -13,6 +13,11 @@ import {
   createGlazingMaterial,
   createMepMaterial,
 } from './materials.js';
+import { EnvironmentManager } from './rendering/EnvironmentManager.js';
+import { PostProcessingManager } from './rendering/PostProcessingManager.js';
+import type { RenderMode } from './rendering/PostProcessingManager.js';
+import { SectionCapManager } from './rendering/SectionCapManager.js';
+import { disposeProceduralTextures } from './rendering/ProceduralTextures.js';
 
 export type ComponentMeshFamily = 'sanitary' | 'kitchen' | 'furniture' | 'glazing' | (string & {});
 
@@ -67,6 +72,16 @@ export class Scene3D {
    * Plan de coupe 3D actif (ADR-063).
    */
   private activeClippingPlane: THREE.Plane | null = null;
+
+  /** Pipeline PBR : lumiere IBL, ombres, tonemapping (Lot 1). */
+  private environmentManager: EnvironmentManager | null = null;
+  /** Post-traitement AO (Lot 1). Compatible ADR-018. */
+  private postProcessingManager: PostProcessingManager | null = null;
+  /** Bouchons de coupe stencil (Lot 2). */
+  private sectionCapManager: SectionCapManager | null = null;
+
+  /** Indicateur d'invalidation par lot pour éviter les re-rendus redondants. */
+  private isBatchUpdating = false;
 
   private readonly onControlsChange: () => void;
   private isDisposed = false;
@@ -183,10 +198,46 @@ export class Scene3D {
     this.glazingMaterial = createGlazingMaterial();
 
     // 8. Rendu à la demande sur interaction caméra
+    // Compatible ADR-018 : pendant la rotation -> rendu direct, apres relachement -> AO plein
     this.onControlsChange = () => {
-      this.render();
+      if (this.postProcessingManager) {
+        this.postProcessingManager.renderDirect();
+      } else {
+        this.renderer.render(this.scene, this.camera);
+      }
     };
     this.controls.addEventListener('change', this.onControlsChange);
+
+    // Fin de rotation -> passe AO complete (80 ms de delai)
+    this.controls.addEventListener('end', () => {
+      if (this.postProcessingManager) {
+        this.postProcessingManager.scheduleFullRender();
+      }
+    });
+
+    // 9. Managers PBR (initialises en mode 'technique' par defaut)
+    // Enveloppes dans try/catch : si l'env WebGL ne supporte pas RoomEnvironment
+    // (ex. jsdom dans les tests Vitest), on degrade silencieusement.
+    if (typeof window !== 'undefined') {
+      try {
+        this.environmentManager = new EnvironmentManager(this.renderer, this.scene);
+        // Supprimer l'eclairage de base maintenant gere par EnvironmentManager
+        this.scene.remove(this.ambientLight, this.directionalLight, this.directionalLight.target);
+      } catch {
+        // Degradation gracieuse (env test sans WebGL complet)
+      }
+      try {
+        this.postProcessingManager = new PostProcessingManager(this.renderer, this.scene, this.camera);
+        this.postProcessingManager.setRenderMode('technique');
+      } catch {
+        // Degradation gracieuse
+      }
+      try {
+        this.sectionCapManager = new SectionCapManager(this.scene);
+      } catch {
+        // Degradation gracieuse
+      }
+    }
 
     // Rendu initial pour afficher la grille et l'environnement
     this.render();
@@ -257,6 +308,7 @@ export class Scene3D {
       lines.name = `${rawData.elementId}-architectural-edges`;
       lines.userData.ownsGeometryAndMaterial = true;
       mesh.add(lines);
+      this.sectionCapManager?.registerMesh(mesh, rawData.elementId);
     }
 
     this.scene.add(mesh);
@@ -311,20 +363,22 @@ export class Scene3D {
       throw new Error('[Scene3D] Cannot update mesh batch on a disposed Scene3D instance.');
     }
 
-    // 1. Libérer et supprimer proprement tous les anciens maillages de cet elementId
-    this.removeMesh(elementId);
+    return this.batchUpdate(() => {
+      // 1. Libérer et supprimer proprement tous les anciens maillages de cet elementId
+      this.removeMesh(elementId);
 
-    if (rawDataList.length === 0) {
-      return [];
-    }
+      if (rawDataList.length === 0) {
+        return [];
+      }
 
-    // 2. Créer et ajouter tous les nouveaux maillages
-    const createdMeshes: THREE.Mesh[] = [];
-    for (const rawData of rawDataList) {
-      createdMeshes.push(this.addMesh(rawData, material));
-    }
+      // 2. Créer et ajouter tous les nouveaux maillages
+      const createdMeshes: THREE.Mesh[] = [];
+      for (const rawData of rawDataList) {
+        createdMeshes.push(this.addMesh(rawData, material));
+      }
 
-    return createdMeshes;
+      return createdMeshes;
+    });
   }
 
   /**
@@ -368,6 +422,7 @@ export class Scene3D {
     }
 
     this.meshes.delete(elementId);
+    this.sectionCapManager?.unregisterMesh(elementId);
     this.render();
   }
 
@@ -926,11 +981,32 @@ export class Scene3D {
   }
 
   /**
+   * Exécute un lot de modifications géométriques sans déclencher de rendu intermédiaire.
+   * Le rendu final n'est invoqué qu'une seule fois à la fin du callback.
+   */
+  public batchUpdate<T>(callback: () => T): T {
+    const wasBatching = this.isBatchUpdating;
+    this.isBatchUpdating = true;
+    try {
+      return callback();
+    } finally {
+      this.isBatchUpdating = wasBatching;
+      if (!wasBatching) {
+        this.render();
+      }
+    }
+  }
+
+  /**
    * Rendu unitaire à la demande.
    */
   public render(): void {
-    if (this.isDisposed) return;
-    this.renderer.render(this.scene, this.camera);
+    if (this.isDisposed || this.isBatchUpdating) return;
+    if (this.postProcessingManager) {
+      this.postProcessingManager.renderFull();
+    } else {
+      this.renderer.render(this.scene, this.camera);
+    }
   }
 
   /**
@@ -962,6 +1038,9 @@ export class Scene3D {
     this.camera.aspect = width / (height || 1);
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height, false);
+    if (this.postProcessingManager) {
+      this.postProcessingManager.setSize(width, height);
+    }
     this.render();
   }
 
@@ -1010,6 +1089,9 @@ export class Scene3D {
       mat.clippingPlanes = planes;
       mat.clipShadows = true;
     }
+
+    // 5. Propagation aux bouchons de coupe stencil
+    this.sectionCapManager?.setClippingPlane(plane);
 
     this.render();
   }
@@ -1067,6 +1149,57 @@ export class Scene3D {
   }
 
   /**
+   * Définit le mode de rendu d'affichage (ADR-072) :
+   * - 'technique' : fond ardoise neutre, arêtes nettes, éclairage standard sans AO
+   * - 'ecorche' : fond sombre studio, bouchons de coupe stencils visibles, contraste MEP
+   * - 'realiste' : pipeline PBR avec IBL RoomEnvironment et occlusion ambiante temps réel
+   */
+  public setRenderMode(mode: RenderMode): void {
+    if (this.isDisposed) return;
+    this.environmentManager?.setRenderMode(mode);
+    if (this.postProcessingManager) {
+      this.postProcessingManager.setRenderMode(mode);
+    }
+    if (mode === 'ecorche') {
+      this.setBackground(0x181a1f, [0x303642, 0x222730]);
+    } else if (mode === 'realiste') {
+      this.setBackground(0x20242c, [0x444c5c, 0x2c3340]);
+    } else {
+      this.setBackground(0x262a33, [0x566070, 0x3a404c]);
+    }
+    this.render();
+  }
+
+  public getRenderMode(): RenderMode {
+    return this.postProcessingManager ? this.postProcessingManager.getRenderMode() : 'technique';
+  }
+
+  /**
+   * Règle l'ensoleillement selon l'heure du jour (0-24h).
+   */
+  public setSunHour(hour: number): void {
+    if (this.isDisposed) return;
+    this.environmentManager?.setSunHour(hour);
+    this.render();
+  }
+
+  /**
+   * Calibre automatiquement la caméra d'ombre sur la boîte englobante de la maquette.
+   */
+  public fitShadowsToScene(): void {
+    if (this.isDisposed || !this.environmentManager) return;
+    const box = new THREE.Box3();
+    for (const meshList of this.meshes.values()) {
+      for (const m of meshList) {
+        box.expandByObject(m);
+      }
+    }
+    if (!box.isEmpty()) {
+      this.environmentManager.fitShadowCameraToBounds(box);
+    }
+  }
+
+  /**
    * Libère toutes les ressources WebGL, les géométries, les matériaux et les contrôles.
    */
   public dispose(): void {
@@ -1117,6 +1250,15 @@ export class Scene3D {
     // 4b. Libérer les maquettes IFC fédérées
     this.federatedManager.dispose();
     this.scene.remove(this.federatedManager.getRootGroup());
+
+    // 4c. Libérer les gestionnaires de rendu PBR et caps (ADR-072)
+    this.sectionCapManager?.dispose();
+    this.sectionCapManager = null;
+    this.postProcessingManager?.dispose();
+    this.postProcessingManager = null;
+    this.environmentManager?.dispose();
+    this.environmentManager = null;
+    disposeProceduralTextures();
 
     // 5. Libérer les matériaux gérés
     this.defaultMaterial.dispose();

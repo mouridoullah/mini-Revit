@@ -70,6 +70,24 @@ export {
   type ResolvedWall,
   type JunctionSolution,
 } from '@tabax/geometry';
+export {
+  EnvironmentManager,
+  PostProcessingManager,
+  SectionCapManager,
+  getProceduralTextures,
+  disposeProceduralTextures,
+  type RenderMode,
+} from './rendering/index.js';
+export {
+  createWindowGroup,
+  createDoorGroup,
+} from './mesh-generator/openings-3d.js';
+export {
+  createSanitaryMesh,
+  createKitchenMesh,
+  createFurnitureMesh,
+  createGlazingMesh,
+} from './components/index.js';
 export type {
   SceneOptions,
   MeshHandle,

@@ -8,13 +8,21 @@ import * as THREE from 'three';
  *   éliminant tout phénomène de z-fighting sur les faces de contact internes
  *   entre sous-volumes adjacents (ex. allège vs tranche pleine).
  */
-export function createDefaultMaterial(): THREE.MeshStandardMaterial {
-  return new THREE.MeshStandardMaterial({
+export function createDefaultMaterial(options?: {
+  roughnessMap?: THREE.Texture | null;
+  bumpMap?: THREE.Texture | null;
+  envMapIntensity?: number;
+}): THREE.MeshStandardMaterial {
+  const mat = new THREE.MeshStandardMaterial({
     color: 0xc8c4bc,
     roughness: 0.8,
     metalness: 0.0,
     side: THREE.FrontSide,
+    envMapIntensity: options?.envMapIntensity ?? 1.0,
   });
+  if (options?.roughnessMap) mat.roughnessMap = options.roughnessMap;
+  if (options?.bumpMap) mat.bumpMap = options.bumpMap;
+  return mat;
 }
 
 /**

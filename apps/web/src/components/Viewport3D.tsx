@@ -1,6 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Scene3D,
+  type RenderMode,
   createWallMeshWithOpenings,
   createOpeningPlaceholder,
   createDoorPlaceholderMaterial,
@@ -69,6 +70,34 @@ export function Viewport3D({
   const windowMaterialRef = useRef<ReturnType<typeof createWindowPlaceholderMaterial> | null>(null);
   const selectionRef = useRef<readonly string[] | undefined>(selection);
 
+  const [renderMode, setRenderMode] = useState<RenderMode>('technique');
+  const [sunHour, setSunHour] = useState<number>(14);
+  const [showEdges, setShowEdges] = useState<boolean>(true);
+
+  const handleModeChange = (mode: RenderMode) => {
+    setRenderMode(mode);
+    sceneRef.current?.setRenderMode(mode);
+  };
+
+  const handleSunHourChange = (hour: number) => {
+    setSunHour(hour);
+    sceneRef.current?.setSunHour(hour);
+  };
+
+  const handleToggleEdges = () => {
+    const next = !showEdges;
+    setShowEdges(next);
+    if (sceneRef.current) {
+      const scene = sceneRef.current.getScene();
+      scene.traverse((obj) => {
+        if (obj.name.endsWith('-architectural-edges')) {
+          obj.visible = next;
+        }
+      });
+      sceneRef.current.render();
+    }
+  };
+
   // Instanciation impérative unique
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -116,7 +145,8 @@ export function Viewport3D({
     const scene = sceneRef.current;
     if (!scene) return;
 
-    const doors = state.doors ?? {};
+    scene.batchUpdate(() => {
+      const doors = state.doors ?? {};
     const windows = state.windows ?? {};
     const slabs = state.slabs ?? {};
     const stairs = state.stairs ?? {};
@@ -583,15 +613,14 @@ export function Viewport3D({
       scene.updateMepMesh(eq.id, meshData, color);
     }
 
-    renderedElementIdsRef.current = currentElementIds;
+      renderedElementIdsRef.current = currentElementIds;
 
-    // Ré-appliquer la surbrillance sur les maillages recréés/mis à jour
-    const currentSelection = selectionRef.current;
-    if (currentSelection && currentSelection.length > 0) {
-      scene.setHighlight(currentSelection);
-    } else {
-      scene.render();
-    }
+      // Ré-appliquer la surbrillance sur les maillages recréés/mis à jour
+      const currentSelection = selectionRef.current;
+      if (currentSelection && currentSelection.length > 0) {
+        scene.setHighlight(currentSelection);
+      }
+    });
   }, [state, lastChangedIds]);
 
   // Synchronisation de la surbrillance (partagée 2D ↔ 3D)
@@ -744,6 +773,110 @@ export function Viewport3D({
           height: '100%',
         }}
       />
+      {/* Barre de contrôle PBR / Modes de rendu (ADR-072) */}
+      <div
+        data-testid="viewport-3d-toolbar"
+        style={{
+          position: 'absolute',
+          top: 48,
+          right: 12,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          padding: '4px 6px',
+          backgroundColor: 'rgba(27, 30, 36, 0.88)',
+          backdropFilter: 'blur(8px)',
+          border: '1px solid var(--border-subtle, #2d323e)',
+          borderRadius: 6,
+          zIndex: 4,
+          color: 'var(--text-primary, #f3f4f6)',
+          fontSize: 11,
+          fontFamily: 'inherit',
+          userSelect: 'none',
+        }}
+      >
+        <div style={{ display: 'flex', gap: 2 }}>
+          {(
+            [
+              ['technique', 'Technique'],
+              ['ecorche', 'Écorché Coupe'],
+              ['realiste', 'Réaliste PBR'],
+            ] as const
+          ).map(([mode, label]) => (
+            <button
+              key={mode}
+              type="button"
+              data-testid={`render-mode-${mode}`}
+              onClick={() => handleModeChange(mode)}
+              style={{
+                padding: '3px 8px',
+                border: 'none',
+                borderRadius: 4,
+                backgroundColor: renderMode === mode ? 'var(--accent-primary, #3b82f6)' : 'transparent',
+                color: renderMode === mode ? '#ffffff' : 'var(--text-secondary, #9ca3af)',
+                cursor: 'pointer',
+                fontSize: 11,
+                fontWeight: renderMode === mode ? 600 : 400,
+                transition: 'background-color 0.15s, color 0.15s',
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {renderMode === 'realiste' && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              borderLeft: '1px solid var(--border-subtle, #2d323e)',
+              paddingLeft: 6,
+              marginLeft: 2,
+            }}
+          >
+            <span style={{ color: 'var(--text-muted, #6b7280)', fontSize: 10 }}>Soleil</span>
+            <input
+              type="range"
+              min={6}
+              max={20}
+              step={0.5}
+              value={sunHour}
+              data-testid="sun-hour-slider"
+              onChange={(e) => handleSunHourChange(parseFloat(e.target.value))}
+              style={{ width: 60, height: 4, cursor: 'pointer' }}
+              title={`Heure solaire : ${Math.floor(sunHour)}h${Math.round((sunHour % 1) * 60).toString().padStart(2, '0')}`}
+            />
+            <span style={{ minWidth: 26, fontSize: 10, color: 'var(--text-secondary, #9ca3af)' }}>
+              {Math.floor(sunHour)}h
+            </span>
+          </div>
+        )}
+
+        <label
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            borderLeft: '1px solid var(--border-subtle, #2d323e)',
+            paddingLeft: 6,
+            marginLeft: 2,
+            cursor: 'pointer',
+            fontSize: 10,
+            color: 'var(--text-secondary, #9ca3af)',
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={showEdges}
+            data-testid="toggle-edges-checkbox"
+            onChange={handleToggleEdges}
+            style={{ cursor: 'pointer', margin: 0 }}
+          />
+          Arêtes fines
+        </label>
+      </div>
     </div>
   );
 }
