@@ -227,7 +227,7 @@ describe('Phase 9.3.1 — Géométrie Fondamentale 3D MEP', () => {
   // 5. Raccords (MepFitting)
   // --------------------------------------------------------------------------
   describe('Générateur géométrique de raccords (generateFittingMesh)', () => {
-    it('génère un coude (elbow) mitered raccordant 2 ports', () => {
+    it('génère un coude (elbow) haute fidélité avec balayage courbe et rotule raccordant 2 ports', () => {
       const elbow: MepFittingGeometryParams = {
         id: 'fitting_elbow_1',
         fittingType: 'elbow',
@@ -252,7 +252,39 @@ describe('Phase 9.3.1 — Géométrie Fondamentale 3D MEP', () => {
       const mesh = generateFittingMesh(elbow);
       expect(mesh.elementId).toBe('fitting_elbow_1');
       expect(mesh.userData?.fittingType).toBe('elbow');
+      expect(mesh.positions.length).toBeGreaterThan(150);
+      expect(mesh.normals.length).toBe(mesh.positions.length);
       expect(mesh.indices.length).toBeGreaterThan(0);
+      expect(mesh.indices.length % 3).toBe(0);
+    });
+
+    it('génère un coude robuste lorsque les ports coïncident avec le centre grâce à leur direction', () => {
+      const elbowCoincident: MepFittingGeometryParams = {
+        id: 'fitting_elbow_coincident',
+        fittingType: 'elbow',
+        position: { x: 2300, y: -900, z: 2500 },
+        ports: [
+          {
+            id: 'p0',
+            position: { x: 2300, y: -900, z: 2500 },
+            direction: { x: -1, y: 0, z: 0 },
+            diameter: 25,
+          },
+          {
+            id: 'p1',
+            position: { x: 2300, y: -900, z: 2500 },
+            direction: { x: 0, y: 1, z: 0 },
+            diameter: 25,
+          },
+        ],
+        systemType: 'domestic_hot_water',
+      };
+
+      const mesh = generateFittingMesh(elbowCoincident);
+      expect(mesh.elementId).toBe('fitting_elbow_coincident');
+      expect(mesh.userData?.fittingType).toBe('elbow');
+      expect(mesh.positions.length).toBeGreaterThan(100);
+      expect(mesh.indices.length % 3).toBe(0);
     });
 
     it('génère un té (tee) avec corps principal et piquage', () => {

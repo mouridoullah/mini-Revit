@@ -46,6 +46,7 @@ export function ClashWorkspace({
 }: ClashWorkspaceProps) {
   const [selectedClashId, setSelectedClashId] = useState<string | null>(null);
   const [rightViewMode, setRightViewMode] = useState<'3d' | '2d'>('3d');
+  const [hasAnalyzed, setHasAnalyzed] = useState(() => clashes.length > 0);
 
   // Décompte par sévérité
   const hardCount = useMemo(() => clashes.filter((c) => c.severity === 'hard').length, [clashes]);
@@ -58,6 +59,7 @@ export function ClashWorkspace({
   const handleRunDetection = () => {
     const results = detectClashes(doc.getState());
     onClashesChanged(results);
+    setHasAnalyzed(true);
     setSelectedClashId(null);
     if (results.length > 0 && results[0]) {
       onFocusPoint3D(results[0].point);
@@ -66,6 +68,7 @@ export function ClashWorkspace({
 
   const handleClear = () => {
     onClashesChanged([]);
+    setHasAnalyzed(false);
     setSelectedClashId(null);
   };
 
@@ -300,7 +303,7 @@ export function ClashWorkspace({
               setRightViewMode('2d');
               onLocate2D(pt, lvlId);
             }}
-            hasAnalyzed={clashes.length > 0}
+            hasAnalyzed={hasAnalyzed || clashes.length > 0}
           />
         </div>
       </div>

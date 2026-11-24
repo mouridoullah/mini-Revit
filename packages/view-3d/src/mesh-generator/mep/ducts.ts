@@ -22,16 +22,16 @@ export function generateDuctMesh(duct: DuctGeometryParams): RawMeshData {
 
     if (duct.shape === 'round') {
       const radius = Math.max(1, (duct.diameter ?? 200) / 2);
-      // Corps tubulaire circulaire
-      acc.addCylinder(p1, p2, radius * 0.97, 16, true);
+      // Corps tubulaire circulaire ouvert
+      acc.addCylinder(p1, p2, radius * 0.97, 16, false);
 
       // Manchons circulaires à brides d'étanchéité
       if (totalLength >= 150) {
         const flangeWidth = Math.min(30, totalLength * 0.08);
         // Bride de début
-        acc.addCylinder(p1, add(p1, scale(axis, flangeWidth)), radius, 16, true);
+        acc.addCylinder(p1, add(p1, scale(axis, flangeWidth)), radius, 16, false);
         // Bride de fin
-        acc.addCylinder(add(p2, scale(axis, -flangeWidth)), p2, radius, 16, true);
+        acc.addCylinder(add(p2, scale(axis, -flangeWidth)), p2, radius, 16, false);
 
         // Brides intermédiaires tous les 1 200 mm
         const flangeInterval = 1200;
@@ -42,7 +42,7 @@ export function generateDuctMesh(duct: DuctGeometryParams): RawMeshData {
             const center = add(p1, scale(axis, i * step));
             const c1 = add(center, scale(axis, -flangeWidth / 2));
             const c2 = add(center, scale(axis, flangeWidth / 2));
-            acc.addCylinder(c1, c2, radius, 16, true);
+            acc.addCylinder(c1, c2, radius, 16, false);
           }
         }
       }
@@ -51,15 +51,15 @@ export function generateDuctMesh(duct: DuctGeometryParams): RawMeshData {
       const height = Math.max(1, duct.height ?? 200);
 
       // Corps de gaine rectangulaire
-      acc.addBoxAlongAxis(p1, p2, width * 0.97, height * 0.97, true);
+      acc.addBoxAlongAxis(p1, p2, width * 0.97, height * 0.97, false);
 
       // Cadres de brides rectangulaires d'assemblage en tôle
       if (totalLength >= 150) {
         const flangeWidth = Math.min(25, totalLength * 0.06);
         // Cadre de début
-        acc.addBoxAlongAxis(p1, add(p1, scale(axis, flangeWidth)), width, height, true);
+        acc.addBoxAlongAxis(p1, add(p1, scale(axis, flangeWidth)), width, height, false);
         // Cadre de fin
-        acc.addBoxAlongAxis(add(p2, scale(axis, -flangeWidth)), p2, width, height, true);
+        acc.addBoxAlongAxis(add(p2, scale(axis, -flangeWidth)), p2, width, height, false);
 
         // Cadres intermédiaires tous les 1 200 mm
         const flangeInterval = 1200;
@@ -70,7 +70,7 @@ export function generateDuctMesh(duct: DuctGeometryParams): RawMeshData {
             const center = add(p1, scale(axis, i * step));
             const c1 = add(center, scale(axis, -flangeWidth / 2));
             const c2 = add(center, scale(axis, flangeWidth / 2));
-            acc.addBoxAlongAxis(c1, c2, width, height, true);
+            acc.addBoxAlongAxis(c1, c2, width, height, false);
           }
         }
       }

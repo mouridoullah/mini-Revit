@@ -23,33 +23,23 @@ export function generatePipeMesh(pipe: PipeGeometryParams): RawMeshData {
 
   if (totalLength > 1e-4) {
     const axis = normalize(dir);
-    // Corps principal
-    acc.addCylinder(p1, p2, radius * 0.96, 16, true);
+    // Corps tubulaire principal régulier (caps = false élimine tout bouchon plat saillant ou interne)
+    acc.addCylinder(p1, p2, radius * 0.97, 16, false);
 
-    // Bagues de renfort / Manchons d'extrémité et colliers intermédiaires
-    if (totalLength >= 120) {
-      const collarLength = Math.min(25, totalLength * 0.1);
-      // Manchon de départ (en retrait de 10 mm pour éviter les chevauchements de raccords)
-      const pStart1 = add(p1, scale(axis, 10));
-      const pStart2 = add(p1, scale(axis, 10 + collarLength));
-      acc.addCylinder(pStart1, pStart2, radius, 16, true);
-
-      // Manchon d'arrivée
-      const pEnd1 = add(p2, scale(axis, -(10 + collarLength)));
-      const pEnd2 = add(p2, scale(axis, -10));
-      acc.addCylinder(pEnd1, pEnd2, radius, 16, true);
-
-      // Colliers de fixation intermédiaires tous les 1 500 mm
-      const collarInterval = 1500;
-      if (totalLength > collarInterval) {
-        const numIntermediate = Math.floor(totalLength / collarInterval);
-        const step = totalLength / (numIntermediate + 1);
-        for (let i = 1; i <= numIntermediate; i++) {
-          const center = add(p1, scale(axis, i * step));
-          const c1 = add(center, scale(axis, -collarLength / 2));
-          const c2 = add(center, scale(axis, collarLength / 2));
-          acc.addCylinder(c1, c2, radius, 16, true);
-        }
+    // Colliers de fixation et supportage réguliers sur les canalisations (ADR-072)
+    // Disposés tous les 1 200 mm sur les canalisations d'au moins 1 500 mm
+    // Le rayon externe du collier correspond au rayon nominal exact, respectant strictement l'AABB (ADR-026)
+    const clampInterval = 1200;
+    const clampWidth = Math.min(20, Math.max(10, radius * 0.5));
+    const clampRadius = radius;
+    if (totalLength >= 1500) {
+      const numIntermediate = Math.max(1, Math.floor(totalLength / clampInterval));
+      const step = totalLength / (numIntermediate + 1);
+      for (let i = 1; i <= numIntermediate; i++) {
+        const center = add(p1, scale(axis, i * step));
+        const c1 = add(center, scale(axis, -clampWidth / 2));
+        const c2 = add(center, scale(axis, clampWidth / 2));
+        acc.addCylinder(c1, c2, clampRadius, 16, false);
       }
     }
   }

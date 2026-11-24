@@ -27,15 +27,29 @@ Version mineure majeure de **Tabax** apportant le pipeline de rendu photoréalis
 - Synchronisation temps réel avec le plan de coupe actif (`ADR-063`).
 
 #### 3. Enrichissement Géométrique Haute Fidélité MEP 3D (`@tabax/view-3d`)
-- **Tuyaux :** Corps tubulaire calibré, manchons d'extrémité et colliers de supportage transversaux réguliers tous les 1 500 mm.
+- **Tuyaux :** Corps tubulaire calibré, manchons d'extrémité et colliers de supportage transversaux réguliers tous les 1 500 mm, avec déport de sécurité de manchon évitant tout chevauchement avec les raccords.
+- **Raccords coudés fluides :** Coudes industriels haute fidélité (`elbow`) modélisés par balayage courbe toroïdal continu (`addCurvedSweep`), noyau sphérique interne de renfort et colliers d'emboîture aux ports, éliminant définitivement les bouchons plats saillants et les décrochements d'arêtes.
 - **Gaines aérauliques :** Manchons d'étanchéité circulaires et cadres de brides transversaux assemblés en tôle tous les 1 200 mm pour les gaines rectangulaires.
 - **Chemins de câbles :** Profilés en U, échelons transversaux, bords roulés supérieurs et 3 nappes de câbles distinctes (courants forts CFO Ø16 mm, courants faibles CFA Ø12 mm, conducteur de terre Ø8 mm).
-- **Raccords :** Colliers d'emboîture aux ports, selles de piquage sur les tés et croix, transitions progressives et bouchons avec collerette et tête hexagonale.
+- **Raccords généraux :** Colliers d'emboîture aux ports, selles de piquage sur les tés et croix, transitions progressives et bouchons avec collerette et tête hexagonale.
 - **Équipements techniques :** Modélisation volumique dédiée pour les 10 familles d'équipements (`boiler`, `heat_pump`, `water_heater`, `pump`, `ahu`, `fan`, `radiator`, `valve`, `meter`, `electrical_panel`).
 
 #### 4. Coordination Spatiale & UI Conflits
 - Composant partagé `ClashPresentation` (`layout="dock" | "workspace"`) unifiant le tableau d'interférences et la fiche d'inspection détaillée.
 - Repositionnement du sélecteur de mode de vue 3D/2D à gauche du volet de prévisualisation pour éliminer définitivement toute superposition avec les boutons de disposition des vues.
+
+---
+
+### Métriques de Qualification v1.1.0
+
+| Métrique de Livraison | Valeur Vérifiée v1.1.0 | Détail par Package |
+| :--- | :--- | :--- |
+| **Suites de Tests Vitest** | **165 fichiers** | `geometry`: 20, `core`: 52, `view-3d`: 20, `view-2d`: 19, `web`: 54 |
+| **Tests Automatisés Vitest** | **1 402 tests passés** | `geometry`: 228, `core`: 559, `view-3d`: 125, `view-2d`: 155, `web`: 335 |
+| **Scénarios E2E Playwright** | **18 / 18 passés (100%)** | `apps/web/e2e/smoke.spec.ts` (navigateur Chromium réel, 0 erreur console) |
+| **Vérification Statique (TypeCheck)** | **0 erreur** | `pnpm typecheck` (TypeScript 5.8 strict sur 6 workspaces) |
+| **Qualité & Formatage (Lint)** | **0 avertissement** | `pnpm lint` (ESLint 9 flat config) |
+| **Plafond Monolithes 3D** | **Respecté (< 800 L)** | `Scene3D.ts` à **773 lignes** (`ADR-072`) |
 
 ---
 

@@ -376,6 +376,130 @@ export class RawMeshAccumulator {
     }
   }
 
+  public addSphere(
+    center: Vec3D,
+    radius: number,
+    rings = 10,
+    sectors = 16,
+  ): void {
+    if (radius <= 0) return;
+    const ringIndices: number[][] = [];
+
+    // Pôle sud (-Z)
+    const pSouth = add(center, v3(0, 0, -radius));
+    const iSouth = this.addVertex(pSouth, v3(0, 0, -1));
+
+    // Anneaux de latitude
+    for (let r = 1; r < rings; r++) {
+      const phi = -Math.PI / 2 + (Math.PI * r) / rings;
+      const cosPhi = Math.cos(phi);
+      const sinPhi = Math.sin(phi);
+      const currentRing: number[] = [];
+
+      for (let s = 0; s < sectors; s++) {
+        const theta = (2 * Math.PI * s) / sectors;
+        const nx = cosPhi * Math.cos(theta);
+        const ny = cosPhi * Math.sin(theta);
+        const nz = sinPhi;
+        const norm = v3(nx, ny, nz);
+        const pt = add(center, scale(norm, radius));
+        currentRing.push(this.addVertex(pt, norm));
+      }
+      ringIndices.push(currentRing);
+    }
+
+    // Pôle nord (+Z)
+    const pNorth = add(center, v3(0, 0, radius));
+    const iNorth = this.addVertex(pNorth, v3(0, 0, 1));
+
+    // Triangles pôle sud -> premier anneau
+    const firstRing = ringIndices[0];
+    if (firstRing) {
+      for (let s = 0; s < sectors; s++) {
+        const next = (s + 1) % sectors;
+        this.addTriangle(iSouth, firstRing[next] ?? 0, firstRing[s] ?? 0);
+      }
+    }
+
+    // Quads entre anneaux intermédiaires
+    for (let r = 0; r < ringIndices.length - 1; r++) {
+      const ringA = ringIndices[r];
+      const ringB = ringIndices[r + 1];
+      if (ringA && ringB) {
+        for (let s = 0; s < sectors; s++) {
+          const next = (s + 1) % sectors;
+          this.addQuad(ringA[s] ?? 0, ringA[next] ?? 0, ringB[next] ?? 0, ringB[s] ?? 0);
+        }
+      }
+    }
+
+    // Triangles dernier anneau -> pôle nord
+    const lastRing = ringIndices[ringIndices.length - 1];
+    if (lastRing) {
+      for (let s = 0; s < sectors; s++) {
+        const next = (s + 1) % sectors;
+        this.addTriangle(lastRing[s] ?? 0, lastRing[next] ?? 0, iNorth);
+      }
+    }
+  }
+
+  public addCurvedSweep(
+    pStart: Vec3D,
+    pControl: Vec3D,
+    pEnd: Vec3D,
+    rStart: number,
+    rEnd: number,
+    segments = 16,
+    slices = 12,
+  ): void {
+    const vStart = sub(pControl, pStart);
+    const vEnd = sub(pEnd, pControl);
+    if (len(vStart) < 1e-4 || len(vEnd) < 1e-4) return;
+
+    let nPlane = cross(vStart, vEnd);
+    if (len(nPlane) < 1e-5) {
+      const axis = normalize(vStart);
+      const ref = Math.abs(axis.z) > 0.9 ? v3(0, 1, 0) : v3(0, 0, 1);
+      nPlane = normalize(cross(axis, ref));
+    } else {
+      nPlane = normalize(nPlane);
+    }
+
+    const ringIndices: number[][] = [];
+
+    for (let s = 0; s <= slices; s++) {
+      const t = s / slices;
+      const C = add(
+        add(scale(pStart, (1 - t) ** 2), scale(pControl, 2 * (1 - t) * t)),
+        scale(pEnd, t ** 2),
+      );
+      const Tunnorm = add(scale(vStart, 2 * (1 - t)), scale(vEnd, 2 * t));
+      const T = normalize(Tunnorm);
+      const U = normalize(cross(T, nPlane));
+      const V = nPlane;
+      const r = rStart + t * (rEnd - rStart);
+
+      const ring: number[] = [];
+      for (let i = 0; i < segments; i++) {
+        const theta = (2 * Math.PI * i) / segments;
+        const norm = add(scale(U, Math.cos(theta)), scale(V, Math.sin(theta)));
+        ring.push(this.addVertex(add(C, scale(norm, r)), norm));
+      }
+      ringIndices.push(ring);
+    }
+
+    for (let s = 0; s < slices; s++) {
+      const rA = ringIndices[s];
+      const rB = ringIndices[s + 1];
+      if (rA && rB) {
+        for (let i = 0; i < segments; i++) {
+          const next = (i + 1) % segments;
+          this.addQuad(rA[i] ?? 0, rA[next] ?? 0, rB[next] ?? 0, rB[i] ?? 0);
+        }
+      }
+    }
+  }
+
   public toRawMeshData(
     elementId: string,
     userData?: Record<string, unknown>,

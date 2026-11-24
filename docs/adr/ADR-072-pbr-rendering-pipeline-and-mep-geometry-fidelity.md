@@ -60,4 +60,5 @@ Accepté et implémenté (v1.1.0).
 - Zéro dégradation des performances : rendu à la demande ADR-018 préservé, zéro boucle d'animation permanente.
 - Découpage strict et isolation des packages respectée (zéro modification de `@tabax/core`).
 - Codebase considérablement allégée : plus aucun fichier de plus de 800 lignes dans `@tabax/view-3d` (`Scene3D.ts` à 773 lignes).
-- Couverture : tests unitaires dédiés GPU/cycle de vie dans `rendering/`, 18 scénarios Playwright E2E réels (incluant le basculement PBR / Écorché / curseur solaire, export DXF R12, idempotence d'auto-cotation et synchronisation de coupe 3D écorchée).
+- Couverture de tests consolidée v1.1.0 : **1 402 tests Vitest passés avec succès** sur **165 suites de tests** (`geometry`: 20 suites / 228 tests, `core`: 52 suites / 559 tests, `view-3d`: 20 suites / 125 tests, `view-2d`: 19 suites / 155 tests, `apps/web`: 54 suites / 335 tests), 18 / 18 scénarios Playwright E2E réels validés (0 erreur console), 0 erreur TypeScript, 0 warning ESLint.
+- Coudes MEP industriels fluides (`elbow`) sans bouchons saillants : modélisation par balayage toroïdal continu `addCurvedSweep` et rotule sphérique.
