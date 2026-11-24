@@ -378,6 +378,60 @@ describe('Phase 9.3.1 — Géométrie Fondamentale 3D MEP', () => {
       expect(mesh.boundingBox.min.z).toBeCloseTo(0, 1);
       expect(mesh.boundingBox.max.z).toBeGreaterThanOrEqual(900);
     });
+
+    it('génère une modélisation multi-volumes dédiée pour chacune des 10 familles MEP (ADR-072)', () => {
+      const families: Array<MepEquipmentGeometryParams['family']> = [
+        'boiler',
+        'heat_pump',
+        'water_heater',
+        'pump',
+        'ahu',
+        'fan',
+        'radiator',
+        'valve',
+        'meter',
+        'electrical_panel',
+      ];
+
+      for (const fam of families) {
+        const eq: MepEquipmentGeometryParams = {
+          id: `eq_${fam}_1`,
+          family: fam,
+          position: { x: 500, y: 500, z: 0 },
+          width: 400,
+          depth: 300,
+          height: 600,
+        };
+        const m = generateEquipmentMesh(eq);
+        expect(m.elementId).toBe(`eq_${fam}_1`);
+        expect(m.userData?.family).toBe(fam);
+        expect(m.positions.length).toBeGreaterThan(72); // Multi-volumes (> simple boîte de 72 floats)
+        expect(m.indices.length % 3).toBe(0);
+        expect(m.boundingBox.max.z).toBeGreaterThan(0);
+      }
+    });
+
+    it('tuyaux et gaines intègrent des bagues, colliers et brides d assemblage (ADR-072)', () => {
+      const longPipe: PipeGeometryParams = {
+        id: 'pipe_flanged_1',
+        start: { x: 0, y: 0, z: 1000 },
+        end: { x: 2000, y: 0, z: 1000 },
+        diameter: 50,
+      };
+      const pMesh = generatePipeMesh(longPipe);
+      expect(pMesh.positions.length).toBeGreaterThan(150);
+
+      const rectDuct: DuctGeometryParams = {
+        id: 'duct_flanged_1',
+        shape: 'rectangular',
+        start: { x: 0, y: 0, z: 2000 },
+        end: { x: 3000, y: 0, z: 2000 },
+        width: 400,
+        height: 250,
+      };
+      const dMesh = generateDuctMesh(rectDuct);
+      expect(dMesh.positions.length).toBeGreaterThan(150);
+    });
   });
 
   // --------------------------------------------------------------------------

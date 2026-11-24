@@ -517,8 +517,28 @@ test.describe('Tabax E2E Smoke Tests (Playwright Real Browser)', () => {
     // Vérifier l'augmentation des cotes (1 existante + 10 = 11)
     await expect(page.locator('[data-testid="status-bar"]')).toContainText('Cotes : 11');
 
-    // 2. Attendre l'expiration du debounce de sauvegarde automatique (500 ms) + marge
-    await page.waitForTimeout(800);
+    // 2. Attendre de manière déterministe que la sauvegarde soit persistée dans IndexedDB
+    await page.waitForFunction(async () => {
+      return new Promise<boolean>((resolve) => {
+        const req = indexedDB.open('tabax_bim_db', 1);
+        req.onsuccess = () => {
+          const db = req.result;
+          if (!db.objectStoreNames.contains('autosave')) {
+            resolve(false);
+            return;
+          }
+          const tx = db.transaction('autosave', 'readonly');
+          const store = tx.objectStore('autosave');
+          const getReq = store.get('current_project');
+          getReq.onsuccess = () => {
+            const data = getReq.result;
+            resolve(Boolean(data && data.state && Object.keys(data.state.dimensions || {}).length === 11));
+          };
+          getReq.onerror = () => resolve(false);
+        };
+        req.onerror = () => resolve(false);
+      });
+    }, null, { timeout: 5000 });
 
     // 3. Recharger la page
     await page.reload();
@@ -609,5 +629,56 @@ test.describe('Tabax E2E Smoke Tests (Playwright Real Browser)', () => {
     await expect(sunSlider).toHaveCount(0);
 
     expect(consoleErrors).toEqual([]);
+  });
+
+  test('export DXF R12 1:1 du plan d’étage actif (ADR-065)', async ({ page }) => {
+    await page.goto('/');
+    const downloadPromise = page.waitForEvent('download');
+    const exportDxfBtn = page.locator('[data-testid="export-plan-dxf-btn"]');
+    await expect(exportDxfBtn).toBeVisible();
+    await exportDxfBtn.click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toMatch(/\.dxf$/i);
+  });
+
+  test('idempotence de la cotation automatique au deuxième clic (ADR-066)', async ({ page }) => {
+    await page.goto('/');
+    const autoDimBtn = page.locator('[data-testid="auto-dimension-floor-btn"]');
+    await expect(autoDimBtn).toBeVisible();
+    await autoDimBtn.click();
+    await expect(page.locator('[data-testid="status-bar"]')).toContainText('Cotes : 11');
+
+    // 2ème clic : ne doit pas ré-ajouter de cotes redondantes
+    await autoDimBtn.click();
+    await expect(page.locator('[data-testid="status-bar"]')).toContainText('Cotes : 11');
+  });
+
+  test('synchronisation de coupe 3D et mode Écorché (ADR-063, ADR-072)', async ({ page }) => {
+    await page.goto('/');
+    // 1. Générer les vues et coupes automatiques
+    const genViewsBtn = page.locator('[data-testid="auto-generate-views-btn"]');
+    await expect(genViewsBtn).toBeVisible();
+    await genViewsBtn.click();
+
+    // 2. Sélectionner la coupe dans le navigateur de projet
+    const cutAABtn = page.locator('button[data-testid^="project-section-"]:has-text("Coupe transversale A-A\'")');
+    await expect(cutAABtn).toBeVisible();
+    await cutAABtn.click();
+
+    // 3. Basculer en vue Coupe et activer la synchronisation 3D
+    await page.locator('[data-testid="layout-section-btn"]').click();
+    const sync3dBtn = page.locator('[data-testid="toggle-3d-synchro-btn"]');
+    await expect(sync3dBtn).toBeVisible();
+    await sync3dBtn.click();
+
+    // 4. Basculer en vue 3D
+    const view3dBtn = page.locator('[data-testid="layout-3d-btn"]');
+    await view3dBtn.click();
+
+    // 5. Basculer en mode Écorché
+    const ecorcheBtn = page.locator('[data-testid="render-mode-ecorche"]');
+    await expect(ecorcheBtn).toBeVisible();
+    await ecorcheBtn.click();
+    await expect(ecorcheBtn).toHaveCSS('font-weight', '600');
   });
 });

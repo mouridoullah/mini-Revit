@@ -15,6 +15,20 @@ export interface ElementInfo {
 }
 
 /**
+ * Formate le libellé d'affichage de la sévérité d'un conflit.
+ */
+export function formatSeverityLabel(severity: ClashSeverity): string {
+  return severity === 'hard' ? 'Hard' : 'Clearance';
+}
+
+/**
+ * Retourne la couleur hexadécimale associée à la sévérité d'un conflit.
+ */
+export function getSeverityColor(severity: ClashSeverity): string {
+  return severity === 'hard' ? '#ef4444' : '#f59e0b';
+}
+
+/**
  * Extrait les métadonnées d'affichage d'un élément du modèle BIM pour les fiches d'inspection de clash.
  */
 export function getElementInfo(state: BimState, id: string): ElementInfo {

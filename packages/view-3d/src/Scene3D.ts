@@ -2,24 +2,20 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { type RawMeshData } from '@tabax/geometry';
 import { type SceneOptions, type ClashOverlayItem, type FederatedModelVisual } from './types.js';
-import { MeshAdapter } from './MeshAdapter.js';
 import { FederatedIfcManager } from './FederatedIfcManager.js';
-import {
-  createDefaultMaterial,
-  createHighlightMaterial,
-  createSanitaryMaterial,
-  createKitchenMaterial,
-  createFurnitureMaterial,
-  createGlazingMaterial,
-  createMepMaterial,
-} from './materials.js';
+import { createDefaultMaterial } from './materials.js';
 import { EnvironmentManager } from './rendering/EnvironmentManager.js';
 import { PostProcessingManager } from './rendering/PostProcessingManager.js';
 import type { RenderMode } from './rendering/PostProcessingManager.js';
 import { SectionCapManager } from './rendering/SectionCapManager.js';
-import { getProceduralTextures, disposeProceduralTextures } from './rendering/ProceduralTextures.js';
+import { ArchitecturalMeshManager } from './rendering/ArchitecturalMeshManager.js';
+import { ArchitecturalGridManager } from './rendering/ArchitecturalGridManager.js';
+import { DomainMeshFactory, type ComponentMeshFamily } from './rendering/DomainMeshFactory.js';
+import { ClashOverlayManager } from './rendering/ClashOverlayManager.js';
+import { SelectionHighlightManager } from './rendering/SelectionHighlightManager.js';
+import { CameraTransitionManager } from './rendering/CameraTransitionManager.js';
 
-export type ComponentMeshFamily = 'sanitary' | 'kitchen' | 'furniture' | 'glazing' | (string & {});
+export type { ComponentMeshFamily };
 
 /**
  * Gestionnaire impératif de scène 3D Three.js pour Mini-BIM.
@@ -39,26 +35,26 @@ export class Scene3D {
   private readonly scene: THREE.Scene;
   private readonly camera: THREE.PerspectiveCamera;
   private readonly controls: OrbitControls;
-  private readonly gridHelper: THREE.GridHelper;
-  private readonly gridMajorVertexMask: readonly boolean[];
+  private readonly gridManager: ArchitecturalGridManager;
   private readonly ambientLight: THREE.HemisphereLight;
   private readonly directionalLight: THREE.DirectionalLight;
   private readonly defaultMaterial: THREE.MeshStandardMaterial;
   private readonly highlightMaterial: THREE.MeshStandardMaterial;
-  private readonly slabMaterial: THREE.MeshStandardMaterial;
-  private readonly stairMaterial: THREE.MeshStandardMaterial;
-  private readonly roofMaterial: THREE.MeshStandardMaterial;
-  private readonly sanitaryMaterial: THREE.MeshStandardMaterial;
-  private readonly kitchenMaterial: THREE.MeshStandardMaterial;
-  private readonly furnitureMaterial: THREE.MeshStandardMaterial;
-  private readonly glazingMaterial: THREE.MeshStandardMaterial;
-  private parquetFloorMaterial: THREE.MeshStandardMaterial | null = null;
-  private carrelageFloorMaterial: THREE.MeshStandardMaterial | null = null;
+  private readonly domainFactory: DomainMeshFactory;
+
+  public get slabMaterial(): THREE.MeshStandardMaterial { return this.domainFactory.slabMaterial; }
+  public get stairMaterial(): THREE.MeshStandardMaterial { return this.domainFactory.stairMaterial; }
+  public get roofMaterial(): THREE.MeshStandardMaterial { return this.domainFactory.roofMaterial; }
+  public get sanitaryMaterial(): THREE.MeshStandardMaterial { return this.domainFactory.sanitaryMaterial; }
+  public get kitchenMaterial(): THREE.MeshStandardMaterial { return this.domainFactory.kitchenMaterial; }
+  public get furnitureMaterial(): THREE.MeshStandardMaterial { return this.domainFactory.furnitureMaterial; }
+  public get glazingMaterial(): THREE.MeshStandardMaterial { return this.domainFactory.glazingMaterial; }
 
   /**
-   * Groupe conteneur des superpositions filaires et visuelles de collisions.
+   * Gestionnaires impératifs dédiés (ADR-072) : surbrillance, collisions, transitions.
    */
-  private readonly clashOverlaysGroup: THREE.Group = new THREE.Group();
+  private readonly clashOverlayManager: ClashOverlayManager;
+  private readonly selectionHighlightManager: SelectionHighlightManager;
 
   /**
    * Gestionnaire impératif des maquettes IFC externes fédérées.
@@ -66,9 +62,10 @@ export class Scene3D {
   private readonly federatedManager: FederatedIfcManager = new FederatedIfcManager();
 
   /**
-   * Registre des maillages architecturaux indexés par elementId.
+   * Gestionnaire des maillages architecturaux et arêtes fines (ADR-072).
    */
-  private readonly meshes: Map<string, THREE.Mesh[]> = new Map();
+  private readonly meshManager: ArchitecturalMeshManager;
+  private readonly meshes: Map<string, THREE.Mesh[]>;
 
   /**
    * Plan de coupe 3D actif (ADR-063).
@@ -94,17 +91,9 @@ export class Scene3D {
     canvasOrOptions: HTMLCanvasElement | SceneOptions,
     maybeOptions?: Partial<SceneOptions>,
   ) {
-    let canvas: HTMLCanvasElement;
-    let options: Partial<SceneOptions>;
-
-    if (canvasOrOptions && typeof canvasOrOptions === 'object' && 'getContext' in canvasOrOptions) {
-      canvas = canvasOrOptions as HTMLCanvasElement;
-      options = maybeOptions ?? {};
-    } else {
-      const fullOptions = canvasOrOptions as SceneOptions;
-      canvas = fullOptions.canvas;
-      options = fullOptions;
-    }
+    const isCanvas = canvasOrOptions && typeof canvasOrOptions === 'object' && 'getContext' in canvasOrOptions;
+    const canvas = (isCanvas ? canvasOrOptions : (canvasOrOptions as SceneOptions).canvas) as HTMLCanvasElement;
+    const options: Partial<SceneOptions> = isCanvas ? (maybeOptions ?? {}) : (canvasOrOptions as SceneOptions);
 
     const width = options.width ?? 800;
     const height = options.height ?? 600;
@@ -148,22 +137,11 @@ export class Scene3D {
     this.scene.add(this.directionalLight.target);
 
     // 5. Grille de sol horizontale XY (Z = 0)
-    this.gridHelper = new THREE.GridHelper(gridSize, gridDivisions, 0x566070, 0x3a404c);
-    const gridColors = this.gridHelper.geometry.getAttribute('color');
-    const majorColor = new THREE.Color(0x566070);
-    const minorColor = new THREE.Color(0x3a404c);
-    this.gridMajorVertexMask = Array.from({ length: gridColors.count }, (_, index) => {
-      const r = gridColors.getX(index);
-      const g = gridColors.getY(index);
-      const b = gridColors.getZ(index);
-      const majorDistance = Math.hypot(r - majorColor.r, g - majorColor.g, b - majorColor.b);
-      const minorDistance = Math.hypot(r - minorColor.r, g - minorColor.g, b - minorColor.b);
-      return majorDistance < minorDistance;
-    });
-    // Bascule de la grille du plan XZ standard Three.js vers le plan XY architectural
-    this.gridHelper.rotation.x = Math.PI / 2;
-    this.scene.add(this.gridHelper);
-    this.scene.add(this.clashOverlaysGroup);
+    this.gridManager = new ArchitecturalGridManager(this.scene, gridSize, gridDivisions);
+    this.meshManager = new ArchitecturalMeshManager(this.scene);
+    this.meshes = this.meshManager.getMeshesMap();
+    this.clashOverlayManager = new ClashOverlayManager(this.scene);
+    this.selectionHighlightManager = new SelectionHighlightManager();
     this.scene.add(this.federatedManager.getRootGroup());
 
     // 6. Contrôles orbitaux
@@ -173,51 +151,10 @@ export class Scene3D {
     this.controls.dampingFactor = 0.05;
     this.controls.update();
 
-    // 7. Matériaux partagés par défaut et de surbrillance
+    // 7. Matériaux partagés par défaut et de domaine (ADR-050, ADR-072)
     this.defaultMaterial = createDefaultMaterial();
-    this.highlightMaterial = createHighlightMaterial();
-    this.slabMaterial = new THREE.MeshStandardMaterial({
-      color: 0xd1d5db,
-      roughness: 0.85,
-      metalness: 0.05,
-      side: THREE.DoubleSide,
-    });
-    this.stairMaterial = new THREE.MeshStandardMaterial({
-      color: 0xa0825a,
-      roughness: 0.7,
-      metalness: 0.1,
-      side: THREE.DoubleSide,
-    });
-    this.roofMaterial = new THREE.MeshStandardMaterial({
-      color: 0x92400e,
-      roughness: 0.65,
-      metalness: 0.05,
-      side: THREE.DoubleSide,
-    });
-    this.sanitaryMaterial = createSanitaryMaterial();
-    this.kitchenMaterial = createKitchenMaterial();
-    this.furnitureMaterial = createFurnitureMaterial();
-    this.glazingMaterial = createGlazingMaterial();
-
-    if (typeof window !== 'undefined') {
-      try {
-        const textures = getProceduralTextures(this.renderer);
-        this.parquetFloorMaterial = new THREE.MeshStandardMaterial({
-          map: textures.parquet,
-          roughness: 0.45,
-          metalness: 0.05,
-          side: THREE.DoubleSide,
-        });
-        this.carrelageFloorMaterial = new THREE.MeshStandardMaterial({
-          map: textures.carrelage,
-          roughness: 0.55,
-          metalness: 0.08,
-          side: THREE.DoubleSide,
-        });
-      } catch {
-        // Dégradation gracieuse en environnement test / headless
-      }
-    }
+    this.highlightMaterial = this.selectionHighlightManager.getHighlightMaterial();
+    this.domainFactory = new DomainMeshFactory(this.renderer);
 
     // 8. Rendu à la demande sur interaction caméra
     // Compatible ADR-018 : pendant la rotation -> rendu direct, apres relachement -> AO plein
@@ -273,15 +210,7 @@ export class Scene3D {
     return (
       mat === this.defaultMaterial ||
       mat === this.highlightMaterial ||
-      mat === this.slabMaterial ||
-      mat === this.stairMaterial ||
-      mat === this.roofMaterial ||
-      mat === this.sanitaryMaterial ||
-      mat === this.kitchenMaterial ||
-      mat === this.furnitureMaterial ||
-      mat === this.glazingMaterial ||
-      mat === this.parquetFloorMaterial ||
-      mat === this.carrelageFloorMaterial
+      this.domainFactory.isInternalMaterial(mat)
     );
   }
 
@@ -296,51 +225,13 @@ export class Scene3D {
     if (this.isDisposed) {
       throw new Error('[Scene3D] Cannot add mesh to a disposed Scene3D instance.');
     }
-
-    const geometry = MeshAdapter.fromRawMeshData(rawData);
-    const mat = material ?? this.defaultMaterial;
-    if (this.activeClippingPlane) {
-      const planes = [this.activeClippingPlane];
-      if (Array.isArray(mat)) {
-        mat.forEach((m) => {
-          m.clippingPlanes = planes;
-          m.clipShadows = true;
-        });
-      } else {
-        mat.clippingPlanes = planes;
-        mat.clipShadows = true;
-      }
-    }
-    const mesh = new THREE.Mesh(geometry, mat);
-    mesh.name = rawData.elementId;
-    mesh.userData = {
-      elementId: rawData.elementId,
-      role: rawData.role,
-      baseMaterial: mat,
-      ...(rawData.userData ?? {}),
-      ...(materialOptions ?? {}),
-    };
-
-    // Arêtes d'architecture fines, conservées comme enfants du volume sélectionnable.
-    if (['wall', 'slab', 'roof'].includes(String(mesh.userData.category ?? ''))) {
-      const edges = new THREE.EdgesGeometry(geometry, 15);
-      const lineMat = new THREE.LineBasicMaterial({ color: 0x2b303b });
-      if (this.activeClippingPlane) {
-        lineMat.clippingPlanes = [this.activeClippingPlane];
-      }
-      const lines = new THREE.LineSegments(edges, lineMat);
-      lines.name = `${rawData.elementId}-architectural-edges`;
-      lines.userData.ownsGeometryAndMaterial = true;
-      mesh.add(lines);
-      this.sectionCapManager?.registerMesh(mesh, rawData.elementId);
-    }
-
-    this.scene.add(mesh);
-
-    const existingList = this.meshes.get(rawData.elementId) ?? [];
-    existingList.push(mesh);
-    this.meshes.set(rawData.elementId, existingList);
-
+    const mesh = this.meshManager.addMesh(
+      rawData,
+      material ?? this.defaultMaterial,
+      materialOptions,
+      this.activeClippingPlane,
+      this.sectionCapManager,
+    );
     this.render();
     return mesh;
   }
@@ -357,26 +248,12 @@ export class Scene3D {
     if (this.isDisposed) {
       throw new Error('[Scene3D] Cannot update mesh on a disposed Scene3D instance.');
     }
-
-    // Supprimer et libérer proprement les anciens maillages de cet elementId
     this.removeMesh(rawData.elementId);
-
-    // Ajouter le nouveau maillage
     return this.addMesh(rawData, material, materialOptions);
   }
 
   /**
-   * Met à jour en une seule opération atomique l'ensemble des maillages associés à un elementId
-   * (ex: les 3 à 6 tronçons solides d'un mur percé d'ouvertures).
-   *
-   * Garantit que :
-   * 1. Toutes les géométries précédentes associées à elementId sont libérées via dispose().
-   * 2. L'ensemble des nouveaux tronçons est instancié et rattaché à la scène sous elementId.
-   *
-   * @param elementId Identifiant de l'élément architectural hôte
-   * @param rawDataList Liste des conteneurs géométriques à instancier
-   * @param material Matériau optionnel (par défaut: defaultMaterial)
-   * @returns La liste des nouveaux maillages THREE.Mesh créés
+   * Met à jour en une seule opération atomique l'ensemble des maillages associés à un elementId.
    */
   public updateMeshBatch(
     elementId: string,
@@ -386,22 +263,10 @@ export class Scene3D {
     if (this.isDisposed) {
       throw new Error('[Scene3D] Cannot update mesh batch on a disposed Scene3D instance.');
     }
-
     return this.batchUpdate(() => {
-      // 1. Libérer et supprimer proprement tous les anciens maillages de cet elementId
       this.removeMesh(elementId);
-
-      if (rawDataList.length === 0) {
-        return [];
-      }
-
-      // 2. Créer et ajouter tous les nouveaux maillages
-      const createdMeshes: THREE.Mesh[] = [];
-      for (const rawData of rawDataList) {
-        createdMeshes.push(this.addMesh(rawData, material));
-      }
-
-      return createdMeshes;
+      if (rawDataList.length === 0) return [];
+      return rawDataList.map((rawData) => this.addMesh(rawData, material));
     });
   }
 
@@ -410,56 +275,12 @@ export class Scene3D {
    */
   public removeMesh(elementId: string): void {
     if (this.isDisposed) return;
-
-    const meshList = this.meshes.get(elementId);
-    if (!meshList || meshList.length === 0) return;
-
-    for (const mesh of meshList) {
-      this.scene.remove(mesh);
-      this.disposeArchitecturalEdges(mesh);
-      mesh.geometry.dispose();
-
-      // Protection des matériaux partagés ou non possédés (S2-3)
-      if (mesh.userData?.ownsMaterial === false || mesh.userData?.isSharedMaterial === true) {
-        continue;
-      }
-
-      const baseMat = mesh.userData?.baseMaterial as THREE.Material | undefined;
-      const matsToDispose = new Set<THREE.Material>();
-
-      const checkAndAdd = (mat: THREE.Material | THREE.Material[] | undefined) => {
-        if (!mat) return;
-        const list = Array.isArray(mat) ? mat : [mat];
-        for (const m of list) {
-          if (!this.isInternalMaterial(m)) {
-            matsToDispose.add(m);
-          }
-        }
-      };
-
-      checkAndAdd(mesh.material);
-      checkAndAdd(baseMat);
-
-      for (const m of matsToDispose) {
-        m.dispose();
-      }
-    }
-
-    this.meshes.delete(elementId);
-    this.sectionCapManager?.unregisterMesh(elementId);
+    this.meshManager.removeMesh(
+      elementId,
+      this.sectionCapManager,
+      (mat) => this.isInternalMaterial(mat),
+    );
     this.render();
-  }
-
-  private disposeArchitecturalEdges(mesh: THREE.Mesh): void {
-    for (const child of [...mesh.children]) {
-      if (child.userData?.ownsGeometryAndMaterial !== true) continue;
-      mesh.remove(child);
-      if (child instanceof THREE.LineSegments) {
-        child.geometry.dispose();
-        const materials = Array.isArray(child.material) ? child.material : [child.material];
-        materials.forEach((material) => material.dispose());
-      }
-    }
   }
 
   /**
@@ -476,37 +297,7 @@ export class Scene3D {
    */
   public addRoomMesh(roomId: string, rawMesh: RawMeshData): THREE.Mesh {
     const isRealistic = this.getRenderMode() === 'realiste';
-    let material: THREE.Material;
-
-    if (isRealistic) {
-      const finish = rawMesh.userData?.finish as string | undefined;
-      if (finish === 'carrelage' && this.carrelageFloorMaterial) {
-        material = this.carrelageFloorMaterial;
-      } else if (finish === 'parquet' && this.parquetFloorMaterial) {
-        material = this.parquetFloorMaterial;
-      } else {
-        const color = getRoomColorHex(roomId);
-        material = new THREE.MeshStandardMaterial({
-          color,
-          roughness: 0.8,
-          metalness: 0.1,
-          transparent: true,
-          opacity: 0.5,
-          side: THREE.DoubleSide,
-        });
-      }
-    } else {
-      const color = getRoomColorHex(roomId);
-      material = new THREE.MeshStandardMaterial({
-        color,
-        roughness: 0.8,
-        metalness: 0.1,
-        transparent: true,
-        opacity: 0.5,
-        side: THREE.DoubleSide,
-      });
-    }
-
+    const material = this.domainFactory.getRoomMaterial(roomId, rawMesh, isRealistic);
     return this.addMesh({ ...rawMesh, elementId: roomId }, material);
   }
 
@@ -518,136 +309,48 @@ export class Scene3D {
     return this.addRoomMesh(roomId, rawMesh);
   }
 
-  /**
-   * Ajoute une dalle structurelle dans la scène 3D avec un matériau béton (#d1d5db).
-   */
   public addSlabMesh(slabId: string, rawMesh: RawMeshData): THREE.Mesh {
-    return this.addMesh(
-      {
-        ...rawMesh,
-        elementId: slabId,
-        userData: {
-          elementId: slabId,
-          category: 'slab',
-          ...(rawMesh.userData ?? {}),
-        },
-      },
-      this.slabMaterial,
-    );
+    return this.addMesh(this.domainFactory.formatSlab(slabId, rawMesh), this.slabMaterial);
   }
 
-  /**
-   * Met à jour une dalle structurelle (libère l'ancienne géométrie et remplace le mesh).
-   */
   public updateSlabMesh(slabId: string, rawMesh: RawMeshData): THREE.Mesh {
     this.removeMesh(slabId);
     return this.addSlabMesh(slabId, rawMesh);
   }
 
-  /**
-   * Ajoute un escalier dans la scène 3D avec un matériau bois structuré (#a0825a).
-   */
   public addStairMesh(stairId: string, rawMesh: RawMeshData): THREE.Mesh {
-    return this.addMesh(
-      {
-        ...rawMesh,
-        elementId: stairId,
-        userData: {
-          elementId: stairId,
-          category: 'stair',
-          ...(rawMesh.userData ?? {}),
-        },
-      },
-      this.stairMaterial,
-    );
+    return this.addMesh(this.domainFactory.formatStair(stairId, rawMesh), this.stairMaterial);
   }
 
-  /**
-   * Met à jour un escalier (libère l'ancienne géométrie et remplace le mesh).
-   */
   public updateStairMesh(stairId: string, rawMesh: RawMeshData): THREE.Mesh {
     this.removeMesh(stairId);
     return this.addStairMesh(stairId, rawMesh);
   }
 
-  public removeStairMesh(stairId: string): void {
-    this.removeMesh(stairId);
-  }
+  public removeStairMesh(stairId: string): void { this.removeMesh(stairId); }
 
-  /**
-   * Ajoute une toiture dans la scène 3D avec un matériau architectural terre cuite (#92400e).
-   */
   public addRoofMesh(roofId: string, rawMesh: RawMeshData): THREE.Mesh {
-    return this.addMesh(
-      {
-        ...rawMesh,
-        elementId: roofId,
-        userData: {
-          elementId: roofId,
-          category: 'roof',
-          ...(rawMesh.userData ?? {}),
-        },
-      },
-      this.roofMaterial,
-    );
+    return this.addMesh(this.domainFactory.formatRoof(roofId, rawMesh), this.roofMaterial);
   }
 
-  /**
-   * Met à jour une toiture (libère l'ancienne géométrie et remplace le mesh).
-   */
   public updateRoofMesh(roofId: string, rawMesh: RawMeshData): THREE.Mesh {
     this.removeMesh(roofId);
     return this.addRoofMesh(roofId, rawMesh);
   }
 
-  public removeRoofMesh(roofId: string): void {
-    this.removeMesh(roofId);
-  }
+  public removeRoofMesh(roofId: string): void { this.removeMesh(roofId); }
 
-  /**
-   * Ajoute un composant d'aménagement ou mobilier dans la scène 3D.
-   */
   public addComponentMesh(
     componentId: string,
     rawMesh: RawMeshData,
     family: ComponentMeshFamily = 'furniture',
   ): THREE.Mesh {
-    let mat: THREE.MeshStandardMaterial;
-    switch (family) {
-      case 'sanitary':
-        mat = this.sanitaryMaterial;
-        break;
-      case 'kitchen':
-        mat = this.kitchenMaterial;
-        break;
-      case 'furniture':
-        mat = this.furnitureMaterial;
-        break;
-      case 'glazing':
-        mat = this.glazingMaterial;
-        break;
-      default:
-        mat = this.furnitureMaterial;
-    }
-
     return this.addMesh(
-      {
-        ...rawMesh,
-        elementId: componentId,
-        userData: {
-          elementId: componentId,
-          category: 'component',
-          family,
-          ...(rawMesh.userData ?? {}),
-        },
-      },
-      mat,
+      this.domainFactory.formatComponent(componentId, rawMesh, family),
+      this.domainFactory.getComponentMaterial(family),
     );
   }
 
-  /**
-   * Met à jour un composant d'aménagement (libère l'ancienne géométrie et remplace le mesh).
-   */
   public updateComponentMesh(
     componentId: string,
     rawMesh: RawMeshData,
@@ -657,43 +360,19 @@ export class Scene3D {
     return this.addComponentMesh(componentId, rawMesh, family);
   }
 
-  public removeComponentMesh(componentId: string): void {
-    this.removeMesh(componentId);
-  }
+  public removeComponentMesh(componentId: string): void { this.removeMesh(componentId); }
 
-  /**
-   * Ajoute un élément de réseau MEP (tuyau, gaine, chemin de câbles, raccord, équipement) à la scène 3D.
-   */
   public addMepMesh(
     elementId: string,
     rawMesh: RawMeshData,
     colorOrMaterial?: string | number | THREE.Material,
   ): THREE.Mesh {
-    let material: THREE.Material;
-    if (colorOrMaterial instanceof THREE.Material) {
-      material = colorOrMaterial;
-    } else {
-      const hex = colorOrMaterial ?? (rawMesh.userData?.color as string | undefined) ?? '#64748b';
-      material = createMepMaterial(hex);
-    }
-
     return this.addMesh(
-      {
-        ...rawMesh,
-        elementId,
-        userData: {
-          elementId,
-          category: 'mep',
-          ...(rawMesh.userData ?? {}),
-        },
-      },
-      material,
+      this.domainFactory.formatMep(elementId, rawMesh),
+      this.domainFactory.getMepMaterial(rawMesh, colorOrMaterial),
     );
   }
 
-  /**
-   * Met à jour un élément MEP dans la scène 3D (libère l'ancienne géométrie et remplace le mesh).
-   */
   public updateMepMesh(
     elementId: string,
     rawMesh: RawMeshData,
@@ -703,9 +382,7 @@ export class Scene3D {
     return this.addMepMesh(elementId, rawMesh, colorOrMaterial);
   }
 
-  public removeMepMesh(elementId: string): void {
-    this.removeMesh(elementId);
-  }
+  public removeMepMesh(elementId: string): void { this.removeMesh(elementId); }
 
   /**
    * Applique ou retire la surbrillance de sélection sur les éléments spécifiés.
@@ -715,15 +392,7 @@ export class Scene3D {
    */
   public setHighlight(ids: Iterable<string>): void {
     if (this.isDisposed) return;
-
-    const idSet = new Set(ids);
-    for (const [elementId, meshList] of this.meshes.entries()) {
-      const isSelected = idSet.has(elementId);
-      for (const mesh of meshList) {
-        const baseMat = (mesh.userData?.baseMaterial as THREE.Material) ?? this.defaultMaterial;
-        mesh.material = isSelected ? this.highlightMaterial : baseMat;
-      }
-    }
+    this.selectionHighlightManager.setHighlight(ids, this.meshes, this.defaultMaterial);
     this.render();
   }
 
@@ -757,25 +426,7 @@ export class Scene3D {
    */
   public raycastNDC(ndcX: number, ndcY: number): string | null {
     if (this.isDisposed) return null;
-
-    const raycaster = new THREE.Raycaster();
-    raycaster.setFromCamera(new THREE.Vector2(ndcX, ndcY), this.camera);
-
-    const candidateMeshes: THREE.Mesh[] = [];
-    for (const meshList of this.meshes.values()) {
-      candidateMeshes.push(...meshList);
-    }
-
-    const hits = raycaster.intersectObjects(candidateMeshes, false);
-    for (const hit of hits) {
-      if (this.activeClippingPlane && this.activeClippingPlane.distanceToPoint(hit.point) < 0) {
-        continue;
-      }
-      const userDataId = hit.object.userData?.elementId as string | undefined;
-      const meshName = hit.object.name;
-      return userDataId || meshName || null;
-    }
-    return null;
+    return this.meshManager.raycastNDC(ndcX, ndcY, this.camera, this.activeClippingPlane);
   }
 
   /**
@@ -783,19 +434,7 @@ export class Scene3D {
    */
   public clearClashOverlays(): void {
     if (this.isDisposed) return;
-    while (this.clashOverlaysGroup.children.length > 0) {
-      const child = this.clashOverlaysGroup.children[0];
-      if (!child) break;
-      this.clashOverlaysGroup.remove(child);
-      if (child instanceof THREE.Mesh || child instanceof THREE.LineSegments) {
-        child.geometry?.dispose();
-        if (Array.isArray(child.material)) {
-          child.material.forEach((m) => m.dispose());
-        } else if (child.material) {
-          child.material.dispose();
-        }
-      }
-    }
+    this.clashOverlayManager.clear();
     this.render();
   }
 
@@ -807,57 +446,7 @@ export class Scene3D {
    */
   public setClashOverlays(clashes: readonly ClashOverlayItem[]): void {
     if (this.isDisposed) return;
-    this.clearClashOverlays();
-
-    for (const clash of clashes) {
-      const isHard = clash.severity === 'hard';
-      const color = isHard ? 0xef4444 : 0xf59e0b;
-      const min = clash.intersectionBox.min;
-      const max = clash.intersectionBox.max;
-
-      // Calcul des dimensions de la zone d'interférence avec épaisseur minimale visible
-      const dx = Math.max(Math.abs(max.x - min.x), 30);
-      const dy = Math.max(Math.abs(max.y - min.y), 30);
-      const dz = Math.max(Math.abs(max.z - min.z), 30);
-
-      const cx = (min.x + max.x) / 2;
-      const cy = (min.y + max.y) / 2;
-      const cz = (min.z + max.z) / 2;
-
-      // 1. Volume translucide
-      const boxGeo = new THREE.BoxGeometry(dx, dy, dz);
-      const boxMat = new THREE.MeshBasicMaterial({
-        color,
-        transparent: true,
-        opacity: 0.25,
-        depthWrite: false,
-      });
-      const boxMesh = new THREE.Mesh(boxGeo, boxMat);
-      boxMesh.position.set(cx, cy, cz);
-      this.clashOverlaysGroup.add(boxMesh);
-
-      // 2. Arêtes filaires accentuées
-      const edgesGeo = new THREE.EdgesGeometry(boxGeo);
-      const lineMat = new THREE.LineBasicMaterial({
-        color,
-      });
-      const lineSegments = new THREE.LineSegments(edgesGeo, lineMat);
-      lineSegments.position.set(cx, cy, cz);
-      this.clashOverlaysGroup.add(lineSegments);
-
-      // 3. Repère ponctuel au point de contact
-      if (clash.point) {
-        const sphereGeo = new THREE.SphereGeometry(35, 8, 8);
-        const sphereMat = new THREE.MeshBasicMaterial({
-          color,
-          wireframe: true,
-        });
-        const sphereMesh = new THREE.Mesh(sphereGeo, sphereMat);
-        sphereMesh.position.set(clash.point.x, clash.point.y, clash.point.z);
-        this.clashOverlaysGroup.add(sphereMesh);
-      }
-    }
-
+    this.clashOverlayManager.setClashOverlays(clashes);
     this.render();
   }
 
@@ -869,24 +458,7 @@ export class Scene3D {
     distance = 6500,
   ): void {
     if (this.isDisposed) return;
-
-    this.controls.target.set(point.x, point.y, point.z);
-
-    const dir = new THREE.Vector3()
-      .subVectors(this.camera.position, this.controls.target)
-      .normalize();
-
-    if (dir.lengthSq() < 0.001) {
-      dir.set(1, 1, 0.75).normalize();
-    }
-
-    this.camera.position.set(
-      point.x + dir.x * distance,
-      point.y + dir.y * distance,
-      point.z + dir.z * distance,
-    );
-
-    this.controls.update();
+    CameraTransitionManager.focusOnPoint(this.camera, this.controls, point, distance);
     this.render();
   }
 
@@ -896,36 +468,10 @@ export class Scene3D {
    */
   public zoomToFit(): boolean {
     if (this.isDisposed) return false;
-
-    const bounds = new THREE.Box3();
-    for (const meshes of this.meshes.values()) {
-      for (const mesh of meshes) {
-        bounds.expandByObject(mesh);
-      }
-    }
-    if (bounds.isEmpty()) return false;
-
-    const sphere = bounds.getBoundingSphere(new THREE.Sphere());
-    const center = sphere.center;
-    const verticalFov = THREE.MathUtils.degToRad(this.camera.fov);
-    const horizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * this.camera.aspect);
-    const limitingFov = Math.min(verticalFov, horizontalFov);
-    const distance = (Math.max(sphere.radius, 500) * 1.15) / Math.sin(limitingFov / 2);
-
-    const direction = new THREE.Vector3()
-      .subVectors(this.camera.position, this.controls.target)
-      .normalize();
-    if (direction.lengthSq() < 0.001) {
-      direction.set(1, 1, 0.75).normalize();
-    }
-
-    this.controls.target.copy(center);
-    this.camera.position.copy(center).addScaledVector(direction, distance);
-    this.camera.far = Math.max(this.camera.far, distance * 10);
-    this.camera.updateProjectionMatrix();
-    this.controls.update();
-    this.render();
-    return true;
+    const bounds = this.meshManager.computeBounds();
+    const res = CameraTransitionManager.zoomToFit(this.camera, this.controls, bounds);
+    if (res) this.render();
+    return res;
   }
 
   /**
@@ -937,49 +483,31 @@ export class Scene3D {
     this.render();
   }
 
-  /**
-   * Retire une maquette IFC fédérée et libère ses ressources WebGL.
-   */
   public removeFederatedModel(modelId: string): void {
     if (this.isDisposed) return;
     this.federatedManager.removeModel(modelId);
     this.render();
   }
 
-  /**
-   * Modifie la visibilité d'un modèle fédéré.
-   */
   public setFederatedModelVisibility(modelId: string, visible: boolean): void {
     if (this.isDisposed) return;
     this.federatedManager.setVisibility(modelId, visible);
     this.render();
   }
 
-  /**
-   * Modifie l'opacité d'un modèle fédéré.
-   */
   public setFederatedModelOpacity(modelId: string, opacity: number): void {
     if (this.isDisposed) return;
     this.federatedManager.setOpacity(modelId, opacity);
     this.render();
   }
 
-  /**
-   * Active ou désactive le mode filaire pour un modèle fédéré.
-   */
   public setFederatedModelWireframe(modelId: string, wireframe: boolean): void {
     if (this.isDisposed) return;
     this.federatedManager.setWireframe(modelId, wireframe);
     this.render();
   }
 
-  /**
-   * Ajuste le décalage de recalage (dx, dy, dz) d'un modèle fédéré en mm.
-   */
-  public setFederatedModelOffset(
-    modelId: string,
-    offset: { x: number; y: number; z: number },
-  ): void {
+  public setFederatedModelOffset(modelId: string, offset: { x: number; y: number; z: number }): void {
     if (this.isDisposed) return;
     this.federatedManager.setOffset(modelId, offset);
     this.render();
@@ -991,9 +519,6 @@ export class Scene3D {
     this.render();
   }
 
-  /**
-   * Retourne le groupe Three.js racine contenant les maquettes IFC fédérées.
-   */
   public getFederatedRootGroup(): THREE.Group {
     return this.federatedManager.getRootGroup();
   }
@@ -1022,11 +547,7 @@ export class Scene3D {
    * Retourne le nombre total de maillages architecturaux enregistrés dans la scène.
    */
   public getMeshCount(): number {
-    let count = 0;
-    for (const list of this.meshes.values()) {
-      count += list.length;
-    }
-    return count;
+    return this.meshManager.getMeshCount();
   }
 
   /**
@@ -1066,16 +587,7 @@ export class Scene3D {
     gridColors: readonly [THREE.ColorRepresentation, THREE.ColorRepresentation],
   ): void {
     if (this.isDisposed) return;
-
-    this.scene.background = new THREE.Color(background);
-    const colors = this.gridHelper.geometry.getAttribute('color');
-    const majorColor = new THREE.Color(gridColors[0]);
-    const minorColor = new THREE.Color(gridColors[1]);
-    for (let index = 0; index < colors.count; index++) {
-      const color = this.gridMajorVertexMask[index] ? majorColor : minorColor;
-      colors.setXYZ(index, color.r, color.g, color.b);
-    }
-    colors.needsUpdate = true;
+    this.gridManager.setBackground(this.scene, background, gridColors);
     this.render();
   }
 
@@ -1113,11 +625,7 @@ export class Scene3D {
     this.renderer.clippingPlanes = planes;
 
     // 2. Propagation aux maillages architecturaux et MEP
-    for (const meshList of this.meshes.values()) {
-      for (const mesh of meshList) {
-        this.applyClippingPlanesToMesh(mesh, planes);
-      }
-    }
+    this.meshManager.applyClippingPlanes(planes);
 
     // 3. Propagation aux maquettes IFC de référence fédérées
     this.federatedManager.setClippingPlanes(planes);
@@ -1126,13 +634,7 @@ export class Scene3D {
     const sharedMaterials = [
       this.defaultMaterial,
       this.highlightMaterial,
-      this.slabMaterial,
-      this.stairMaterial,
-      this.roofMaterial,
-      this.sanitaryMaterial,
-      this.kitchenMaterial,
-      this.furnitureMaterial,
-      this.glazingMaterial,
+      ...this.domainFactory.getSharedMaterials(),
     ];
     for (const mat of sharedMaterials) {
       mat.clippingPlanes = planes;
@@ -1155,46 +657,7 @@ export class Scene3D {
     viewDirection: 1 | -1 = 1,
   ): void {
     if (this.isDisposed) return;
-    const dx = end.x - start.x;
-    const dy = end.y - start.y;
-    const len = Math.hypot(dx, dy);
-    if (len < 1e-4) {
-      this.setSectionCutPlane(null);
-      return;
-    }
-    const ux = dx / len;
-    const uy = dy / len;
-    // Normale orientée vers la direction d'observation
-    const nx = viewDirection * -uy;
-    const ny = viewDirection * ux;
-    const normal = new THREE.Vector3(nx, ny, 0).normalize();
-    const constant = -(nx * start.x + ny * start.y);
-    const plane = new THREE.Plane(normal, constant);
-    this.setSectionCutPlane(plane);
-  }
-
-  private applyClippingPlanesToMesh(mesh: THREE.Mesh, planes: THREE.Plane[]): void {
-    if (Array.isArray(mesh.material)) {
-      mesh.material.forEach((m) => {
-        m.clippingPlanes = planes;
-        m.clipShadows = true;
-      });
-    } else if (mesh.material) {
-      mesh.material.clippingPlanes = planes;
-      mesh.material.clipShadows = true;
-    }
-    for (const child of mesh.children) {
-      if ('material' in child && child.material) {
-        const cMat = (child as THREE.Mesh | THREE.LineSegments).material;
-        if (Array.isArray(cMat)) {
-          cMat.forEach((m) => {
-            m.clippingPlanes = planes;
-          });
-        } else {
-          cMat.clippingPlanes = planes;
-        }
-      }
-    }
+    this.setSectionCutPlane(SectionCapManager.computeCutPlane(start, end, viewDirection));
   }
 
   /**
@@ -1237,12 +700,7 @@ export class Scene3D {
    */
   public fitShadowsToScene(): void {
     if (this.isDisposed || !this.environmentManager) return;
-    const box = new THREE.Box3();
-    for (const meshList of this.meshes.values()) {
-      for (const m of meshList) {
-        box.expandByObject(m);
-      }
-    }
+    const box = this.meshManager.computeBounds();
     if (!box.isEmpty()) {
       this.environmentManager.fitShadowCameraToBounds(box);
     }
@@ -1262,39 +720,15 @@ export class Scene3D {
     this.controls.removeEventListener('change', this.onControlsChange);
     this.controls.dispose();
 
-    // 2. Nettoyer et libérer tous les maillages architecturaux
-    for (const meshList of this.meshes.values()) {
-      for (const mesh of meshList) {
-        this.scene.remove(mesh);
-        this.disposeArchitecturalEdges(mesh);
-        mesh.geometry.dispose();
-        if (mesh.userData?.ownsMaterial === false || mesh.userData?.isSharedMaterial === true) {
-          continue;
-        }
-        if (mesh.material) {
-          const list = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-          for (const m of list) {
-            if (!this.isInternalMaterial(m)) {
-              m.dispose();
-            }
-          }
-        }
-      }
-    }
-    this.meshes.clear();
+    // 2. Nettoyer et libérer tous les maillages architecturaux (ADR-072)
+    this.meshManager.dispose((mat) => this.isInternalMaterial(mat));
 
     // 3. Libérer la grille de sol
-    this.scene.remove(this.gridHelper);
-    this.gridHelper.geometry.dispose();
-    if (Array.isArray(this.gridHelper.material)) {
-      this.gridHelper.material.forEach((m) => m.dispose());
-    } else {
-      this.gridHelper.material.dispose();
-    }
+    this.gridManager.dispose(this.scene);
 
-    // 4. Libérer les superpositions de collision
-    this.clearClashOverlays();
-    this.scene.remove(this.clashOverlaysGroup);
+    // 4. Libérer les superpositions de collision et surbrillances (ADR-072)
+    this.clashOverlayManager.dispose();
+    this.selectionHighlightManager.dispose();
 
     // 4b. Libérer les maquettes IFC fédérées
     this.federatedManager.dispose();
@@ -1307,20 +741,11 @@ export class Scene3D {
     this.postProcessingManager = null;
     this.environmentManager?.dispose();
     this.environmentManager = null;
-    disposeProceduralTextures();
 
     // 5. Libérer les matériaux gérés
     this.defaultMaterial.dispose();
     this.highlightMaterial.dispose();
-    this.slabMaterial.dispose();
-    this.stairMaterial.dispose();
-    this.roofMaterial.dispose();
-    this.sanitaryMaterial.dispose();
-    this.kitchenMaterial.dispose();
-    this.furnitureMaterial.dispose();
-    this.glazingMaterial.dispose();
-    this.parquetFloorMaterial?.dispose();
-    this.carrelageFloorMaterial?.dispose();
+    this.domainFactory.dispose();
 
     // 5. Vider la scène Three.js
     this.scene.clear();
@@ -1345,26 +770,4 @@ export class Scene3D {
   public getScene(): THREE.Scene {
     return this.scene;
   }
-}
-
-/**
- * Palette déterministe de teintes pastel pour la différenciation des pièces.
- */
-function getRoomColorHex(id: string): number {
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) {
-    hash = (hash << 5) - hash + id.charCodeAt(i);
-    hash |= 0;
-  }
-  const pastelColors = [
-    0xbfdbfe, // bleu ciel
-    0xbbf7d0, // vert menthe
-    0xfef08a, // jaune doux
-    0xfbcfe8, // rose poudré
-    0xddd6fe, // lavande
-    0xfed7aa, // pêche
-    0xc7d2fe, // indigo doux
-  ];
-  const idx = Math.abs(hash) % pastelColors.length;
-  return pastelColors[idx] ?? 0xbae6fd;
 }

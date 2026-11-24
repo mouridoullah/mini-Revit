@@ -295,6 +295,87 @@ export class RawMeshAccumulator {
     }
   }
 
+  public addBox(
+    center: Vec3D,
+    width: number,
+    depth: number,
+    height: number,
+    u: Vec3D = v3(1, 0, 0),
+    v: Vec3D = v3(0, 1, 0),
+    w: Vec3D = v3(0, 0, 1),
+  ): void {
+    if (width <= 0 || depth <= 0 || height <= 0) return;
+    const hw = width / 2;
+    const hd = depth / 2;
+    const hh = height / 2;
+
+    const getPt = (su: number, sv: number, sw: number): Vec3D => {
+      return add(center, add(scale(u, su * hw), add(scale(v, sv * hd), scale(w, sw * hh))));
+    };
+
+    // 6 faces de la boîte
+    // Face bas (-W)
+    {
+      const n = scale(w, -1);
+      this.addQuad(
+        this.addVertex(getPt(-1, -1, -1), n),
+        this.addVertex(getPt(1, -1, -1), n),
+        this.addVertex(getPt(1, 1, -1), n),
+        this.addVertex(getPt(-1, 1, -1), n),
+      );
+    }
+    // Face haut (+W)
+    {
+      const n = w;
+      this.addQuad(
+        this.addVertex(getPt(-1, -1, 1), n),
+        this.addVertex(getPt(-1, 1, 1), n),
+        this.addVertex(getPt(1, 1, 1), n),
+        this.addVertex(getPt(1, -1, 1), n),
+      );
+    }
+    // Face avant (-V)
+    {
+      const n = scale(v, -1);
+      this.addQuad(
+        this.addVertex(getPt(-1, -1, -1), n),
+        this.addVertex(getPt(-1, -1, 1), n),
+        this.addVertex(getPt(1, -1, 1), n),
+        this.addVertex(getPt(1, -1, -1), n),
+      );
+    }
+    // Face arrière (+V)
+    {
+      const n = v;
+      this.addQuad(
+        this.addVertex(getPt(1, 1, -1), n),
+        this.addVertex(getPt(1, 1, 1), n),
+        this.addVertex(getPt(-1, 1, 1), n),
+        this.addVertex(getPt(-1, 1, -1), n),
+      );
+    }
+    // Face droite (+U)
+    {
+      const n = u;
+      this.addQuad(
+        this.addVertex(getPt(1, -1, -1), n),
+        this.addVertex(getPt(1, -1, 1), n),
+        this.addVertex(getPt(1, 1, 1), n),
+        this.addVertex(getPt(1, 1, -1), n),
+      );
+    }
+    // Face gauche (-U)
+    {
+      const n = scale(u, -1);
+      this.addQuad(
+        this.addVertex(getPt(-1, 1, -1), n),
+        this.addVertex(getPt(-1, 1, 1), n),
+        this.addVertex(getPt(-1, -1, 1), n),
+        this.addVertex(getPt(-1, -1, -1), n),
+      );
+    }
+  }
+
   public toRawMeshData(
     elementId: string,
     userData?: Record<string, unknown>,

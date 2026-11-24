@@ -678,12 +678,12 @@ export function ClashWorkspace({
           overflow: 'hidden',
         }}
       >
-        {/* Barre de contrôle de la vue droite */}
+        {/* Barre de contrôle de la vue droite (positionnée à gauche pour éviter la superposition avec les contrôles de vue) */}
         <div
           style={{
             position: 'absolute',
             top: '12px',
-            right: '12px',
+            left: '16px',
             zIndex: 10,
             display: 'flex',
             alignItems: 'center',
