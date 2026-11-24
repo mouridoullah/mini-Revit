@@ -14,7 +14,7 @@ const gitOutput = execSync('git ls-files --cached --others --exclude-standard', 
 const allTrackedFiles = gitOutput
   .split(/\r?\n/)
   .map((line) => line.trim())
-  .filter((line) => line.length > 0 && !line.startsWith('.git') && !line.includes('node_modules/'))
+  .filter((line) => line.length > 0 && !line.startsWith('.git/') && !line.includes('node_modules/'))
   // Exclure les fichiers de dump eux-mêmes
   .filter((file) => {
     const base = path.basename(file).toLowerCase();

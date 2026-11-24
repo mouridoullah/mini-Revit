@@ -517,18 +517,18 @@ test.describe('Tabax E2E Smoke Tests (Playwright Real Browser)', () => {
     // Vérifier l'augmentation des cotes (1 existante + 10 = 11)
     await expect(page.locator('[data-testid="status-bar"]')).toContainText('Cotes : 11');
 
-    // 2. Attendre de manière déterministe que la sauvegarde soit persistée dans IndexedDB
+    // 2. Attendre de manière déterministe que la sauvegarde soit persistée dans IndexedDB (ADR-051, ADR-070)
     await page.waitForFunction(async () => {
       return new Promise<boolean>((resolve) => {
-        const req = indexedDB.open('tabax_bim_db', 1);
+        const req = indexedDB.open('tabax_autosave', 1);
         req.onsuccess = () => {
           const db = req.result;
-          if (!db.objectStoreNames.contains('autosave')) {
+          if (!db.objectStoreNames.contains('projects')) {
             resolve(false);
             return;
           }
-          const tx = db.transaction('autosave', 'readonly');
-          const store = tx.objectStore('autosave');
+          const tx = db.transaction('projects', 'readonly');
+          const store = tx.objectStore('projects');
           const getReq = store.get('current_project');
           getReq.onsuccess = () => {
             const data = getReq.result;
@@ -631,7 +631,13 @@ test.describe('Tabax E2E Smoke Tests (Playwright Real Browser)', () => {
     expect(consoleErrors).toEqual([]);
   });
 
-  test('export DXF R12 1:1 du plan d’étage actif (ADR-065)', async ({ page }) => {
+  test('export DXF R12 1:1 du plan d’étage actif (ADR-064)', async ({ page }) => {
+    const consoleErrors: string[] = [];
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') consoleErrors.push(msg.text());
+    });
+    page.on('pageerror', (err) => consoleErrors.push(err.message));
+
     await page.goto('/');
     const downloadPromise = page.waitForEvent('download');
     const exportDxfBtn = page.locator('[data-testid="export-plan-dxf-btn"]');
@@ -639,9 +645,16 @@ test.describe('Tabax E2E Smoke Tests (Playwright Real Browser)', () => {
     await exportDxfBtn.click();
     const download = await downloadPromise;
     expect(download.suggestedFilename()).toMatch(/\.dxf$/i);
+    expect(consoleErrors).toEqual([]);
   });
 
   test('idempotence de la cotation automatique au deuxième clic (ADR-066)', async ({ page }) => {
+    const consoleErrors: string[] = [];
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') consoleErrors.push(msg.text());
+    });
+    page.on('pageerror', (err) => consoleErrors.push(err.message));
+
     await page.goto('/');
     const autoDimBtn = page.locator('[data-testid="auto-dimension-floor-btn"]');
     await expect(autoDimBtn).toBeVisible();
@@ -651,9 +664,16 @@ test.describe('Tabax E2E Smoke Tests (Playwright Real Browser)', () => {
     // 2ème clic : ne doit pas ré-ajouter de cotes redondantes
     await autoDimBtn.click();
     await expect(page.locator('[data-testid="status-bar"]')).toContainText('Cotes : 11');
+    expect(consoleErrors).toEqual([]);
   });
 
   test('synchronisation de coupe 3D et mode Écorché (ADR-063, ADR-072)', async ({ page }) => {
+    const consoleErrors: string[] = [];
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') consoleErrors.push(msg.text());
+    });
+    page.on('pageerror', (err) => consoleErrors.push(err.message));
+
     await page.goto('/');
     // 1. Générer les vues et coupes automatiques
     const genViewsBtn = page.locator('[data-testid="auto-generate-views-btn"]');
@@ -680,5 +700,6 @@ test.describe('Tabax E2E Smoke Tests (Playwright Real Browser)', () => {
     await expect(ecorcheBtn).toBeVisible();
     await ecorcheBtn.click();
     await expect(ecorcheBtn).toHaveCSS('font-weight', '600');
+    expect(consoleErrors).toEqual([]);
   });
 });

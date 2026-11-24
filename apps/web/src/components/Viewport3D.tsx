@@ -11,12 +11,6 @@ import {
   createRoofMesh,
   createComponentMesh,
   solveWallJunctions,
-  generatePipeMesh,
-  generateDuctMesh,
-  generateCableTrayMesh,
-  generateFittingMesh,
-  generateEquipmentMesh,
-  getMepSystemColor,
   type WallInput,
   type OpeningGeometryParams,
   type ClashOverlayItem,
@@ -25,6 +19,8 @@ import {
 import { computeStairShaft, resolveWallGeometry } from '@tabax/core';
 import { useBimDocument } from '../hooks/useBimDocument.js';
 import { useResizeObserver } from '../hooks/useResizeObserver.js';
+import { Viewport3DToolbar } from './viewport-3d/Viewport3DToolbar.js';
+import { syncMepElements } from './viewport-3d/syncMepElements.js';
 
 export interface Viewport3DProps {
   readonly isWhiteMode?: boolean;
@@ -565,53 +561,7 @@ export function Viewport3D({
     }
 
     // 9. Maillages 3D des réseaux techniques MEP (Sous-phase 9.3.2)
-    for (const pipe of Object.values(pipes)) {
-      if (isIncremental && !dirtyElementIds.has(pipe.id)) continue;
-      const meshData = generatePipeMesh(pipe);
-      const sys = pipe.systemId ? state.mepSystems?.[pipe.systemId] : undefined;
-      const systemType = sys?.systemType ?? pipe.ports[0]?.systemType;
-      const domain = sys?.domain ?? pipe.ports[0]?.domain ?? 'plumbing';
-      const color = getMepSystemColor(systemType, domain);
-      scene.updateMepMesh(pipe.id, meshData, color);
-    }
-
-    for (const duct of Object.values(ducts)) {
-      if (isIncremental && !dirtyElementIds.has(duct.id)) continue;
-      const meshData = generateDuctMesh(duct);
-      const sys = duct.systemId ? state.mepSystems?.[duct.systemId] : undefined;
-      const systemType = sys?.systemType ?? duct.ports[0]?.systemType;
-      const color = getMepSystemColor(systemType, 'hvac');
-      scene.updateMepMesh(duct.id, meshData, color);
-    }
-
-    for (const ct of Object.values(cableTrays)) {
-      if (isIncremental && !dirtyElementIds.has(ct.id)) continue;
-      const meshData = generateCableTrayMesh(ct);
-      const sys = ct.systemId ? state.mepSystems?.[ct.systemId] : undefined;
-      const systemType = sys?.systemType ?? ct.ports[0]?.systemType;
-      const color = getMepSystemColor(systemType, 'electrical');
-      scene.updateMepMesh(ct.id, meshData, color);
-    }
-
-    for (const ft of Object.values(mepFittings)) {
-      if (isIncremental && !dirtyElementIds.has(ft.id)) continue;
-      const meshData = generateFittingMesh(ft);
-      const sys = ft.systemId ? state.mepSystems?.[ft.systemId] : undefined;
-      const systemType = sys?.systemType ?? ft.ports[0]?.systemType;
-      const domain = sys?.domain ?? ft.ports[0]?.domain ?? 'plumbing';
-      const color = getMepSystemColor(systemType, domain);
-      scene.updateMepMesh(ft.id, meshData, color);
-    }
-
-    for (const eq of Object.values(mepEquipments)) {
-      if (isIncremental && !dirtyElementIds.has(eq.id)) continue;
-      const meshData = generateEquipmentMesh(eq);
-      const sys = eq.systemId ? state.mepSystems?.[eq.systemId] : undefined;
-      const systemType = sys?.systemType ?? eq.ports[0]?.systemType;
-      const domain = sys?.domain ?? eq.ports[0]?.domain ?? 'plumbing';
-      const color = getMepSystemColor(systemType, domain);
-      scene.updateMepMesh(eq.id, meshData, color);
-    }
+    syncMepElements(scene, state, dirtyElementIds, isIncremental);
 
       renderedElementIdsRef.current = currentElementIds;
 
@@ -774,109 +724,14 @@ export function Viewport3D({
         }}
       />
       {/* Barre de contrôle PBR / Modes de rendu (ADR-072) */}
-      <div
-        data-testid="viewport-3d-toolbar"
-        style={{
-          position: 'absolute',
-          top: 48,
-          right: 12,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-          padding: '4px 6px',
-          backgroundColor: 'rgba(27, 30, 36, 0.88)',
-          backdropFilter: 'blur(8px)',
-          border: '1px solid var(--border-subtle, #2d323e)',
-          borderRadius: 6,
-          zIndex: 4,
-          color: 'var(--text-primary, #f3f4f6)',
-          fontSize: 11,
-          fontFamily: 'inherit',
-          userSelect: 'none',
-        }}
-      >
-        <div style={{ display: 'flex', gap: 2 }}>
-          {(
-            [
-              ['technique', 'Technique'],
-              ['ecorche', 'Écorché Coupe'],
-              ['realiste', 'Réaliste PBR'],
-            ] as const
-          ).map(([mode, label]) => (
-            <button
-              key={mode}
-              type="button"
-              data-testid={`render-mode-${mode}`}
-              onClick={() => handleModeChange(mode)}
-              style={{
-                padding: '3px 8px',
-                border: 'none',
-                borderRadius: 4,
-                backgroundColor: renderMode === mode ? 'var(--accent-primary, #3b82f6)' : 'transparent',
-                color: renderMode === mode ? '#ffffff' : 'var(--text-secondary, #9ca3af)',
-                cursor: 'pointer',
-                fontSize: 11,
-                fontWeight: renderMode === mode ? 600 : 400,
-                transition: 'background-color 0.15s, color 0.15s',
-              }}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
-        {renderMode === 'realiste' && (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-              borderLeft: '1px solid var(--border-subtle, #2d323e)',
-              paddingLeft: 6,
-              marginLeft: 2,
-            }}
-          >
-            <span style={{ color: 'var(--text-muted, #6b7280)', fontSize: 10 }}>Soleil</span>
-            <input
-              type="range"
-              min={6}
-              max={20}
-              step={0.5}
-              value={sunHour}
-              data-testid="sun-hour-slider"
-              onChange={(e) => handleSunHourChange(parseFloat(e.target.value))}
-              style={{ width: 60, height: 4, cursor: 'pointer' }}
-              title={`Heure solaire : ${Math.floor(sunHour)}h${Math.round((sunHour % 1) * 60).toString().padStart(2, '0')}`}
-            />
-            <span style={{ minWidth: 26, fontSize: 10, color: 'var(--text-secondary, #9ca3af)' }}>
-              {Math.floor(sunHour)}h
-            </span>
-          </div>
-        )}
-
-        <label
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 4,
-            borderLeft: '1px solid var(--border-subtle, #2d323e)',
-            paddingLeft: 6,
-            marginLeft: 2,
-            cursor: 'pointer',
-            fontSize: 10,
-            color: 'var(--text-secondary, #9ca3af)',
-          }}
-        >
-          <input
-            type="checkbox"
-            checked={showEdges}
-            data-testid="toggle-edges-checkbox"
-            onChange={handleToggleEdges}
-            style={{ cursor: 'pointer', margin: 0 }}
-          />
-          Arêtes fines
-        </label>
-      </div>
+      <Viewport3DToolbar
+        renderMode={renderMode}
+        onModeChange={handleModeChange}
+        sunHour={sunHour}
+        onSunHourChange={handleSunHourChange}
+        showEdges={showEdges}
+        onToggleEdges={handleToggleEdges}
+      />
     </div>
   );
 }

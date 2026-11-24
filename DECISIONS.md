@@ -2953,7 +2953,7 @@ Le rendu 3D de `@tabax/view-3d` reposait sur un éclairage Three.js basique (Dir
    - Matériaux partagés conformes à ADR-050 et libérés proprement dans `Scene3D.dispose()`.
 
 6. **D6 — Scission Modulaire des Gros Fichiers de `@tabax/view-3d` :**
-   - `Scene3D.ts` (1 178 L initialement) scindé et allégé à **776 lignes** (strictement sous les 800 lignes), déléguant le maillage à `ArchitecturalMeshManager`, la grille à `ArchitecturalGridManager`, les matériaux à `DomainMeshFactory`, la surbrillance à `SelectionHighlightManager`, les collisions à `ClashOverlayManager` et la caméra à `CameraTransitionManager`.
+   - `Scene3D.ts` (1 178 L initialement) scindé et allégé à **773 lignes** (strictement sous les 800 lignes), déléguant le maillage à `ArchitecturalMeshManager`, la grille à `ArchitecturalGridManager`, les matériaux à `DomainMeshFactory`, la surbrillance à `SelectionHighlightManager`, les collisions à `ClashOverlayManager` et la caméra à `CameraTransitionManager`.
    - `mesh-generator/mep.ts` (839 L) scindé en 8 sous-modules dans `mesh-generator/mep/` (`colors.ts`, `common.ts`, `pipes.ts`, `ducts.ts`, `cable-trays.ts`, `fittings.ts`, `equipment.ts`, `batch.ts`) avec façade de ré-export de 27 lignes.
    - `components-3d.ts` (786 L) scindé en sous-modules dans `components/` (`sanitary.ts`, `kitchen.ts`, `furniture.ts`, `glazing.ts`) avec façade de ré-export de 18 lignes.
 
@@ -2962,7 +2962,7 @@ Le rendu 3D de `@tabax/view-3d` reposait sur un éclairage Three.js basique (Dir
 - Rendu photoréaliste de niveau studio sur station RTX sans aucune dépendance externe ni fichier d'asset téléchargé.
 - Zéro dégradation des performances : rendu à la demande ADR-018 préservé, zéro boucle d'animation permanente.
 - Découpage strict et isolation des packages respectée (zéro modification de `@tabax/core`).
-- Codebase considérablement allégée : plus aucun fichier de plus de 800 lignes dans `@tabax/view-3d` (`Scene3D.ts` à 776 lignes).
+- Codebase considérablement allégée : plus aucun fichier de plus de 800 lignes dans `@tabax/view-3d` (`Scene3D.ts` à 773 lignes).
 - Couverture : tests unitaires dédiés GPU/cycle de vie dans `rendering/`, 18 scénarios Playwright E2E réels (incluant le basculement PBR / Écorché / curseur solaire, export DXF R12, idempotence d'auto-cotation et synchronisation de coupe 3D écorchée).
 
 

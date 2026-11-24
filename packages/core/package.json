@@ -1,6 +1,6 @@
 {
   "name": "@tabax/core",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Noyau métier et modèle documentaire BIM (BimDocument, Commands, Undo/Redo) pour Tabax",
   "type": "module",
   "main": "./dist/index.js",

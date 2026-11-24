@@ -1,4 +1,4 @@
-# ADR-072 : Pipeline de Rendu PBR RTX, IBL, Bouchons Stencil et Modularisation Géométrique MEP & Composants
+# ADR-072 : Rendu Photoréaliste PBR, Éclairage IBL Studio, Bouchons de Coupe Stencil 2-Passes & Scission Modulaire de `@tabax/view-3d` (Tabax v1.1.0)
 
 ## Contexte
 
@@ -13,45 +13,51 @@ Plusieurs contraintes architecturales devaient être strictement préservées :
 
 ## Décisions Architecturales
 
-### 1. Pipeline PBR & IBL en Mémoire (`EnvironmentManager.ts` & `ProceduralTextures.ts`)
+### 1. D1 — Pipeline PBR & Éclairage IBL Studio (`rendering/EnvironmentManager.ts`)
 - **Tone mapping & espace colorimétrique :** Activation de `THREE.ACESFilmicToneMapping` avec exposition calibrée à 1.05 et `THREE.SRGBColorSpace`.
 - **Éclairage basé sur l'image (IBL) :** Génération d'une sonde d'environnement en mémoire via `PMREMGenerator` et `RoomEnvironment` natif Three.js, sans téléchargement d'asset HDR externe.
-- **Ombres portées haute précision :** `THREE.PCFSoftShadowMap` en 4096×4096 (Ultra) ou 2048×2048 (Standard), avec ajustement dynamique du frustum orthographique sur la bounding box du bâtiment (`fitShadowCameraToBounds`) et réglage précis de `shadow.normalBias` pour éliminer le *shadow acne*.
-- **Textures PBR procédurales en mémoire :** Génération au démarrage via `OffscreenCanvas` / `CanvasTexture` (enduit fin, béton banché, parquet chêne, carrelage gris, tôle galvanisée brossée, bois chaleureux) avec `RepeatWrapping` et filtrage anisotrope maximal.
+- **Ombres portées haute précision :** `THREE.PCFSoftShadowMap` en 4096×4096 (Ultra) ou 2048×2048 (Standard), avec ajustement dynamique du frustum orthographique sur la bounding box du bâtiment (`fitShadowCameraToBounds`) et réglage précis de `shadow.normalBias = 2.0` pour éliminer le *shadow acne*.
+- **Sol studio récepteur d'ombres douces :** `ShadowMaterial` positionné sous `Z = -1`.
+- **Contrôle solaire horaire :** Méthode `setSunHour(0-24)` orientant l'azimut et la hauteur du soleil.
 
-### 2. Occlusion Ambiante et Stratégie Anti-Saccade (`PostProcessingManager.ts`)
+### 2. D2 — Occlusion Ambiante Temps Réel & Anti-Saccade (`rendering/PostProcessingManager.ts`)
 - **Pipeline post-traitement :** `EffectComposer` + `RenderPass` + `GTAOPass` + `OutputPass`.
 - **Conformité ADR-018 :** Pendant l'interaction orbitale (`OrbitControls` événement `change`), un rendu direct ultra-réactif est effectué (`renderDirect()`). Un timer de 80 ms après le relâchement (`controls.addEventListener('end')`) déclenche la passe d'occlusion ambiante pleine résolution (`scheduleFullRender()`). Aucun calcul GPU n'est exécuté au repos.
+- **Trois modes de rendu dédiés :** `technique` (rapide, sans ombres, look dessin), `ecorche` (fond sombre studio, contraste MEP), `realiste` (PBR, IBL, ombres et AO).
 
-### 3. Bouchons de Coupe Stencil (`SectionCapManager.ts`) & Menuiseries Détaillées
-- **Bouchons de coupe :** Couplé à `Scene3D.setSectionCutPlane` (ADR-063). Lorsqu'un plan de coupe est actif, un maillage de capuchon orienté `THREE.BackSide` avec matériau anthracite mat (`#1e222a`) masque les creux intérieurs pour offrir un rendu écorché technique lisible.
-- **Menuiseries enrichies (`openings-3d.ts`) :**
-  - Fenêtres : cadre aluminium anthracite (`#2d3748`), vitrage `THREE.MeshPhysicalMaterial` (`roughness: 0.04`, `metalness: 0.1`, `transmission: 0.85`), meneaux verticaux pour largeur >= 700 mm, traverse pour hauteur >= 1200 mm et appui de fenêtre en saillie.
-  - Portes : huisserie périphérique, vantail bois texturé en retrait, moulure de panneau et béquille chromée à +1050 mm.
+### 3. D3 — Bouchons de Coupe Pleins Stencil 2-Passes (`rendering/SectionCapManager.ts`)
+- Mise en œuvre d'un véritable pipeline Stencil Buffer 2-passes :
+  1. Passe 1 : Face arrière (`THREE.BackSide`) avec `IncrementWrapStencilOp` (`renderOrder: 1`).
+  2. Passe 2 : Face avant (`THREE.FrontSide`) avec `DecrementWrapStencilOp` (`renderOrder: 1`).
+  3. Passe 3 : Plan bouchon coplanaire mat (`#1e222a`) testant `stencilRef !== 0` et remettant le stencil à zéro (`renderOrder: 2`).
+- Rendu solide et massif des sections coupées sans aucun vide intérieur ni z-fighting, préservant la visibilité des réseaux MEP traversants.
 
-### 4. Modularisation Géométrique de `components-3d.ts` et `mesh-generator/mep.ts`
-- Scission de `components-3d.ts` en sous-modules spécialisés dans `packages/view-3d/src/components/` :
-  - `sanitary.ts` : cuvette suspendue, plan vasque avec mitigeur, receveur de douche, baignoire évidée.
-  - `kitchen.ts` : caissons bas, plan de travail débordant, plinthe en retrait, électroménager.
-  - `furniture.ts` : lit avec tête de lit, table à 4 pieds invariants, chaise avec dossier, canapé à accoudoirs, armoire.
-  - `glazing.ts` : baie coulissante et porte-fenêtre à double vantaux décalés.
-- Scission de la génération MEP dans `packages/view-3d/src/mesh-generator/mep/` :
-  - `pipes.ts` : tuyauteries paramétriques haute fidélité.
-  - `ducts.ts` : gaines circulaires et rectangulaires.
-  - `cable-trays.ts` : chemins de câbles en profilé U avec échelons transversaux.
-  - `fittings.ts` : coudes, tés, croix, réductions et bouchons.
-  - `equipment.ts` : CTA, chaudières, ballons ECS, pompes, radiateurs et armoires électriques.
+### 4. D4 — Menuiseries Paramétriques Haute Fidélité (`mesh-generator/openings-3d.ts`)
+- **Fenêtres :** Cadre dormant aluminium anthracite (`#2d3748`), ouvrant intérieur, vitrage `THREE.MeshPhysicalMaterial` (`roughness: 0.04`, `transmission: 0.85`), meneaux verticaux pour largeur >= 700 mm, traverse pour hauteur >= 1200 mm et appui de fenêtre en saillie.
+- **Portes :** Huisserie périphérique aluminium, vantail bois chaud (`#8b5a2b`) avec moulure de panneau en relief et béquille métallique chromée à +1050 mm.
 
-### 5. Contrôle Utilisateur dans l'Interface (`Viewport3D.tsx`)
+### 5. D5 — Textures PBR Procédurales & Sols de Pièces (`rendering/ProceduralTextures.ts`, `mesh-generator/rooms.ts`)
+- Génération procédurale sans assets externes via canvas 2D : enduit fin, béton banché, parquet chêne clair, carrelage gris doux, tôle galvanisée brossée et bois chaleureux.
+- Intégration dans `rooms.ts` selon le type ou nom de pièce (carrelage pour pièces humides / sanitaires, parquet pour pièces sèches).
+- Matériaux partagés conformes à ADR-050 et libérés proprement dans `Scene3D.dispose()`.
+
+### 6. D6 — Scission Modulaire des Gros Fichiers de `@tabax/view-3d`
+- **`Scene3D.ts` :** Monolithe ramené à **773 lignes** (strictement sous les 800 lignes requises par ADR-072), déléguant le maillage à `ArchitecturalMeshManager`, la grille à `ArchitecturalGridManager`, les matériaux à `DomainMeshFactory`, la surbrillance à `SelectionHighlightManager`, les collisions à `ClashOverlayManager` et la caméra à `CameraTransitionManager`.
+- **`mesh-generator/mep.ts` :** Divisé en 8 sous-modules étanches dans `packages/view-3d/src/mesh-generator/mep/` (`colors.ts`, `common.ts`, `pipes.ts`, `ducts.ts`, `cable-trays.ts`, `fittings.ts`, `equipment.ts`, `batch.ts`) avec façade de ré-export de 27 lignes.
+- **`components-3d.ts` :** Scindé en sous-modules spécialisés dans `packages/view-3d/src/components/` (`sanitary.ts`, `kitchen.ts`, `furniture.ts`, `glazing.ts`) avec façade de ré-export de 18 lignes.
+
+### 7. D7 — Contrôle Utilisateur dans l'Interface (`Viewport3D.tsx`)
 - Intégration d'une barre de contrôle compacte sans emoji dans le coin supérieur de la vue 3D :
-  - 3 modes de rendu : `Technique` (neutre), `Écorché Coupe` (contraste sombre), `Réaliste PBR` (IBL + AO).
-  - Curseur d'ensoleillement (heure solaire de 6h à 20h modifiant l'azimut et la hauteur du soleil).
+  - 3 modes de rendu : `Technique`, `Écorché`, `Réaliste`.
+  - Curseur d'ensoleillement dynamique (heure solaire 6h-20h modifiant l'azimut et la hauteur du soleil).
   - Case à cocher pour basculer la visibilité des arêtes d'architecture fines.
 
 ## Statut
 Accepté et implémenté (v1.1.0).
 
 ## Conséquences
-- Rendu visuel haut de gamme immédiatement disponible sans téléchargement d'assets lourds.
-- Architecture modulaire et découpage des fichiers volumineux facilitant la maintenance.
-- Rétrocompatibilité totale avec l'ensemble des 1 345+ tests Vitest et scénarios E2E Playwright.
+- Rendu photoréaliste de niveau studio sur station RTX sans aucune dépendance externe ni fichier d'asset téléchargé.
+- Zéro dégradation des performances : rendu à la demande ADR-018 préservé, zéro boucle d'animation permanente.
+- Découpage strict et isolation des packages respectée (zéro modification de `@tabax/core`).
+- Codebase considérablement allégée : plus aucun fichier de plus de 800 lignes dans `@tabax/view-3d` (`Scene3D.ts` à 773 lignes).
+- Couverture : tests unitaires dédiés GPU/cycle de vie dans `rendering/`, 18 scénarios Playwright E2E réels (incluant le basculement PBR / Écorché / curseur solaire, export DXF R12, idempotence d'auto-cotation et synchronisation de coupe 3D écorchée).

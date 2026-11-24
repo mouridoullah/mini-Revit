@@ -42,7 +42,7 @@ Version mineure majeure de **Tabax** apportant le pipeline de rendu photoréalis
 ### Modifié
 
 #### Architecture Modulaire & Refactorisation
-- **Scission de `Scene3D.ts` :** Monolithe ramené à **776 lignes** (strictement sous les 800 lignes requises par `ADR-072`), déléguant ses responsabilités à 6 gestionnaires dédiés sous `rendering/` (`ArchitecturalMeshManager`, `DomainMeshFactory`, `ClashOverlayManager`, `SelectionHighlightManager`, `CameraTransitionManager`, `ArchitecturalGridManager`).
+- **Scission de `Scene3D.ts` :** Monolithe ramené à **773 lignes** (strictement sous les 800 lignes requises par `ADR-072`), déléguant ses responsabilités à 6 gestionnaires dédiés sous `rendering/` (`ArchitecturalMeshManager`, `DomainMeshFactory`, `ClashOverlayManager`, `SelectionHighlightManager`, `CameraTransitionManager`, `ArchitecturalGridManager`).
 - **Éclatement de `mesh-generator/mep.ts` :** Divisé en 8 sous-modules étanches dans `mep/`.
 - **Éclatement de `components-3d.ts` :** Façade allégée distribuant les sous-modules dans `components/`.
 - Correction de l'attribution de l'historique borné à 500 entrées à `ADR-068` (au lieu d'`ADR-070`).
@@ -85,7 +85,7 @@ Cette version 1.0.0 consolide l'ensemble des saisons de développement et clôtu
 - Design System exclusif **Graphite Engineering** (`ADR-061`) : interface épurée à haute densité d'information, palette graphite `#111215`, typographie monospace d'ingénierie, icônes Lucide.
 - Double viewport temps réel 60 FPS synchronisé :
   - Viewport 2D vectoriel haute précision sur HTML5 Canvas (`@tabax/view-2d`).
-  - Viewport 3D Three.js PBR avec éclairage réaliste, ombrage doux et gestion des matériaux physiques (`@tabax/view-3d`).
+  - Viewport 3D Three.js orbital Z-up interactif avec matériaux standards et gestion des éléments de domaine (`@tabax/view-3d`).
 - Coupes 2D/3D et élévations dynamiques interactives (`ADR-063`, `ADR-069`) :
   - Visualisation en temps réel du plan de coupe avec hachures architecturales.
   - Occlusion opaque en élévation, masquage des réseaux MEP occultés et rendu détaillé des menuiseries.
