@@ -1,6 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Scene3D,
+  type RenderMode,
   createWallMeshWithOpenings,
   createOpeningPlaceholder,
   createDoorPlaceholderMaterial,
@@ -10,12 +11,6 @@ import {
   createRoofMesh,
   createComponentMesh,
   solveWallJunctions,
-  generatePipeMesh,
-  generateDuctMesh,
-  generateCableTrayMesh,
-  generateFittingMesh,
-  generateEquipmentMesh,
-  getMepSystemColor,
   type WallInput,
   type OpeningGeometryParams,
   type ClashOverlayItem,
@@ -24,6 +19,8 @@ import {
 import { computeStairShaft, resolveWallGeometry } from '@tabax/core';
 import { useBimDocument } from '../hooks/useBimDocument.js';
 import { useResizeObserver } from '../hooks/useResizeObserver.js';
+import { Viewport3DToolbar } from './viewport-3d/Viewport3DToolbar.js';
+import { syncMepElements } from './viewport-3d/syncMepElements.js';
 
 export interface Viewport3DProps {
   readonly isWhiteMode?: boolean;
@@ -68,6 +65,34 @@ export function Viewport3D({
   const doorMaterialRef = useRef<ReturnType<typeof createDoorPlaceholderMaterial> | null>(null);
   const windowMaterialRef = useRef<ReturnType<typeof createWindowPlaceholderMaterial> | null>(null);
   const selectionRef = useRef<readonly string[] | undefined>(selection);
+
+  const [renderMode, setRenderMode] = useState<RenderMode>('technique');
+  const [sunHour, setSunHour] = useState<number>(14);
+  const [showEdges, setShowEdges] = useState<boolean>(true);
+
+  const handleModeChange = (mode: RenderMode) => {
+    setRenderMode(mode);
+    sceneRef.current?.setRenderMode(mode);
+  };
+
+  const handleSunHourChange = (hour: number) => {
+    setSunHour(hour);
+    sceneRef.current?.setSunHour(hour);
+  };
+
+  const handleToggleEdges = () => {
+    const next = !showEdges;
+    setShowEdges(next);
+    if (sceneRef.current) {
+      const scene = sceneRef.current.getScene();
+      scene.traverse((obj) => {
+        if (obj.name.endsWith('-architectural-edges')) {
+          obj.visible = next;
+        }
+      });
+      sceneRef.current.render();
+    }
+  };
 
   // Instanciation impérative unique
   useEffect(() => {
@@ -116,7 +141,8 @@ export function Viewport3D({
     const scene = sceneRef.current;
     if (!scene) return;
 
-    const doors = state.doors ?? {};
+    scene.batchUpdate(() => {
+      const doors = state.doors ?? {};
     const windows = state.windows ?? {};
     const slabs = state.slabs ?? {};
     const stairs = state.stairs ?? {};
@@ -535,63 +561,16 @@ export function Viewport3D({
     }
 
     // 9. Maillages 3D des réseaux techniques MEP (Sous-phase 9.3.2)
-    for (const pipe of Object.values(pipes)) {
-      if (isIncremental && !dirtyElementIds.has(pipe.id)) continue;
-      const meshData = generatePipeMesh(pipe);
-      const sys = pipe.systemId ? state.mepSystems?.[pipe.systemId] : undefined;
-      const systemType = sys?.systemType ?? pipe.ports[0]?.systemType;
-      const domain = sys?.domain ?? pipe.ports[0]?.domain ?? 'plumbing';
-      const color = getMepSystemColor(systemType, domain);
-      scene.updateMepMesh(pipe.id, meshData, color);
-    }
+    syncMepElements(scene, state, dirtyElementIds, isIncremental);
 
-    for (const duct of Object.values(ducts)) {
-      if (isIncremental && !dirtyElementIds.has(duct.id)) continue;
-      const meshData = generateDuctMesh(duct);
-      const sys = duct.systemId ? state.mepSystems?.[duct.systemId] : undefined;
-      const systemType = sys?.systemType ?? duct.ports[0]?.systemType;
-      const color = getMepSystemColor(systemType, 'hvac');
-      scene.updateMepMesh(duct.id, meshData, color);
-    }
+      renderedElementIdsRef.current = currentElementIds;
 
-    for (const ct of Object.values(cableTrays)) {
-      if (isIncremental && !dirtyElementIds.has(ct.id)) continue;
-      const meshData = generateCableTrayMesh(ct);
-      const sys = ct.systemId ? state.mepSystems?.[ct.systemId] : undefined;
-      const systemType = sys?.systemType ?? ct.ports[0]?.systemType;
-      const color = getMepSystemColor(systemType, 'electrical');
-      scene.updateMepMesh(ct.id, meshData, color);
-    }
-
-    for (const ft of Object.values(mepFittings)) {
-      if (isIncremental && !dirtyElementIds.has(ft.id)) continue;
-      const meshData = generateFittingMesh(ft);
-      const sys = ft.systemId ? state.mepSystems?.[ft.systemId] : undefined;
-      const systemType = sys?.systemType ?? ft.ports[0]?.systemType;
-      const domain = sys?.domain ?? ft.ports[0]?.domain ?? 'plumbing';
-      const color = getMepSystemColor(systemType, domain);
-      scene.updateMepMesh(ft.id, meshData, color);
-    }
-
-    for (const eq of Object.values(mepEquipments)) {
-      if (isIncremental && !dirtyElementIds.has(eq.id)) continue;
-      const meshData = generateEquipmentMesh(eq);
-      const sys = eq.systemId ? state.mepSystems?.[eq.systemId] : undefined;
-      const systemType = sys?.systemType ?? eq.ports[0]?.systemType;
-      const domain = sys?.domain ?? eq.ports[0]?.domain ?? 'plumbing';
-      const color = getMepSystemColor(systemType, domain);
-      scene.updateMepMesh(eq.id, meshData, color);
-    }
-
-    renderedElementIdsRef.current = currentElementIds;
-
-    // Ré-appliquer la surbrillance sur les maillages recréés/mis à jour
-    const currentSelection = selectionRef.current;
-    if (currentSelection && currentSelection.length > 0) {
-      scene.setHighlight(currentSelection);
-    } else {
-      scene.render();
-    }
+      // Ré-appliquer la surbrillance sur les maillages recréés/mis à jour
+      const currentSelection = selectionRef.current;
+      if (currentSelection && currentSelection.length > 0) {
+        scene.setHighlight(currentSelection);
+      }
+    });
   }, [state, lastChangedIds]);
 
   // Synchronisation de la surbrillance (partagée 2D ↔ 3D)
@@ -743,6 +722,15 @@ export function Viewport3D({
           width: '100%',
           height: '100%',
         }}
+      />
+      {/* Barre de contrôle PBR / Modes de rendu (ADR-072) */}
+      <Viewport3DToolbar
+        renderMode={renderMode}
+        onModeChange={handleModeChange}
+        sunHour={sunHour}
+        onSunHourChange={handleSunHourChange}
+        showEdges={showEdges}
+        onToggleEdges={handleToggleEdges}
       />
     </div>
   );

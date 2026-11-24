@@ -36,6 +36,8 @@ export interface RoomFloorMeshParams {
   readonly id: string;
   readonly polygon: readonly { readonly x: number; readonly y: number }[];
   readonly elevation?: number;
+  readonly finish?: 'parquet' | 'carrelage' | 'beton' | undefined;
+  readonly name?: string | undefined;
 }
 
 export interface SlabGeometryParams {

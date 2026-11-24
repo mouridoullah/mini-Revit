@@ -26,6 +26,7 @@ maison-contemporaine-r1.json
 /Code source.txt
 /Fichiers Markdown.txt
 /tabax-r2-test-*.json
+apps/web/public/tabax-r2-test-*.json
 # IDE
 .vscode/
 .idea/

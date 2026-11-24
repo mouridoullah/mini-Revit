@@ -123,14 +123,14 @@ describe('Phase 9.3.1 — Géométrie Fondamentale 3D MEP', () => {
       // Triangles valides (multiple de 3)
       expect(mesh.indices.length % 3).toBe(0);
 
-      // Vérification de la boîte englobante AABB
-      const r = 25;
+      // Vérification de la boîte englobante AABB (corps nominal r=25, colliers à relief 1,12 x r)
+      const clampR = 25 * 1.12;
       expect(mesh.boundingBox.min.x).toBeCloseTo(0, 1);
       expect(mesh.boundingBox.max.x).toBeCloseTo(2000, 1);
-      expect(mesh.boundingBox.min.y).toBeCloseTo(-r, 1);
-      expect(mesh.boundingBox.max.y).toBeCloseTo(r, 1);
-      expect(mesh.boundingBox.min.z).toBeCloseTo(1000 - r, 1);
-      expect(mesh.boundingBox.max.z).toBeCloseTo(1000 + r, 1);
+      expect(mesh.boundingBox.min.y).toBeCloseTo(-clampR, 1);
+      expect(mesh.boundingBox.max.y).toBeCloseTo(clampR, 1);
+      expect(mesh.boundingBox.min.z).toBeCloseTo(1000 - clampR, 1);
+      expect(mesh.boundingBox.max.z).toBeCloseTo(1000 + clampR, 1);
 
       // Métadonnées
       expect(mesh.userData?.category).toBe('pipe');
@@ -147,10 +147,11 @@ describe('Phase 9.3.1 — Géométrie Fondamentale 3D MEP', () => {
       };
 
       const mesh = generatePipeMesh(pipe);
+      const clampR = 50 * 1.12;
       expect(mesh.boundingBox.min.z).toBeCloseTo(0, 1);
       expect(mesh.boundingBox.max.z).toBeCloseTo(3000, 1);
-      expect(mesh.boundingBox.min.x).toBeCloseTo(500 - 50, 1);
-      expect(mesh.boundingBox.max.x).toBeCloseTo(500 + 50, 1);
+      expect(mesh.boundingBox.min.x).toBeCloseTo(500 - clampR, 1);
+      expect(mesh.boundingBox.max.x).toBeCloseTo(500 + clampR, 1);
       expect(mesh.indices.length).toBeGreaterThan(0);
     });
   });
@@ -192,9 +193,10 @@ describe('Phase 9.3.1 — Géométrie Fondamentale 3D MEP', () => {
       expect(mesh.userData?.shape).toBe('rectangular');
       expect(mesh.userData?.color).toBe('#ea580c');
 
-      // Hauteur Z : centre 2500 +/- 125 mm
-      expect(mesh.boundingBox.min.z).toBeCloseTo(2500 - 125, 1);
-      expect(mesh.boundingBox.max.z).toBeCloseTo(2500 + 125, 1);
+      // Hauteur Z : centre 2500 +/- 132.5 mm (hauteur nominale 250 mm avec cadres de brides à +6 %)
+      const halfFlangeH = (250 * 1.06) / 2;
+      expect(mesh.boundingBox.min.z).toBeCloseTo(2500 - halfFlangeH, 1);
+      expect(mesh.boundingBox.max.z).toBeCloseTo(2500 + halfFlangeH, 1);
     });
   });
 
@@ -227,7 +229,7 @@ describe('Phase 9.3.1 — Géométrie Fondamentale 3D MEP', () => {
   // 5. Raccords (MepFitting)
   // --------------------------------------------------------------------------
   describe('Générateur géométrique de raccords (generateFittingMesh)', () => {
-    it('génère un coude (elbow) mitered raccordant 2 ports', () => {
+    it('génère un coude (elbow) haute fidélité avec balayage courbe et rotule raccordant 2 ports', () => {
       const elbow: MepFittingGeometryParams = {
         id: 'fitting_elbow_1',
         fittingType: 'elbow',
@@ -252,7 +254,39 @@ describe('Phase 9.3.1 — Géométrie Fondamentale 3D MEP', () => {
       const mesh = generateFittingMesh(elbow);
       expect(mesh.elementId).toBe('fitting_elbow_1');
       expect(mesh.userData?.fittingType).toBe('elbow');
+      expect(mesh.positions.length).toBeGreaterThan(150);
+      expect(mesh.normals.length).toBe(mesh.positions.length);
       expect(mesh.indices.length).toBeGreaterThan(0);
+      expect(mesh.indices.length % 3).toBe(0);
+    });
+
+    it('génère un coude robuste lorsque les ports coïncident avec le centre grâce à leur direction', () => {
+      const elbowCoincident: MepFittingGeometryParams = {
+        id: 'fitting_elbow_coincident',
+        fittingType: 'elbow',
+        position: { x: 2300, y: -900, z: 2500 },
+        ports: [
+          {
+            id: 'p0',
+            position: { x: 2300, y: -900, z: 2500 },
+            direction: { x: -1, y: 0, z: 0 },
+            diameter: 25,
+          },
+          {
+            id: 'p1',
+            position: { x: 2300, y: -900, z: 2500 },
+            direction: { x: 0, y: 1, z: 0 },
+            diameter: 25,
+          },
+        ],
+        systemType: 'domestic_hot_water',
+      };
+
+      const mesh = generateFittingMesh(elbowCoincident);
+      expect(mesh.elementId).toBe('fitting_elbow_coincident');
+      expect(mesh.userData?.fittingType).toBe('elbow');
+      expect(mesh.positions.length).toBeGreaterThan(100);
+      expect(mesh.indices.length % 3).toBe(0);
     });
 
     it('génère un té (tee) avec corps principal et piquage', () => {
@@ -377,6 +411,60 @@ describe('Phase 9.3.1 — Géométrie Fondamentale 3D MEP', () => {
       expect(mesh.boundingBox.max.x).toBeGreaterThanOrEqual(1300);
       expect(mesh.boundingBox.min.z).toBeCloseTo(0, 1);
       expect(mesh.boundingBox.max.z).toBeGreaterThanOrEqual(900);
+    });
+
+    it('génère une modélisation multi-volumes dédiée pour chacune des 10 familles MEP (ADR-072)', () => {
+      const families: Array<MepEquipmentGeometryParams['family']> = [
+        'boiler',
+        'heat_pump',
+        'water_heater',
+        'pump',
+        'ahu',
+        'fan',
+        'radiator',
+        'valve',
+        'meter',
+        'electrical_panel',
+      ];
+
+      for (const fam of families) {
+        const eq: MepEquipmentGeometryParams = {
+          id: `eq_${fam}_1`,
+          family: fam,
+          position: { x: 500, y: 500, z: 0 },
+          width: 400,
+          depth: 300,
+          height: 600,
+        };
+        const m = generateEquipmentMesh(eq);
+        expect(m.elementId).toBe(`eq_${fam}_1`);
+        expect(m.userData?.family).toBe(fam);
+        expect(m.positions.length).toBeGreaterThan(72); // Multi-volumes (> simple boîte de 72 floats)
+        expect(m.indices.length % 3).toBe(0);
+        expect(m.boundingBox.max.z).toBeGreaterThan(0);
+      }
+    });
+
+    it('tuyaux et gaines intègrent des bagues, colliers et brides d assemblage (ADR-072)', () => {
+      const longPipe: PipeGeometryParams = {
+        id: 'pipe_flanged_1',
+        start: { x: 0, y: 0, z: 1000 },
+        end: { x: 2000, y: 0, z: 1000 },
+        diameter: 50,
+      };
+      const pMesh = generatePipeMesh(longPipe);
+      expect(pMesh.positions.length).toBeGreaterThan(150);
+
+      const rectDuct: DuctGeometryParams = {
+        id: 'duct_flanged_1',
+        shape: 'rectangular',
+        start: { x: 0, y: 0, z: 2000 },
+        end: { x: 3000, y: 0, z: 2000 },
+        width: 400,
+        height: 250,
+      };
+      const dMesh = generateDuctMesh(rectDuct);
+      expect(dMesh.positions.length).toBeGreaterThan(150);
     });
   });
 

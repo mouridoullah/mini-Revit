@@ -1,7 +1,7 @@
 # REGISTRE DES DÉCISIONS D'ARCHITECTURE (ADR) — TABAX
 
 **Statut global :** Registre Officiel de Décisions Techniques  
-**Dernière mise à jour :** 22 novembre 2026
+**Dernière mise à jour :** 24 novembre 2026
 
 ---
 
@@ -80,6 +80,7 @@
 | **ADR-069** | Coupes Multiples Automatiques, Élévations Vectorielles Opaques & Cotations Verticales Normalisées (Saison 3 - Étape 5) | **Accepté**  | 22/11/2026 |
 | **ADR-070** | Résilience d'Exploitation — Verrou Multi-Onglets (Web Locks), Atomicité DAG sur Annulation/Rétablissement & Audit Passif au Chargement (Saison 3 - Étape 6 Volet A) | **Accepté**  | 22/11/2026 |
 | **ADR-071** | Fidélité IFC4 Exacte (Toitures Inclinées, Escaliers Crénelés & MEP Natif), Déterminisme Absolu des GUIDs & Précision Métier du Moteur de Clash (Saison 3 - Étape 6 Volet B) | **Accepté**  | 22/11/2026 |
+| **ADR-072** | Rendu Photoréaliste PBR, Éclairage IBL Studio, Bouchons de Coupe Stencil & Scission Modulaire de @tabax/view-3d (Tabax v1.1.0) | **Accepté**  | 24/11/2026 |
 
 ---
 
@@ -2907,5 +2908,63 @@ L'interopérabilité OpenBIM industrielle requiert une conformité rigoureuse au
 - 100% des faux positifs légitimes éliminés en traversée de baie ou trémie.
 - Validation industrielle par re-parsing WebIFC C++/WASM sur Villa Complexe et Immeuble R+4.
 - Couverture : **1 336 tests Vitest passés avec succès** sur 141 fichiers, 14 / 14 Playwright E2E réels, 0 erreur TS, 0 warning ESLint.
+
+---
+
+## ADR-072 : Rendu Photoréaliste PBR, Éclairage IBL Studio, Bouchons de Coupe Stencil & Scission Modulaire de `@tabax/view-3d` (Tabax v1.1.0)
+
+### Contexte
+
+Le rendu 3D de `@tabax/view-3d` reposait sur un éclairage Three.js basique (DirectionalLight + AmbientLight), des ombres non filtrées, des matériaux uniformes sans relief et des monolithes de code volumineux :
+1. `mesh-generator/mep.ts` atteignait 839 lignes.
+2. `components-3d.ts` atteignait 786 lignes.
+3. Les volumes sectionnés par le plan de coupe 3D (`setSectionCutPlane`, ADR-063) apparaissaient creux ("coquille vide").
+4. Les menuiseries d'ouverture (fenêtres, portes) étaient des boîtes translucides simplifiées sans dormant, ouvrant, allège ni béquille.
+5. Absence de textures architecturales PBR procédurales et d'occlusion ambiante (AO).
+
+### Décisions
+
+1. **D1 — Pipeline PBR & Éclairage IBL Studio (`rendering/EnvironmentManager.ts`) :**
+   - Activation de `THREE.ACESFilmicToneMapping` (exposition 1.05) et `THREE.SRGBColorSpace`.
+   - Éclairage d'environnement IBL en mémoire via `PMREMGenerator` et `RoomEnvironment` (zéro téléchargement de fichier HDR externe).
+   - Ombres haute précision `PCFSoftShadowMap` (4096×4096 en Ultra, 2048×2048 en Standard) avec `fitShadowCameraToBounds(box)` et `shadow.normalBias = 2.0`.
+   - Sol studio récepteur d'ombres douces (`ShadowMaterial`) sous `Z = -1`.
+   - Contrôle solaire horaire `setSunHour(0-24)` orientant l'azimut et l'élévation.
+
+2. **D2 — Occlusion Ambiante Temps Réel & Anti-Saccade (`rendering/PostProcessingManager.ts`) :**
+   - Intégration `EffectComposer` + `RenderPass` + `GTAOPass` + `OutputPass`.
+   - Stratégie anti-saccade conforme à ADR-018 (rendu à la demande) : pendant les mouvements orbitaux (`controls.change`), rendu direct instantané sans AO ; après relâchement (`controls.end`), passe AO pleine résolution après un délai de 80 ms (`AO_SETTLE_MS`).
+   - Trois modes de rendu dédiés : `technique` (rapide, sans ombres, look dessin), `ecorche` (fond sombre studio, contraste MEP), `realiste` (PBR, IBL, ombres et AO).
+
+3. **D3 — Bouchons de Coupe Pleins Stencil 2-Passes (`rendering/SectionCapManager.ts`) :**
+   - Mise en œuvre d'un véritable pipeline Stencil Buffer 2-passes :
+     1. Passe 1 : Face arrière (`THREE.BackSide`) avec `IncrementWrapStencilOp` (`renderOrder: 1`).
+     2. Passe 2 : Face avant (`THREE.FrontSide`) avec `DecrementWrapStencilOp` (`renderOrder: 1`).
+     3. Passe 3 : Plan bouchon coplanaire mat (`#1e222a`) testant `stencilRef !== 0` et remettant le stencil à zéro (`renderOrder: 2`).
+   - Rendu solide et massif des sections coupées sans aucun vide intérieur ni z-fighting, préservant la visibilité des réseaux MEP traversants.
+
+4. **D4 — Menuiseries Paramétriques Haute Fidélité (`mesh-generator/openings-3d.ts`) :**
+   - Fenêtres : cadre dormant aluminium anthracite (`#2d3748`), ouvrant intérieur, meneau vertical et traverse médiane selon dimensions, appui de fenêtre extérieur et vitrage `MeshPhysicalMaterial` (`roughness: 0.04`, `transmission: 0.85`, opacité teintée).
+   - Portes : huisserie périphérique aluminium, vantail bois chaud (`#8b5a2b`) avec panneaux de décor en relief et béquille métallique chromée à +1 050 mm du sol.
+
+5. **D5 — Textures PBR Procédurales & Sols de Pièces (`rendering/ProceduralTextures.ts`, `mesh-generator/rooms.ts`) :**
+   - Génération procédurale sans assets externes via canvas 2D : enduit fin, béton banché, parquet chêne clair, carrelage gris doux, tôle galvanisée et bois chaud.
+   - Intégration dans `rooms.ts` selon le type ou nom de pièce (carrelage pour pièces humides / sanitaires, parquet pour pièces sèches).
+   - Matériaux partagés conformes à ADR-050 et libérés proprement dans `Scene3D.dispose()`.
+
+6. **D6 — Scission Modulaire des Gros Fichiers de `@tabax/view-3d` :**
+   - `Scene3D.ts` (1 178 L initialement) scindé et allégé à **773 lignes** (strictement sous les 800 lignes), déléguant le maillage à `ArchitecturalMeshManager`, la grille à `ArchitecturalGridManager`, les matériaux à `DomainMeshFactory`, la surbrillance à `SelectionHighlightManager`, les collisions à `ClashOverlayManager` et la caméra à `CameraTransitionManager`.
+   - `mesh-generator/mep.ts` (839 L) scindé en 8 sous-modules dans `mesh-generator/mep/` (`colors.ts`, `common.ts`, `pipes.ts`, `ducts.ts`, `cable-trays.ts`, `fittings.ts`, `equipment.ts`, `batch.ts`) avec façade de ré-export de 27 lignes.
+   - `components-3d.ts` (786 L) scindé en sous-modules dans `components/` (`sanitary.ts`, `kitchen.ts`, `furniture.ts`, `glazing.ts`) avec façade de ré-export de 18 lignes.
+
+### Conséquences
+
+- Rendu photoréaliste de niveau studio sur station RTX sans aucune dépendance externe ni fichier d'asset téléchargé.
+- Zéro dégradation des performances : rendu à la demande ADR-018 préservé, zéro boucle d'animation permanente.
+- Découpage strict et isolation des packages respectée (zéro modification de `@tabax/core`).
+- Codebase considérablement allégée : plus aucun fichier de plus de 800 lignes dans `@tabax/view-3d` (`Scene3D.ts` à 773 lignes).
+- Couverture de tests consolidée v1.1.0 : **1 402 tests Vitest passés avec succès** sur **165 suites de tests** (`geometry`: 20 suites / 228 tests, `core`: 52 suites / 559 tests, `view-3d`: 20 suites / 125 tests, `view-2d`: 19 suites / 155 tests, `apps/web`: 54 suites / 335 tests), 18 / 18 scénarios Playwright E2E réels validés (0 erreur console), 0 erreur TypeScript, 0 warning ESLint.
+- Coudes MEP industriels fluides (`elbow`) sans bouchons saillants : modélisation par balayage toroïdal continu `addCurvedSweep` et rotule sphérique.
+
 
 

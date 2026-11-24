@@ -154,7 +154,7 @@ export function StatusBar({
             title={issues.map((i) => `[${i.code}] ${i.message}`).join('\n')}
             style={{ color: '#d97706', cursor: 'help' }}
           >
-            ⚠️ Issues : <strong style={{ color: '#d97706' }}>{issues.length}</strong>
+            Issues : <strong style={{ color: '#d97706' }}>{issues.length}</strong>
           </span>
         )}
       </div>
