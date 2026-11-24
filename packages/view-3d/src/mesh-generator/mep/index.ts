@@ -1,14 +1,15 @@
 /**
- * mesh-generator/mep/index — re-exports depuis le module mep principal
+ * mesh-generator/mep/index — barrel et re-exports modulaires MEP
  *
- * Ce fichier constitue le point d'entree du sous-dossier mep/.
- * Il re-exporte toutes les fonctions et types publics de ../mep.ts
- * en les organisant par domaine metier (pipes, ducts, cable-trays, fittings, equipment).
- *
- * Les sous-modules specifiques peuvent etre importes individuellement :
- *   import { generatePipeMesh } from '@tabax/view-3d/mesh-generator/mep/pipes'
- * ou via ce barrel :
- *   import { generatePipeMesh } from '@tabax/view-3d/mesh-generator/mep'
+ * Découpé selon ADR-072 en sous-modules métier autonomes :
+ * - colors : Nuancier normalisé et palettes
+ * - common : Algèbre vectorielle 3D et accumulateur RawMeshData
+ * - pipes : Canalisations et tuyauteries
+ * - ducts : Gaines aérauliques
+ * - cable-trays : Chemins de câbles
+ * - fittings : Raccords (coudes, tés, croix, réductions, bouchons)
+ * - equipment : Équipements techniques
+ * - batch : Générateur par lot
  */
 
 // Couleurs et utilitaires
@@ -17,23 +18,22 @@ export {
   MEP_DOMAIN_FALLBACK_COLORS,
   DEFAULT_MEP_COLOR,
   getMepSystemColor,
-} from '../mep.js';
+} from './colors.js';
 
 // Tuyauterie
 export { generatePipeMesh } from './pipes.js';
 
-// Gaines aerauliques
+// Gaines aérauliques
 export { generateDuctMesh } from './ducts.js';
 
-// Chemins de cables
+// Chemins de câbles
 export { generateCableTrayMesh } from './cable-trays.js';
 
 // Raccords
 export { generateFittingMesh } from './fittings.js';
 
-// Equipements
+// Équipements
 export { generateEquipmentMesh } from './equipment.js';
 
 // Batch
-export { generateMepMeshes } from '../mep.js';
-export type { MepStateForMesh } from '../mep.js';
+export { generateMepMeshes, type MepStateForMesh } from './batch.js';

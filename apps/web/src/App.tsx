@@ -27,13 +27,13 @@ import {
   BimDocument,
   Commands,
   generateId,
-  type ClashResult,
 } from '@tabax/core';
 import { useBimPersistence } from './hooks/useBimPersistence.js';
 import { useBimExport } from './hooks/useBimExport.js';
 import { useFederatedIfc } from './hooks/useFederatedIfc.js';
 import { useBimShortcuts } from './hooks/useBimShortcuts.js';
 import { useSectionCuts } from './hooks/useSectionCuts.js';
+import { useClashCoordination } from './hooks/useClashCoordination.js';
 
 export interface AppProps {
   readonly initialDoc?: BimDocument;
@@ -70,18 +70,23 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
   const [isMetricsCollapsed, setIsMetricsCollapsed] = useState(true);
   const [dismissMultiTab, setDismissMultiTab] = useState(false);
   const ifcFileInputRef = useRef<HTMLInputElement>(null);
-  const [activeClashes, setActiveClashes] = useState<readonly ClashResult[]>([]);
-  const [clashFocusPoint, setClashFocusPoint] = useState<{
-    readonly x: number;
-    readonly y: number;
-    readonly z: number;
-    readonly triggerId?: number;
-  } | null>(null);
-  const [focus2DPoint, setFocus2DPoint] = useState<{
-    readonly x: number;
-    readonly y: number;
-    readonly triggerId?: number;
-  } | null>(null);
+
+  // 1a. Hook de Coordination des Conflits
+  const {
+    activeClashes,
+    setActiveClashes,
+    clashFocusPoint,
+    setClashFocusPoint,
+    focus2DPoint,
+    handleSelectClash,
+    handleFocusPoint3D,
+    handleLocate2D,
+  } = useClashCoordination({
+    doc,
+    setSelectedIds,
+    setActiveLevelId,
+    setViewMode,
+  });
 
   // 1b. Hook de Coupes & Élévations 2D / 3D (ADR-063)
   const {
@@ -97,64 +102,6 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
       setRightDockTab('properties');
     }
   }, [selectedIds, rightDockTab]);
-
-  const handleSelectClash = useCallback(
-    (clash: ClashResult) => {
-      setSelectedIds([clash.elementA, clash.elementB]);
-      const state = doc.getState();
-      const levelId =
-        state.walls[clash.elementA]?.levelId ??
-        state.pipes?.[clash.elementA]?.levelId ??
-        state.ducts?.[clash.elementA]?.levelId ??
-        state.cableTrays?.[clash.elementA]?.levelId ??
-        state.slabs?.[clash.elementA]?.levelId ??
-        state.walls[clash.elementB]?.levelId ??
-        state.pipes?.[clash.elementB]?.levelId ??
-        state.ducts?.[clash.elementB]?.levelId ??
-        state.cableTrays?.[clash.elementB]?.levelId ??
-        state.slabs?.[clash.elementB]?.levelId;
-
-      if (levelId) {
-        setActiveLevelId(levelId);
-      }
-      setClashFocusPoint({
-        x: clash.point.x,
-        y: clash.point.y,
-        z: clash.point.z,
-        triggerId: Date.now() + Math.random(),
-      });
-      setViewMode('clashes');
-    },
-    [doc],
-  );
-
-  const handleFocusPoint3D = useCallback(
-    (point: { readonly x: number; readonly y: number; readonly z: number }) => {
-      setClashFocusPoint({
-        x: point.x,
-        y: point.y,
-        z: point.z,
-        triggerId: Date.now() + Math.random(),
-      });
-      setViewMode((current) => (current === '2d' || current === 'section' ? 'split' : current));
-    },
-    [],
-  );
-
-  const handleLocate2D = useCallback(
-    (point: { readonly x: number; readonly y: number }, levelId?: string) => {
-      if (levelId) {
-        setActiveLevelId(levelId);
-      }
-      setFocus2DPoint({
-        x: point.x,
-        y: point.y,
-        triggerId: Date.now() + Math.random(),
-      });
-      setViewMode((current) => (current === '3d' || current === 'section' ? 'split' : current));
-    },
-    [],
-  );
 
   // 1. Hook de Fédération IFC (Sous-phase 9.5)
   const {

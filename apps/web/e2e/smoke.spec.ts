@@ -566,4 +566,48 @@ test.describe('Tabax E2E Smoke Tests (Playwright Real Browser)', () => {
 
     expect(consoleErrors).toEqual([]);
   });
+
+  test('modes de rendu 3D PBR, écorché et ensoleillement dynamique (ADR-072)', async ({ page }) => {
+    const consoleErrors: string[] = [];
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') consoleErrors.push(msg.text());
+    });
+    page.on('pageerror', (err) => consoleErrors.push(err.message));
+
+    await page.goto('/');
+    await expect(page.locator('canvas[data-testid="viewport-3d-canvas"]')).toBeVisible();
+
+    // 1. Vérification de la présence de la barre de contrôle 3D
+    const toolbar = page.locator('[data-testid="viewport-3d-toolbar"]');
+    await expect(toolbar).toBeVisible();
+
+    // 2. Bascule en mode Écorché
+    const ecorcheBtn = page.locator('[data-testid="render-mode-ecorche"]');
+    await ecorcheBtn.click();
+    await expect(ecorcheBtn).toHaveCSS('font-weight', '600');
+
+    // 3. Bascule en mode Réaliste PBR
+    const realisteBtn = page.locator('[data-testid="render-mode-realiste"]');
+    await realisteBtn.click();
+    await expect(realisteBtn).toHaveCSS('font-weight', '600');
+
+    // Le curseur solaire doit apparaître en mode réaliste
+    const sunSlider = page.locator('[data-testid="sun-hour-slider"]');
+    await expect(sunSlider).toBeVisible();
+    await sunSlider.fill('16');
+
+    // 4. Bascule des arêtes fines
+    const edgesCheckbox = page.locator('[data-testid="toggle-edges-checkbox"]');
+    await expect(edgesCheckbox).toBeChecked();
+    await edgesCheckbox.uncheck();
+    await expect(edgesCheckbox).not.toBeChecked();
+
+    // 5. Revenir en mode Technique
+    const techniqueBtn = page.locator('[data-testid="render-mode-technique"]');
+    await techniqueBtn.click();
+    await expect(techniqueBtn).toHaveCSS('font-weight', '600');
+    await expect(sunSlider).toHaveCount(0);
+
+    expect(consoleErrors).toEqual([]);
+  });
 });

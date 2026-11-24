@@ -11,7 +11,6 @@ import {
 } from 'lucide-react';
 import {
   type BimDocument,
-  type BimState,
   type ClashResult,
   type ClashSeverity,
   detectClashes,
@@ -30,81 +29,8 @@ export interface ClashWorkspaceProps {
   readonly onClose?: () => void;
 }
 
-export type DisciplineFilter = 'all' | 'mep-structure' | 'mep-architecture' | 'mep-mep';
-
-interface ElementInfo {
-  readonly name: string;
-  readonly category: string;
-  readonly discipline: string;
-  readonly levelName: string;
-  readonly levelId?: string | undefined;
-}
-
-function getElementInfo(state: BimState, id: string): ElementInfo {
-  if (state.walls[id]) {
-    const w = state.walls[id];
-    const lvlName = (w && state.levels[w.levelId]?.name) ?? w?.levelId ?? 'N/A';
-    const typeName = (w && state.wallTypes?.[w.typeId]?.name) ?? w?.typeId ?? 'Mur';
-    return {
-      name: `Mur (${typeName})`,
-      category: 'Mur architectural',
-      discipline: 'Architecture / Structure',
-      levelName: lvlName,
-      levelId: w?.levelId,
-    };
-  }
-  if (state.slabs?.[id]) {
-    const s = state.slabs[id];
-    const lvlName = (s && state.levels[s.levelId]?.name) ?? s?.levelId ?? 'N/A';
-    const typeName = (s && state.slabTypes?.[s.slabTypeId]?.name) ?? s?.slabTypeId ?? 'Dalle';
-    return {
-      name: `Dalle (${typeName})`,
-      category: 'Plancher / Dalle béton',
-      discipline: 'Structure',
-      levelName: lvlName,
-      levelId: s?.levelId,
-    };
-  }
-  if (state.pipes?.[id]) {
-    const p = state.pipes[id];
-    const sys = p?.systemId ? state.mepSystems?.[p.systemId] : undefined;
-    const sysName = sys?.name ?? sys?.id ?? 'Canalisation';
-    return {
-      name: `Tuyau Ø${p ? Math.round(p.diameter) : 0} mm (${sysName})`,
-      category: 'Canalisation hydronique / plomberie',
-      discipline: 'MEP (Fluides)',
-      levelName: 'Niveau MEP',
-    };
-  }
-  if (state.ducts?.[id]) {
-    const d = state.ducts[id];
-    const sys = d?.systemId ? state.mepSystems?.[d.systemId] : undefined;
-    const sysName = sys?.name ?? sys?.id ?? 'Gaine aéraulique';
-    return {
-      name: `Gaine ${d ? `${Math.round(d.width ?? 0)}x${Math.round(d.height ?? 0)}` : ''} mm (${sysName})`,
-      category: 'Gaine de ventilation / désenfumage',
-      discipline: 'MEP (Aéraulique)',
-      levelName: 'Niveau MEP',
-    };
-  }
-  if (state.cableTrays?.[id]) {
-    const t = state.cableTrays[id];
-    const sys = t?.systemId ? state.mepSystems?.[t.systemId] : undefined;
-    const sysName = sys?.name ?? sys?.id ?? 'Chemin de câbles';
-    return {
-      name: `Chemin de câbles ${t ? `${Math.round(t.width ?? 0)}x${Math.round(t.height ?? 0)}` : ''} mm (${sysName})`,
-      category: 'Cheminement CFO / CFA',
-      discipline: 'MEP (Électricité)',
-      levelName: 'Niveau MEP',
-    };
-  }
-  return {
-    name: id,
-    category: 'Composant générique',
-    discipline: 'BIM / Coordination',
-    levelName: 'N/A',
-  };
-}
+import { type DisciplineFilter, getElementInfo, exportClashesToCsv } from './clash/clashUtils.js';
+export type { DisciplineFilter };
 
 export function ClashWorkspace({
   doc,
@@ -207,22 +133,8 @@ export function ClashWorkspace({
   };
 
   const handleExportCsv = useCallback(() => {
-    const lines = [
-      'ID,Sévérité,Discipline A,Élément A,Catégorie A,Discipline B,Élément B,Catégorie B,Pénétration (mm),X (mm),Y (mm),Z (mm)',
-    ];
-    for (const c of filteredClashes) {
-      lines.push(
-        `"${c.id}","${c.severity}","${c.disciplineA}","${c.elementA}","${c.categoryA}","${c.disciplineB}","${c.elementB}","${c.categoryB}",${Math.round(c.penetrationDepthMm)},${Math.round(c.point.x)},${Math.round(c.point.y)},${Math.round(c.point.z)}`,
-      );
-    }
-    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `synthese-conflits-bim-${new Date().toISOString().slice(0, 10)}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
-  }, [filteredClashes]);
+    exportClashesToCsv(filteredClashes, doc.getState());
+  }, [filteredClashes, doc]);
 
   return (
     <div

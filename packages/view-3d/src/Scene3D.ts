@@ -17,7 +17,7 @@ import { EnvironmentManager } from './rendering/EnvironmentManager.js';
 import { PostProcessingManager } from './rendering/PostProcessingManager.js';
 import type { RenderMode } from './rendering/PostProcessingManager.js';
 import { SectionCapManager } from './rendering/SectionCapManager.js';
-import { disposeProceduralTextures } from './rendering/ProceduralTextures.js';
+import { getProceduralTextures, disposeProceduralTextures } from './rendering/ProceduralTextures.js';
 
 export type ComponentMeshFamily = 'sanitary' | 'kitchen' | 'furniture' | 'glazing' | (string & {});
 
@@ -52,6 +52,8 @@ export class Scene3D {
   private readonly kitchenMaterial: THREE.MeshStandardMaterial;
   private readonly furnitureMaterial: THREE.MeshStandardMaterial;
   private readonly glazingMaterial: THREE.MeshStandardMaterial;
+  private parquetFloorMaterial: THREE.MeshStandardMaterial | null = null;
+  private carrelageFloorMaterial: THREE.MeshStandardMaterial | null = null;
 
   /**
    * Groupe conteneur des superpositions filaires et visuelles de collisions.
@@ -197,6 +199,26 @@ export class Scene3D {
     this.furnitureMaterial = createFurnitureMaterial();
     this.glazingMaterial = createGlazingMaterial();
 
+    if (typeof window !== 'undefined') {
+      try {
+        const textures = getProceduralTextures(this.renderer);
+        this.parquetFloorMaterial = new THREE.MeshStandardMaterial({
+          map: textures.parquet,
+          roughness: 0.45,
+          metalness: 0.05,
+          side: THREE.DoubleSide,
+        });
+        this.carrelageFloorMaterial = new THREE.MeshStandardMaterial({
+          map: textures.carrelage,
+          roughness: 0.55,
+          metalness: 0.08,
+          side: THREE.DoubleSide,
+        });
+      } catch {
+        // Dégradation gracieuse en environnement test / headless
+      }
+    }
+
     // 8. Rendu à la demande sur interaction caméra
     // Compatible ADR-018 : pendant la rotation -> rendu direct, apres relachement -> AO plein
     this.onControlsChange = () => {
@@ -257,7 +279,9 @@ export class Scene3D {
       mat === this.sanitaryMaterial ||
       mat === this.kitchenMaterial ||
       mat === this.furnitureMaterial ||
-      mat === this.glazingMaterial
+      mat === this.glazingMaterial ||
+      mat === this.parquetFloorMaterial ||
+      mat === this.carrelageFloorMaterial
     );
   }
 
@@ -446,18 +470,43 @@ export class Scene3D {
   }
 
   /**
-   * Ajoute une dalle de sol de pièce dans la scène 3D avec un matériau pastel translucide.
+   * Ajoute une dalle de sol de pièce dans la scène 3D.
+   * Utilise les revêtements PBR texturés (parquet / carrelage) en mode réaliste,
+   * ou un matériau pastel translucide en mode technique / écorché.
    */
   public addRoomMesh(roomId: string, rawMesh: RawMeshData): THREE.Mesh {
-    const color = getRoomColorHex(roomId);
-    const material = new THREE.MeshStandardMaterial({
-      color,
-      roughness: 0.8,
-      metalness: 0.1,
-      transparent: true,
-      opacity: 0.5,
-      side: THREE.DoubleSide,
-    });
+    const isRealistic = this.getRenderMode() === 'realiste';
+    let material: THREE.Material;
+
+    if (isRealistic) {
+      const finish = rawMesh.userData?.finish as string | undefined;
+      if (finish === 'carrelage' && this.carrelageFloorMaterial) {
+        material = this.carrelageFloorMaterial;
+      } else if (finish === 'parquet' && this.parquetFloorMaterial) {
+        material = this.parquetFloorMaterial;
+      } else {
+        const color = getRoomColorHex(roomId);
+        material = new THREE.MeshStandardMaterial({
+          color,
+          roughness: 0.8,
+          metalness: 0.1,
+          transparent: true,
+          opacity: 0.5,
+          side: THREE.DoubleSide,
+        });
+      }
+    } else {
+      const color = getRoomColorHex(roomId);
+      material = new THREE.MeshStandardMaterial({
+        color,
+        roughness: 0.8,
+        metalness: 0.1,
+        transparent: true,
+        opacity: 0.5,
+        side: THREE.DoubleSide,
+      });
+    }
+
     return this.addMesh({ ...rawMesh, elementId: roomId }, material);
   }
 
@@ -1270,6 +1319,8 @@ export class Scene3D {
     this.kitchenMaterial.dispose();
     this.furnitureMaterial.dispose();
     this.glazingMaterial.dispose();
+    this.parquetFloorMaterial?.dispose();
+    this.carrelageFloorMaterial?.dispose();
 
     // 5. Vider la scène Three.js
     this.scene.clear();

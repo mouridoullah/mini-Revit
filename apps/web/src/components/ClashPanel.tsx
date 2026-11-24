@@ -2,7 +2,6 @@ import { useState, useMemo, useCallback } from 'react';
 import { ChevronDown, ChevronUp, Maximize2, Search, X, Zap } from 'lucide-react';
 import {
   type BimDocument,
-  type BimState,
   type ClashResult,
   type ClashSeverity,
   detectClashes,
@@ -21,165 +20,8 @@ export interface ClashPanelProps {
   readonly onOpenDedicatedView?: () => void;
 }
 
-export type DisciplineFilter = 'all' | 'mep-structure' | 'mep-architecture' | 'mep-mep';
-
-interface ElementInfo {
-  readonly name: string;
-  readonly category: string;
-  readonly discipline: string;
-  readonly levelName: string;
-  readonly levelId?: string | undefined;
-}
-
-function getElementInfo(state: BimState, id: string): ElementInfo {
-  // Murs
-  if (state.walls[id]) {
-    const w = state.walls[id];
-    const lvlName = (w && state.levels[w.levelId]?.name) ?? w?.levelId ?? 'N/A';
-    const typeName = (w && state.wallTypes?.[w.typeId]?.name) ?? w?.typeId ?? 'Mur';
-    return {
-      name: `Mur (${typeName})`,
-      category: 'Mur architectural',
-      discipline: 'Architecture / Structure',
-      levelName: lvlName,
-      levelId: w?.levelId,
-    };
-  }
-  // Dalles
-  if (state.slabs?.[id]) {
-    const s = state.slabs[id];
-    const lvlName = (s && state.levels[s.levelId]?.name) ?? s?.levelId ?? 'N/A';
-    const typeName = (s && state.slabTypes?.[s.slabTypeId]?.name) ?? s?.slabTypeId ?? 'Dalle';
-    return {
-      name: `Dalle (${typeName})`,
-      category: 'Dalle horizontale',
-      discipline: 'Structure',
-      levelName: lvlName,
-      levelId: s?.levelId,
-    };
-  }
-  // Tuyaux
-  if (state.pipes?.[id]) {
-    const p = state.pipes[id];
-    const lvlName = (p?.levelId && state.levels[p.levelId]?.name) ?? p?.levelId ?? 'N/A';
-    const sysName = (p?.systemId && state.mepSystems?.[p.systemId]?.name) ?? p?.systemId ?? 'MEP';
-    return {
-      name: `Tuyau Ø${p?.diameter ?? 0} mm (${sysName})`,
-      category: 'Canalisation hydronique / plomberie',
-      discipline: 'MEP',
-      levelName: lvlName,
-      levelId: p?.levelId,
-    };
-  }
-  // Gaines
-  if (state.ducts?.[id]) {
-    const d = state.ducts[id];
-    const lvlName = (d?.levelId && state.levels[d.levelId]?.name) ?? d?.levelId ?? 'N/A';
-    const sysName = (d?.systemId && state.mepSystems?.[d.systemId]?.name) ?? d?.systemId ?? 'MEP';
-    const dimStr = d?.shape === 'round' ? `Ø${d.diameter} mm` : `${d?.width}x${d?.height} mm`;
-    return {
-      name: `Gaine ${dimStr} (${sysName})`,
-      category: 'Conduit aéraulique',
-      discipline: 'MEP',
-      levelName: lvlName,
-      levelId: d?.levelId,
-    };
-  }
-  // Chemins de câbles
-  if (state.cableTrays?.[id]) {
-    const ct = state.cableTrays[id];
-    const lvlName = (ct?.levelId && state.levels[ct.levelId]?.name) ?? ct?.levelId ?? 'N/A';
-    const sysName = (ct?.systemId && state.mepSystems?.[ct.systemId]?.name) ?? ct?.systemId ?? 'Électrique';
-    return {
-      name: `Chemin de câbles ${ct?.width}x${ct?.height} mm (${sysName})`,
-      category: 'Cheminement CFO/CFA',
-      discipline: 'MEP',
-      levelName: lvlName,
-      levelId: ct?.levelId,
-    };
-  }
-  // Raccords MEP
-  if (state.mepFittings?.[id]) {
-    const f = state.mepFittings[id];
-    const lvlName = (f?.levelId && state.levels[f.levelId]?.name) ?? f?.levelId ?? 'N/A';
-    return {
-      name: `Raccord MEP (${f?.fittingType ?? 'raccord'})`,
-      category: 'Raccord réseau',
-      discipline: 'MEP',
-      levelName: lvlName,
-      levelId: f?.levelId,
-    };
-  }
-  // Équipements MEP
-  if (state.mepEquipments?.[id]) {
-    const eq = state.mepEquipments[id];
-    const lvlName = (eq?.levelId && state.levels[eq.levelId]?.name) ?? eq?.levelId ?? 'N/A';
-    return {
-      name: `Équipement (${eq?.name ?? eq?.family ?? 'équipement'})`,
-      category: 'Équipement technique',
-      discipline: 'MEP',
-      levelName: lvlName,
-      levelId: eq?.levelId,
-    };
-  }
-  // Portes & Fenêtres
-  if (state.doors?.[id]) {
-    const d = state.doors[id];
-    const hostWall = d ? state.walls[d.hostWallId] : undefined;
-    const lvlName = hostWall ? ((hostWall && state.levels[hostWall.levelId]?.name) ?? hostWall.levelId) : 'N/A';
-    return {
-      name: 'Porte',
-      category: 'Ouverture / Menuiserie',
-      discipline: 'Architecture',
-      levelName: lvlName,
-      levelId: hostWall?.levelId,
-    };
-  }
-  if (state.windows?.[id]) {
-    const win = state.windows[id];
-    const hostWall = win ? state.walls[win.hostWallId] : undefined;
-    const lvlName = hostWall ? ((hostWall && state.levels[hostWall.levelId]?.name) ?? hostWall.levelId) : 'N/A';
-    return {
-      name: 'Fenêtre',
-      category: 'Ouverture / Menuiserie',
-      discipline: 'Architecture',
-      levelName: lvlName,
-      levelId: hostWall?.levelId,
-    };
-  }
-  // Escaliers & Toitures
-  if (state.stairs?.[id]) {
-    const s = state.stairs[id];
-    const lvlId = s?.bottomLevelId;
-    const lvlName = (lvlId && state.levels[lvlId]?.name) ?? lvlId ?? 'N/A';
-    return {
-      name: 'Escalier',
-      category: 'Circulation verticale',
-      discipline: 'Structure / Architecture',
-      levelName: lvlName,
-      levelId: lvlId,
-    };
-  }
-  if (state.roofs?.[id]) {
-    const r = state.roofs[id];
-    const lvlName = (r && state.levels[r.levelId]?.name) ?? r?.levelId ?? 'N/A';
-    return {
-      name: `Toiture (${r?.name ?? 'standard'})`,
-      category: 'Couverture',
-      discipline: 'Architecture',
-      levelName: lvlName,
-      levelId: r?.levelId,
-    };
-  }
-
-  return {
-    name: id,
-    category: 'Entité BIM',
-    discipline: 'Général',
-    levelName: 'Non défini',
-    levelId: undefined,
-  };
-}
+import { type DisciplineFilter, getElementInfo, exportClashesToCsv } from './clash/clashUtils.js';
+export type { DisciplineFilter };
 
 /**
  * Panneau de Détection et d'Inspection des Conflits Géométriques BIM (Phase 9.4).
@@ -271,22 +113,8 @@ export function ClashPanel({
   );
 
   const handleExportCsv = useCallback(() => {
-    const lines = [
-      'ID,Sévérité,Discipline A,Élément A,Catégorie A,Discipline B,Élément B,Catégorie B,Pénétration (mm),X (mm),Y (mm),Z (mm)',
-    ];
-    for (const c of filteredClashes) {
-      lines.push(
-        `"${c.id}","${c.severity}","${c.disciplineA}","${c.elementA}","${c.categoryA}","${c.disciplineB}","${c.elementB}","${c.categoryB}",${Math.round(c.penetrationDepthMm)},${Math.round(c.point.x)},${Math.round(c.point.y)},${Math.round(c.point.z)}`,
-      );
-    }
-    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `rapport-conflits-bim-${new Date().toISOString().slice(0, 10)}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
-  }, [filteredClashes]);
+    exportClashesToCsv(filteredClashes, doc.getState());
+  }, [filteredClashes, doc]);
 
   return (
     <div
@@ -647,6 +475,7 @@ export function ClashPanel({
                 gap: '8px',
                 fontSize: '11px',
                 flexShrink: 0,
+                marginBottom: '8px',
               }}
             >
               {/* En-tête de la fiche */}
@@ -747,16 +576,18 @@ export function ClashPanel({
               <div
                 style={{
                   display: 'flex',
-                  alignItems: 'center',
+                  flexDirection: embedded ? 'column' : 'row',
+                  alignItems: embedded ? 'stretch' : 'center',
                   justifyContent: 'space-between',
-                  paddingTop: '4px',
+                  gap: '6px',
+                  paddingTop: '6px',
                   borderTop: '1px solid var(--border-subtle)',
                 }}
               >
                 <span style={{ color: 'var(--text-secondary)', fontFamily: 'monospace', fontSize: '10px' }}>
                   Impact : X={Math.round(selectedClash.point.x)} Y={Math.round(selectedClash.point.y)} Z={Math.round(selectedClash.point.z)} mm
                 </span>
-                <div style={{ display: 'flex', gap: '6px' }}>
+                <div style={{ display: 'flex', gap: '6px', justifyContent: embedded ? 'flex-end' : 'flex-start' }}>
                   {(selectedElementInfo.infoA.levelId ?? selectedElementInfo.infoB.levelId) && (onLocate2D || onSelectLevel) && (
                     <button
                       type="button"
