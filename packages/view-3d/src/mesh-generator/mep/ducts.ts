@@ -22,16 +22,17 @@ export function generateDuctMesh(duct: DuctGeometryParams): RawMeshData {
 
     if (duct.shape === 'round') {
       const radius = Math.max(1, (duct.diameter ?? 200) / 2);
-      // Corps tubulaire circulaire ouvert
-      acc.addCylinder(p1, p2, radius * 0.97, 16, false);
+      // Corps tubulaire circulaire fermé aux extrémités (caps = true élimine l'effet de vide en terminaison)
+      acc.addCylinder(p1, p2, radius, 16, true);
 
-      // Manchons circulaires à brides d'étanchéité
+      // Manchons circulaires à brides d'étanchéité avec relief franc (rayon 1,08 x r)
       if (totalLength >= 150) {
         const flangeWidth = Math.min(30, totalLength * 0.08);
+        const flangeRadius = radius * 1.08;
         // Bride de début
-        acc.addCylinder(p1, add(p1, scale(axis, flangeWidth)), radius, 16, false);
+        acc.addCylinder(p1, add(p1, scale(axis, flangeWidth)), flangeRadius, 16, false);
         // Bride de fin
-        acc.addCylinder(add(p2, scale(axis, -flangeWidth)), p2, radius, 16, false);
+        acc.addCylinder(add(p2, scale(axis, -flangeWidth)), p2, flangeRadius, 16, false);
 
         // Brides intermédiaires tous les 1 200 mm
         const flangeInterval = 1200;
@@ -42,7 +43,7 @@ export function generateDuctMesh(duct: DuctGeometryParams): RawMeshData {
             const center = add(p1, scale(axis, i * step));
             const c1 = add(center, scale(axis, -flangeWidth / 2));
             const c2 = add(center, scale(axis, flangeWidth / 2));
-            acc.addCylinder(c1, c2, radius, 16, false);
+            acc.addCylinder(c1, c2, flangeRadius, 16, false);
           }
         }
       }
@@ -50,16 +51,18 @@ export function generateDuctMesh(duct: DuctGeometryParams): RawMeshData {
       const width = Math.max(1, duct.width ?? 300);
       const height = Math.max(1, duct.height ?? 200);
 
-      // Corps de gaine rectangulaire
-      acc.addBoxAlongAxis(p1, p2, width * 0.97, height * 0.97, false);
+      // Corps de gaine rectangulaire fermé (caps = true garantit des plénums et bouches opaques)
+      acc.addBoxAlongAxis(p1, p2, width, height, true);
 
-      // Cadres de brides rectangulaires d'assemblage en tôle
+      // Cadres de brides rectangulaires d'assemblage en tôle avec relief franc (+6 %)
       if (totalLength >= 150) {
         const flangeWidth = Math.min(25, totalLength * 0.06);
+        const flangeW = width * 1.06;
+        const flangeH = height * 1.06;
         // Cadre de début
-        acc.addBoxAlongAxis(p1, add(p1, scale(axis, flangeWidth)), width, height, false);
+        acc.addBoxAlongAxis(p1, add(p1, scale(axis, flangeWidth)), flangeW, flangeH, false);
         // Cadre de fin
-        acc.addBoxAlongAxis(add(p2, scale(axis, -flangeWidth)), p2, width, height, false);
+        acc.addBoxAlongAxis(add(p2, scale(axis, -flangeWidth)), p2, flangeW, flangeH, false);
 
         // Cadres intermédiaires tous les 1 200 mm
         const flangeInterval = 1200;
@@ -70,7 +73,7 @@ export function generateDuctMesh(duct: DuctGeometryParams): RawMeshData {
             const center = add(p1, scale(axis, i * step));
             const c1 = add(center, scale(axis, -flangeWidth / 2));
             const c2 = add(center, scale(axis, flangeWidth / 2));
-            acc.addBoxAlongAxis(c1, c2, width, height, false);
+            acc.addBoxAlongAxis(c1, c2, flangeW, flangeH, false);
           }
         }
       }

@@ -214,25 +214,28 @@ export function generateFittingMesh(fitting: MepFittingGeometryParams): RawMeshD
     }
 
     case 'cap': {
-      // Bouchon : collerette d'emboîture + dôme / tête hexagonale de fermeture
+      // Bouchon : collerette d'emboîture + dôme / tête hexagonale de fermeture étanche
       const port0 = ports[0];
       if (port0) {
         const p0 = v3(port0.position.x, port0.position.y, port0.position.z);
-        const dir = v3(port0.direction.x, port0.direction.y, port0.direction.z);
+        const dir = port0.direction
+          ? v3(port0.direction.x, port0.direction.y, port0.direction.z)
+          : v3(0, 0, 1);
         const normal = normalize(dir);
         const r0 = Math.max(1, (port0.diameter ?? 32) / 2);
         const collarLen = 14;
         const headLen = 10;
         const pCollarEnd = add(p0, scale(normal, collarLen));
-        const pHeadEnd = add(pCollarEnd, scale(normal, headLen));
+        const pHeadEnd = add(p0, scale(normal, -headLen));
 
-        // Collerette d'emboîture
+        // Collerette d'emboîture sur le conduit (ouverte côté tuyau à pCollarEnd)
         acc.addCylinder(p0, pCollarEnd, r0 * 1.08, 16, false);
-        // Tête de fermeture avec dôme hémisphérique
-        acc.addCylinder(pCollarEnd, pHeadEnd, r0 * 0.85, 16, true);
-        acc.addSphere(pHeadEnd, r0 * 0.85, 8, 16);
+        // Tête de fermeture massive scellée (caps = true garantit une face plane étanche)
+        acc.addCylinder(p0, pHeadEnd, r0 * 1.08, 16, true);
+        acc.addSphere(pHeadEnd, r0 * 1.08, 8, 16);
       } else {
         acc.addCylinder(sub(center, v3(0, 0, 10)), add(center, v3(0, 0, 10)), 20, 16, true);
+        acc.addSphere(add(center, v3(0, 0, 10)), 20, 8, 16);
       }
       break;
     }

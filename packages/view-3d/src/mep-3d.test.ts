@@ -123,14 +123,14 @@ describe('Phase 9.3.1 — Géométrie Fondamentale 3D MEP', () => {
       // Triangles valides (multiple de 3)
       expect(mesh.indices.length % 3).toBe(0);
 
-      // Vérification de la boîte englobante AABB
-      const r = 25;
+      // Vérification de la boîte englobante AABB (corps nominal r=25, colliers à relief 1,12 x r)
+      const clampR = 25 * 1.12;
       expect(mesh.boundingBox.min.x).toBeCloseTo(0, 1);
       expect(mesh.boundingBox.max.x).toBeCloseTo(2000, 1);
-      expect(mesh.boundingBox.min.y).toBeCloseTo(-r, 1);
-      expect(mesh.boundingBox.max.y).toBeCloseTo(r, 1);
-      expect(mesh.boundingBox.min.z).toBeCloseTo(1000 - r, 1);
-      expect(mesh.boundingBox.max.z).toBeCloseTo(1000 + r, 1);
+      expect(mesh.boundingBox.min.y).toBeCloseTo(-clampR, 1);
+      expect(mesh.boundingBox.max.y).toBeCloseTo(clampR, 1);
+      expect(mesh.boundingBox.min.z).toBeCloseTo(1000 - clampR, 1);
+      expect(mesh.boundingBox.max.z).toBeCloseTo(1000 + clampR, 1);
 
       // Métadonnées
       expect(mesh.userData?.category).toBe('pipe');
@@ -147,10 +147,11 @@ describe('Phase 9.3.1 — Géométrie Fondamentale 3D MEP', () => {
       };
 
       const mesh = generatePipeMesh(pipe);
+      const clampR = 50 * 1.12;
       expect(mesh.boundingBox.min.z).toBeCloseTo(0, 1);
       expect(mesh.boundingBox.max.z).toBeCloseTo(3000, 1);
-      expect(mesh.boundingBox.min.x).toBeCloseTo(500 - 50, 1);
-      expect(mesh.boundingBox.max.x).toBeCloseTo(500 + 50, 1);
+      expect(mesh.boundingBox.min.x).toBeCloseTo(500 - clampR, 1);
+      expect(mesh.boundingBox.max.x).toBeCloseTo(500 + clampR, 1);
       expect(mesh.indices.length).toBeGreaterThan(0);
     });
   });
@@ -192,9 +193,10 @@ describe('Phase 9.3.1 — Géométrie Fondamentale 3D MEP', () => {
       expect(mesh.userData?.shape).toBe('rectangular');
       expect(mesh.userData?.color).toBe('#ea580c');
 
-      // Hauteur Z : centre 2500 +/- 125 mm
-      expect(mesh.boundingBox.min.z).toBeCloseTo(2500 - 125, 1);
-      expect(mesh.boundingBox.max.z).toBeCloseTo(2500 + 125, 1);
+      // Hauteur Z : centre 2500 +/- 132.5 mm (hauteur nominale 250 mm avec cadres de brides à +6 %)
+      const halfFlangeH = (250 * 1.06) / 2;
+      expect(mesh.boundingBox.min.z).toBeCloseTo(2500 - halfFlangeH, 1);
+      expect(mesh.boundingBox.max.z).toBeCloseTo(2500 + halfFlangeH, 1);
     });
   });
 

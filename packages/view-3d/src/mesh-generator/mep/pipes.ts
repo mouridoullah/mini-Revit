@@ -23,15 +23,15 @@ export function generatePipeMesh(pipe: PipeGeometryParams): RawMeshData {
 
   if (totalLength > 1e-4) {
     const axis = normalize(dir);
-    // Corps tubulaire principal régulier (caps = false élimine tout bouchon plat saillant ou interne)
-    acc.addCylinder(p1, p2, radius * 0.97, 16, false);
+    // Corps tubulaire principal régulier au rayon nominal exact (caps = true garantit des terminaisons propres sans vide)
+    acc.addCylinder(p1, p2, radius, 16, true);
 
     // Colliers de fixation et supportage réguliers sur les canalisations (ADR-072)
     // Disposés tous les 1 200 mm sur les canalisations d'au moins 1 500 mm
-    // Le rayon externe du collier correspond au rayon nominal exact, respectant strictement l'AABB (ADR-026)
+    // Relief franc de 12 % (rayon 1,12 x r) éliminant tout z-fighting à distance (ADR-026 / ADR-072)
     const clampInterval = 1200;
-    const clampWidth = Math.min(20, Math.max(10, radius * 0.5));
-    const clampRadius = radius;
+    const clampWidth = Math.min(20, Math.max(10, radius * 0.4));
+    const clampRadius = radius * 1.12;
     if (totalLength >= 1500) {
       const numIntermediate = Math.max(1, Math.floor(totalLength / clampInterval));
       const step = totalLength / (numIntermediate + 1);
@@ -39,7 +39,7 @@ export function generatePipeMesh(pipe: PipeGeometryParams): RawMeshData {
         const center = add(p1, scale(axis, i * step));
         const c1 = add(center, scale(axis, -clampWidth / 2));
         const c2 = add(center, scale(axis, clampWidth / 2));
-        acc.addCylinder(c1, c2, clampRadius, 16, false);
+        acc.addCylinder(c1, c2, clampRadius, 16, true);
       }
     }
   }
