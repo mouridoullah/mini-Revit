@@ -18,7 +18,7 @@ describe('Intégration UI Tabax R2 Test Model — Tests Exhaustifs', () => {
     HTMLCanvasElement.prototype.setPointerCapture = vi.fn();
     HTMLCanvasElement.prototype.releasePointerCapture = vi.fn();
 
-    const jsonPath = path.resolve(__dirname, '../public/tabax-r2-test-model-v2.json');
+    const jsonPath = path.resolve(__dirname, '../../../tests/fixtures/tabax-r2-test-model-v2.json');
     const jsonStr = fs.readFileSync(jsonPath, 'utf8');
     doc = BimDocument.fromJSON(jsonStr);
   });

@@ -163,14 +163,13 @@
           "y": 5000
         }
       ],
-      "elevation": 0
+      "baseOffset": 0
     }
   },
   "doors": {
     "door_south": {
       "id": "door_south",
       "category": "door",
-      "kind": "door",
       "doorTypeId": "default-door-type",
       "hostWallId": "wall_south",
       "offsetAlong": 2500,
@@ -184,7 +183,6 @@
     "window_south": {
       "id": "window_south",
       "category": "window",
-      "kind": "window",
       "windowTypeId": "default-window-type",
       "hostWallId": "wall_south",
       "offsetAlong": 5500,
@@ -193,7 +191,6 @@
     "window_east": {
       "id": "window_east",
       "category": "window",
-      "kind": "window",
       "windowTypeId": "default-window-type",
       "hostWallId": "wall_east",
       "offsetAlong": 1800,

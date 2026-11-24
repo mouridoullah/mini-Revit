@@ -375,7 +375,8 @@ export function ClashPanel({
             display: 'flex',
             flexDirection: 'column',
             flex: 1,
-            overflow: 'hidden',
+            overflowY: 'auto',
+            overflowX: 'hidden',
             padding: '12px',
             gap: '10px',
           }}
@@ -528,7 +529,7 @@ export function ClashPanel({
               borderRadius: '4px',
               border: '1px solid var(--border-subtle)',
               backgroundColor: 'var(--bg-canvas-chrome)',
-              minHeight: '160px',
+              minHeight: selectedClash ? '100px' : '160px',
             }}
           >
             {!hasAnalyzed ? (
@@ -645,6 +646,7 @@ export function ClashPanel({
                 flexDirection: 'column',
                 gap: '8px',
                 fontSize: '11px',
+                flexShrink: 0,
               }}
             >
               {/* En-tête de la fiche */}

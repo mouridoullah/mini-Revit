@@ -18,16 +18,16 @@ Cette version 1.0.0 consolide l'ensemble des saisons de développement et clôtu
 ### Ajouté
 
 #### 1. Noyau BIM Paramétrique & Graphe Immuable (`@tabax/core`)
-- Modèle de données immuable (`BimModel`) avec validation de schéma Zod stricte à l'entrée et à la sortie.
+- Modèle de données immuable (`BimDocument` / `BimState`) avec validation et désérialisation typée stricte native sans dépendance externe.
 - Niveaux et étages hiérarchiques avec altitudes relatives et absolues calculées au millimètre.
 - Éléments architecturaux paramétriques :
   - **Murs multicouches** avec gestion des épaisseurs, jonctions d'angles nettes et calculs d'axes automatiques.
   - **Dalles & Planchers** intégrant le découpage automatique des trémies d'escaliers et gaines.
-  - **Toitures inclinées** (mono-pente et deux pans) avec versants calculés en 3D (`ADR-067`, `ADR-068`).
+  - **Toitures inclinées** (plates et deux pans avec biseautage de murs) avec versants calculés en 3D (`ADR-053`).
   - **Menuiseries** (fenêtres, portes battantes/coulissantes) avec allèges, linteaux et perçage dynamique des réservations d'ouvertures.
-  - **Escaliers paramétriques** (droits, quart-tournants) avec calcul de girons, hauteurs de marches et trémies automatiques.
-- Historique d'actions transactionnel borné à 500 entrées (`ADR-062`), avec atomicité stricte du graphe de dépendances géométrique (`DependencyGraph`) sur `undo`/`redo`.
-- Moteur de détection de clash géométrique 3D BVH (`ADR-058`, `ADR-071`) filtrant nativement les faux positifs liés aux réservations d'ouvertures et trémies.
+  - **Escaliers paramétriques** (volées droites continues sans palier) avec calcul de girons, hauteurs de marches et trémies automatiques (`ADR-048`).
+- Historique d'actions transactionnel borné à 500 entrées (`ADR-070`), avec atomicité stricte du graphe de dépendances géométrique (`DependencyGraph`) sur `undo`/`redo`.
+- Moteur de détection de clash géométrique 3D BVH (`ADR-059`, `ADR-071`) filtrant nativement les faux positifs liés aux réservations d'ouvertures et trémies.
 
 #### 2. Ingénierie MEP & Réseaux Techniques (`@tabax/core`)
 - Support natif de 4 disciplines de réseaux techniques (`ADR-056`) :
@@ -36,7 +36,7 @@ Cette version 1.0.0 consolide l'ensemble des saisons de développement et clôtu
   - **Électricité** (chemins de câbles et gaines techniques).
   - **Systèmes de coordination** transversaux.
 - Architecture modulaire de commandes MEP découplée en 6 sous-modules étanches (`commands/`).
-- Routage assisté avec calcul automatique des coudes, tés, réductions et piquages paramétriques (`ADR-059`).
+- Routage assisté avec calcul automatique des coudes, tés, réductions et piquages paramétriques (`ADR-058`).
 
 #### 3. Cockpit Graphite Engineering & Rendu Visuel Double Viewport (`apps/web`, `@tabax/view-2d`, `@tabax/view-3d`)
 - Design System exclusif **Graphite Engineering** (`ADR-061`) : interface épurée à haute densité d'information, palette graphite `#111215`, typographie monospace d'ingénierie, icônes Lucide.
@@ -52,7 +52,7 @@ Cette version 1.0.0 consolide l'ensemble des saisons de développement et clôtu
 
 #### 4. Interopérabilité OpenBIM IFC4 Haute Fidélité (`@tabax/core`)
 - Architecture d'export IFC scindée en 11 modules étanches (`packages/core/src/ifc/`).
-- Reproductibilité binaire stricte (`ifc1 === ifc2`) assurée par des GUIDs IFC déterministes (Base64 IFC 22 caractères) dérivés des identifiants d'éléments (`ADR-060`, `ADR-071`).
+- Reproductibilité binaire stricte (`ifc1 === ifc2`) assurée par des GUIDs IFC déterministes (Base64 IFC 22 caractères) dérivés des identifiants d'éléments (`ADR-033`, `ADR-071`).
 - Échappement STEP ISO 10303-21 certifié.
 - Géométrie 3D IFC4 conforme : versants de toits inclinés, marches crénelées d'escalier, extrusion solide de profilés MEP (`IfcPipeSegment`, `IfcDuctSegment`, `IfcCableCarrierSegment`), et réservations d'ouvertures (`IfcOpeningElement` / `IfcRelVoidsElement`).
 - Conformité validée par le moteur officiel WASM Web-IFC.

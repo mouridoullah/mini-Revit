@@ -771,7 +771,7 @@ export function ClashWorkspace({
           style={{
             position: 'absolute',
             top: '12px',
-            left: '16px',
+            right: '12px',
             zIndex: 10,
             display: 'flex',
             alignItems: 'center',

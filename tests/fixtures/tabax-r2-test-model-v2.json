@@ -343,7 +343,7 @@
       "depth": 600,
       "height": 900,
       "clearanceDepth": 900,
-      "ifcEntity": "IfcFurnishingElement"
+      "ifcEntity": "IfcSystemFurnitureElement"
     },
     "comp_sink_unit": {
       "id": "comp_sink_unit",
@@ -355,7 +355,7 @@
       "depth": 600,
       "height": 900,
       "clearanceDepth": 700,
-      "ifcEntity": "IfcFurnishingElement"
+      "ifcEntity": "IfcSanitaryTerminal"
     },
     "comp_appliance": {
       "id": "comp_appliance",
@@ -367,7 +367,7 @@
       "depth": 650,
       "height": 2100,
       "clearanceDepth": 700,
-      "ifcEntity": "IfcFurnishingElement"
+      "ifcEntity": "IfcSystemFurnitureElement"
     },
     "comp_storage": {
       "id": "comp_storage",
@@ -3936,7 +3936,7 @@
       "diameter": 100,
       "thickness": 3,
       "material": "PVC",
-      "slope": 0,
+      "slope": 0.02,
       "ports": [
         {
           "id": "port_drain_a",
@@ -4325,9 +4325,10 @@
           },
           "domain": "hvac",
           "systemType": "exhaust_air",
-          "shape": "round",
-          "flowDirection": "in",
-          "diameter": 250
+          "shape": "rectangular",
+          "width": 250,
+          "height": 250,
+          "flowDirection": "in"
         },
         {
           "id": "port_extract_b",
@@ -4344,9 +4345,10 @@
           },
           "domain": "hvac",
           "systemType": "exhaust_air",
-          "shape": "round",
-          "flowDirection": "out",
-          "diameter": 250
+          "shape": "rectangular",
+          "width": 250,
+          "height": 250,
+          "flowDirection": "out"
         }
       ],
       "name": "Gaine extraction sanitaire"
