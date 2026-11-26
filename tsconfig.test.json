@@ -13,6 +13,7 @@
     "paths": {
       "@tabax/geometry": ["./packages/geometry/src/index.ts"],
       "@tabax/core": ["./packages/core/src/index.ts"],
+      "@tabax/ai": ["./packages/ai/src/index.ts"],
       "@tabax/view-2d": ["./packages/view-2d/src/index.ts"],
       "@tabax/view-3d": ["./packages/view-3d/src/index.ts"]
     }
