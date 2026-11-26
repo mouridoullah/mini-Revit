@@ -60,6 +60,53 @@ export default tseslint.config(
     },
   },
   {
+    files: ['packages/ai/src/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'react',
+              message: "Règle d'étanchéité (ADR-073) : @tabax/ai ne doit pas importer React.",
+            },
+            {
+              name: 'react-dom',
+              message: "Règle d'étanchéité (ADR-073) : @tabax/ai ne doit pas importer react-dom.",
+            },
+            {
+              name: 'three',
+              message: "Règle d'étanchéité (ADR-073) : @tabax/ai ne doit pas importer Three.js.",
+            },
+            {
+              name: '@tabax/geometry',
+              message: "Règle d'étanchéité (ADR-073) : @tabax/ai doit passer exclusivement par @tabax/core.",
+            },
+            {
+              name: '@tabax/view-2d',
+              message: "Règle d'étanchéité (ADR-073) : @tabax/ai ne doit pas importer @tabax/view-2d.",
+            },
+            {
+              name: '@tabax/view-3d',
+              message: "Règle d'étanchéité (ADR-073) : @tabax/ai ne doit pas importer @tabax/view-3d.",
+            },
+          ],
+        },
+      ],
+      'no-restricted-globals': [
+        'error',
+        {
+          name: 'window',
+          message: "Règle d'étanchéité (ADR-073) : @tabax/ai ne doit pas référencer window.",
+        },
+        {
+          name: 'document',
+          message: "Règle d'étanchéité (ADR-073) : @tabax/ai ne doit pas référencer document.",
+        },
+      ],
+    },
+  },
+  {
     files: ['**/*.test.ts', '**/*.test.tsx'],
     rules: {
       '@typescript-eslint/no-non-null-assertion': 'off',

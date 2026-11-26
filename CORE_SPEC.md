@@ -2,8 +2,8 @@
 
 ## Noyau Métier, Modèle Documentaire BIM & CommandBus Transactionnel
 
-**Version :** 1.0.0 (Tabax v1.0.0 / 22 Novembre 2026)  
-**Date :** 22 Novembre 2026  
+**Version :** 1.2.0 (Tabax v1.2.0 / 26 Novembre 2026)  
+**Date :** 26 Novembre 2026  
 **Auteur :** Lead Software Architect & Computational Geometry Engineer  
 **Statut :** Spécification de Référence Alignée (ADR-041 à ADR-071)
 
@@ -300,22 +300,28 @@ export class BimDocument {
 
   public getState(): Readonly<BimState>;
   public execute(cmd: Command): CommandResult;
+  public runTransaction(label: string, fn: (txDoc: this) => void): CommandResult | null;
+  public cloneForSandbox(): BimDocument;
   public undo(): boolean;
   public redo(): boolean;
   public canUndo(): boolean;
   public canRedo(): boolean;
+  public getUndoLabel(): string | undefined;
+  public getRedoLabel(): string | undefined;
   public subscribe(listener: DocumentListener): () => void;
   public toJSON(pretty?: boolean): string;
 }
 ```
 
-### Mécanisme Undo / Redo Transactionnel (`history.ts`)
+### Mécanisme Undo / Redo Transactionnel (`history.ts` & `document.ts`)
 
 1. Lors de `execute(cmd)`, Immer génère `patches` et `inversePatches` via `produceWithPatches`.
-2. L'entrée `{ patches, inversePatches, changed }` est empilée dans `undoStack`. La pile `redoStack` est immédiatement vidée.
-3. **Cascade Undo/Redo :** Lors de `undo()` d'une commande `DeleteWallCommand`, l'inversion des patchs Immer restaure simultanément le mur ET toutes les ouvertures supprimées en cascade sans aucune logique impérative ad-hoc.
-4. Lors de `redo()`, le mur et ses ouvertures sont ré-effacés atomiquement.
-5. Tous les abonnés (`subscribe`) sont notifiés avec la liste exhaustive des `ElementId` modifiés ou supprimés (`changed`).
+2. L'entrée `{ patches, inversePatches, changed, label? }` est empilée dans `undoStack`. La pile `redoStack` est immédiatement vidée.
+3. **Transaction groupée (`runTransaction(label, fn)`, ADR-073 D2) :** Exécute une séquence de commandes sur états Immer commis successifs (compatibilité avec `original(draft)`), concatène les `patches` dans l'ordre d'exécution et les `inversePatches` en ordre strictement inverse (`[inv_N, ..., inv_1]`) en **1 seule `HistoryEntry`** libellée ; l'échec restaure atomiquement `state`, `_dag` et `history`, rejette les appels imbriqués ou `undo()`/`redo()` en cours de transaction, et n'émet qu'une notification `subscribe` consolidée avec l'union dédupliquée des `changedIds`.
+4. **Bac à sable instantané (`cloneForSandbox()`, ADR-073 D2) :** Construit une instance `BimDocument` partageant la référence immuable `this.state` et clonant le DAG avec un historique vierge et sans copier les abonnés (`listeners`).
+5. **Cascade Undo/Redo :** Lors de `undo()` d'une commande `DeleteWallCommand` ou d'une transaction groupée, l'inversion ordonnée des patchs Immer restaure simultanément toutes les entités et dépendances affectées sans logique impérative ad-hoc.
+6. Lors de `redo()`, l'ensemble des modifications de l'entrée est ré-appliqué atomiquement avec vérification d'intégrité DAG sur clone (`ADR-070`).
+7. Tous les abonnés (`subscribe`) sont notifiés avec la liste exhaustive des `ElementId` modifiés ou supprimés (`changed`).
 
 ---
 

@@ -1,7 +1,7 @@
 # ARCHITECTURE SYSTÈME — TABAX
 
 **Statut :** Spécification d'Architecture Validée  
-**Version :** 1.0.0 (22 novembre 2026)  
+**Version :** 1.2.0 (26 novembre 2026)  
 **Auteur :** Ingénieur Principal & Architecte Logiciel
 
 ---
@@ -41,6 +41,12 @@ flowchart TD
         ToolDispatcher["Gestionnaire d'Outils & Dispatcher d'Intentions"]
     end
 
+    subgraph AiLayer ["Copilote Agentique (@tabax/ai — Zero DOM, ADR-073)"]
+        ContextBuilder["BimContextBuilder (Contexte compact < 16 Ko)"]
+        SandboxExec["DryRunExecutor & ToolRegistry (17 outils, Stale Plan Guard)"]
+        LlmAdapters["Adaptateurs Fetch Sans Backend (OpenAI/Ollama & Gemini)"]
+    end
+
     subgraph Viewports ["Moteurs de Rendu & Livrables Documentaires (Impératifs)"]
         View2D["Viewport 2D Plan (Canvas, Cotations, Dalles, Murs, MEP, Underlay, Coupes)"]
         View3D["Viewport 3D (Three.js WebGL, Murs percés, Dalles, Toits, MEP, Clipping)"]
@@ -77,6 +83,11 @@ flowchart TD
 
     ReactUI --> Tools
     ReactUI --> UIStore
+    ReactUI --> SandboxExec
+    SandboxExec --> ContextBuilder
+    SandboxExec --> LlmAdapters
+    SandboxExec --> Document
+    SandboxExec --> CommandBus
     SplitViews --> View2D
     SplitViews --> View3D
     SplitViews --> Federated3D
@@ -168,6 +179,16 @@ flowchart TD
   - Exportation vectorielle et CAO professionnelle : SVG normalisé et DXF R12 `AC1009` (ADR-063, ADR-064).
   - Importation et inspection fédérée de maquettes IFC externes via `web-ifc` (ADR-060).
 
+### 3.6 `@tabax/ai` (Copilote BIM Agentique & Bac à Sable — ADR-073)
+
+- **Rôle :** Orchestration d'audit lecture seule et de génération de plans transactionnels par LLM sans backend applicatif.
+- **Dépendances :** Uniquement `@tabax/core` (verrouillé par `T-PUR-03-AI` et ESLint ; zéro dépendance React, Three.js, DOM ou `@tabax/geometry`).
+- **Responsabilités :**
+  - Construction de contexte BIM compact (`BimContextBuilder`, budget `< 16 Ko`).
+  - Registre de 17 outils (5 lecture Phase 1 + 12 mutation Phase 2) à schémas plats en millimètres et degrés.
+  - Exécution en bac à sable sur `BimDocument.cloneForSandbox()`, boucle d'auto-correction bornée sur `BimValidationError`, descripteurs `PlannedStep` immuables appliqués via `BimDocument.runTransaction`, et *Stale Plan Guard* (`revalidatePlan`).
+  - Adaptateurs HTTP `fetch` injectables (`OpenAiCompatibleProvider`, `GeminiProvider`) avec diagnostic CORS et *Mixed Content*.
+
 ---
 
 ## 4. Flux de Données et Cycle d'une Modification
@@ -227,11 +248,11 @@ sequenceDiagram
 Pour préserver l'intégrité du logiciel sur le long terme, les frontières suivantes sont garanties par l'outillage de compilation et de linting :
 
 1. **Règle d'or absolue :**  
-   `@tabax/geometry` et `@tabax/core` ne doivent **jamais** importer `react`, `react-dom`, `three`, ou une quelconque référence à `window` / `document`.
-2. **Direction des flux (ADR-052) :**  
+   `@tabax/geometry`, `@tabax/core` et `@tabax/ai` ne doivent **jamais** importer `react`, `react-dom`, `three`, ou une quelconque référence à `window` / `document`.
+2. **Direction des flux (ADR-052, ADR-073) :**  
    Les dépendances vont de l'extérieur vers l'intérieur :
-   $$\text{apps/web} \longrightarrow \text{view-2d / view-3d} \longrightarrow \text{core} \longrightarrow \text{geometry}$$
-   Conformément à ADR-052, `@tabax/view-2d` importe des fonctions pures de dérivation géométrique depuis `@tabax/core` (`resolveWallGeometry`, `computeStairGeometry`, etc.) sans jamais dépendre de l'état mutable ni du bus de commandes.
+   $$\text{apps/web} \longrightarrow (\text{@tabax/ai}, \text{view-2d}, \text{view-3d}) \longrightarrow \text{core} \longrightarrow \text{geometry}$$
+   Conformément à ADR-052, `@tabax/view-2d` importe des fonctions pures de dérivation géométrique depuis `@tabax/core` (`resolveWallGeometry`, `computeStairGeometry`, etc.) sans jamais dépendre de l'état mutable ni du bus de commandes. De même, `@tabax/ai` n'importe jamais `@tabax/geometry`, `@tabax/view-2d` ni `@tabax/view-3d`.
 3. **Immuabilité de l'API publique :**  
    Toute interaction entre l'interface et le modèle passe par des commandes sérialisables. L'UI ne mute jamais directement une propriété d'une entité du document.
 

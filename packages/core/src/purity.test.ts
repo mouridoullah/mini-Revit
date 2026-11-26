@@ -73,4 +73,27 @@ describe('Pureté Architecturale et Absence de Dépendance Parasite (T-PUR-01 à
     const forbidden = /from\s+['"](react|react-dom|three|.*\/mesh.*)['"]/i;
     expect(forbidden.test(content)).toBe(false);
   });
+
+  it('T-PUR-03-AI: packages/ai/src est pur (zéro React, Three, @tabax/geometry, @tabax/view-*, window ou document)', () => {
+    const aiSrcDir = path.resolve(__dirname, '../../ai/src');
+    const tsFiles = scanDir(aiSrcDir, /\.(ts|tsx)$/).filter((f) => !f.endsWith('.test.ts'));
+    expect(tsFiles.length).toBeGreaterThan(0);
+
+    const forbiddenImports =
+      /from\s+['"](react|react-dom|three|@tabax\/geometry|@tabax\/view-2d|@tabax\/view-3d)['"]/i;
+    const forbiddenDomGlobals = /\b(window|document)\b/;
+
+    for (const file of tsFiles) {
+      const content = fs.readFileSync(file, 'utf8');
+      expect(forbiddenImports.test(content), `Forbidden import in @tabax/ai: ${file}`).toBe(false);
+      // Retirer commentaires et littéraux de chaînes (ex. category: 'window' BIM) avant de scanner les globaux DOM
+      const codeOnly = content
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/\/\/.*$/gm, '')
+        .replace(/(['"`])(?:\\.|(?!\1)[^\\\r\n])*\1/g, '');
+      expect(forbiddenDomGlobals.test(codeOnly), `Forbidden DOM global in @tabax/ai: ${file}`).toBe(
+        false,
+      );
+    }
+  });
 });

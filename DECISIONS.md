@@ -1,7 +1,7 @@
 # REGISTRE DES DÉCISIONS D'ARCHITECTURE (ADR) — TABAX
 
 **Statut global :** Registre Officiel de Décisions Techniques  
-**Dernière mise à jour :** 24 novembre 2026
+**Dernière mise à jour :** 26 novembre 2026
 
 ---
 
@@ -81,6 +81,7 @@
 | **ADR-070** | Résilience d'Exploitation — Verrou Multi-Onglets (Web Locks), Atomicité DAG sur Annulation/Rétablissement & Audit Passif au Chargement (Saison 3 - Étape 6 Volet A) | **Accepté**  | 22/11/2026 |
 | **ADR-071** | Fidélité IFC4 Exacte (Toitures Inclinées, Escaliers Crénelés & MEP Natif), Déterminisme Absolu des GUIDs & Précision Métier du Moteur de Clash (Saison 3 - Étape 6 Volet B) | **Accepté**  | 22/11/2026 |
 | **ADR-072** | Rendu Photoréaliste PBR, Éclairage IBL Studio, Bouchons de Coupe Stencil & Scission Modulaire de @tabax/view-3d (Tabax v1.1.0) | **Accepté**  | 24/11/2026 |
+| **ADR-073** | Copilote BIM Agentique, Bac à Sable Transactionnel (`BimDocument.runTransaction`) & Inférence Hybride Sans Backend (Tabax v1.2.0) | **Accepté**  | 26/11/2026 |
 
 ---
 
@@ -2965,6 +2966,32 @@ Le rendu 3D de `@tabax/view-3d` reposait sur un éclairage Three.js basique (Dir
 - Codebase considérablement allégée : plus aucun fichier de plus de 800 lignes dans `@tabax/view-3d` (`Scene3D.ts` à 773 lignes).
 - Couverture de tests consolidée v1.1.0 : **1 402 tests Vitest passés avec succès** sur **165 suites de tests** (`geometry`: 20 suites / 228 tests, `core`: 52 suites / 559 tests, `view-3d`: 20 suites / 125 tests, `view-2d`: 19 suites / 155 tests, `apps/web`: 54 suites / 335 tests), 18 / 18 scénarios Playwright E2E réels validés (0 erreur console), 0 erreur TypeScript, 0 warning ESLint.
 - Coudes MEP industriels fluides (`elbow`) sans bouchons saillants : modélisation par balayage toroïdal continu `addCurvedSweep` et rotule sphérique.
+
+---
+
+## ADR-073 : Copilote BIM Agentique, Bac à Sable Transactionnel (`BimDocument.runTransaction`) & Inférence Hybride Sans Backend (Tabax v1.2.0 — Accepté)
+
+*(Spécification détaillée dans [ADR-073-agentic-bim-copilot-and-transactional-sandbox.md](docs/adr/ADR-073-agentic-bim-copilot-and-transactional-sandbox.md).)*
+
+### Contexte
+
+L'intégration d'un assistant IA dans Tabax (`v1.2.0`) doit exploiter la séparation stricte entre sémantique (`BimState` v2, `CommandBus`, `validateDirty`) et rendu dérivé, tout en respectant l'isolation du monorepo (`ADR-023`, `purity.test.ts`), le déploiement statique *Local-First* sur GitHub Pages, l'absence d'auto-réparation silencieuse (`ADR-070`), la contrainte mémoire des modèles locaux et le plafond de `Scene3D.ts` (`ADR-072`).
+
+### Décisions
+
+1. **D1 — Package isolé `@tabax/ai` :** TypeScript pur dépendant uniquement de `@tabax/core` et de `fetch` standard injectable ; zéro dépendance React, Three.js, DOM ou `@tabax/geometry` (verrouillé dans `purity.test.ts` et ESLint).
+2. **D2 — Transaction groupée `BimDocument.runTransaction(label, fn)` & `cloneForSandbox()` :** Exécution séquentielle sur états Immer commis (compatibilité totale avec `original(draft)` dans `MoveWallCommand` et `LazyWallResolutionIndex`, `ADR-062`), notifications différées, concaténation directe des `patches` et concaténation **inversée** des `inversePatches` (`[inv_N, ..., inv_1]`) en **1 seule `HistoryEntry`** (sur le plafond de 500 entrées `ADR-068`), rollback atomique, test explicite du cas création+suppression dans la même transaction, validation DAG complète sur clone (`ADR-070` D3) lors de `undo()`/`redo()`, et clonage structurel instantané `cloneForSandbox()` (< 1 ms sans `toJSON`/`fromJSON`).
+3. **D3 — Catalogue figé de 17 outils (5 Phase 1 + 12 Phase 2) :**
+   - **Lecture seule (5) :** `get_project_summary`, `get_level_details` (avec filtre `categories?`, projection compacte et pré-calcul géométrique `lengthMm`, `orientation`, `occupiedIntervalsMm`), `get_element_by_id`, `audit_model`, `get_clashes_summary`.
+   - **Mutation sous sandbox (12, schémas JSON plats sans unions `["number","null"]`, unités `Mm`/`Deg`) :** `add_wall`, `move_wall`, `update_wall` (`heightMm?` + `resetHeightToAuto?` $\to$ `heightOverride: undefined`), `delete_wall`, `add_door`, `add_window`, `move_opening` (`newOffsetAlongMm` / `deltaOffsetMm`), `delete_opening`, `add_component` (`rotationDeg` converti en radians), `add_room`, `auto_dimension_level`, `auto_generate_views`.
+4. **D4 — Bac à sable (`DryRunExecutor`) & *Stale Plan Guard* :** Auto-correction sur `BimValidationError` et liste des IDs valides renvoyée sur erreur d'ID inconnu (`MAX_TOOL_STEPS = 8`, `MAX_SELF_CORRECTION_RETRIES = 3`, `AbortSignal`), ULIDs figés entre sandbox et `runTransaction`, invalidation immédiate sur changement d'instance `doc` (`ADR-027` / `ADR-070`) et blocage si `doc.getState() !== plan.baseState` avec action **Revalider sur l'état actuel**.
+5. **D5 — Inférence hybride sans backend :** Adaptateurs `fetch` natifs `OpenAiCompatibleProvider` (normalisant `arguments` string/object) et `GeminiProvider`, diagnostic CORS (`OLLAMA_ORIGINS`) et *Mixed Content* HTTPS $\to$ HTTP via bouton **Tester la connexion**, clés BYOK en `sessionStorage` par défaut (opt-in `localStorage`).
+6. **D6 — UI non intrusive :** Logique extraite dans `apps/web/src/hooks/useAiCopilot.ts` (préservant la taille d'`App.tsx`), onglet `Assistant IA` dans `RightDockPanel` avec carte d'actions structurée, surlignage via sélection existante, zéro ajout dans `Scene3D.ts` en `v1.2.0` et couverture Playwright via `page.route()`.
+
+### Conséquences
+- Socle architectural implémenté et qualifié pour `v1.2.0` (**173 suites / 1 445 tests Vitest** sur 6 packages, **20 / 20 scénarios Playwright E2E**, `pnpm typecheck` et `pnpm lint` à **0 erreur**).
+- Préparation directe de la Phase 3 (Résolution MEP) et de la Phase 4 (Plan-to-BIM) sur un moteur transactionnel durci.
+
 
 
 

@@ -1,0 +1,28 @@
+{
+  "name": "@tabax/ai",
+  "version": "1.2.0",
+  "description": "Copilote BIM agentique, extracteur de contexte sémantique et adaptateurs LLM sans backend pour Tabax",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "rimraf dist",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit -p tsconfig.test.json"
+  },
+  "dependencies": {
+    "@tabax/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.4",
+    "vitest": "^3.0.5"
+  }
+}
