@@ -11,6 +11,7 @@ export interface HistoryEntry {
   readonly patches: readonly Patch[];
   readonly inversePatches: readonly Patch[];
   readonly changed: readonly ElementId[];
+  readonly label?: string | undefined;
 }
 
 export const DEFAULT_HISTORY_MAX_CAPACITY = 500;

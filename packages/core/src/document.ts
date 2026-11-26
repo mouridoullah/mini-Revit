@@ -129,6 +129,15 @@ function hasTopologicalChanges(
   return false;
 }
 
+interface ActiveTransactionBuffer {
+  readonly label: string;
+  readonly steps: {
+    readonly patches: readonly Patch[];
+    readonly inversePatches: readonly Patch[];
+    readonly changed: readonly ElementId[];
+  }[];
+}
+
 /**
  * Gestionnaire documentaire central du projet Mini-BIM.
  *
@@ -142,11 +151,21 @@ export class BimDocument {
   private _dag: DependencyGraph;
   private readonly history: HistoryStack;
   private readonly subscribers: Set<DocumentListener> = new Set();
+  private activeTransaction: ActiveTransactionBuffer | null = null;
 
-  public constructor(initialState?: BimState) {
+  public constructor(initialState?: BimState, initialDag?: DependencyGraph) {
     this.state = initialState ?? BimDocument.createEmptyState();
     this.history = new HistoryStack();
-    this._dag = DependencyGraph.build(this.state);
+    this._dag = initialDag ?? DependencyGraph.build(this.state);
+  }
+
+  /**
+   * Crée un clone léger et isolé en mémoire pour l'exécution en bac à sable (ADR-073).
+   * Partage structurellement l'état immuable courant et clone le DAG en Copy-On-Write,
+   * avec un historique vierge et sans copier les abonnés (listeners).
+   */
+  public cloneForSandbox(): BimDocument {
+    return new BimDocument(this.state, this._dag.clone());
   }
 
   /**
@@ -381,15 +400,23 @@ export class BimDocument {
     this.state = nextState as BimState;
     this._dag = nextDag;
 
-    // Enregistrer la transaction dans l'historique
-    this.history.push({
-      patches,
-      inversePatches,
-      changed,
-    });
+    if (this.activeTransaction !== null) {
+      this.activeTransaction.steps.push({
+        patches,
+        inversePatches,
+        changed,
+      });
+    } else {
+      // Enregistrer la transaction dans l'historique
+      this.history.push({
+        patches,
+        inversePatches,
+        changed,
+      });
 
-    // Notifier les écouteurs
-    this.notifySubscribers(changed);
+      // Notifier les écouteurs
+      this.notifySubscribers(changed);
+    }
 
     return {
       changed,
@@ -399,10 +426,92 @@ export class BimDocument {
   }
 
   /**
+   * Exécute un lot séquentiel de commandes au sein d'une transaction atomique unique (ADR-073).
+   * Chaque sous-commande s'exécute sur un état Immer commis (compatibilité ADR-062 / LazyWallResolutionIndex).
+   * En cas de succès, les patchs sont fusionnés en une seule entrée d'historique (inversePatches en ordre inverse)
+   * et les abonnés ne sont notifiés qu'une seule fois avec l'union dédupliquée des identifiants modifiés.
+   */
+  public runTransaction(label: string, fn: (doc: this) => void): CommandResult {
+    if (this.activeTransaction !== null) {
+      throw new BimValidationError(
+        'NESTED_TRANSACTION',
+        `Cannot start nested transaction "${label}" while transaction "${this.activeTransaction.label}" is active.`,
+      );
+    }
+
+    const stateBefore = this.state;
+    const dagBefore = this._dag;
+    const txBuffer: ActiveTransactionBuffer = { label, steps: [] };
+    this.activeTransaction = txBuffer;
+
+    try {
+      fn(this);
+
+      if (txBuffer.steps.length === 0) {
+        return {
+          changed: [],
+          patches: [],
+          inversePatches: [],
+        };
+      }
+
+      const allPatches: Patch[] = [];
+      const allInversePatches: Patch[] = [];
+      const seenChanged = new Set<ElementId>();
+      const unionChanged: ElementId[] = [];
+
+      for (const step of txBuffer.steps) {
+        allPatches.push(...step.patches);
+        for (const id of step.changed) {
+          if (!seenChanged.has(id)) {
+            seenChanged.add(id);
+            unionChanged.push(id);
+          }
+        }
+      }
+
+      // Concaténation impérative en ordre inverse pour que undo() annule l'étape N avant N-1
+      for (let i = txBuffer.steps.length - 1; i >= 0; i--) {
+        const step = txBuffer.steps[i];
+        if (step) {
+          allInversePatches.push(...step.inversePatches);
+        }
+      }
+
+      this.history.push({
+        patches: allPatches,
+        inversePatches: allInversePatches,
+        changed: unionChanged,
+        label,
+      });
+
+      this.notifySubscribers(unionChanged);
+
+      return {
+        changed: unionChanged,
+        patches: allPatches,
+        inversePatches: allInversePatches,
+      };
+    } catch (err) {
+      this.state = stateBefore;
+      this._dag = dagBefore;
+      throw err;
+    } finally {
+      this.activeTransaction = null;
+    }
+  }
+
+  /**
    * Annule la dernière commande exécutée (Contrat d'atomicité transactionnelle ADR-070).
    * Valide l'état et le graphe de dépendances avant toute mutation.
    */
   public undo(): boolean {
+    if (this.activeTransaction !== null) {
+      throw new BimValidationError(
+        'NESTED_TRANSACTION',
+        `Cannot call undo() while transaction "${this.activeTransaction.label}" is active.`,
+      );
+    }
     const entry = this.history.peekUndo();
     if (!entry) return false;
 
@@ -440,6 +549,12 @@ export class BimDocument {
    * Valide l'état et le graphe de dépendances avant toute mutation.
    */
   public redo(): boolean {
+    if (this.activeTransaction !== null) {
+      throw new BimValidationError(
+        'NESTED_TRANSACTION',
+        `Cannot call redo() while transaction "${this.activeTransaction.label}" is active.`,
+      );
+    }
     const entry = this.history.peekRedo();
     if (!entry) return false;
 
@@ -478,6 +593,22 @@ export class BimDocument {
 
   public canRedo(): boolean {
     return this.history.canRedo();
+  }
+
+  public getUndoCount(): number {
+    return this.history.getUndoCount();
+  }
+
+  public getRedoCount(): number {
+    return this.history.getRedoCount();
+  }
+
+  public getUndoLabel(): string | undefined {
+    return this.history.peekUndo()?.label;
+  }
+
+  public getRedoLabel(): string | undefined {
+    return this.history.peekRedo()?.label;
   }
 
   /**

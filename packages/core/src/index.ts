@@ -76,6 +76,7 @@ export {
   AddDimensionCommand,
   UpdateDimensionCommand,
   DeleteDimensionCommand,
+  AutoDimensionLevelCommand,
   AddSlabTypeCommand,
   UpdateSlabTypeCommand,
   DeleteSlabTypeCommand,
