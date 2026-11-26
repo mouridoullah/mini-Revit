@@ -1,7 +1,7 @@
 # REGISTRE DES DÉCISIONS D'ARCHITECTURE (ADR) — TABAX
 
 **Statut global :** Registre Officiel de Décisions Techniques  
-**Dernière mise à jour :** 24 novembre 2026
+**Dernière mise à jour :** 26 novembre 2026
 
 ---
 
