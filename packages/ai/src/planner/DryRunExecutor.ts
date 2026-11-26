@@ -128,6 +128,7 @@ function buildSystemPrompt(
     '- Consulte get_level_details avant de placer une ouverture ou modifier un mur afin d’exploiter lengthMm, orientation et occupiedIntervalsMm.',
     '- Utilise uniquement les IDs exacts fournis dans le contexte ou retournés par les outils (jamais d’ID inventé).',
     '- En cas d’erreur de validation d’outil, corrige tes paramètres à l’aide du code d’erreur, des offendingIds ou des validIds retournés.',
+    '- Exécute toutes les actions demandées par de véritables appels d’outils (n’écris jamais de faux résultat ni de balise <tool_response>), puis résume en français.',
     '',
     `Contexte BIM courant (JSON compact) : ${formatBimContextPrompt(ctx)}`,
   ].join('\n');
@@ -185,9 +186,14 @@ export async function runCopilotTurn(options: RunCopilotTurnOptions): Promise<Co
             )
           : null;
 
+      const cleanAssistantText =
+        plannedSteps.length > 0
+          ? response.text.replace(/<tool_response>[\s\S]*?<\/tool_response>/gi, '').trim()
+          : response.text;
+
       return {
         status: 'completed',
-        assistantText: response.text,
+        assistantText: cleanAssistantText,
         plan,
         roundTrips,
         toolCallCount,

@@ -7,7 +7,10 @@ import {
 } from './types.js';
 
 export function resolveFetch(customFetch?: AiFetchFn): AiFetchFn {
-  if (customFetch) return customFetch;
+  if (customFetch) {
+    // Enveloppe anonyme pour éviter toute liaison implicite de `this` à l'instance du provider
+    return (url, init) => customFetch(url, init);
+  }
   const globalFetch = (globalThis as { fetch?: unknown }).fetch;
   if (typeof globalFetch !== 'function') {
     throw new ProviderError(
@@ -15,7 +18,9 @@ export function resolveFetch(customFetch?: AiFetchFn): AiFetchFn {
       'Aucun client fetch disponible dans cet environnement.',
     );
   }
-  return globalFetch as AiFetchFn;
+  // Liaison explicite sur globalThis pour prévenir "Failed to execute 'fetch' on 'Window': Illegal invocation"
+  const boundFetch = (globalFetch as AiFetchFn).bind(globalThis);
+  return (url, init) => boundFetch(url, init);
 }
 
 export function isLocalHttpEndpoint(endpoint: string): boolean {
@@ -110,12 +115,19 @@ export async function readResponseErrorDetail(res: AiFetchResponse): Promise<str
   }
 }
 
+export interface JsonPostDiagnosticContext {
+  readonly endpoint?: string | undefined;
+  readonly providerLabel?: string | undefined;
+  readonly clientOriginProtocol?: string | undefined;
+}
+
 export async function executeJsonPost(
   fetchFn: AiFetchFn,
   url: string,
   headers: Readonly<Record<string, string>>,
   body: unknown,
   signal?: AiAbortSignal,
+  diagnosticCtx?: JsonPostDiagnosticContext,
 ): Promise<unknown> {
   if (signal?.aborted) {
     throw new ProviderError('ABORTED', 'Requête annulée avant exécution.');
@@ -132,6 +144,19 @@ export async function executeJsonPost(
   } catch (err) {
     if (isAbortError(err, signal)) {
       throw new ProviderError('ABORTED', 'Requête interrompue par l’utilisateur.');
+    }
+    if (diagnosticCtx?.endpoint) {
+      const diag = classifyNetworkDiagnostic(
+        err,
+        diagnosticCtx.endpoint,
+        diagnosticCtx.providerLabel ?? 'Endpoint LLM',
+        0,
+        diagnosticCtx.clientOriginProtocol,
+      );
+      throw new ProviderError(
+        'NETWORK_ERROR',
+        diag.hint ? `${diag.message} ${diag.hint}` : diag.message,
+      );
     }
     const msg = err instanceof Error ? err.message : String(err);
     throw new ProviderError('NETWORK_ERROR', `Erreur réseau vers ${url} : ${msg}`);

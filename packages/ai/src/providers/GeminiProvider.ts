@@ -150,6 +150,10 @@ export class GeminiProvider implements LlmProvider {
       this.buildHeaders(),
       payload,
       request.signal,
+      {
+        endpoint: this.baseUrl,
+        providerLabel: 'API Gemini',
+      },
     );
 
     if (!raw || typeof raw !== 'object') {

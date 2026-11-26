@@ -3,6 +3,7 @@ import {
   OpenAiCompatibleProvider,
   GeminiProvider,
   ProviderError,
+  createFullCopilotRegistry,
   type AiFetchFn,
   type AiFetchResponse,
 } from '../index.js';
@@ -169,10 +170,12 @@ describe('Providers LLM natifs sans backend (ADR-073 Lot 1)', () => {
         endpoint: 'http://localhost:11434/v1',
         model: 'modele-absent',
         fetch: vi.fn<AiFetchFn>().mockResolvedValue(
-          makeJsonResponse(200, { data: [{ id: 'qwen2.5-coder:14b' }] }),
+          makeJsonResponse(200, { data: [{ id: 'qwen2.5-coder:7b' }, { id: 'llama3.1:latest' }] }),
         ),
       });
-      expect((await missingModelProvider.testConnection()).status).toBe('model_not_found');
+      const missingDiag = await missingModelProvider.testConnection();
+      expect(missingDiag.status).toBe('model_not_found');
+      expect(missingDiag.availableModels).toEqual(['qwen2.5-coder:7b', 'llama3.1:latest']);
 
       const unauthProvider = new OpenAiCompatibleProvider({
         endpoint: 'https://api.openai.com/v1',
@@ -192,6 +195,14 @@ describe('Providers LLM natifs sans backend (ADR-073 Lot 1)', () => {
       expect(corsDiag.status).toBe('cors_or_mixed_content');
       expect(corsDiag.hint).toContain('OLLAMA_ORIGINS');
 
+      // Vérifie que chat() remonte aussi le guidage CORS / Mixed Content sur NETWORK_ERROR
+      await expect(
+        corsHttpsProvider.chat({ messages: [{ role: 'user', content: 'Test' }] }),
+      ).rejects.toMatchObject({
+        code: 'NETWORK_ERROR',
+        message: expect.stringContaining('OLLAMA_ORIGINS'),
+      });
+
       const offlineProvider = new OpenAiCompatibleProvider({
         endpoint: 'http://localhost:11434/v1',
         model: 'qwen2.5-coder:14b',
@@ -199,6 +210,74 @@ describe('Providers LLM natifs sans backend (ADR-073 Lot 1)', () => {
         fetch: vi.fn<AiFetchFn>().mockRejectedValue(new TypeError('ECONNREFUSED')),
       });
       expect((await offlineProvider.testConnection()).status).toBe('unreachable');
+    });
+
+    it('lie globalThis.fetch sans Illegal invocation lors de testConnection() (v1.2.1)', async () => {
+      const originalFetch = globalThis.fetch;
+      const strictBrowserLikeFetch = function (this: unknown): Promise<Response> {
+        if (this !== globalThis) {
+          throw new TypeError("Failed to execute 'fetch' on 'Window': Illegal invocation");
+        }
+        return Promise.resolve(
+          makeJsonResponse(200, { data: [{ id: 'qwen2.5-coder:7b' }] }) as unknown as Response,
+        );
+      };
+      globalThis.fetch = strictBrowserLikeFetch as unknown as typeof globalThis.fetch;
+
+      try {
+        const provider = new OpenAiCompatibleProvider({
+          endpoint: 'http://localhost:11434/v1',
+          model: 'qwen2.5-coder:7b',
+        });
+        const diag = await provider.testConnection();
+        expect(diag.status).toBe('ok');
+        expect(diag.availableModels).toEqual(['qwen2.5-coder:7b']);
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+    });
+
+    it('extrait en repli les appels d’outils JSON bruts émis dans message.content par Ollama (v1.2.1)', async () => {
+      const fetchMock = vi.fn<AiFetchFn>().mockResolvedValue(
+        makeJsonResponse(200, {
+          choices: [
+            {
+              finish_reason: 'stop',
+              message: {
+                content:
+                  'Je lance ces opérations :\n' +
+                  '{"name": "add_wall", "arguments": {"levelId": "lvl_0", "startXMm": 0, "startYMm": 0, "endXMm": 4000, "endYMm": 0}}\n' +
+                  '<tool_call>\n{"name": "auto_dimension_level", "arguments": {"levelId": "lvl_0"}}\n</tool_call>\n' +
+                  '{"name": "outil_inconnu", "arguments": {"x": 1}}',
+              },
+            },
+          ],
+        }),
+      );
+
+      const provider = new OpenAiCompatibleProvider({
+        endpoint: 'http://localhost:11434/v1',
+        model: 'qwen2.5-coder:7b',
+        fetch: fetchMock,
+      });
+
+      const tools = createFullCopilotRegistry().list();
+      const res = await provider.chat({
+        messages: [{ role: 'user', content: 'Crée un mur de 4 m et cote.' }],
+        tools,
+      });
+
+      expect(res.toolCalls).toHaveLength(2);
+      expect(res.toolCalls[0]).toMatchObject({
+        name: 'add_wall',
+        arguments: { levelId: 'lvl_0', startXMm: 0, startYMm: 0, endXMm: 4000, endYMm: 0 },
+      });
+      expect(res.toolCalls[1]).toMatchObject({
+        name: 'auto_dimension_level',
+        arguments: { levelId: 'lvl_0' },
+      });
+      expect(res.text).toContain('Je lance ces opérations');
+      expect(res.text).toContain('outil_inconnu');
     });
   });
 
