@@ -61,10 +61,30 @@ export class PostProcessingManager {
           camera: THREE.Camera,
           width: number,
           height: number,
-        ) => { dispose(): void; enabled: boolean };
+        ) => {
+          dispose(): void;
+          enabled: boolean;
+          updateGtaoMaterial?: (params: Record<string, unknown>) => void;
+          updatePdMaterial?: (params: Record<string, unknown>) => void;
+        };
       };
       const { width, height } = this.renderer.getSize(new THREE.Vector2());
       const gtao = new GTAOPass(this.scene, this.camera, width, height);
+      // Calibration millimétrique Tabax (par défaut Three.js calibre ~0.25 m)
+      gtao.updateGtaoMaterial?.({
+        radius: 140,
+        distanceExponent: 1.8,
+        thickness: 120,
+        scale: 1.15,
+        samples: 16,
+        screenSpaceRadius: false,
+      });
+      gtao.updatePdMaterial?.({
+        lumaPhi: 10,
+        depthPhi: 2,
+        normalPhi: 3,
+        radius: 16,
+      });
       this.composer.addPass(gtao as never);
       this.aoPass = gtao;
     } catch {

@@ -35,5 +35,17 @@ export { generateFittingMesh } from './fittings.js';
 // Équipements
 export { generateEquipmentMesh } from './equipment.js';
 
+// Contrat multi-matériaux, primitives chanfreinées & prototypes InstancedMesh (LOD 350)
+export {
+  composeMatrix4,
+  type MepMaterialRole,
+  type MepInstancePrototypeKey,
+  type MepAssemblyPart,
+  type MepInstanceAnchor,
+  type MepAssembly3D,
+} from './assembly-types.js';
+export { UvMeshAccumulator } from './primitives.js';
+export { getAllMepPrototypes, getMepPrototypeMesh } from './prototypes.js';
+
 // Batch
 export { generateMepMeshes, type MepStateForMesh } from './batch.js';

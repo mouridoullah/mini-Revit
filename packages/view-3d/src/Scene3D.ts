@@ -14,6 +14,7 @@ import { DomainMeshFactory, type ComponentMeshFamily } from './rendering/DomainM
 import { ClashOverlayManager } from './rendering/ClashOverlayManager.js';
 import { SelectionHighlightManager } from './rendering/SelectionHighlightManager.js';
 import { CameraTransitionManager } from './rendering/CameraTransitionManager.js';
+import type { MepAssembly3D } from './mesh-generator/mep/assembly-types.js';
 
 export type { ComponentMeshFamily };
 
@@ -136,9 +137,10 @@ export class Scene3D {
     this.scene.add(this.directionalLight);
     this.scene.add(this.directionalLight.target);
 
-    // 5. Grille de sol horizontale XY (Z = 0)
+    // 5. Grille de sol horizontale XY (Z = 0) & matériaux partagés
     this.gridManager = new ArchitecturalGridManager(this.scene, gridSize, gridDivisions);
-    this.meshManager = new ArchitecturalMeshManager(this.scene);
+    this.domainFactory = new DomainMeshFactory(this.renderer);
+    this.meshManager = new ArchitecturalMeshManager(this.scene, this.domainFactory.getMepMaterialLibrary());
     this.meshes = this.meshManager.getMeshesMap();
     this.clashOverlayManager = new ClashOverlayManager(this.scene);
     this.selectionHighlightManager = new SelectionHighlightManager();
@@ -154,7 +156,6 @@ export class Scene3D {
     // 7. Matériaux partagés par défaut et de domaine (ADR-050, ADR-072)
     this.defaultMaterial = createDefaultMaterial();
     this.highlightMaterial = this.selectionHighlightManager.getHighlightMaterial();
-    this.domainFactory = new DomainMeshFactory(this.renderer);
 
     // 8. Rendu à la demande sur interaction caméra
     // Compatible ADR-018 : pendant la rotation -> rendu direct, apres relachement -> AO plein
@@ -383,6 +384,8 @@ export class Scene3D {
   }
 
   public removeMepMesh(elementId: string): void { this.removeMesh(elementId); }
+  public addMepAssembly(a: MepAssembly3D): THREE.Mesh[] { return this.batchUpdate(() => this.meshManager.addMepAssembly(a, this.activeClippingPlane, this.sectionCapManager)); }
+  public updateMepAssembly(a: MepAssembly3D): THREE.Mesh[] { return this.batchUpdate(() => { this.removeMesh(a.elementId); return this.addMepAssembly(a); }); }
 
   /**
    * Applique ou retire la surbrillance de sélection sur les éléments spécifiés.
@@ -393,6 +396,7 @@ export class Scene3D {
   public setHighlight(ids: Iterable<string>): void {
     if (this.isDisposed) return;
     this.selectionHighlightManager.setHighlight(ids, this.meshes, this.defaultMaterial);
+    this.meshManager.getMepInstancePoolManager().setHighlight(ids);
     this.render();
   }
 
@@ -668,6 +672,7 @@ export class Scene3D {
    */
   public setRenderMode(mode: RenderMode): void {
     if (this.isDisposed) return;
+    this.domainFactory.setMepRenderMode(mode);
     this.environmentManager?.setRenderMode(mode);
     if (this.postProcessingManager) {
       this.postProcessingManager.setRenderMode(mode);

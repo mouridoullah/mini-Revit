@@ -15,6 +15,8 @@ import {
   createMepMaterial,
 } from '../materials.js';
 import { getProceduralTextures, disposeProceduralTextures } from './ProceduralTextures.js';
+import { MepMaterialLibrary } from './MepMaterialLibrary.js';
+import type { RenderMode } from './PostProcessingManager.js';
 
 export type ComponentMeshFamily = 'sanitary' | 'kitchen' | 'furniture' | 'glazing' | (string & {});
 
@@ -39,8 +41,10 @@ export class DomainMeshFactory {
   public readonly glazingMaterial: THREE.MeshStandardMaterial;
   public parquetFloorMaterial: THREE.MeshStandardMaterial | null = null;
   public carrelageFloorMaterial: THREE.MeshStandardMaterial | null = null;
+  private readonly mepMaterialLibrary: MepMaterialLibrary;
 
   public constructor(renderer?: THREE.WebGLRenderer) {
+    this.mepMaterialLibrary = new MepMaterialLibrary(renderer);
     this.slabMaterial = new THREE.MeshStandardMaterial({
       color: 0xd1d5db,
       roughness: 0.85,
@@ -113,6 +117,14 @@ export class DomainMeshFactory {
       case 'furniture':
       default: return this.furnitureMaterial;
     }
+  }
+
+  public getMepMaterialLibrary(): MepMaterialLibrary {
+    return this.mepMaterialLibrary;
+  }
+
+  public setMepRenderMode(mode: RenderMode): void {
+    this.mepMaterialLibrary.setRenderMode(mode);
   }
 
   public getMepMaterial(rawMesh: RawMeshData, colorOrMaterial?: string | number | THREE.Material): THREE.Material {
@@ -194,7 +206,8 @@ export class DomainMeshFactory {
       mat === this.furnitureMaterial ||
       mat === this.glazingMaterial ||
       mat === this.parquetFloorMaterial ||
-      mat === this.carrelageFloorMaterial
+      mat === this.carrelageFloorMaterial ||
+      this.mepMaterialLibrary.getSharedMaterials().includes(mat)
     );
   }
 
@@ -207,6 +220,7 @@ export class DomainMeshFactory {
       this.kitchenMaterial,
       this.furnitureMaterial,
       this.glazingMaterial,
+      ...this.mepMaterialLibrary.getSharedMaterials(),
     ];
     if (this.parquetFloorMaterial) list.push(this.parquetFloorMaterial);
     if (this.carrelageFloorMaterial) list.push(this.carrelageFloorMaterial);
@@ -215,6 +229,7 @@ export class DomainMeshFactory {
 
   public dispose(): void {
     disposeProceduralTextures();
+    this.mepMaterialLibrary.dispose();
     this.slabMaterial.dispose();
     this.stairMaterial.dispose();
     this.roofMaterial.dispose();

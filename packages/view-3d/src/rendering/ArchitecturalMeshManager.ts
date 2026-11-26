@@ -9,13 +9,26 @@ import * as THREE from 'three';
 import { type RawMeshData } from '@tabax/geometry';
 import { MeshAdapter } from '../MeshAdapter.js';
 import type { SectionCapManager } from './SectionCapManager.js';
+import type { MepAssembly3D } from '../mesh-generator/mep/assembly-types.js';
+import { MepMaterialLibrary } from './MepMaterialLibrary.js';
+import { MepInstancePoolManager } from './MepInstancePoolManager.js';
 
 export class ArchitecturalMeshManager {
   private readonly meshes: Map<string, THREE.Mesh[]> = new Map();
   private readonly scene: THREE.Scene;
+  private readonly materialLibrary: MepMaterialLibrary;
+  private readonly ownsMaterialLibrary: boolean;
+  private readonly mepInstancePools: MepInstancePoolManager;
 
-  public constructor(scene: THREE.Scene) {
+  public constructor(scene: THREE.Scene, materialLibrary?: MepMaterialLibrary) {
     this.scene = scene;
+    this.ownsMaterialLibrary = !materialLibrary;
+    this.materialLibrary = materialLibrary ?? new MepMaterialLibrary();
+    this.mepInstancePools = new MepInstancePoolManager(scene, this.materialLibrary);
+  }
+
+  public getMepInstancePoolManager(): MepInstancePoolManager {
+    return this.mepInstancePools;
   }
 
   public getMeshesMap(): Map<string, THREE.Mesh[]> {
@@ -62,15 +75,60 @@ export class ArchitecturalMeshManager {
     raycaster.setFromCamera(new THREE.Vector2(ndcX, ndcY), camera);
     const candidateMeshes = this.getAllMeshes();
     const hits = raycaster.intersectObjects(candidateMeshes, false);
+
+    let closestDistance = Infinity;
+    let closestId: string | null = null;
+
     for (const hit of hits) {
       if (activeClippingPlane && activeClippingPlane.distanceToPoint(hit.point) < 0) {
         continue;
       }
       const userDataId = hit.object.userData?.elementId as string | undefined;
       const meshName = hit.object.name;
-      return userDataId || meshName || null;
+      closestDistance = hit.distance;
+      closestId = userDataId || meshName || null;
+      break;
     }
-    return null;
+
+    const instHit = this.mepInstancePools.raycast(raycaster, activeClippingPlane);
+    if (instHit && instHit.distance < closestDistance) {
+      return instHit.elementId;
+    }
+    return closestId;
+  }
+
+  public addMepAssembly(
+    assembly: MepAssembly3D,
+    activeClippingPlane?: THREE.Plane | null,
+    sectionCapManager?: SectionCapManager | null,
+  ): THREE.Mesh[] {
+    const created: THREE.Mesh[] = [];
+    for (const part of assembly.parts) {
+      const material = this.materialLibrary.getMaterial(part.materialRole, part.color);
+      const rawData: RawMeshData = {
+        ...part.rawData,
+        elementId: assembly.elementId,
+        userData: {
+          ...(part.rawData.userData ?? {}),
+          elementId: assembly.elementId,
+          category: assembly.category,
+          materialRole: part.materialRole,
+        },
+      };
+      created.push(
+        this.addMesh(
+          rawData,
+          material,
+          { isSharedMaterial: true, ownsMaterial: false },
+          activeClippingPlane,
+          sectionCapManager,
+        ),
+      );
+    }
+    if (assembly.instances.length > 0) {
+      this.mepInstancePools.registerElementInstances(assembly.elementId, assembly.instances);
+    }
+    return created;
   }
 
   public addMesh(
@@ -106,8 +164,9 @@ export class ArchitecturalMeshManager {
       ...(materialOptions ?? {}),
     };
 
-    // Arêtes d'architecture fines (walls, slabs, roofs)
-    if (['wall', 'slab', 'roof'].includes(String(mesh.userData.category ?? ''))) {
+    const category = String(mesh.userData.category ?? '');
+    // Arêtes d'architecture fines (walls, slabs, roofs) et arêtes subtiles MEP (28° pour respecter les cylindres lisses)
+    if (['wall', 'slab', 'roof'].includes(category)) {
       const edges = new THREE.EdgesGeometry(geometry, 15);
       const lineMat = new THREE.LineBasicMaterial({ color: 0x2b303b });
       if (activeClippingPlane) {
@@ -118,6 +177,20 @@ export class ArchitecturalMeshManager {
       lines.userData.ownsGeometryAndMaterial = true;
       mesh.add(lines);
       sectionCapManager?.registerMesh(mesh, rawData.elementId);
+    } else if (['duct', 'cableTray', 'mepEquipment', 'mepFitting'].includes(category)) {
+      const edges = new THREE.EdgesGeometry(geometry, 28);
+      const lineMat = new THREE.LineBasicMaterial({
+        color: 0x1e242d,
+        transparent: true,
+        opacity: 0.25,
+      });
+      if (activeClippingPlane) {
+        lineMat.clippingPlanes = [activeClippingPlane];
+      }
+      const lines = new THREE.LineSegments(edges, lineMat);
+      lines.name = `${rawData.elementId}-mep-edges`;
+      lines.userData.ownsGeometryAndMaterial = true;
+      mesh.add(lines);
     }
 
     this.scene.add(mesh);
@@ -169,10 +242,12 @@ export class ArchitecturalMeshManager {
     }
 
     this.meshes.delete(elementId);
+    this.mepInstancePools.removeElementInstances(elementId);
     sectionCapManager?.unregisterMesh(elementId);
   }
 
   public applyClippingPlanes(planes: THREE.Plane[]): void {
+    this.mepInstancePools.applyClippingPlanes(planes);
     for (const meshList of this.meshes.values()) {
       for (const mesh of meshList) {
         if (Array.isArray(mesh.material)) {
@@ -217,5 +292,9 @@ export class ArchitecturalMeshManager {
       this.removeMesh(elementId, null, isInternalMaterial);
     }
     this.meshes.clear();
+    this.mepInstancePools.dispose();
+    if (this.ownsMaterialLibrary) {
+      this.materialLibrary.dispose();
+    }
   }
 }

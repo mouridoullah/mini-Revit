@@ -11,6 +11,8 @@ export { ArchitecturalMeshManager } from './ArchitecturalMeshManager.js';
 export { ArchitecturalGridManager } from './ArchitecturalGridManager.js';
 export { DomainMeshFactory } from './DomainMeshFactory.js';
 export type { ComponentMeshFamily } from './DomainMeshFactory.js';
+export { MepMaterialLibrary } from './MepMaterialLibrary.js';
+export { MepInstancePoolManager } from './MepInstancePoolManager.js';
 export { ClashOverlayManager } from './ClashOverlayManager.js';
 export { SelectionHighlightManager } from './SelectionHighlightManager.js';
 export { CameraTransitionManager } from './CameraTransitionManager.js';
