@@ -1,4 +1,5 @@
 import type { BimDocument, ElementId } from '@tabax/core';
+import type { PlannedStep } from './planner/types.js';
 
 /**
  * Type scalaire autorisé dans un schéma JSON plat compatible Gemini REST et Ollama.
@@ -45,6 +46,7 @@ export interface ToolExecutionContext {
   readonly doc: BimDocument;
   readonly activeLevelId?: string | undefined;
   readonly selectedIds?: readonly ElementId[] | undefined;
+  readonly onPlanStep?: ((step: PlannedStep) => void) | undefined;
 }
 
 export interface ToolDefinition<TArgs = Record<string, unknown>, TResult = unknown> {

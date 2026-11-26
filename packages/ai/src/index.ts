@@ -79,3 +79,56 @@ export {
   DEFAULT_GEMINI_BASE_URL,
   type GeminiProviderOptions,
 } from './providers/GeminiProvider.js';
+
+export type {
+  PlanOperationKind,
+  PlannedStep,
+  ActionPlanSummary,
+  ActionPlan,
+  ApplyPlanResult,
+  RevalidatePlanResult,
+} from './planner/types.js';
+
+export {
+  PHASE2_MUTATE_TOOLS,
+  ALL_COPILOT_TOOLS,
+  registerPhase2MutateTools,
+  createFullCopilotRegistry,
+  collectPreexistingIdsInState,
+  addWallTool,
+  moveWallTool,
+  updateWallTool,
+  deleteWallTool,
+  addDoorTool,
+  addWindowTool,
+  moveOpeningTool,
+  deleteOpeningTool,
+  addComponentTool,
+  addRoomTool,
+  autoDimensionLevelTool,
+  autoGenerateViewsTool,
+  type AddWallArgs,
+  type MoveWallArgs,
+  type UpdateWallArgs,
+  type DeleteWallArgs,
+  type AddDoorArgs,
+  type AddWindowArgs,
+  type MoveOpeningArgs,
+  type DeleteOpeningArgs,
+  type AddComponentArgs,
+  type AddRoomArgs,
+  type AutoDimensionLevelArgs,
+} from './tools/mutateTools.js';
+
+export {
+  MAX_TOOL_STEPS,
+  MAX_TOTAL_TOOL_CALLS,
+  MAX_SELF_CORRECTION_RETRIES,
+  buildActionPlan,
+  runCopilotTurn,
+  applyPlan,
+  revalidatePlan,
+  type RunCopilotTurnOptions,
+  type CopilotTurnStatus,
+  type CopilotTurnResult,
+} from './planner/DryRunExecutor.js';

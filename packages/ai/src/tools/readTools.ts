@@ -12,6 +12,12 @@ import {
 import { buildBimContext } from '../context/BimContextBuilder.js';
 import type { ExposedToolSchema, ToolDefinition, ToolResult } from '../types.js';
 import { ToolArgumentValidationError, ToolRegistry } from './ToolRegistry.js';
+import {
+  asPlainObject,
+  readOptionalBoolean,
+  readOptionalString,
+  readRequiredString,
+} from './validationHelpers.js';
 
 export type LevelDetailCategory = 'walls' | 'openings' | 'slabs' | 'components' | 'rooms';
 
@@ -26,40 +32,6 @@ const ALL_LEVEL_CATEGORIES: readonly LevelDetailCategory[] = [
 const DEFAULT_CLASH_LIMIT = 20;
 const MAX_CLASH_LIMIT = 50;
 const MAX_SAMPLE_ELEMENT_IDS = 30;
-
-function asPlainObject(raw: unknown): Record<string, unknown> {
-  if (raw === undefined || raw === null) return {};
-  if (typeof raw !== 'object' || Array.isArray(raw)) {
-    throw new ToolArgumentValidationError('Les paramètres de l’outil doivent être un objet JSON.');
-  }
-  return raw as Record<string, unknown>;
-}
-
-function readRequiredString(obj: Record<string, unknown>, key: string): string {
-  const val = obj[key];
-  if (typeof val !== 'string' || val.trim().length === 0) {
-    throw new ToolArgumentValidationError(`Le paramètre requis "${key}" doit être une chaîne non vide.`);
-  }
-  return val;
-}
-
-function readOptionalString(obj: Record<string, unknown>, key: string): string | undefined {
-  const val = obj[key];
-  if (val === undefined) return undefined;
-  if (typeof val !== 'string' || val.trim().length === 0) {
-    throw new ToolArgumentValidationError(`Le paramètre optionnel "${key}" doit être une chaîne non vide.`);
-  }
-  return val;
-}
-
-function readOptionalBoolean(obj: Record<string, unknown>, key: string): boolean | undefined {
-  const val = obj[key];
-  if (val === undefined) return undefined;
-  if (typeof val !== 'boolean') {
-    throw new ToolArgumentValidationError(`Le paramètre optionnel "${key}" doit être un booléen.`);
-  }
-  return val;
-}
 
 function computeWallOrientationLabel(wall: Wall): string {
   const dx = wall.end.x - wall.start.x;
