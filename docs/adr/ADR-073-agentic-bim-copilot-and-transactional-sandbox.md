@@ -124,7 +124,7 @@ Une méthode transactionnelle de premier niveau est ajoutée à `BimDocument` (`
 ---
 
 ## Statut
-**Proposé** — Spécification d'architecture verrouillée pour `Tabax v1.2.0` (phase étude, avant implémentation).
+**Accepté** — Implémenté et qualifié sur `Tabax v1.2.0` (`@tabax/core`, `@tabax/ai`, `@tabax/web`) : **173 suites / 1 445 tests Vitest**, **20 / 20 scénarios E2E Playwright** et **0 erreur** `typecheck` / `lint` sur l'ensemble des 6 packages.
 
 ## Conséquences
 - Réutilisation intégrale du moteur déterministe `@tabax/core` (`validateDirty`, `LazyWallResolutionIndex`, `DependencyGraph`, `ClashEngine`) comme oracle de vérité de l'agent.

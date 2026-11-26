@@ -6,6 +6,48 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.2.0] - 2026-11-26
+
+### Vue d'ensemble
+Version mineure apportant le **Copilote BIM Agentique (`@tabax/ai`)**, le **bac à sable transactionnel `BimDocument.runTransaction`**, le mode d'inférence hybride sans backend **Ollama local + BYOK Cloud** et l'onglet **`Assistant IA`** intégré au dock droit du cockpit (`ADR-073`).
+
+---
+
+### Ajouté
+
+#### 1. Transactions Groupées & Clonage Bac à Sable (`@tabax/core`)
+- **`BimDocument.runTransaction(label, fn)` :** Exécution séquentielle multi-commandes sur états Immer commis (compatibilité complète avec `original(draft)` dans `MoveWallCommand` et `LazyWallResolutionIndex`), concaténation directe des `patches`, concaténation inversée des `inversePatches` (`[inv_N, ..., inv_1]`) en **1 seule `HistoryEntry`** dotée d'un libellé optionnel `label`, rollback atomique en cas d'échec, blocage des appels imbriqués et d'`undo()`/`redo()` en cours de transaction, et notification `subscribe` unique avec l'union dédupliquée des `changedIds`.
+- **`BimDocument.cloneForSandbox()` :** Clone structurel instantané partageant la référence immuable `BimState`, clonant le graphe DAG avec un historique vierge et sans recopier les abonnés UI/3D.
+- **Accesseurs d'historique & ré-export :** Ajout de `getUndoLabel()` / `getRedoLabel()` sur `BimDocument` et ré-export racine de `AutoDimensionLevelCommand`.
+
+#### 2. Package Agentique Pur `@tabax/ai` (`ADR-073`)
+- **Pureté & étanchéité CI :** Package TypeScript pur dépendant uniquement de `@tabax/core` (0 dépendance runtime externe), verrouillé par `T-PUR-03-AI` dans `purity.test.ts` et `no-restricted-imports` ESLint.
+- **Constructeur de contexte compact (`BimContextBuilder`) :** Sérialisation frugale des niveaux, compteurs par catégorie, types catalogués (`wallTypes`, `doorTypes`, `windowTypes`, etc.), sélection courante et résumé d'alertes sous contrainte `< 16 Ko`.
+- **Catalogue figé de 17 outils (schémas JSON plats, unités `Mm`/`Deg`) :**
+  - *5 outils d'audit en lecture seule (Phase 1) :* `get_project_summary`, `get_level_details` (filtre `categories?`, longueurs, orientations et intervalles occupés pré-calculés), `get_element_by_id`, `audit_model`, `get_clashes_summary`.
+  - *12 outils de mutation sous bac à sable (Phase 2) :* `add_wall`, `move_wall`, `update_wall` (`heightMm` / `resetHeightToAuto`), `delete_wall`, `add_door`, `add_window`, `move_opening` (`newOffsetAlongMm` / `deltaOffsetMm`), `delete_opening`, `add_component` (`rotationDeg`), `add_room`, `auto_dimension_level`, `auto_generate_views`.
+- **Bac à sable & *Stale Plan Guard* (`DryRunExecutor`) :** Planification par descripteurs immuables `PlannedStep` avec ULIDs figés et fabriques de commandes fraîches, boucle bornée (`MAX_TOOL_STEPS = 8`, `MAX_TOTAL_TOOL_CALLS = 24`, `MAX_SELF_CORRECTION_RETRIES = 3`, `AbortSignal`), auto-correction structurée (`BimValidationError.offendingIds` / `validIds`), détection d'obsolescence sur `doc` ou `baseState` et action déterministe `revalidatePlan` sans appel LLM.
+- **Adaptateurs `fetch` hybrides sans backend :** `OpenAiCompatibleProvider` (Ollama, LM Studio, vLLM, OpenAI, normalisant `arguments` chaîne/objet) et `GeminiProvider`, accompagnés du diagnostic CORS (`OLLAMA_ORIGINS`) et *Mixed Content* HTTPS vers HTTP via `testConnection()`.
+
+#### 3. Cockpit `Assistant IA` (`apps/web`)
+- **Hook dédié (`useAiCopilot`) & panneau (`AiAssistantPanel`, `RightDockPanel`) :** Onglet `Assistant IA` dans le dock droit, fil conversationnel, réglages fournisseur avec diagnostic de connexion, politique stricte de clés BYOK (`sessionStorage` par défaut, opt-in `localStorage`), carte de plan d'actions avec badge `Obsolète`, bouton `Revalider`, ciblage sélectif des éléments et `Appliquer` / `Ignorer`.
+- **Isolation clavier & stabilité 3D :** Blocage explicite des raccourcis globaux lors de la saisie dans le panneau IA et zéro modification sur `Scene3D.ts`.
+- **Qualification navigateur :** Ajout de 2 scénarios Playwright déterministes (`page.route()`) couvrant l'auto-correction agentique + `Undo` atomique et le *Stale Plan Guard* avec revalidation sans appel LLM.
+
+---
+
+### Métriques de Qualification v1.2.0
+
+| Métrique de Livraison | Valeur Vérifiée v1.2.0 | Détail par Package |
+| :--- | :--- | :--- |
+| **Suites de Tests Vitest** | **173 fichiers** | `geometry`: 20, `core`: 53, `view-3d`: 20, `ai`: 5, `view-2d`: 19, `web`: 56 |
+| **Tests Automatisés Vitest** | **1 445 tests passés** | `geometry`: 228, `core`: 567, `view-3d`: 125, `ai`: 28, `view-2d`: 155, `web`: 342 |
+| **Scénarios E2E Playwright** | **20 / 20 passés (100%)** | `apps/web/e2e/smoke.spec.ts` (Chromium production, 0 erreur console) |
+| **Vérification Statique (TypeCheck)** | **0 erreur** | `pnpm typecheck` (`tsc -b` strict sur 6 packages) |
+| **Qualité & Formatage (Lint)** | **0 avertissement** | `pnpm lint` (ESLint 9 flat config) |
+
+---
+
 ## [1.1.0] - 2026-11-24
 
 ### Vue d'ensemble

@@ -81,7 +81,7 @@
 | **ADR-070** | Résilience d'Exploitation — Verrou Multi-Onglets (Web Locks), Atomicité DAG sur Annulation/Rétablissement & Audit Passif au Chargement (Saison 3 - Étape 6 Volet A) | **Accepté**  | 22/11/2026 |
 | **ADR-071** | Fidélité IFC4 Exacte (Toitures Inclinées, Escaliers Crénelés & MEP Natif), Déterminisme Absolu des GUIDs & Précision Métier du Moteur de Clash (Saison 3 - Étape 6 Volet B) | **Accepté**  | 22/11/2026 |
 | **ADR-072** | Rendu Photoréaliste PBR, Éclairage IBL Studio, Bouchons de Coupe Stencil & Scission Modulaire de @tabax/view-3d (Tabax v1.1.0) | **Accepté**  | 24/11/2026 |
-| **ADR-073** | Copilote BIM Agentique, Bac à Sable Transactionnel (`BimDocument.runTransaction`) & Inférence Hybride Sans Backend (Tabax v1.2.0) | **Proposé**  | 24/11/2026 |
+| **ADR-073** | Copilote BIM Agentique, Bac à Sable Transactionnel (`BimDocument.runTransaction`) & Inférence Hybride Sans Backend (Tabax v1.2.0) | **Accepté**  | 26/11/2026 |
 
 ---
 
@@ -2969,7 +2969,7 @@ Le rendu 3D de `@tabax/view-3d` reposait sur un éclairage Three.js basique (Dir
 
 ---
 
-## ADR-073 : Copilote BIM Agentique, Bac à Sable Transactionnel (`BimDocument.runTransaction`) & Inférence Hybride Sans Backend (Tabax v1.2.0 — Proposé)
+## ADR-073 : Copilote BIM Agentique, Bac à Sable Transactionnel (`BimDocument.runTransaction`) & Inférence Hybride Sans Backend (Tabax v1.2.0 — Accepté)
 
 *(Spécification détaillée dans [ADR-073-agentic-bim-copilot-and-transactional-sandbox.md](docs/adr/ADR-073-agentic-bim-copilot-and-transactional-sandbox.md).)*
 
@@ -2989,7 +2989,7 @@ L'intégration d'un assistant IA dans Tabax (`v1.2.0`) doit exploiter la sépara
 6. **D6 — UI non intrusive :** Logique extraite dans `apps/web/src/hooks/useAiCopilot.ts` (préservant la taille d'`App.tsx`), onglet `Assistant IA` dans `RightDockPanel` avec carte d'actions structurée, surlignage via sélection existante, zéro ajout dans `Scene3D.ts` en `v1.2.0` et couverture Playwright via `page.route()`.
 
 ### Conséquences
-- Socle architectural verrouillé pour `v1.2.0` avant toute implémentation applicative.
+- Socle architectural implémenté et qualifié pour `v1.2.0` (**173 suites / 1 445 tests Vitest** sur 6 packages, **20 / 20 scénarios Playwright E2E**, `pnpm typecheck` et `pnpm lint` à **0 erreur**).
 - Préparation directe de la Phase 3 (Résolution MEP) et de la Phase 4 (Plan-to-BIM) sur un moteur transactionnel durci.
 
 

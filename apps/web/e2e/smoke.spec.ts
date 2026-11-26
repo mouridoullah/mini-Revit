@@ -702,4 +702,328 @@ test.describe('Tabax E2E Smoke Tests (Playwright Real Browser)', () => {
     await expect(ecorcheBtn).toHaveCSS('font-weight', '600');
     expect(consoleErrors).toEqual([]);
   });
+
+  test('parcours agentique complet avec auto-correction et Undo atomique (ADR-073)', async ({
+    page,
+  }) => {
+    const consoleErrors: string[] = [];
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') consoleErrors.push(msg.text());
+    });
+    page.on('pageerror', (err) => consoleErrors.push(err.message));
+
+    let chatCallIndex = 0;
+    let sawSelfCorrectionFeedback = false;
+
+    await page.route('http://localhost:11434/v1/models', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ data: [{ id: 'qwen2.5-coder:14b' }] }),
+      });
+    });
+
+    await page.route('http://localhost:11434/v1/chat/completions', async (route) => {
+      const body = JSON.parse(route.request().postData() ?? '{}') as {
+        messages?: Array<{ role: string; content: string | null }>;
+      };
+      const messages = body.messages ?? [];
+      const rawMessagesText = messages.map((m) => m.content ?? '').join('\n');
+      const levelMatch = rawMessagesText.match(/"activeLevelId"\s*:\s*"([^"]+)"/);
+      const activeLevelId = levelMatch?.[1] ?? 'unknown-level';
+
+      const currentCall = chatCallIndex++;
+      if (currentCall === 0) {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            choices: [
+              {
+                finish_reason: 'tool_calls',
+                message: {
+                  role: 'assistant',
+                  content: '',
+                  tool_calls: [
+                    {
+                      id: 'call_read_level',
+                      type: 'function',
+                      function: {
+                        name: 'get_level_details',
+                        arguments: JSON.stringify({
+                          levelId: activeLevelId,
+                          categories: ['walls'],
+                        }),
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          }),
+        });
+        return;
+      }
+
+      if (currentCall === 1) {
+        const lastToolMsg = [...messages].reverse().find((m) => m.role === 'tool');
+        const toolPayload = JSON.parse(lastToolMsg?.content ?? '{}') as {
+          ok?: boolean;
+          data?: { walls?: Array<{ id: string }> };
+        };
+        const firstWallId = toolPayload.data?.walls?.[0]?.id ?? '';
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            choices: [
+              {
+                finish_reason: 'tool_calls',
+                message: {
+                  role: 'assistant',
+                  content: '',
+                  tool_calls: [
+                    {
+                      id: 'call_invalid_door',
+                      type: 'function',
+                      function: {
+                        name: 'add_door',
+                        arguments: JSON.stringify({
+                          hostWallId: firstWallId,
+                          offsetAlongMm: 99000,
+                        }),
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          }),
+        });
+        return;
+      }
+
+      if (currentCall === 2) {
+        const lastToolMsg = [...messages].reverse().find((m) => m.role === 'tool');
+        const toolPayload = JSON.parse(lastToolMsg?.content ?? '{}') as {
+          ok?: boolean;
+          code?: string;
+          offendingIds?: unknown;
+        };
+        if (
+          toolPayload.ok === false &&
+          typeof toolPayload.code === 'string' &&
+          Array.isArray(toolPayload.offendingIds) &&
+          toolPayload.offendingIds.length > 0
+        ) {
+          sawSelfCorrectionFeedback = true;
+        }
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            choices: [
+              {
+                finish_reason: 'tool_calls',
+                message: {
+                  role: 'assistant',
+                  content: '',
+                  tool_calls: [
+                    {
+                      id: 'call_add_wall',
+                      type: 'function',
+                      function: {
+                        name: 'add_wall',
+                        arguments: JSON.stringify({
+                          levelId: activeLevelId,
+                          startXMm: 0,
+                          startYMm: 9000,
+                          endXMm: 4000,
+                          endYMm: 9000,
+                        }),
+                      },
+                    },
+                    {
+                      id: 'call_auto_dim',
+                      type: 'function',
+                      function: {
+                        name: 'auto_dimension_level',
+                        arguments: JSON.stringify({ levelId: activeLevelId }),
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          }),
+        });
+        return;
+      }
+
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          choices: [
+            {
+              finish_reason: 'stop',
+              message: {
+                role: 'assistant',
+                content: 'Plan corrigé validé en sandbox : ajout du mur et mise à jour des cotes.',
+                tool_calls: [],
+              },
+            },
+          ],
+        }),
+      });
+    });
+
+    await page.goto('/');
+    await expect(page.locator('[data-testid="status-bar"]')).toContainText('Murs : 4');
+    await expect(page.locator('[data-testid="status-bar"]')).toContainText('Cotes : 1');
+
+    // 1. Ouvrir l'onglet Assistant IA et tester la connexion locale simulée
+    await page.locator('[data-testid="dock-tab-ai"]').click();
+    await expect(page.locator('[data-testid="ai-assistant-panel"]')).toBeVisible();
+
+    await page.locator('[data-testid="ai-settings-toggle"]').click();
+    await page.locator('[data-testid="ai-test-connection-btn"]').click();
+    await expect(page.locator('[data-testid="ai-connection-diagnostic"]')).toBeVisible();
+    await page.locator('[data-testid="ai-settings-toggle"]').click();
+
+    // 2. Soumettre le prompt déclenchant une erreur puis une auto-correction sandbox
+    await page
+      .locator('[data-testid="ai-prompt-input"]')
+      .fill('Ajoute un mur au nord et mets à jour les cotes du niveau');
+    await page.locator('[data-testid="ai-send-btn"]').click();
+
+    await expect(page.locator('[data-testid="ai-action-plan-card"]')).toBeVisible();
+    await expect(page.locator('[data-testid="ai-plan-ready-badge"]')).toBeVisible();
+    await expect(page.locator('[data-testid="ai-msg-assistant"]').last()).toContainText(
+      'Plan corrigé validé en sandbox',
+    );
+    expect(sawSelfCorrectionFeedback).toBe(true);
+    expect(chatCallIndex).toBe(4);
+
+    // Tant que le plan n'est pas appliqué, le document officiel reste inchangé
+    await expect(page.locator('[data-testid="status-bar"]')).toContainText('Murs : 4');
+    await expect(page.locator('[data-testid="status-bar"]')).toContainText('Cotes : 1');
+
+    // 3. Appliquer la transaction groupée
+    await page.locator('[data-testid="ai-apply-plan-btn"]').click();
+    await expect(page.locator('[data-testid="status-bar"]')).toContainText('Murs : 5');
+    await expect(page.locator('[data-testid="status-bar"]')).toContainText(/Cotes : ([2-9]|[1-9]\d+)/);
+
+    // 4. Undo atomique en 1 seule action
+    await page.locator('[data-testid="undo-btn"]').click();
+    await expect(page.locator('[data-testid="status-bar"]')).toContainText('Murs : 4');
+    await expect(page.locator('[data-testid="status-bar"]')).toContainText('Cotes : 1');
+
+    expect(consoleErrors).toEqual([]);
+  });
+
+  test('détecte un plan obsolète (Stale Plan Guard) et revalide sans appel LLM (ADR-073)', async ({
+    page,
+  }) => {
+    const consoleErrors: string[] = [];
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') consoleErrors.push(msg.text());
+    });
+    page.on('pageerror', (err) => consoleErrors.push(err.message));
+
+    let llmChatRequests = 0;
+
+    await page.route('http://localhost:11434/v1/chat/completions', async (route) => {
+      const body = JSON.parse(route.request().postData() ?? '{}') as {
+        messages?: Array<{ role: string; content: string | null }>;
+      };
+      const messages = body.messages ?? [];
+      const rawMessagesText = messages.map((m) => m.content ?? '').join('\n');
+      const levelMatch = rawMessagesText.match(/"activeLevelId"\s*:\s*"([^"]+)"/);
+      const activeLevelId = levelMatch?.[1] ?? 'unknown-level';
+
+      const callIndex = llmChatRequests++;
+      if (callIndex === 0) {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            choices: [
+              {
+                finish_reason: 'tool_calls',
+                message: {
+                  role: 'assistant',
+                  content: '',
+                  tool_calls: [
+                    {
+                      id: 'call_stale_wall',
+                      type: 'function',
+                      function: {
+                        name: 'add_wall',
+                        arguments: JSON.stringify({
+                          levelId: activeLevelId,
+                          startXMm: 0,
+                          startYMm: 9000,
+                          endXMm: 4000,
+                          endYMm: 9000,
+                        }),
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          }),
+        });
+        return;
+      }
+
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          choices: [
+            {
+              finish_reason: 'stop',
+              message: {
+                role: 'assistant',
+                content: 'Mur supplémentaire préparé pour validation.',
+                tool_calls: [],
+              },
+            },
+          ],
+        }),
+      });
+    });
+
+    await page.goto('/');
+    await page.locator('[data-testid="dock-tab-ai"]').click();
+    await page.locator('[data-testid="ai-prompt-input"]').fill('Ajoute un mur au nord');
+    await page.locator('[data-testid="ai-send-btn"]').click();
+
+    await expect(page.locator('[data-testid="ai-plan-ready-badge"]')).toBeVisible();
+    const requestsAfterGeneration = llmChatRequests;
+    expect(requestsAfterGeneration).toBe(2);
+
+    // 1. Mutation manuelle directe du document pendant que le plan est en attente
+    await page.locator('[data-testid="auto-dimension-floor-btn"]').click();
+    await expect(page.locator('[data-testid="status-bar"]')).toContainText('Cotes : 11');
+
+    // 2. Passage immédiat à Obsolète et remplacement du bouton Appliquer par Revalider
+    await expect(page.locator('[data-testid="ai-plan-stale-badge"]')).toBeVisible();
+    await expect(page.locator('[data-testid="ai-apply-plan-btn"]')).toHaveCount(0);
+    await expect(page.locator('[data-testid="ai-revalidate-plan-btn"]')).toBeVisible();
+
+    // 3. Revalidation déterministe sans aucun nouvel appel LLM
+    await page.locator('[data-testid="ai-revalidate-plan-btn"]').click();
+    expect(llmChatRequests).toBe(requestsAfterGeneration);
+    await expect(page.locator('[data-testid="ai-plan-ready-badge"]')).toBeVisible();
+    await expect(page.locator('[data-testid="ai-apply-plan-btn"]')).toBeVisible();
+
+    // 4. Application effective du plan revalidé
+    await page.locator('[data-testid="ai-apply-plan-btn"]').click();
+    await expect(page.locator('[data-testid="status-bar"]')).toContainText('Murs : 5');
+
+    expect(consoleErrors).toEqual([]);
+  });
 });
