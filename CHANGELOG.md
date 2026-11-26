@@ -6,6 +6,20 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.2.1] - 2026-11-26
+
+### Vue d'ensemble
+Correctif terrain issu des essais en conditions réelles avec Ollama local (`qwen2.5-coder:7b` sous Chromium) : résolution de l'erreur `Illegal invocation` dans **Tester la connexion**, parseur de repli JSON pour les appels d'outils émis dans `message.content`, et sélection en un clic des modèles détectés localement.
+
+### Corrigé
+- **Liaison navigateur `globalThis.fetch` (`@tabax/ai` / `diagnostics.ts`) :** `resolveFetch()` enveloppe et lie désormais explicitement `fetch` à `globalThis`, éliminant l'erreur `Failed to execute 'fetch' on 'Window': Illegal invocation` lors de `testConnection()` sur `OpenAiCompatibleProvider` et `GeminiProvider`.
+- **Parseur de repli Ollama dans `message.content` (`OpenAiCompatibleProvider.ts`) :** lorsque `message.tool_calls` est vide et que des outils sont exposés, extraction déterministe par scanner JSON équilibré des appels `{ "name": "...", "arguments": {...} }` (lignes multiples, blocs Markdown ou `<tool_call>`), filtrés strictement sur les noms d'outils autorisés dans la requête.
+- **Durcissement prompt & balises `<tool_response>` (`DryRunExecutor.ts`) :** consigne explicite contre l'émission de faux `<tool_response>` sur petits modèles locaux et nettoyage des balises résiduelles en fin de planification.
+- **Diagnostic unifié & sélecteur de modèles (`diagnostics.ts`, `AiAssistantPanel.tsx`) :** `executeJsonPost` réutilise `classifyNetworkDiagnostic` pour remonter le guidage CORS (`OLLAMA_ORIGINS`) / *Mixed Content* dès les erreurs `chat()`, et `testConnection()` expose `availableModels` sous forme de boutons de sélection rapide dans les réglages IA.
+- **Qualification & E2E (`providers.test.ts`, `AiAssistantPanel.test.tsx`, `smoke.spec.ts`) :** ajout de tests unitaires pour la liaison stricte `globalThis.fetch`, le parseur de repli texte et les boutons de modèles disponibles, ainsi qu'une assertion stricte `'Connexion établie'` sur `ai-connection-diagnostic` dans Playwright (`173` suites / `1 448` tests Vitest, `20 / 20` Playwright E2E, `0` erreur/avertissement).
+
+---
+
 ## [1.2.0] - 2026-11-26
 
 ### Vue d'ensemble

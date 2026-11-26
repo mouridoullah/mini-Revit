@@ -226,6 +226,22 @@ export function AiAssistantPanel({
               {connectionDiagnostic.hint && (
                 <div className={styles.diagHint}>{connectionDiagnostic.hint}</div>
               )}
+              {connectionDiagnostic.availableModels &&
+                connectionDiagnostic.availableModels.length > 0 && (
+                  <div className={styles.suggestionList}>
+                    {connectionDiagnostic.availableModels.map((modelId) => (
+                      <button
+                        key={modelId}
+                        type="button"
+                        className={styles.suggestionBtn}
+                        data-testid="ai-available-model-btn"
+                        onClick={() => onUpdateConfig({ model: modelId })}
+                      >
+                        {modelId}
+                      </button>
+                    ))}
+                  </div>
+                )}
             </div>
           )}
         </div>

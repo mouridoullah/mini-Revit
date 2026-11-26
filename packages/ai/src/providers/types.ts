@@ -80,6 +80,7 @@ export interface ConnectionDiagnostic {
   readonly message: string;
   readonly hint?: string | undefined;
   readonly latencyMs: number;
+  readonly availableModels?: readonly string[] | undefined;
 }
 
 export interface TestConnectionOptions {

@@ -243,4 +243,45 @@ describe('Composant <AiAssistantPanel /> (ADR-073 Lot 3)', () => {
       window.removeEventListener('keydown', windowKeySpy);
     }
   });
+
+  it('permet de sélectionner un modèle détecté en un clic depuis le diagnostic connexion (v1.2.1)', () => {
+    const onUpdateConfig = vi.fn();
+    render(
+      <AiAssistantPanel
+        activeLevelName="RDC"
+        selectedCount={0}
+        config={BASE_CONFIG}
+        onUpdateConfig={onUpdateConfig}
+        messages={[]}
+        isRunning={false}
+        isTestingConnection={false}
+        connectionDiagnostic={{
+          status: 'model_not_found',
+          message: 'Modèle absent.',
+          hint: 'Modèles disponibles : qwen2.5-coder:7b',
+          latencyMs: 12,
+          availableModels: ['qwen2.5-coder:7b', 'llama3.1:latest'],
+        }}
+        pendingPlan={null}
+        isStale={false}
+        revalidationError={null}
+        onTestConnection={vi.fn()}
+        onSendPrompt={vi.fn()}
+        onStop={vi.fn()}
+        onApplyPlan={vi.fn()}
+        onRevalidatePlan={vi.fn()}
+        onDiscardPlan={vi.fn()}
+        onClearConversation={vi.fn()}
+        onTargetElements={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('ai-settings-toggle'));
+    const modelButtons = screen.getAllByTestId('ai-available-model-btn');
+    expect(modelButtons).toHaveLength(2);
+    const firstModelBtn = modelButtons.at(0);
+    if (!firstModelBtn) throw new Error('Bouton modèle attendu');
+    fireEvent.click(firstModelBtn);
+    expect(onUpdateConfig).toHaveBeenCalledWith({ model: 'qwen2.5-coder:7b' });
+  });
 });

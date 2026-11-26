@@ -1,6 +1,6 @@
 {
   "name": "tabax-monorepo",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "private": true,
   "description": "Tabax — Logiciel de modélisation architecturale et d'ingénierie BIM",
   "type": "module",

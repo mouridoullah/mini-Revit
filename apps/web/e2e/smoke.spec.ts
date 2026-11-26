@@ -888,7 +888,9 @@ test.describe('Tabax E2E Smoke Tests (Playwright Real Browser)', () => {
 
     await page.locator('[data-testid="ai-settings-toggle"]').click();
     await page.locator('[data-testid="ai-test-connection-btn"]').click();
-    await expect(page.locator('[data-testid="ai-connection-diagnostic"]')).toBeVisible();
+    await expect(page.locator('[data-testid="ai-connection-diagnostic"]')).toContainText(
+      'Connexion établie',
+    );
     await page.locator('[data-testid="ai-settings-toggle"]').click();
 
     // 2. Soumettre le prompt déclenchant une erreur puis une auto-correction sandbox
