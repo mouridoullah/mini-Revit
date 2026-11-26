@@ -12,6 +12,190 @@ import type { RawMeshData } from '@tabax/geometry';
 import type { CableTrayGeometryParams } from '../types.js';
 import { RawMeshAccumulator, v3, add, sub, scale, cross, len, normalize, type Vec3D } from './common.js';
 import { MEP_SYSTEM_COLORS } from './colors.js';
+import {
+  composeMatrix4,
+  type MepAssembly3D,
+  type MepAssemblyPart,
+  type MepInstanceAnchor,
+} from './assembly-types.js';
+import { UvMeshAccumulator } from './primitives.js';
+import {
+  buildSafeFrame,
+  computeIntervalOffsets,
+  isHorizontalRun,
+  pushPartIfNonEmpty,
+  type MepAssemblyOptions,
+} from './assembly-builder-helpers.js';
+
+export function createCableTrayAssembly3D(
+  tray: CableTrayGeometryParams,
+  options?: MepAssemblyOptions,
+): MepAssembly3D {
+  const isLod350 = (options?.detailLevel ?? 'lod350') === 'lod350';
+  const style = tray.style ?? 'ladder';
+  const parts: MepAssemblyPart[] = [];
+  const instances: MepInstanceAnchor[] = [];
+
+  const p1 = v3(tray.start.x, tray.start.y, tray.start.z);
+  const p2 = v3(tray.end.x, tray.end.y, tray.end.z);
+  const dir = sub(p2, p1);
+  const l = len(dir);
+
+  if (l > 1e-4) {
+    const { axis, u, v } = buildSafeFrame(dir);
+    const horizontal = isHorizontalRun(axis);
+    const width = Math.max(40, tray.width);
+    const height = Math.max(20, tray.height);
+    const wallThick = 4;
+
+    const steelAcc = new UvMeshAccumulator();
+    const hwAcc = new UvMeshAccumulator();
+    const cfoAcc = new UvMeshAccumulator();
+    const cfaAcc = new UvMeshAccumulator();
+    const earthAcc = new UvMeshAccumulator();
+
+    const mid = scale(add(p1, p2), 0.5);
+
+    if (style === 'perforated') {
+      // Profilé U chanfreiné à bords roulés 12 mm + fond perforé texturé par nervures
+      steelAcc.addBeveledBox(
+        add(mid, scale(v, wallThick * 0.5)),
+        width,
+        l,
+        wallThick,
+        u,
+        axis,
+        v,
+        1.2,
+      );
+      for (const sx of [-1, 1]) {
+        const railOffset = scale(u, sx * (width * 0.5 - wallThick * 0.5));
+        steelAcc.addBeveledBox(
+          add(add(mid, railOffset), scale(v, height * 0.5)),
+          wallThick,
+          l,
+          height,
+          u,
+          axis,
+          v,
+          1.2,
+        );
+        // Bord roulé de sécurité 12 mm
+        steelAcc.addBeveledBox(
+          add(add(mid, railOffset), scale(v, height)),
+          12,
+          l,
+          wallThick,
+          u,
+          axis,
+          v,
+          1.2,
+        );
+      }
+      // Éclisses d'aboutement boulonnées aux extrémités si tronçon suffisant
+      if (l >= 150) {
+        for (const endPt of [add(p1, scale(axis, 24)), add(p2, scale(axis, -24))]) {
+          for (const sx of [-1, 1]) {
+            const spPos = add(endPt, add(scale(u, sx * (width * 0.5 + 1.5)), scale(v, height * 0.5)));
+            hwAcc.addBeveledBox(spPos, 3, 44, height * 0.72, u, axis, v, 0.8);
+            if (isLod350) {
+              instances.push({
+                prototypeKey: 'bolt_m10',
+                matrix: composeMatrix4(spPos, axis, v, scale(u, sx)),
+                materialRole: 'zinc_hardware',
+              });
+            }
+          }
+        }
+      }
+    } else {
+      // Échelle à câbles : 2 montants en C chanfreinés (25 x H mm) + barreaux instanciés
+      for (const sx of [-1, 1]) {
+        const railPos = add(mid, add(scale(u, sx * (width * 0.5 - 6)), scale(v, height * 0.5)));
+        steelAcc.addBeveledBox(railPos, 12, l, height, u, axis, v, 1.5);
+        steelAcc.addBeveledBox(
+          add(mid, add(scale(u, sx * (width * 0.5 - 12)), scale(v, 2))),
+          25,
+          l,
+          4,
+          u,
+          axis,
+          v,
+          1,
+        );
+        steelAcc.addBeveledBox(
+          add(mid, add(scale(u, sx * (width * 0.5 - 12)), scale(v, height - 2))),
+          25,
+          l,
+          4,
+          u,
+          axis,
+          v,
+          1,
+        );
+      }
+
+      if (l >= 150) {
+        for (const offset of computeIntervalOffsets(l, 300, 150, 60)) {
+          const rungCenter = add(p1, add(scale(axis, offset), scale(v, 6)));
+          instances.push({
+            prototypeKey: 'ladder_rung',
+            matrix: composeMatrix4(rungCenter, u, axis, v, v3(Math.max(20, width - 20), 1, 1)),
+            materialRole: 'galvanized_steel',
+          });
+        }
+      }
+    }
+
+    // Pendards verticaux sur chemins horizontaux
+    if (isLod350 && horizontal) {
+      for (const offset of computeIntervalOffsets(l, 1200, 450, 160)) {
+        const hc = add(p1, scale(axis, offset));
+        for (const sx of [-1, 1]) {
+          instances.push({
+            prototypeKey: 'threaded_rod',
+            matrix: composeMatrix4(
+              add(hc, add(scale(u, sx * (width * 0.5 + 10)), v3(0, 0, height))),
+              v3(1, 0, 0),
+              v3(0, 1, 0),
+              v3(0, 0, 1),
+              v3(1, 1, 160),
+            ),
+            materialRole: 'zinc_hardware',
+          });
+        }
+      }
+    }
+
+    // 3 nappes de câbles distinctes (CFO, CFA, Terre)
+    if (l >= 100) {
+      const zBase = wallThick + 14;
+      const cfoOff = add(scale(u, -width * 0.22), scale(v, zBase));
+      cfoAcc.addSmoothCylinder(add(p1, cfoOff), add(p2, cfoOff), 8, 12, true);
+
+      const cfaOff = add(scale(u, width * 0.22), scale(v, zBase - 2));
+      cfaAcc.addSmoothCylinder(add(p1, cfaOff), add(p2, cfaOff), 6, 12, true);
+
+      const earthOff = scale(v, zBase - 4);
+      earthAcc.addSmoothCylinder(add(p1, earthOff), add(p2, earthOff), 4, 12, true);
+    }
+
+    pushPartIfNonEmpty(parts, steelAcc, tray.id, 'galvanized_steel');
+    pushPartIfNonEmpty(parts, hwAcc, tray.id, 'zinc_hardware');
+    pushPartIfNonEmpty(parts, cfoAcc, tray.id, 'cable_cfo');
+    pushPartIfNonEmpty(parts, cfaAcc, tray.id, 'cable_cfa');
+    pushPartIfNonEmpty(parts, earthAcc, tray.id, 'cable_earth');
+  }
+
+  return {
+    elementId: tray.id,
+    category: 'cableTray',
+    systemType: tray.systemType ?? 'power',
+    domain: 'electrical',
+    parts,
+    instances,
+  };
+}
 
 export function generateCableTrayMesh(tray: CableTrayGeometryParams): RawMeshData {
   const acc = new RawMeshAccumulator();
