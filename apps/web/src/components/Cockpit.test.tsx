@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { useState } from 'react';
 import { SplitViewport } from './SplitViewport.js';
-import { RightDockPanel } from './RightDockPanel.js';
+import { RightDockPanel, type DockTab } from './RightDockPanel.js';
 import { ProjectBrowser } from './ProjectBrowser.js';
 
 describe('cockpit layout', () => {
@@ -62,7 +62,7 @@ describe('cockpit layout', () => {
 
   it('bascule les onglets Propriétés et IFC Réf', () => {
     function Harness() {
-      const [tab, setTab] = useState<'properties' | 'ifc'>('properties');
+      const [tab, setTab] = useState<DockTab>('properties');
       return (
         <RightDockPanel
           properties={<div>Inspector</div>}

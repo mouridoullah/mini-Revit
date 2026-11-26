@@ -24,6 +24,7 @@ export default defineConfig({
     alias: {
       '@tabax/core/federation': path.resolve(__dirname, '../../packages/core/src/federation/index.ts'),
       '@tabax/core': path.resolve(__dirname, '../../packages/core/src/index.ts'),
+      '@tabax/ai': path.resolve(__dirname, '../../packages/ai/src/index.ts'),
       '@tabax/view-2d': path.resolve(__dirname, '../../packages/view-2d/src/index.ts'),
       '@tabax/view-3d': path.resolve(__dirname, '../../packages/view-3d/src/index.ts'),
     },

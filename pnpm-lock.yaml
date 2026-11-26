@@ -32,6 +32,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@tabax/ai':
+        specifier: workspace:*
+        version: link:../../packages/ai
       '@tabax/core':
         specifier: workspace:*
         version: link:../../packages/core

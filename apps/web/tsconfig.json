@@ -12,6 +12,7 @@
     }
   },
   "references": [
+    { "path": "../../packages/ai" },
     { "path": "../../packages/core" },
     { "path": "../../packages/view-2d" },
     { "path": "../../packages/view-3d" }

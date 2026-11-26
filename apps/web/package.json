@@ -14,6 +14,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.test.json"
   },
   "dependencies": {
+    "@tabax/ai": "workspace:*",
     "@tabax/core": "workspace:*",
     "@tabax/view-2d": "workspace:*",
     "@tabax/view-3d": "workspace:*",

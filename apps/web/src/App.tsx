@@ -7,6 +7,7 @@ import { StatusBar } from './components/StatusBar.js';
 import { MetricsPanel } from './components/MetricsPanel.js';
 import { FederatedIfcPanel } from './components/FederatedIfcPanel.js';
 import { PropertyInspector } from './components/PropertyInspector.js';
+import { AiAssistantPanel } from './components/AiAssistantPanel.js';
 import { ComponentRibbon } from './components/ComponentRibbon.js';
 import { MepRibbon } from './components/MepRibbon.js';
 import { Viewport2D } from './components/Viewport2D.js';
@@ -34,6 +35,7 @@ import { useFederatedIfc } from './hooks/useFederatedIfc.js';
 import { useBimShortcuts } from './hooks/useBimShortcuts.js';
 import { useSectionCuts } from './hooks/useSectionCuts.js';
 import { useClashCoordination } from './hooks/useClashCoordination.js';
+import { useAiCopilot } from './hooks/useAiCopilot.js';
 
 export interface AppProps {
   readonly initialDoc?: BimDocument;
@@ -98,10 +100,18 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
     activeSectionCutFor3D,
   } = useSectionCuts(doc);
   useEffect(() => {
-    if (selectedIds.length > 0 && rightDockTab !== 'ifc') {
+    if (selectedIds.length > 0 && rightDockTab !== 'ifc' && rightDockTab !== 'ai') {
       setRightDockTab('properties');
     }
   }, [selectedIds, rightDockTab]);
+
+  // 1c. Hook du Copilote IA (ADR-073)
+  const aiCopilot = useAiCopilot({
+    doc,
+    activeLevelId,
+    selectedIds,
+    onInfoMessage: setInfoMessage,
+  });
 
   // 1. Hook de Fédération IFC (Sous-phase 9.5)
   const {
@@ -684,6 +694,7 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
           onTabChange={setRightDockTab}
           selectedCount={selectedIds.length}
           modelCount={federatedModels.size}
+          hasPendingAiPlan={aiCopilot.pendingPlan !== null}
           properties={
             <ErrorBoundary name="Inspecteur de Propriétés">
               <PropertyInspector
@@ -713,6 +724,39 @@ function AppContent({ hasInitialDoc }: { readonly hasInitialDoc: boolean }) {
                 onTargetClash={handleTargetFederatedClash}
                 onCheckClashes={handleCheckFederatedClashes}
                 clashCandidates={federatedClashes}
+              />
+            </ErrorBoundary>
+          }
+          ai={
+            <ErrorBoundary name="Assistant IA">
+              <AiAssistantPanel
+                activeLevelName={doc.getState().levels[activeLevelId]?.name ?? activeLevelId}
+                selectedCount={selectedIds.length}
+                config={aiCopilot.config}
+                onUpdateConfig={aiCopilot.updateConfig}
+                messages={aiCopilot.messages}
+                isRunning={aiCopilot.isRunning}
+                isTestingConnection={aiCopilot.isTestingConnection}
+                connectionDiagnostic={aiCopilot.connectionDiagnostic}
+                pendingPlan={aiCopilot.pendingPlan}
+                isStale={aiCopilot.isStale}
+                revalidationError={aiCopilot.revalidationError}
+                onTestConnection={() => {
+                  void aiCopilot.testConnection();
+                }}
+                onSendPrompt={(prompt) => {
+                  void aiCopilot.sendPrompt(prompt);
+                }}
+                onStop={aiCopilot.stop}
+                onApplyPlan={aiCopilot.applyPendingPlan}
+                onRevalidatePlan={aiCopilot.revalidatePendingPlan}
+                onDiscardPlan={aiCopilot.discardPendingPlan}
+                onClearConversation={aiCopilot.clearConversation}
+                onTargetElements={(ids) => {
+                  if (ids.length > 0) {
+                    setSelectedIds([...ids]);
+                  }
+                }}
               />
             </ErrorBoundary>
           }

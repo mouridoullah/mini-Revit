@@ -4,23 +4,28 @@ import {
   FileBox,
   PanelRightClose,
   SlidersHorizontal,
+  Sparkles,
 } from 'lucide-react';
 import styles from './Cockpit.module.css';
 
-export type DockTab = 'properties' | 'ifc';
+export type DockTab = 'properties' | 'ifc' | 'ai';
 
 export function RightDockPanel({
   properties,
   ifc,
+  ai,
   selectedCount,
   modelCount,
+  hasPendingAiPlan = false,
   activeTab,
   onTabChange,
 }: {
   properties: ReactNode;
   ifc: ReactNode;
+  ai?: ReactNode;
   selectedCount: number;
   modelCount: number;
+  hasPendingAiPlan?: boolean;
   activeTab: DockTab;
   onTabChange: (tab: DockTab) => void;
 }) {
@@ -28,6 +33,7 @@ export function RightDockPanel({
   const tabs: { id: DockTab; label: string; icon: typeof SlidersHorizontal; badge?: number }[] = [
     { id: 'properties', label: 'Propriétés', icon: SlidersHorizontal },
     { id: 'ifc', label: 'IFC Réf', icon: FileBox, badge: modelCount },
+    { id: 'ai', label: 'Assistant IA', icon: Sparkles },
   ];
   return (
     <aside
@@ -62,6 +68,7 @@ export function RightDockPanel({
                   </span>
                 ) : null}
                 {id === 'properties' && selectedCount > 0 && <span>{selectedCount}</span>}
+                {id === 'ai' && hasPendingAiPlan && <span>1</span>}
               </button>
             ))}
             <button
@@ -77,7 +84,7 @@ export function RightDockPanel({
       </div>
       {!collapsed && (
         <div className={styles.dockContent}>
-          {activeTab === 'properties' ? properties : ifc}
+          {activeTab === 'properties' ? properties : activeTab === 'ifc' ? ifc : ai}
         </div>
       )}
     </aside>
