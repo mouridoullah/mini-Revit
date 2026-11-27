@@ -17,6 +17,7 @@ import * as THREE from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
+import { GTAOPass } from 'three/examples/jsm/postprocessing/GTAOPass.js';
 
 /** Délai de relaxation avant la passe AO pleine résolution (ms). */
 const AO_SETTLE_MS = 80;
@@ -41,10 +42,23 @@ export class PostProcessingManager {
     this.scene = scene;
     this.camera = camera;
 
-    this.composer = new EffectComposer(renderer);
+    const size = renderer.getSize(new THREE.Vector2());
+    const pixelRatio = renderer.getPixelRatio();
+    // StencilBuffer obligatoire sur le RenderTarget d'EffectComposer pour les bouchons de coupe (ADR-063)
+    const renderTarget = new THREE.WebGLRenderTarget(
+      Math.max(1, Math.floor(size.width * pixelRatio)),
+      Math.max(1, Math.floor(size.height * pixelRatio)),
+      {
+        type: THREE.HalfFloatType,
+        depthBuffer: true,
+        stencilBuffer: true,
+      },
+    );
+    this.composer = new EffectComposer(renderer, renderTarget);
+    this.composer.setSize(Math.max(1, size.width), Math.max(1, size.height));
     this.composer.addPass(new RenderPass(scene, camera));
 
-    // Tentative d'ajout GTAOPass (optionnel — disponible dans Three.js r160+)
+    // Passe GTAO calibrée en millimètres
     this.tryAddAOPass();
 
     this.composer.addPass(new OutputPass());
@@ -52,26 +66,15 @@ export class PostProcessingManager {
 
   private tryAddAOPass(): void {
     try {
-      // Import dynamique pour ne pas casser les envs sans GTAOPass
-      // On tente une résolution statique et on capture l'erreur éventuelle.
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { GTAOPass } = require('three/examples/jsm/postprocessing/GTAOPass.js') as {
-        GTAOPass: new (
-          scene: THREE.Scene,
-          camera: THREE.Camera,
-          width: number,
-          height: number,
-        ) => {
-          dispose(): void;
-          enabled: boolean;
-          updateGtaoMaterial?: (params: Record<string, unknown>) => void;
-          updatePdMaterial?: (params: Record<string, unknown>) => void;
-        };
-      };
       const { width, height } = this.renderer.getSize(new THREE.Vector2());
-      const gtao = new GTAOPass(this.scene, this.camera, width, height);
+      const gtao = new GTAOPass(
+        this.scene,
+        this.camera,
+        Math.max(1, width),
+        Math.max(1, height),
+      );
       // Calibration millimétrique Tabax (par défaut Three.js calibre ~0.25 m)
-      gtao.updateGtaoMaterial?.({
+      gtao.updateGtaoMaterial({
         radius: 140,
         distanceExponent: 1.8,
         thickness: 120,
@@ -79,16 +82,16 @@ export class PostProcessingManager {
         samples: 16,
         screenSpaceRadius: false,
       });
-      gtao.updatePdMaterial?.({
+      gtao.updatePdMaterial({
         lumaPhi: 10,
-        depthPhi: 2,
+        depthPhi: 40,
         normalPhi: 3,
-        radius: 16,
+        radius: 8,
       });
-      this.composer.addPass(gtao as never);
+      this.composer.addPass(gtao);
       this.aoPass = gtao;
     } catch {
-      // GTAOPass non disponible dans cette version de three — on continue sans AO.
+      // GTAOPass non disponible dans un environnement WebGL incomplet (jsdom)
       this.aoPass = null;
     }
   }

@@ -62,11 +62,12 @@ export function createPipeAssembly3D(
     const gasketAcc = new UvMeshAccumulator();
     const accentAcc = new UvMeshAccumulator();
 
-    // 1. Corps tubulaire 20 segments avec UVs métriques
-    bodyAcc.addSmoothCylinder(p1, p2, radius, 20, true);
+    // 1. Corps tubulaire 20 segments (12 en lod200) avec UVs métriques
+    const radialSegs = isLod350 ? 20 : 12;
+    bodyAcc.addSmoothCylinder(p1, p2, radius, radialSegs, true);
 
-    // 2. Manchons chanfreinés aux extrémités (bornés sur tronçons courts L < 150 mm)
-    if (totalLength >= 150) {
+    // 2. Manchons chanfreinés aux extrémités (lod350 et L >= 150 mm)
+    if (isLod350 && totalLength >= 150) {
       const socketLen = Math.min(totalLength * 0.25, Math.max(36, 0.9 * diameter));
       const socketOuterR = radius * 1.14;
       bodyAcc.addFlangeProfile(
@@ -155,34 +156,36 @@ export function createPipeAssembly3D(
       }
     }
 
-    // 5. Colliers isophoniques tous les 1 200 mm (+ tige filetée verticale si tronçon horizontal uniquement)
-    const clampOffsets = computeIntervalOffsets(totalLength, 1200, 400, 120);
-    for (const offset of clampOffsets) {
-      const cc = add(p1, scale(axis, offset));
-      gasketAcc.addFlangeProfile(cc, axis, radius, radius * 1.07, 14, 0.8, 20);
-      instances.push({
-        prototypeKey: 'pipe_clamp',
-        matrix: composeMatrix4(cc, u, v, axis, v3(radius * 1.07, radius * 1.07, 1)),
-        materialRole: 'zinc_hardware',
-      });
-      if (isLod350 && horizontal) {
-        const rodDrop = 160;
-        const rodOrigin = add(cc, v3(0, 0, radius * 1.24));
+    // 5. Colliers isophoniques tous les 1 200 mm (+ tige filetée verticale si tronçon horizontal uniquement, lod350)
+    if (isLod350) {
+      const clampOffsets = computeIntervalOffsets(totalLength, 1200, 400, 120);
+      for (const offset of clampOffsets) {
+        const cc = add(p1, scale(axis, offset));
+        gasketAcc.addFlangeProfile(cc, axis, radius, radius * 1.07, 14, 0.8, 20);
         instances.push({
-          prototypeKey: 'threaded_rod',
-          matrix: composeMatrix4(
-            rodOrigin,
-            v3(1, 0, 0),
-            v3(0, 1, 0),
-            v3(0, 0, 1),
-            v3(1, 1, rodDrop),
-          ),
+          prototypeKey: 'pipe_clamp',
+          matrix: composeMatrix4(cc, u, v, axis, v3(radius * 1.07, radius * 1.07, 1)),
           materialRole: 'zinc_hardware',
         });
+        if (horizontal) {
+          const rodDrop = 160;
+          const rodOrigin = add(cc, v3(0, 0, radius * 1.24));
+          instances.push({
+            prototypeKey: 'threaded_rod',
+            matrix: composeMatrix4(
+              rodOrigin,
+              v3(1, 0, 0),
+              v3(0, 1, 0),
+              v3(0, 0, 1),
+              v3(1, 1, rodDrop),
+            ),
+            materialRole: 'zinc_hardware',
+          });
+        }
       }
     }
 
-    pushPartIfNonEmpty(parts, bodyAcc, pipe.id, bodyRole);
+    pushPartIfNonEmpty(parts, bodyAcc, pipe.id, bodyRole, fluidColor);
     pushPartIfNonEmpty(parts, hwAcc, pipe.id, 'zinc_hardware');
     pushPartIfNonEmpty(parts, gasketAcc, pipe.id, 'epdm_rubber');
     pushPartIfNonEmpty(parts, accentAcc, pipe.id, 'fluid_accent', fluidColor);

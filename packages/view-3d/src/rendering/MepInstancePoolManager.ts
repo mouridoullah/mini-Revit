@@ -45,10 +45,35 @@ export class MepInstancePoolManager {
   private readonly elementPoolKeys = new Map<string, Set<string>>();
   private readonly highlightedIds = new Set<string>();
   private clippingPlanes: THREE.Plane[] = [];
+  private batchDepth = 0;
+  private readonly pendingRebuildKeys = new Set<string>();
 
   public constructor(scene: THREE.Scene, materialLibrary: MepMaterialLibrary) {
     this.scene = scene;
     this.materialLibrary = materialLibrary;
+  }
+
+  public beginBatch(): void {
+    this.batchDepth++;
+  }
+
+  public endBatch(): void {
+    if (this.batchDepth === 0) return;
+    this.batchDepth--;
+    if (this.batchDepth === 0 && this.pendingRebuildKeys.size > 0) {
+      for (const key of this.pendingRebuildKeys) {
+        this.rebuildPool(key);
+      }
+      this.pendingRebuildKeys.clear();
+    }
+  }
+
+  private schedulePoolRebuild(key: string): void {
+    if (this.batchDepth > 0) {
+      this.pendingRebuildKeys.add(key);
+      return;
+    }
+    this.rebuildPool(key);
   }
 
   private getOrCreatePrototypeGeometry(key: MepInstancePrototypeKey): THREE.BufferGeometry {
@@ -100,7 +125,7 @@ export class MepInstancePoolManager {
 
     this.elementPoolKeys.set(elementId, ownedKeys);
     for (const key of dirtyPoolKeys) {
-      this.rebuildPool(key);
+      this.schedulePoolRebuild(key);
     }
   }
 
@@ -116,7 +141,7 @@ export class MepInstancePoolManager {
           pool.entries.splice(i, 1);
         }
       }
-      this.rebuildPool(key);
+      this.schedulePoolRebuild(key);
     }
 
     this.elementPoolKeys.delete(elementId);

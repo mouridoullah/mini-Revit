@@ -83,10 +83,32 @@ describe('MepInstancePoolManager & assemblage multi-matériaux (Lot 1 LOD 350)',
     expect(poolMgr.raycast(raycaster, clipPlane)).toBeNull();
     expect(lib.getMaterial('zinc_hardware').clippingPlanes).toEqual([clipPlane]);
 
-    // Surbrillance via instanceColor
+    // Surbrillance via instanceColor puis restauration neutre à la désélection
     poolMgr.setHighlight(['eq_1']);
     const instMesh = poolMgr.getAllInstancedMeshes()[0];
     expect(instMesh?.instanceColor).not.toBeNull();
+    const selColor = new THREE.Color();
+    instMesh?.getColorAt(0, selColor);
+    expect(selColor.getHex()).toBe(0x3b82f6);
+
+    poolMgr.setHighlight([]);
+    const clearedColor = new THREE.Color();
+    poolMgr.getAllInstancedMeshes()[0]?.getColorAt(0, clearedColor);
+    expect(clearedColor.getHex()).toBe(0xffffff);
+
+    // Mode batch : un seul rebuild final
+    poolMgr.beginBatch();
+    poolMgr.registerElementInstances('eq_3', [
+      {
+        prototypeKey: 'pipe_clamp',
+        matrix: composeMatrix4(v3(2000, 0, 0), v3(1, 0, 0), v3(0, 1, 0), v3(0, 0, 1)),
+        materialRole: 'zinc_hardware',
+      },
+    ]);
+    expect(poolMgr.getPoolCount()).toBe(2);
+    poolMgr.endBatch();
+    expect(poolMgr.getAllInstancedMeshes()).toHaveLength(2);
+    poolMgr.removeElementInstances('eq_3');
 
     // Suppression incrémentale d'un élément
     poolMgr.removeElementInstances('eq_1');

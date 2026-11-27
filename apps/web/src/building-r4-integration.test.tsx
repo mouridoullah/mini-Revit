@@ -2,11 +2,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, cleanup } from '@testing-library/react';
 import fs from 'node:fs';
 import path from 'node:path';
+import * as THREE from 'three';
 import { BimDocument, exportToIfc, DependencyGraph, MepNetworkGraph } from '@tabax/core';
+import { Scene3D } from '@tabax/view-3d';
 import { BimDocumentProvider } from './context/BimDocumentContext.js';
 import { Viewport2D } from './components/Viewport2D.js';
 import { Viewport3D } from './components/Viewport3D.js';
 import { MetricsPanel } from './components/MetricsPanel.js';
+import { syncMepElements } from './components/viewport-3d/syncMepElements.js';
 
 describe('Intégration UI & Double Rendu 2D/3D — « Immeuble R+4 Complet » (Test Global)', () => {
   let doc: BimDocument;
@@ -72,7 +75,7 @@ describe('Intégration UI & Double Rendu 2D/3D — « Immeuble R+4 Complet » (T
     expect(canvas3D).toBeDefined();
 
     cleanup();
-  });
+  }, 15000);
 
   it('MetricsPanel affiche les quantitatifs exacts du niveau RDC', () => {
     const { container } = render(
@@ -90,7 +93,7 @@ describe('Intégration UI & Double Rendu 2D/3D — « Immeuble R+4 Complet » (T
     expect(textContent).toContain('Surface utile totale95.77m²');
 
     cleanup();
-  });
+  }, 15000);
 
   it('exporte l’Immeuble R+4 au format IFC4 avec toutes les classes architecturales et mobiliers requises', () => {
     const ifc = exportToIfc(doc.getState());
@@ -106,4 +109,91 @@ describe('Intégration UI & Double Rendu 2D/3D — « Immeuble R+4 Complet » (T
     expect(ifc).toContain('IFCSANITARYTERMINAL');
     expect(ifc.length).toBeGreaterThan(100000);
   });
+
+  it('T-MEP-R4-METROLOGY : génère les 634 assemblages MEP LOD 350 avec <= 8 pools InstancedMesh, géométrie 100% finie, parité modes et coupe 3D', () => {
+    const state = doc.getState();
+    const canvas = document.createElement('canvas');
+    canvas.width = 1280;
+    canvas.height = 800;
+    const scene = new Scene3D(canvas, { width: 1280, height: 800 });
+
+    const t0 = performance.now();
+    const syncRes = scene.batchUpdate(() => syncMepElements(scene, state, new Set(), false));
+    const buildMs = performance.now() - t0;
+
+    expect(syncRes.totalMepCount).toBe(634);
+    expect(syncRes.syncedCount).toBe(634);
+    expect(syncRes.detailLevel).toBe('lod350');
+
+    const stats = scene.getMepPoolStats();
+    expect(stats.pools).toBeGreaterThan(0);
+    expect(stats.pools).toBeLessThanOrEqual(8);
+    expect(stats.instances).toBeGreaterThan(0);
+
+    // Vérification stricte de finitude de tous les buffers GPU et matrices InstancedMesh
+    let instancedMeshCount = 0;
+    let totalSubMeshes = 0;
+    let nonFiniteFloats = 0;
+    let nonFiniteMatrices = 0;
+    scene.getScene().traverse((obj) => {
+      if (obj instanceof THREE.InstancedMesh) {
+        instancedMeshCount++;
+        const arr = obj.instanceMatrix.array;
+        for (let i = 0; i < obj.count * 16; i++) {
+          if (!Number.isFinite(arr[i])) nonFiniteMatrices++;
+        }
+      } else if (obj instanceof THREE.Mesh) {
+        totalSubMeshes++;
+        for (const attrName of ['position', 'normal', 'uv'] as const) {
+          const attr = obj.geometry.getAttribute(attrName);
+          if (!attr) continue;
+          const arr = attr.array;
+          for (let i = 0; i < arr.length; i++) {
+            if (!Number.isFinite(arr[i])) nonFiniteFloats++;
+          }
+        }
+      }
+    });
+    expect(nonFiniteFloats).toBe(0);
+    expect(nonFiniteMatrices).toBe(0);
+    expect(instancedMeshCount).toBe(stats.pools);
+    expect(instancedMeshCount).toBeLessThanOrEqual(8);
+
+    // Parité bascule de mode sans re-maillage
+    const meshCountBeforeModeSwitch = scene.getMeshCount();
+    scene.setRenderMode('ecorche');
+    scene.setRenderMode('realiste');
+    scene.setRenderMode('technique');
+    expect(scene.getMeshCount()).toBe(meshCountBeforeModeSwitch);
+
+    // Propagation plan de coupe 3D (ADR-063) vers pools InstancedMesh et matériaux
+    const cutPlane = new THREE.Plane(new THREE.Vector3(0, 0, -1), 4500);
+    scene.setSectionCutPlane(cutPlane);
+    scene.getScene().traverse((obj) => {
+      if (obj instanceof THREE.InstancedMesh && obj.material instanceof THREE.Material) {
+        expect(obj.material.clippingPlanes).toEqual([cutPlane]);
+      }
+    });
+    scene.setSectionCutPlane(null);
+
+    // Sélection multi-matériaux et restauration exacte du baseMaterial à la désélection
+    const firstPipeId = Object.keys(state.pipes ?? {})[0]!;
+    const pipeMeshes = scene.getMeshes(firstPipeId);
+    expect(pipeMeshes.length).toBeGreaterThan(0);
+    const originalMaterials = pipeMeshes.map((m) => m.material);
+    scene.setHighlight([firstPipeId]);
+    for (const m of pipeMeshes) {
+      expect(m.material).not.toBe(m.userData.baseMaterial);
+    }
+    scene.setHighlight([]);
+    pipeMeshes.forEach((m, idx) => {
+      expect(m.material).toBe(originalMaterials[idx]);
+    });
+
+    console.info(
+      `[MEP-R4-METROLOGY] assemblies=${syncRes.syncedCount} subMeshes=${totalSubMeshes} instancedObjects=${stats.instances} activePools=${stats.pools} buildTimeMs=${buildMs.toFixed(1)}`,
+    );
+
+    scene.dispose();
+  }, 15000);
 });

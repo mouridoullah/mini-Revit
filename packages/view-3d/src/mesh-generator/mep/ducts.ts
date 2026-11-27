@@ -201,7 +201,7 @@ export function createDuctAssembly3D(
       }
     }
 
-    pushPartIfNonEmpty(parts, bodyAcc, duct.id, 'galvanized_steel');
+    pushPartIfNonEmpty(parts, bodyAcc, duct.id, 'galvanized_steel', fluidColor);
     pushPartIfNonEmpty(parts, gasketAcc, duct.id, 'epdm_rubber');
     pushPartIfNonEmpty(parts, accentAcc, duct.id, 'fluid_accent', fluidColor);
   }

@@ -558,12 +558,19 @@ export class Scene3D {
    * Exécute un lot de modifications géométriques sans déclencher de rendu intermédiaire.
    * Le rendu final n'est invoqué qu'une seule fois à la fin du callback.
    */
+  public getMepPoolStats(): { readonly pools: number; readonly instances: number } {
+    const pools = this.meshManager.getMepInstancePoolManager();
+    return { pools: pools.getPoolCount(), instances: pools.getTotalInstanceCount() };
+  }
+
   public batchUpdate<T>(callback: () => T): T {
     const wasBatching = this.isBatchUpdating;
     this.isBatchUpdating = true;
+    this.meshManager.getMepInstancePoolManager().beginBatch();
     try {
       return callback();
     } finally {
+      this.meshManager.getMepInstancePoolManager().endBatch();
       this.isBatchUpdating = wasBatching;
       if (!wasBatching) {
         this.render();

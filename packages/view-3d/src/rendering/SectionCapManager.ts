@@ -23,8 +23,8 @@ export class SectionCapManager {
   private readonly capPlaneMaterial: THREE.MeshStandardMaterial;
   private readonly capPlaneMesh: THREE.Mesh;
 
-  /** Map elementId -> paire de meshes stencil [backMesh, frontMesh] */
-  private readonly caps: Map<string, [THREE.Mesh, THREE.Mesh]> = new Map();
+  /** Map elementId -> liste de paires de meshes stencil [backMesh, frontMesh] (supporte updateMeshBatch multi-tronçons) */
+  private readonly caps: Map<string, Array<[THREE.Mesh, THREE.Mesh]>> = new Map();
   private activePlane: THREE.Plane | null = null;
 
   public static computeCutPlane(
@@ -82,6 +82,9 @@ export class SectionCapManager {
       roughness: 0.9,
       metalness: 0.1,
       side: THREE.DoubleSide,
+      polygonOffset: true,
+      polygonOffsetFactor: -1,
+      polygonOffsetUnits: -1,
       stencilWrite: true,
       stencilRef: 0,
       stencilFunc: THREE.NotEqualStencilFunc,
@@ -133,9 +136,11 @@ export class SectionCapManager {
     }
 
     // Mettre à jour la visibilité et les clippingPlanes de chaque mesh stencil
-    for (const [backMesh, frontMesh] of this.caps.values()) {
-      backMesh.visible = plane !== null;
-      frontMesh.visible = plane !== null;
+    for (const pairs of this.caps.values()) {
+      for (const [backMesh, frontMesh] of pairs) {
+        backMesh.visible = plane !== null;
+        frontMesh.visible = plane !== null;
+      }
     }
   }
 
@@ -162,18 +167,21 @@ export class SectionCapManager {
     this.capGroup.add(backMesh);
     this.capGroup.add(frontMesh);
 
-    this.caps.set(elementId, [backMesh, frontMesh]);
+    const list = this.caps.get(elementId) ?? [];
+    list.push([backMesh, frontMesh]);
+    this.caps.set(elementId, list);
   }
 
   /**
    * Supprime les maillages stencil associés à un elementId.
    */
   public unregisterMesh(elementId: string): void {
-    const pair = this.caps.get(elementId);
-    if (!pair) return;
-    const [backMesh, frontMesh] = pair;
-    this.capGroup.remove(backMesh);
-    this.capGroup.remove(frontMesh);
+    const pairs = this.caps.get(elementId);
+    if (!pairs) return;
+    for (const [backMesh, frontMesh] of pairs) {
+      this.capGroup.remove(backMesh);
+      this.capGroup.remove(frontMesh);
+    }
     this.caps.delete(elementId);
   }
 

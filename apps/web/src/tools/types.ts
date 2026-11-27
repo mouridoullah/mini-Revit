@@ -1,4 +1,4 @@
-import { type BimDocument, type Command } from '@tabax/core';
+import { type BimDocument, type Command, type MepEquipmentFamily } from '@tabax/core';
 import { type Transform2D, type PreviewShape, type Vec2 } from '@tabax/view-2d';
 
 /**
@@ -170,6 +170,7 @@ export interface MepToolConfig {
   readonly displayMode?: 'single-line' | 'double-line';
   readonly anglePreference?: 90 | 45 | undefined;
   readonly flipOrientation?: boolean | undefined;
+  readonly equipmentFamily?: MepEquipmentFamily | undefined;
 }
 
 /**

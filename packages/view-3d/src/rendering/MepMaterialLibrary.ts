@@ -156,10 +156,17 @@ function makeBrushedMetalTexture(
   return tex;
 }
 
+interface OverrideMaterialEntry {
+  readonly mat: SharedStandardMaterial;
+  readonly role: MepMaterialRole;
+  readonly overrideHex: string;
+}
+
 export class MepMaterialLibrary {
   private readonly roleMaterials = new Map<MepMaterialRole, SharedStandardMaterial>();
-  private readonly customAccentMaterials = new Map<string, SharedStandardMaterial>();
+  private readonly customOverrideMaterials = new Map<string, OverrideMaterialEntry>();
   private readonly textures: THREE.CanvasTexture[] = [];
+  private readonly textureByKind: Readonly<Record<'galva' | 'copper' | 'brass' | 'perforated', THREE.CanvasTexture | null>>;
   private renderMode: RenderMode = 'technique';
   private clippingPlanes: THREE.Plane[] = [];
 
@@ -178,21 +185,19 @@ export class MepMaterialLibrary {
       }
     }
 
-    const textureByKind = {
+    this.textureByKind = {
       galva: galvaTex,
       copper: copperTex,
       brass: brassTex,
       perforated: galvaTex,
-    } as const;
+    };
 
     (Object.keys(ROLE_SPECS) as MepMaterialRole[]).forEach((role) => {
       const spec = ROLE_SPECS[role];
-      const map = spec.textureKind ? textureByKind[spec.textureKind] : null;
       const mat = new THREE.MeshStandardMaterial({
         color: spec.technicalColor,
-        metalness: spec.metalness,
+        metalness: spec.metalness * 0.7,
         roughness: spec.technicalRoughness ?? spec.roughness,
-        ...(map ? { map } : {}),
         side: THREE.FrontSide,
       }) as SharedStandardMaterial;
       mat.isSharedMaterial = true;
@@ -200,25 +205,57 @@ export class MepMaterialLibrary {
     });
   }
 
+  private syncMaterialAppearance(
+    mat: SharedStandardMaterial,
+    role: MepMaterialRole,
+    overrideHex?: string,
+  ): void {
+    const spec = ROLE_SPECS[role];
+    const isReal = this.renderMode === 'realiste';
+
+    if (role === 'fluid_accent' && overrideHex) {
+      mat.color.set(overrideHex);
+      mat.metalness = 0.18;
+      mat.roughness = 0.42;
+      mat.map = null;
+      mat.needsUpdate = true;
+      return;
+    }
+
+    if (isReal) {
+      mat.color.setHex(spec.realisticColor);
+      mat.roughness = spec.roughness;
+      mat.metalness = spec.metalness;
+      mat.map = spec.textureKind ? this.textureByKind[spec.textureKind] : null;
+    } else {
+      if (overrideHex) {
+        mat.color.set(overrideHex);
+      } else {
+        mat.color.setHex(spec.technicalColor);
+      }
+      mat.roughness = spec.technicalRoughness ?? spec.roughness;
+      mat.metalness = spec.metalness * 0.7;
+      mat.map = null;
+    }
+    mat.needsUpdate = true;
+  }
+
   public getMaterial(role: MepMaterialRole, colorOverride?: string): THREE.MeshStandardMaterial {
-    if (colorOverride && (role === 'fluid_accent' || this.renderMode !== 'realiste')) {
+    if (colorOverride) {
       const normalized = colorOverride.trim().toLowerCase();
       const cacheKey = `${role}::${normalized}`;
-      const cached = this.customAccentMaterials.get(cacheKey);
-      if (cached) return cached;
+      const cached = this.customOverrideMaterials.get(cacheKey);
+      if (cached) return cached.mat;
 
-      const spec = ROLE_SPECS[role];
       const mat = new THREE.MeshStandardMaterial({
-        color: colorOverride,
-        metalness: role === 'fluid_accent' ? 0.18 : spec.metalness * 0.55,
-        roughness: role === 'fluid_accent' ? 0.42 : Math.max(0.35, spec.roughness),
         side: THREE.FrontSide,
         ...(this.clippingPlanes.length > 0
           ? { clippingPlanes: this.clippingPlanes, clipShadows: true }
           : {}),
       }) as SharedStandardMaterial;
       mat.isSharedMaterial = true;
-      this.customAccentMaterials.set(cacheKey, mat);
+      this.syncMaterialAppearance(mat, role, colorOverride);
+      this.customOverrideMaterials.set(cacheKey, { mat, role, overrideHex: colorOverride });
       return mat;
     }
 
@@ -229,14 +266,12 @@ export class MepMaterialLibrary {
 
   public setRenderMode(mode: RenderMode): void {
     this.renderMode = mode;
-    const isReal = mode === 'realiste';
 
     for (const [role, mat] of this.roleMaterials.entries()) {
-      const spec = ROLE_SPECS[role];
-      mat.color.setHex(isReal ? spec.realisticColor : spec.technicalColor);
-      mat.roughness = isReal ? spec.roughness : (spec.technicalRoughness ?? spec.roughness);
-      mat.metalness = isReal ? spec.metalness : spec.metalness * 0.7;
-      mat.needsUpdate = true;
+      this.syncMaterialAppearance(mat, role);
+    }
+    for (const entry of this.customOverrideMaterials.values()) {
+      this.syncMaterialAppearance(entry.mat, entry.role, entry.overrideHex);
     }
   }
 
@@ -251,13 +286,14 @@ export class MepMaterialLibrary {
       if (mat instanceof THREE.MeshStandardMaterial) {
         mat.clipShadows = true;
       }
+      mat.needsUpdate = true;
     }
   }
 
   public getSharedMaterials(): THREE.Material[] {
     return [
       ...this.roleMaterials.values(),
-      ...this.customAccentMaterials.values(),
+      ...Array.from(this.customOverrideMaterials.values(), (entry) => entry.mat),
     ];
   }
 
@@ -265,11 +301,11 @@ export class MepMaterialLibrary {
     for (const mat of this.roleMaterials.values()) {
       mat.dispose();
     }
-    for (const mat of this.customAccentMaterials.values()) {
-      mat.dispose();
+    for (const entry of this.customOverrideMaterials.values()) {
+      entry.mat.dispose();
     }
     this.roleMaterials.clear();
-    this.customAccentMaterials.clear();
+    this.customOverrideMaterials.clear();
 
     for (const tex of this.textures) {
       tex.dispose();

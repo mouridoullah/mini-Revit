@@ -165,7 +165,8 @@ export class ArchitecturalMeshManager {
     };
 
     const category = String(mesh.userData.category ?? '');
-    // Arêtes d'architecture fines (walls, slabs, roofs) et arêtes subtiles MEP (28° pour respecter les cylindres lisses)
+    const materialRole = String(mesh.userData.materialRole ?? '');
+    // Arêtes d'architecture fines (walls, slabs, roofs) et arêtes subtiles sur enveloppes tôlées MEP (gaines/chemins/armoires)
     if (['wall', 'slab', 'roof'].includes(category)) {
       const edges = new THREE.EdgesGeometry(geometry, 15);
       const lineMat = new THREE.LineBasicMaterial({ color: 0x2b303b });
@@ -177,7 +178,10 @@ export class ArchitecturalMeshManager {
       lines.userData.ownsGeometryAndMaterial = true;
       mesh.add(lines);
       sectionCapManager?.registerMesh(mesh, rawData.elementId);
-    } else if (['duct', 'cableTray', 'mepEquipment', 'mepFitting'].includes(category)) {
+    } else if (
+      ['duct', 'cableTray', 'mepEquipment'].includes(category) &&
+      ['galvanized_steel', 'steel_ral7035', 'anodized_alu'].includes(materialRole)
+    ) {
       const edges = new THREE.EdgesGeometry(geometry, 28);
       const lineMat = new THREE.LineBasicMaterial({
         color: 0x1e242d,
@@ -207,8 +211,12 @@ export class ArchitecturalMeshManager {
     sectionCapManager?: SectionCapManager | null,
     isInternalMaterial?: (mat: THREE.Material) => boolean,
   ): void {
+    this.mepInstancePools.removeElementInstances(elementId);
     const meshList = this.meshes.get(elementId);
-    if (!meshList || meshList.length === 0) return;
+    if (!meshList || meshList.length === 0) {
+      sectionCapManager?.unregisterMesh(elementId);
+      return;
+    }
 
     for (const mesh of meshList) {
       this.scene.remove(mesh);
@@ -242,7 +250,6 @@ export class ArchitecturalMeshManager {
     }
 
     this.meshes.delete(elementId);
-    this.mepInstancePools.removeElementInstances(elementId);
     sectionCapManager?.unregisterMesh(elementId);
   }
 

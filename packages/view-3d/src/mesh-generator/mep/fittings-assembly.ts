@@ -355,7 +355,7 @@ export function createMepFittingAssembly3D(
     }
   }
 
-  pushPartIfNonEmpty(parts, bodyAcc, fitting.id, bodyRole);
+  pushPartIfNonEmpty(parts, bodyAcc, fitting.id, bodyRole, fluidColor);
   pushPartIfNonEmpty(parts, gasketAcc, fitting.id, 'epdm_rubber');
   pushPartIfNonEmpty(parts, hwAcc, fitting.id, 'zinc_hardware');
 

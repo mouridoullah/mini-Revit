@@ -86,7 +86,7 @@ export function Viewport3D({
     if (sceneRef.current) {
       const scene = sceneRef.current.getScene();
       scene.traverse((obj) => {
-        if (obj.name.endsWith('-architectural-edges')) {
+        if (obj.name.endsWith('-architectural-edges') || obj.name.endsWith('-mep-edges')) {
           obj.visible = next;
         }
       });
@@ -206,52 +206,6 @@ export function Viewport3D({
         if (win) dirtyElementIds.add(win.hostWallId);
         const comp = components[id];
         if (comp?.placement?.hostWallId) dirtyElementIds.add(comp.placement.hostWallId);
-
-        // Invalidation ciblée de la grappe MEP connectée (Sous-phase 9.3.3)
-        const mepEl =
-          pipes[id] ?? ducts[id] ?? cableTrays[id] ?? mepFittings[id] ?? mepEquipments[id];
-        if (mepEl && state.mepConnectors) {
-          const portIds = new Set(mepEl.ports.map((p) => p.id));
-          for (const conn of Object.values(state.mepConnectors)) {
-            if (!conn) continue;
-            let otherPortId: string | null = null;
-            if (portIds.has(conn.portAId)) otherPortId = conn.portBId;
-            else if (portIds.has(conn.portBId)) otherPortId = conn.portAId;
-
-            if (otherPortId) {
-              for (const p of Object.values(pipes)) {
-                if (p.ports.some((port) => port.id === otherPortId)) {
-                  dirtyElementIds.add(p.id);
-                  break;
-                }
-              }
-              for (const f of Object.values(mepFittings)) {
-                if (f.ports.some((port) => port.id === otherPortId)) {
-                  dirtyElementIds.add(f.id);
-                  break;
-                }
-              }
-              for (const d of Object.values(ducts)) {
-                if (d.ports.some((port) => port.id === otherPortId)) {
-                  dirtyElementIds.add(d.id);
-                  break;
-                }
-              }
-              for (const ct of Object.values(cableTrays)) {
-                if (ct.ports.some((port) => port.id === otherPortId)) {
-                  dirtyElementIds.add(ct.id);
-                  break;
-                }
-              }
-              for (const eq of Object.values(mepEquipments)) {
-                if (eq.ports.some((port) => port.id === otherPortId)) {
-                  dirtyElementIds.add(eq.id);
-                  break;
-                }
-              }
-            }
-          }
-        }
 
         // Si un niveau a été modifié, tous ses éléments sont sales
         if (state.levels[id]) {

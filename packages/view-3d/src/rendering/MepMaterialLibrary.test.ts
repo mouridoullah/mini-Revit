@@ -44,10 +44,23 @@ describe('MepMaterialLibrary (Lot 1 PBR LOD 350)', () => {
     lib.setRenderMode('technique');
     expect(galva.color.getHex()).toBe(0x0284c7);
 
+    // Mode Technique / Écorché / Réaliste avec colorOverride sur corps tubulaire sans re-maillage
+    lib.setRenderMode('technique');
+    const hotPipeMat = lib.getMaterial('copper_brushed', '#dc2626');
+    expect(hotPipeMat.color.getHex()).toBe(0xdc2626);
+
+    lib.setRenderMode('realiste');
+    expect(hotPipeMat.color.getHex()).toBe(0xc8744b);
+    expect(hotPipeMat.roughness).toBeCloseTo(0.28, 2);
+
+    lib.setRenderMode('ecorche');
+    expect(hotPipeMat.color.getHex()).toBe(0xdc2626);
+
     // Accents couleur partagés et réutilisés depuis le cache
     const accentA = lib.getMaterial('fluid_accent', '#dc2626');
     const accentB = lib.getMaterial('fluid_accent', '#DC2626');
     expect(accentA).toBe(accentB);
+    expect(accentA.color.getHex()).toBe(0xdc2626);
 
     // Propagation plan de coupe et dispose propre
     const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -500);

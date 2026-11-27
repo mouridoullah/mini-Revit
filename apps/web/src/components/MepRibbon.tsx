@@ -5,7 +5,27 @@
  * Sélection de catégorie, fluide/système, dimensions nominales et bascule Unifilaire/Bifilaire.
  */
 
+import type { MepEquipmentFamily } from '@tabax/core';
 import type { MepToolConfig } from '../tools/types.js';
+
+export const MEP_EQUIPMENT_FAMILY_OPTIONS: readonly {
+  readonly value: MepEquipmentFamily;
+  readonly label: string;
+}[] = [
+  { value: 'valve', label: "Vanne d'arrêt" },
+  { value: 'check_valve', label: 'Clapet anti-retour' },
+  { value: 'air_diffuser', label: 'Grille de soufflage' },
+  { value: 'junction_box', label: 'Boîte de dérivation' },
+  { value: 'electrical_panel', label: 'Tableau électrique' },
+  { value: 'boiler', label: 'Chaudière' },
+  { value: 'heat_pump', label: 'Pompe à chaleur' },
+  { value: 'water_heater', label: 'Ballon ECS' },
+  { value: 'pump', label: 'Circulateur / Pompe' },
+  { value: 'ahu', label: 'Centrale CTA' },
+  { value: 'fan', label: 'Ventilateur / Extracteur' },
+  { value: 'radiator', label: 'Radiateur' },
+  { value: 'meter', label: "Compteur d'eau / énergie" },
+];
 
 export interface MepRibbonProps {
   readonly config: MepToolConfig;
@@ -136,6 +156,35 @@ export function MepRibbon({
           {SYSTEM_OPTIONS.map((sys) => (
             <option key={sys.id} value={sys.id}>
               {sys.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* 2b. Sélecteur de famille d'équipement MEP */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <span style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Équipement :</span>
+        <select
+          data-testid="mep-equipment-family-select"
+          value={config.equipmentFamily ?? 'valve'}
+          onChange={(e) => {
+            onChangeConfig({
+              equipmentFamily: e.target.value as MepEquipmentFamily,
+            });
+          }}
+          style={{
+            padding: '3px 8px',
+            backgroundColor: 'var(--bg-card)',
+            color: 'var(--text-primary)',
+            border: '1px solid var(--border-subtle)',
+            borderRadius: '4px',
+            fontSize: '11px',
+            cursor: 'pointer',
+          }}
+        >
+          {MEP_EQUIPMENT_FAMILY_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
             </option>
           ))}
         </select>

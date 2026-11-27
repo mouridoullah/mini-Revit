@@ -9,14 +9,20 @@ import {
   Commands,
   type BimState,
   UpdateMepElementCommand,
+  UpdateCableTrayCommand,
+  UpdateMepFittingCommand,
+  UpdateMepEquipmentCommand,
   DeleteMepElementCommand,
   type Pipe,
   type Duct,
   type CableTray,
   type MepFitting,
   type MepEquipment,
+  type MepEccentricAlignment,
+  type MepEquipmentFamily,
 } from '@tabax/core';
 import { DebouncedTextInput, DebouncedNumberInput } from './DebouncedInputs.js';
+import { MEP_EQUIPMENT_FAMILY_OPTIONS } from '../MepRibbon.js';
 
 export interface MepInspectorProps {
   readonly elementId: string;
@@ -182,7 +188,116 @@ export function MepInspector({ elementId, state, onExecute }: MepInspectorProps)
               onExecute(new UpdateMepElementCommand(elem.id, { height }));
             }}
           />
+          <div style={{ marginBottom: '10px' }}>
+            <label
+              htmlFor="mep-cabletray-style-select"
+              style={{ display: 'block', fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px' }}
+            >
+              Profil de chemin de câbles
+            </label>
+            <select
+              id="mep-cabletray-style-select"
+              data-testid="mep-cabletray-style-select"
+              value={(elem as CableTray).style ?? 'ladder'}
+              onChange={(e) => {
+                onExecute(
+                  new UpdateCableTrayCommand(elem.id, {
+                    style: e.target.value as 'perforated' | 'ladder',
+                  }),
+                );
+              }}
+              style={{
+                width: '100%',
+                padding: '4px 8px',
+                backgroundColor: 'var(--bg-card)',
+                color: 'var(--text-primary)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: '4px',
+                fontSize: '12px',
+                cursor: 'pointer',
+              }}
+            >
+              <option value="ladder">Échelle</option>
+              <option value="perforated">Perforé</option>
+            </select>
+          </div>
         </>
+      )}
+
+      {category === 'mepFitting' && (elem as MepFitting).fittingType === 'transition' && (
+        <div style={{ marginBottom: '10px' }}>
+          <label
+            htmlFor="mep-fitting-eccentric-select"
+            style={{ display: 'block', fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px' }}
+          >
+            Alignement réduction
+          </label>
+          <select
+            id="mep-fitting-eccentric-select"
+            data-testid="mep-fitting-eccentric-select"
+            value={(elem as MepFitting).eccentricAlignment ?? 'center'}
+            onChange={(e) => {
+              onExecute(
+                new UpdateMepFittingCommand(elem.id, {
+                  eccentricAlignment: e.target.value as MepEccentricAlignment,
+                }),
+              );
+            }}
+            style={{
+              width: '100%',
+              padding: '4px 8px',
+              backgroundColor: 'var(--bg-card)',
+              color: 'var(--text-primary)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: '4px',
+              fontSize: '12px',
+              cursor: 'pointer',
+            }}
+          >
+            <option value="center">Centré</option>
+            <option value="flat_top">Génératrice haute</option>
+            <option value="flat_bottom">Génératrice basse</option>
+          </select>
+        </div>
+      )}
+
+      {category === 'mepEquipment' && (
+        <div style={{ marginBottom: '10px' }}>
+          <label
+            htmlFor="mep-equipment-family-select"
+            style={{ display: 'block', fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px' }}
+          >
+            Famille d'équipement
+          </label>
+          <select
+            id="mep-equipment-family-select"
+            data-testid="mep-equipment-family-select"
+            value={(elem as MepEquipment).family}
+            onChange={(e) => {
+              onExecute(
+                new UpdateMepEquipmentCommand(elem.id, {
+                  family: e.target.value as MepEquipmentFamily,
+                }),
+              );
+            }}
+            style={{
+              width: '100%',
+              padding: '4px 8px',
+              backgroundColor: 'var(--bg-card)',
+              color: 'var(--text-primary)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: '4px',
+              fontSize: '12px',
+              cursor: 'pointer',
+            }}
+          >
+            {MEP_EQUIPMENT_FAMILY_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </div>
       )}
 
       {/* 5. Longueur mesurée */}

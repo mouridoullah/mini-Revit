@@ -17,6 +17,7 @@ import {
 import { createDemoDocument } from '../demo/demoDocument.js';
 import { BimDocumentProvider } from '../context/BimDocumentContext.js';
 import { Viewport3D } from './Viewport3D.js';
+import { syncMepElements, MEP_LOD_FALLBACK_THRESHOLD } from './viewport-3d/syncMepElements.js';
 
 describe('Viewport3D React Wrapper (apps/web)', () => {
   const disposeSpy = vi.spyOn(Scene3DModule.Scene3D.prototype, 'dispose');
@@ -606,7 +607,7 @@ describe('Viewport3D React Wrapper (apps/web)', () => {
     );
 
     const createWallMeshWithOpeningsSpy = vi.spyOn(Scene3DModule, 'createWallMeshWithOpenings');
-    const updateMepMeshSpy = vi.spyOn(Scene3DModule.Scene3D.prototype, 'updateMepMesh');
+    const updateMepAssemblySpy = vi.spyOn(Scene3DModule.Scene3D.prototype, 'updateMepAssembly');
 
     const { rerender } = render(
       <BimDocumentProvider initialDoc={doc}>
@@ -615,7 +616,7 @@ describe('Viewport3D React Wrapper (apps/web)', () => {
     );
 
     createWallMeshWithOpeningsSpy.mockClear();
-    updateMepMeshSpy.mockClear();
+    updateMepAssemblySpy.mockClear();
 
     // Modifier le diamètre de pipe1
     act(() => {
@@ -631,12 +632,52 @@ describe('Viewport3D React Wrapper (apps/web)', () => {
     // ZERO mur architectural re-maillé !
     expect(createWallMeshWithOpeningsSpy).toHaveBeenCalledTimes(0);
 
-    // updateMepMesh a été appelé pour pipe_1 et pour son voisin incident elbow_1
-    const updatedMepIds = updateMepMeshSpy.mock.calls.map((c) => c[0]);
+    // updateMepAssembly a été appelé pour pipe_1 et pour son voisin incident elbow_1
+    const updatedMepIds = updateMepAssemblySpy.mock.calls.map((c) => c[0].elementId);
     expect(updatedMepIds).toContain('pipe_1');
     expect(updatedMepIds).toContain('elbow_1');
 
     createWallMeshWithOpeningsSpy.mockRestore();
-    updateMepMeshSpy.mockRestore();
+    updateMepAssemblySpy.mockRestore();
   });
+
+  it('T-MEP-LOD-SCALABILITY : syncMepElements bascule automatiquement en lod200 au-delà de 1 500 éléments MEP', () => {
+    const doc = BimDocument.createDefaultProject();
+    const levelId = Object.keys(doc.getState().levels)[0]!;
+    const canvas = document.createElement('canvas');
+    const scene = new Scene3DModule.Scene3D(canvas);
+
+    const pipes: Record<string, ReturnType<typeof createPipe>> = {};
+    for (let i = 0; i <= MEP_LOD_FALLBACK_THRESHOLD; i++) {
+      const id = `scale_pipe_${i}`;
+      pipes[id] = createPipe({
+        id,
+        levelId,
+        start: point3D(i * 10, 0, 2400),
+        end: point3D(i * 10 + 500, 0, 2400),
+        diameter: 50,
+      });
+    }
+
+    const stateAboveThreshold = {
+      ...doc.getState(),
+      pipes,
+    };
+
+    const resLarge = syncMepElements(scene, stateAboveThreshold, new Set(), false);
+    expect(resLarge.totalMepCount).toBe(MEP_LOD_FALLBACK_THRESHOLD + 1);
+    expect(resLarge.detailLevel).toBe('lod200');
+    expect(resLarge.syncedCount).toBe(MEP_LOD_FALLBACK_THRESHOLD + 1);
+
+    const resSmall = syncMepElements(
+      scene,
+      { ...doc.getState(), pipes: { p0: pipes['scale_pipe_0']! } },
+      new Set(),
+      false,
+    );
+    expect(resSmall.detailLevel).toBe('lod350');
+    expect(resSmall.syncedCount).toBe(1);
+
+    scene.dispose();
+  }, 15000);
 });
