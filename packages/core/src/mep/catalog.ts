@@ -26,6 +26,7 @@ import type {
   PortShape,
   FlowDirection,
   MepFittingType,
+  MepEccentricAlignment,
   MepEquipmentFamily,
 } from './types.js';
 import { directionBetweenPoints } from './math3d.js';
@@ -210,6 +211,7 @@ export interface CreateCableTrayOptions {
   readonly end: Point3D;
   readonly width: number;
   readonly height: number;
+  readonly style?: 'perforated' | 'ladder' | undefined;
   readonly systemType?: ElectricalSystemType | undefined;
   readonly name?: string | undefined;
   readonly port0Id?: ElementId | undefined;
@@ -260,6 +262,7 @@ export function createCableTray(opts: CreateCableTrayOptions): CableTray {
     end: opts.end,
     width: opts.width,
     height: opts.height,
+    ...(opts.style ? { style: opts.style } : {}),
     ports: [port0, port1],
     ...(opts.name ? { name: opts.name } : {}),
   };
@@ -270,6 +273,7 @@ export interface CreateMepFittingOptions {
   readonly levelId: ElementId;
   readonly systemId?: ElementId | undefined;
   readonly fittingType: MepFittingType;
+  readonly eccentricAlignment?: MepEccentricAlignment | undefined;
   readonly domain: MepDomain;
   readonly systemType: MepSystemType;
   readonly position: Point3D;
@@ -285,6 +289,7 @@ export function createMepFitting(opts: CreateMepFittingOptions): MepFitting {
     levelId: opts.levelId,
     ...(opts.systemId ? { systemId: opts.systemId } : {}),
     fittingType: opts.fittingType,
+    ...(opts.eccentricAlignment ? { eccentricAlignment: opts.eccentricAlignment } : {}),
     domain: opts.domain,
     systemType: opts.systemType,
     position: opts.position,

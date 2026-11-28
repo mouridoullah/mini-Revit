@@ -1028,4 +1028,71 @@ test.describe('Tabax E2E Smoke Tests (Playwright Real Browser)', () => {
 
     expect(consoleErrors).toEqual([]);
   });
+
+  test('charge demo-immeuble-r4.json en 3D LOD 350 (Écorché & Réaliste PBR avec GTAO) sans erreur WebGL et capture la zone MEP', async ({
+    page,
+  }, testInfo) => {
+    test.setTimeout(90000);
+    const consoleErrors: string[] = [];
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') consoleErrors.push(msg.text());
+    });
+    page.on('pageerror', (err) => consoleErrors.push(err.message));
+
+    await page.goto('/');
+    await page.locator('[data-testid="ribbon-tab-coordination"]').click();
+    await page.locator('[data-testid="load-demo-r4-btn"]').click();
+    await expect(page.locator('[data-testid="status-bar"]')).toContainText('Murs : 78', {
+      timeout: 60000,
+    });
+
+    const closeBannerBtn = page.locator('[data-testid="close-info-banner-btn"]');
+    if (await closeBannerBtn.isVisible()) {
+      await closeBannerBtn.click();
+    }
+
+    // Générer la coupe automatique et activer la synchronisation 3D pour exposer le cœur MEP intérieur
+    await page.locator('[data-testid="ribbon-tab-architecture"]').click();
+    await page.locator('[data-testid="auto-generate-views-btn"]').click();
+    const cutAABtn = page.locator(
+      'button[data-testid^="project-section-"]:has-text("Coupe transversale A-A\'")',
+    );
+    await expect(cutAABtn).toBeVisible();
+    await cutAABtn.click();
+    await page.locator('[data-testid="layout-section-btn"]').click();
+    await page.locator('[data-testid="toggle-3d-synchro-btn"]').click();
+    await page.locator('[data-testid="section-flip-direction-btn"]').click();
+
+    // Passer en vue 3D plein écran et cadrer la maquette coupée face caméra
+    await page.locator('[data-testid="layout-3d-btn"]').click();
+    const canvas3D = page.locator('canvas[data-testid="viewport-3d-canvas"]');
+    await expect(canvas3D).toBeVisible();
+    await page.locator('[data-testid="zoom-fit-3d-btn"]').click();
+
+    // Activer le mode Écorché
+    const ecorcheBtn = page.locator('[data-testid="render-mode-ecorche"]');
+    await ecorcheBtn.click();
+    await expect(ecorcheBtn).toHaveCSS('font-weight', '600');
+
+    // Activer le mode Réaliste PBR (avec GTAOPass calibré en mm) et zoomer légèrement sur les réseaux MEP
+    const realisteBtn = page.locator('[data-testid="render-mode-realiste"]');
+    await realisteBtn.click();
+    await expect(realisteBtn).toHaveCSS('font-weight', '600');
+    await expect(page.locator('[data-testid="sun-hour-slider"]')).toBeVisible();
+
+    const box = await canvas3D.boundingBox();
+    if (box) {
+      await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.5);
+      await page.mouse.wheel(0, -180);
+    }
+
+    // Laisser le timer d'AO (80 ms) et deux frames WebGL se stabiliser avant capture
+    await page.waitForTimeout(300);
+
+    await page.screenshot({
+      path: testInfo.outputPath('mep-lod350-realiste.png'),
+    });
+
+    expect(consoleErrors).toEqual([]);
+  });
 });

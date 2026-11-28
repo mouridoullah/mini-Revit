@@ -146,8 +146,10 @@ export interface CableTrayGeometryParams {
   readonly end: Point3DParams;
   readonly width: number;
   readonly height: number;
+  readonly style?: 'perforated' | 'ladder' | undefined;
   readonly levelId?: string | undefined;
   readonly systemId?: string | undefined;
+  readonly systemType?: string | undefined;
   readonly color?: string | undefined;
 }
 
@@ -166,6 +168,7 @@ export interface MepPortGeometryParams {
 export interface MepFittingGeometryParams {
   readonly id: string;
   readonly fittingType: 'elbow' | 'tee' | 'cross' | 'transition' | 'cap';
+  readonly eccentricAlignment?: 'center' | 'flat_top' | 'flat_bottom' | undefined;
   readonly position: Point3DParams;
   readonly ports: readonly MepPortGeometryParams[];
   readonly levelId?: string | undefined;

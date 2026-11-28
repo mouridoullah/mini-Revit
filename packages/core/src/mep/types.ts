@@ -189,6 +189,7 @@ export interface CableTray {
   readonly end: Point3D;
   readonly width: number; // Largeur utile en mm
   readonly height: number; // Hauteur de rive / rebord en mm
+  readonly style?: 'perforated' | 'ladder' | undefined; // Type mécanique de chemin de câbles (défaut: 'ladder')
   readonly ports: readonly Port[]; // 2 ports d'extrémité
   readonly name?: string | undefined;
 }
@@ -204,6 +205,11 @@ export type MepFittingType =
   | 'cap'; // Bouchon d'extrémité (1 port)
 
 /**
+ * Alignement d'une réduction asymétrique (transition excentrique CVC / hydraulique).
+ */
+export type MepEccentricAlignment = 'center' | 'flat_top' | 'flat_bottom';
+
+/**
  * Raccord de réseau (coude, té, réduction, bouchon).
  */
 export interface MepFitting {
@@ -212,6 +218,7 @@ export interface MepFitting {
   readonly levelId: ElementId;
   readonly systemId?: ElementId | undefined;
   readonly fittingType: MepFittingType;
+  readonly eccentricAlignment?: MepEccentricAlignment | undefined;
   readonly domain: MepDomain;
   readonly systemType: MepSystemType;
   readonly position: Point3D;
@@ -231,7 +238,10 @@ export type MepEquipmentFamily =
   | 'fan' // Extracteur / ventilateur
   | 'radiator' // Radiateur à eau ou émetteur
   | 'valve' // Vanne de régulation, vanne d'arrêt
+  | 'check_valve' // Clapet anti-retour / disconnecteur
+  | 'air_diffuser' // Grille de soufflage / diffuseur CVC à ailettes
   | 'meter' // Compteur d'eau ou d'énergie
+  | 'junction_box' // Boîte de dérivation électrique IP55 à presse-étoupes
   | 'electrical_panel'; // Tableau électrique général ou divisionnaire
 
 /**

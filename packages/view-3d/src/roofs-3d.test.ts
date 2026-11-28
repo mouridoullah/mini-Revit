@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { vec2 } from '@tabax/geometry';
 import {
   createRoofMesh,
+  createRoofAssembly,
   createWallMeshWithOpenings,
   type RoofGeometryParams,
   type GableRoofTypeGeometryParams,
@@ -306,5 +307,28 @@ describe('Phase 7 — Rendu 3D des Toitures & Biseautage des Murs (packages/view
         expect(z).toBeCloseTo(expectedZ, 1);
       }
     }
+  });
+
+  it('T-ROOF-3D-08 : createRoofAssembly(flat) — LOD 350 avec dalle support, gravillons et couvertines acrotère', () => {
+    const assembly = createRoofAssembly(baseGableRoof, flatRoofType, undefined, { detailLevel: 'lod350' });
+    expect(assembly).not.toBeNull();
+    expect(assembly!.category).toBe('roof');
+    expect(assembly!.parts).toHaveLength(3);
+
+    const roles = assembly!.parts.map((p) => p.materialRole);
+    expect(roles).toContain('concrete_structural'); // dalle béton
+    expect(roles).toContain('alu_anthracite'); // couvertines
+    expect(roles).toContain('roof_gravel'); // gravillons / étanchéité
+  });
+
+  it('T-ROOF-3D-09 : createRoofAssembly(gable) — LOD 350 avec tuiles, faîtage profilé, gouttières zinc et rives', () => {
+    const assembly = createRoofAssembly(baseGableRoof, gableRoofType, undefined, { detailLevel: 'lod350' });
+    expect(assembly).not.toBeNull();
+    expect(assembly!.category).toBe('roof');
+    expect(assembly!.parts).toHaveLength(4);
+
+    const roles = assembly!.parts.map((p) => p.materialRole);
+    expect(roles).toContain('roof_tile'); // tuiles corps
+    expect(roles.filter((r) => r === 'zinc_metal')).toHaveLength(3); // faîtage, gouttières, rives
   });
 });

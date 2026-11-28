@@ -2,10 +2,10 @@
 
 ## Noyau Métier, Modèle Documentaire BIM & CommandBus Transactionnel
 
-**Version :** 1.2.0 (Tabax v1.2.0 / 26 Novembre 2026)  
-**Date :** 26 Novembre 2026  
+**Version :** 1.3.0 (Tabax v1.3.0 / 28 Novembre 2026)  
+**Date :** 28 Novembre 2026  
 **Auteur :** Lead Software Architect & Computational Geometry Engineer  
-**Statut :** Spécification de Référence Alignée (ADR-041 à ADR-071)
+**Statut :** Spécification de Référence Alignée (ADR-041 à ADR-074)
 
 ---
 

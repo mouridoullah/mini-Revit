@@ -1,6 +1,6 @@
 {
   "name": "@tabax/ai",
-  "version": "1.2.1",
+  "version": "1.3.0",
   "description": "Copilote BIM agentique, extracteur de contexte sémantique et adaptateurs LLM sans backend pour Tabax",
   "type": "module",
   "main": "./dist/index.js",

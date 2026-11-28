@@ -22,6 +22,16 @@ describe('MepRibbon (apps/web/src/components/MepRibbon.tsx — Sous-phase 9.3.3)
     expect(screen.getByTestId('mep-angle-90')).toBeDefined();
     expect(screen.getByTestId('mep-angle-45')).toBeDefined();
 
+    // Sélecteur de familles d'équipements (clapet, diffuseur, boîte de dérivation)
+    const eqSelect = screen.getByTestId('mep-equipment-family-select') as HTMLSelectElement;
+    expect(eqSelect).toBeDefined();
+    expect(screen.getByText('Clapet anti-retour')).toBeDefined();
+    expect(screen.getByText('Grille de soufflage')).toBeDefined();
+    expect(screen.getByText('Boîte de dérivation')).toBeDefined();
+
+    fireEvent.change(eqSelect, { target: { value: 'air_diffuser' } });
+    expect(onChangeConfig).toHaveBeenCalledWith({ equipmentFamily: 'air_diffuser' });
+
     // Clic sur l'angle 45°
     fireEvent.click(screen.getByTestId('mep-angle-45'));
     expect(onChangeConfig).toHaveBeenCalledWith({ anglePreference: 45 });

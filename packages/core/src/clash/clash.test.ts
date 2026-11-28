@@ -747,4 +747,110 @@ describe('Moteur de Détection des Conflits Géométriques BIM (Clash Detection 
     expect(clashes[0]!.elementA).toBe('duct_in_roof');
     expect(clashes[0]!.elementB).toBe('roof_main');
   });
+
+  it('T-CLASH-15 : Exclut le faux conflit (hard clash) entre deux tuyaux se rejoignant sur un coude (Elbow)', () => {
+    const fitting: MepFitting = {
+      id: 'elbow_90',
+      category: 'mepFitting',
+      levelId: 'lvl_0',
+      fittingType: 'elbow',
+      domain: 'plumbing',
+      systemType: 'domestic_cold_water',
+      position: { x: 1000, y: 1000, z: 500 },
+      ports: [
+        {
+          id: 'port_elbow_0',
+          elementId: 'elbow_90',
+          domain: 'plumbing',
+          systemType: 'domestic_cold_water',
+          direction: { x: -1, y: 0, z: 0 },
+          position: { x: 1000, y: 1000, z: 500 },
+          shape: 'round',
+          diameter: 50,
+        },
+        {
+          id: 'port_elbow_1',
+          elementId: 'elbow_90',
+          domain: 'plumbing',
+          systemType: 'domestic_cold_water',
+          direction: { x: 0, y: 1, z: 0 },
+          position: { x: 1000, y: 1000, z: 500 },
+          shape: 'round',
+          diameter: 50,
+        },
+      ],
+    };
+
+    const pipeA = createPipe({
+      id: 'pipe_A',
+      levelId: 'lvl_0',
+      start: { x: 0, y: 1000, z: 500 },
+      end: { x: 1000, y: 1000, z: 500 },
+      diameter: 50,
+      systemType: 'domestic_cold_water',
+    });
+
+    const pipeB = createPipe({
+      id: 'pipe_B',
+      levelId: 'lvl_0',
+      start: { x: 1000, y: 1000, z: 500 },
+      end: { x: 1000, y: 2000, z: 500 },
+      diameter: 50,
+      systemType: 'domestic_cold_water',
+    });
+
+    const connA: Connector = {
+      id: 'conn_A',
+      category: 'mepConnector',
+      portAId: 'pipe_A_end',
+      portBId: 'port_elbow_0',
+    };
+
+    const connB: Connector = {
+      id: 'conn_B',
+      category: 'mepConnector',
+      portAId: 'pipe_B_start',
+      portBId: 'port_elbow_1',
+    };
+
+    const state: BimState = {
+      ...baseState,
+      pipes: { pipe_A: pipeA, pipe_B: pipeB },
+      mepFittings: { elbow_90: fitting },
+      mepConnectors: { conn_A: connA, conn_B: connB },
+    };
+
+    const clashes = detectClashes(state);
+    // Les deux tuyaux se coupent géométriquement de 50 mm à l'angle du coude,
+    // mais ce contact est légitime car ils sont connectés au même coude -> 0 clash !
+    expect(clashes).toHaveLength(0);
+  });
+
+  it('T-CLASH-MEP-02 : Deux tuyaux formant un coude à 90° sans connecteurs explicites -> 0 clash (jonction naturelle)', () => {
+    const pipeA = createPipe({
+      id: 'pipe_A',
+      levelId: 'lvl_0',
+      start: { x: 0, y: 0, z: 1000 },
+      end: { x: 1000, y: 0, z: 1000 },
+      diameter: 50,
+      systemType: 'domestic_cold_water',
+    });
+
+    const pipeB = createPipe({
+      id: 'pipe_B',
+      levelId: 'lvl_0',
+      start: { x: 1000, y: 0, z: 1000 },
+      end: { x: 1000, y: 1000, z: 1000 },
+      diameter: 50,
+      systemType: 'domestic_cold_water',
+    });
+
+    const state: BimState = {
+      ...baseState,
+      pipes: { pipe_A: pipeA, pipe_B: pipeB },
+    };
+
+    const clashes = detectClashes(state);
+    expect(clashes).toHaveLength(0);
+  });
 });

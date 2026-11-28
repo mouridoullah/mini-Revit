@@ -859,5 +859,42 @@ describe('Scene3D — Gestionnaire de scène 3D Three.js impératif', () => {
 
       scene3d.dispose();
     });
+
+    it('T-SCENE3D-ARCH-01 : updateComponentAssembly gère instances GPU, restauration baseMaterial après highlight, renderMode et dispose', async () => {
+      const { createDoorAssembly } = await import('./mesh-generator/openings-3d.js');
+      const scene3d = new Scene3D(canvas, { width: 800, height: 600 });
+
+      const doorAssembly = createDoorAssembly(
+        { id: 'door_hl_1', kind: 'door', offsetAlong: 800, width: 900, height: 2100, sillHeight: 0 },
+        { id: 'w1', start: { x: 0, y: 0 }, end: { x: 4000, y: 0 } },
+        { thickness: 200, height: 2800 },
+        0,
+      );
+
+      const meshes = scene3d.updateComponentAssembly(doorAssembly);
+      expect(meshes.length).toBeGreaterThanOrEqual(2);
+      expect(scene3d.getArchitecturalPoolStats().pools).toBe(2); // door_handle + door_hinge
+      expect(scene3d.getArchitecturalPoolStats().instances).toBe(5); // 2 poignées + 3 paumelles
+
+      const originalMats = meshes.map((m) => m.material);
+      scene3d.setHighlight(['door_hl_1']);
+      for (const m of meshes) {
+        expect(m.material).not.toBe(m.userData.baseMaterial);
+      }
+
+      scene3d.setHighlight([]);
+      meshes.forEach((m, idx) => {
+        expect(m.material).toBe(originalMats[idx]);
+      });
+
+      // Bascule de mode PBR sans perte ni exception
+      scene3d.setRenderMode('realiste');
+      scene3d.setRenderMode('technique');
+      expect(scene3d.getMeshes('door_hl_1')).toHaveLength(meshes.length);
+
+      scene3d.dispose();
+      expect(scene3d.getMeshCount()).toBe(0);
+      expect(scene3d.getArchitecturalPoolStats().instances).toBe(0);
+    });
   });
 });

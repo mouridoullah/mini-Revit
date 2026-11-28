@@ -1,21 +1,34 @@
 /**
- * components/glazing — Menuiseries vitrees paramétriques
+ * components/glazing — Menuiseries vitrées paramétriques LOD 200 / LOD 350 multi-matériaux
  *
- * Sous-module extrait de components-3d.ts.
- * Gere : sliding_door, french_window
+ * Gère : sliding_door, french_window
+ * Fournit à la fois createGlazingAssembly (LOD 350 / LOD 200) et createGlazingMesh (compatibilité).
  */
 
-import { vec2, type Vec2, type WallPiece, buildWallMeshAggregated, type RawMeshData } from '@tabax/geometry';
-import type { ComponentMeshInput, ComponentTypeMeshInput } from './types.js';
+import type { RawMeshData } from '@tabax/geometry';
+import type {
+  ComponentMeshInput,
+  ComponentTypeMeshInput,
+  ComponentAssembly3D,
+  ComponentAssemblyPart,
+  CreateComponentAssemblyOptions,
+} from './types.js';
+import {
+  ArchitecturalMeshAccumulator,
+  v3,
+  type Vec3D,
+} from './architectural-primitives.js';
+import { createAssemblyPart, mergeAssemblyParts } from './assembly-helper.js';
 
 export const GLAZING_SUBTYPES = ['sliding_door', 'french_window'] as const;
 export type GlazingSubType = (typeof GLAZING_SUBTYPES)[number];
 
-export function createGlazingMesh(
+export function createGlazingAssembly(
   comp: ComponentMeshInput,
   compType: ComponentTypeMeshInput,
-  levelElevation: number = 0,
-): RawMeshData | null {
+  levelElevation = 0,
+  options?: CreateComponentAssemblyOptions,
+): ComponentAssembly3D | null {
   const width = comp.widthOverride ?? compType.width;
   const depth = comp.depthOverride ?? compType.depth;
   const height = comp.heightOverride ?? compType.height;
@@ -28,59 +41,212 @@ export function createGlazingMesh(
   const cy = comp.placement.y;
   const cos = Math.cos(rotation);
   const sin = Math.sin(rotation);
-  const ux = cos, uy = sin, vx = -sin, vy = cos;
-  const halfW = width / 2;
+  const uAxis: Vec3D = { x: cos, y: sin, z: 0 };
+  const vAxis: Vec3D = { x: -sin, y: cos, z: 0 };
+  const wAxis: Vec3D = { x: 0, y: 0, z: 1 };
 
-  const makeOrientedBox = (
-    boxId: string, lx0: number, ly0: number, lx1: number, ly1: number, rz0: number, rz1: number,
-  ): WallPiece => {
-    const p0: Vec2 = vec2(cx + ux * lx0 + vx * ly0, cy + uy * lx0 + vy * ly0);
-    const p1: Vec2 = vec2(cx + ux * lx1 + vx * ly0, cy + uy * lx1 + vy * ly0);
-    const p2: Vec2 = vec2(cx + ux * lx1 + vx * ly1, cy + uy * lx1 + vy * ly1);
-    const p3: Vec2 = vec2(cx + ux * lx0 + vx * ly1, cy + uy * lx0 + vy * ly1);
-    const bw = Math.max(1, lx1 - lx0);
-    const bd = Math.max(1, ly1 - ly0);
-    return { id: boxId, wallId: comp.id, poly2D: [p0, p1, p2, p3], z0: zBase + rz0, z1: zBase + rz1, role: 'full', area2D: bw * bd, uInterval: [0, bw] };
+  const pt = (lx: number, ly: number, lz: number): Vec3D => {
+    return {
+      x: cx + uAxis.x * lx + vAxis.x * ly,
+      y: cy + uAxis.y * lx + vAxis.y * ly,
+      z: zBase + lz,
+    };
   };
 
-  const pieces: WallPiece[] = [];
+  const parts: ComponentAssemblyPart[] = [];
   const id = comp.id;
+  const isLod350 = options?.detailLevel === 'lod350';
 
   switch (compType.subType) {
     case 'sliding_door': {
       const frameW = 50;
       const frameD = Math.min(depth, 70);
-      const halfFD = frameD / 2;
-      pieces.push(makeOrientedBox(`${id}_jamb_l`, -halfW, -halfFD, -halfW + frameW, halfFD, 0, height));
-      pieces.push(makeOrientedBox(`${id}_jamb_r`, halfW - frameW, -halfFD, halfW, halfFD, 0, height));
-      pieces.push(makeOrientedBox(`${id}_head`, -halfW + frameW, -halfFD, halfW - frameW, halfFD, height - frameW, height));
-      pieces.push(makeOrientedBox(`${id}_sill`, -halfW + frameW, -halfFD, halfW - frameW, halfFD, 0, frameW));
-      const glassH0 = frameW;
-      const glassH1 = height - frameW;
+
+      // 1. Profilés dormant alu anthracite (4 boîtes : montants gauche/droit, traverse haute, seuil bas)
+      const accAlu = new ArchitecturalMeshAccumulator();
+      accAlu.addBeveledBox(
+        pt(-width / 2 + frameW / 2, 0, height / 2),
+        v3(frameW, frameD, height),
+        0,
+        uAxis,
+        vAxis,
+        wAxis,
+      );
+      accAlu.addBeveledBox(
+        pt(width / 2 - frameW / 2, 0, height / 2),
+        v3(frameW, frameD, height),
+        0,
+        uAxis,
+        vAxis,
+        wAxis,
+      );
+      accAlu.addBeveledBox(
+        pt(0, 0, height - frameW / 2),
+        v3(width - 2 * frameW, frameD, frameW),
+        0,
+        uAxis,
+        vAxis,
+        wAxis,
+      );
+      accAlu.addBeveledBox(
+        pt(0, 0, frameW / 2),
+        v3(width - 2 * frameW, frameD, frameW),
+        0,
+        uAxis,
+        vAxis,
+        wAxis,
+      );
+
+      if (isLod350) {
+        // Chicane centrale de croisement des vantaux
+        accAlu.addBeveledBox(
+          pt(0, 0, height / 2),
+          v3(40, frameD * 0.9, height - 2 * frameW),
+          2,
+          uAxis,
+          vAxis,
+          wAxis,
+        );
+      }
+      parts.push(createAssemblyPart(accAlu.toRawMeshData(`${id}_alu_frame`), 'alu_anthracite'));
+
+      // 2. Vitrages (2 vantaux)
+      const accGlass = new ArchitecturalMeshAccumulator();
       const glassW = (width - 2 * frameW) / 2 + 20;
-      pieces.push(makeOrientedBox(`${id}_glass1`, -halfW + frameW, -halfFD + 8, -halfW + frameW + glassW, -halfFD + 20, glassH0, glassH1));
-      pieces.push(makeOrientedBox(`${id}_glass2`, halfW - frameW - glassW, halfFD - 20, halfW - frameW, halfFD - 8, glassH0, glassH1));
+      const glassH = height - 2 * frameW;
+      const glassCenterZ = frameW + glassH / 2;
+
+      accGlass.addBeveledBox(
+        pt(-width / 4, -14, glassCenterZ),
+        v3(glassW, 12, glassH),
+        0,
+        uAxis,
+        vAxis,
+        wAxis,
+      );
+      accGlass.addBeveledBox(
+        pt(width / 4, 14, glassCenterZ),
+        v3(glassW, 12, glassH),
+        0,
+        uAxis,
+        vAxis,
+        wAxis,
+      );
+      parts.push(createAssemblyPart(accGlass.toRawMeshData(`${id}_glazing`), 'glass_clear'));
+
+      if (isLod350) {
+        // Poignées cuvettes inox encastrées
+        const accHandles = new ArchitecturalMeshAccumulator();
+        const handleZ = 1050;
+        accHandles.addBeveledBox(pt(-15, -frameD / 2 - 2, handleZ), v3(25, 6, 140), 2, uAxis, vAxis, wAxis);
+        accHandles.addBeveledBox(pt(15, frameD / 2 + 2, handleZ), v3(25, 6, 140), 2, uAxis, vAxis, wAxis);
+        parts.push(createAssemblyPart(accHandles.toRawMeshData(`${id}_handles`), 'chrome_hardware'));
+      }
       break;
     }
+
     case 'french_window': {
       const frameW = 50;
       const frameD = Math.min(depth, 70);
-      const halfFD = frameD / 2;
-      pieces.push(makeOrientedBox(`${id}_jamb_l`, -halfW, -halfFD, -halfW + frameW, halfFD, 0, height));
-      pieces.push(makeOrientedBox(`${id}_jamb_r`, halfW - frameW, -halfFD, halfW, halfFD, 0, height));
-      pieces.push(makeOrientedBox(`${id}_head`, -halfW + frameW, -halfFD, halfW - frameW, halfFD, height - frameW, height));
-      pieces.push(makeOrientedBox(`${id}_sill`, -halfW + frameW, -halfFD, halfW - frameW, halfFD, 0, frameW));
-      pieces.push(makeOrientedBox(`${id}_mullion`, -frameW / 2, -halfFD, frameW / 2, halfFD, frameW, height - frameW));
-      const glassH0 = frameW;
-      const glassH1 = height - frameW;
-      pieces.push(makeOrientedBox(`${id}_glass_l`, -halfW + frameW, -6, -frameW / 2, 6, glassH0, glassH1));
-      pieces.push(makeOrientedBox(`${id}_glass_r`, frameW / 2, -6, halfW - frameW, 6, glassH0, glassH1));
+
+      // 1. Cadre dormant et meneau alu anthracite (5 boîtes)
+      const accFrame = new ArchitecturalMeshAccumulator();
+      accFrame.addBeveledBox(
+        pt(-width / 2 + frameW / 2, 0, height / 2),
+        v3(frameW, frameD, height),
+        0,
+        uAxis,
+        vAxis,
+        wAxis,
+      );
+      accFrame.addBeveledBox(
+        pt(width / 2 - frameW / 2, 0, height / 2),
+        v3(frameW, frameD, height),
+        0,
+        uAxis,
+        vAxis,
+        wAxis,
+      );
+      accFrame.addBeveledBox(
+        pt(0, 0, height - frameW / 2),
+        v3(width - 2 * frameW, frameD, frameW),
+        0,
+        uAxis,
+        vAxis,
+        wAxis,
+      );
+      accFrame.addBeveledBox(
+        pt(0, 0, frameW / 2),
+        v3(width - 2 * frameW, frameD, frameW),
+        0,
+        uAxis,
+        vAxis,
+        wAxis,
+      );
+      accFrame.addBeveledBox(
+        pt(0, 0, height / 2),
+        v3(frameW, frameD, height - 2 * frameW),
+        0,
+        uAxis,
+        vAxis,
+        wAxis,
+      );
+      parts.push(createAssemblyPart(accFrame.toRawMeshData(`${id}_frame`), 'alu_anthracite'));
+
+      // 2. Vitrages (2 vantaux)
+      const accGlass = new ArchitecturalMeshAccumulator();
+      const paneW = (width - 3 * frameW) / 2;
+      const paneH = height - 2 * frameW;
+      const paneCenterZ = frameW + paneH / 2;
+
+      accGlass.addBeveledBox(
+        pt(-paneW / 2 - frameW / 2, 0, paneCenterZ),
+        v3(paneW, 12, paneH),
+        0,
+        uAxis,
+        vAxis,
+        wAxis,
+      );
+      accGlass.addBeveledBox(
+        pt(paneW / 2 + frameW / 2, 0, paneCenterZ),
+        v3(paneW, 12, paneH),
+        0,
+        uAxis,
+        vAxis,
+        wAxis,
+      );
+      parts.push(createAssemblyPart(accGlass.toRawMeshData(`${id}_glazing`), 'glass_clear'));
+
+      if (isLod350) {
+        // Poignée à béquille
+        const accHandle = new ArchitecturalMeshAccumulator();
+        const hBase = pt(-15, -frameD / 2 - 15, 1050);
+        accHandle.addSmoothCylinder(hBase, pt(-15, -frameD / 2, 1050), 12, 12, true);
+        accHandle.addSmoothCylinder(hBase, pt(-140, -frameD / 2 - 15, 1050), 9, 12, true);
+        parts.push(createAssemblyPart(accHandle.toRawMeshData(`${id}_handle`), 'chrome_hardware'));
+      }
       break;
     }
+
     default:
       return null;
   }
 
-  const agg = buildWallMeshAggregated({ id }, pieces);
-  return { ...agg, elementId: id, role: 'full' };
+  return {
+    elementId: id,
+    category: 'component',
+    family: 'glazing',
+    subType: compType.subType,
+    parts,
+  };
+}
+
+export function createGlazingMesh(
+  comp: ComponentMeshInput,
+  compType: ComponentTypeMeshInput,
+  levelElevation = 0,
+): RawMeshData | null {
+  const assembly = createGlazingAssembly(comp, compType, levelElevation);
+  if (!assembly) return null;
+  return mergeAssemblyParts(assembly.parts, comp.id);
 }

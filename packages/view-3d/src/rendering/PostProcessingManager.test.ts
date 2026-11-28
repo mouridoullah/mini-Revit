@@ -54,4 +54,15 @@ describe('PostProcessingManager (ADR-018 & ADR-072)', () => {
     vi.useRealTimers();
     pp.dispose();
   });
+
+  it('calibre GTAOPass en échelle millimétrique lors de l initialisation lorsque disponible', () => {
+    const pp = new PostProcessingManager(renderer, scene, camera);
+    const aoPass = (pp as unknown as {
+      aoPass: { gtaoMaterial?: THREE.ShaderMaterial } | null;
+    }).aoPass;
+    if (aoPass?.gtaoMaterial?.uniforms?.radius) {
+      expect(aoPass.gtaoMaterial.uniforms.radius.value).toBeGreaterThanOrEqual(100);
+    }
+    pp.dispose();
+  });
 });

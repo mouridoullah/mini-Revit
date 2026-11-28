@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Scene3D } from './Scene3D.js';
-import { createSlabMesh } from './mesh-generator.js';
+import { createSlabMesh, createSlabAssembly } from './mesh-generator.js';
 
 // Mock WebGLRenderer pour environnement headless / CI
 vi.mock('three', async (importOriginal) => {
@@ -436,5 +436,32 @@ describe('view-3d — Rendu 3D des Dalles et Trémies (Milestone 6.1b-1)', () =>
     expect(mesh).not.toBeNull();
     expect(mesh!.boundingBox.max.z).toBe(3000); // zSup = elevation + baseOffset
     expect(mesh!.boundingBox.min.z).toBe(2800); // zInf = zSup - thickness
+  });
+
+  it('T-SLAB-3D-09 : createSlabAssembly — LOD 350 avec séparation structure béton armé et finition de sol noble', () => {
+    const assembly = createSlabAssembly(
+      {
+        id: 'slab-pbr',
+        boundary: [
+          { x: 0, y: 0 },
+          { x: 6000, y: 0 },
+          { x: 6000, y: 4000 },
+          { x: 0, y: 4000 },
+        ],
+      },
+      { thickness: 200 },
+      0,
+      { detailLevel: 'lod350', finishMaterial: 'wood_oak' },
+    );
+
+    expect(assembly).not.toBeNull();
+    expect(assembly!.category).toBe('slab');
+    expect(assembly!.parts).toHaveLength(2);
+
+    const structurePart = assembly!.parts.find((p) => p.materialRole === 'concrete_structural');
+    const finishPart = assembly!.parts.find((p) => p.materialRole === 'wood_oak');
+
+    expect(structurePart).toBeDefined();
+    expect(finishPart).toBeDefined();
   });
 });

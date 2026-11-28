@@ -5,7 +5,17 @@ import {
   type Pipe,
   type Duct,
   type CableTray,
+  createCableTray,
+  createMepFitting,
+  createMepEquipment,
+  createPort,
+  AddCableTrayCommand,
+  AddMepFittingCommand,
+  AddMepEquipmentCommand,
   UpdateMepElementCommand,
+  UpdateCableTrayCommand,
+  UpdateMepFittingCommand,
+  UpdateMepEquipmentCommand,
   DeleteMepElementCommand,
   AddPipeCommand,
   type BimState,
@@ -273,5 +283,111 @@ describe('MepInspector — Inspecteur de propriétés pour éléments techniques
 
     // L'élément doit être supprimé du doc
     expect(doc.getState().pipes?.['pipe-integ']).toBeUndefined();
+  });
+
+  it('T-MEP-INSP-07 : modifie CableTray.style, MepFitting.eccentricAlignment et MepEquipment.family avec Undo Ctrl+Z propre', () => {
+    const doc = BimDocument.createDefaultProject();
+    const levelId = Object.keys(doc.getState().levels)[0]!;
+
+    const tray = createCableTray({
+      id: 'ct-style-1',
+      levelId,
+      start: { x: 0, y: 0, z: 2500 },
+      end: { x: 2000, y: 0, z: 2500 },
+      width: 300,
+      height: 60,
+      style: 'ladder',
+    });
+    const trans = createMepFitting({
+      id: 'fit-trans-1',
+      levelId,
+      fittingType: 'transition',
+      domain: 'hvac',
+      systemType: 'supply_air',
+      position: { x: 1000, y: 1000, z: 2600 },
+      ports: [
+        createPort({
+          elementId: 'fit-trans-1',
+          position: { x: 900, y: 1000, z: 2600 },
+          direction: { x: -1, y: 0, z: 0 },
+          domain: 'hvac',
+          systemType: 'supply_air',
+          shape: 'rectangular',
+          width: 400,
+          height: 250,
+        }),
+        createPort({
+          elementId: 'fit-trans-1',
+          position: { x: 1100, y: 1000, z: 2600 },
+          direction: { x: 1, y: 0, z: 0 },
+          domain: 'hvac',
+          systemType: 'supply_air',
+          shape: 'rectangular',
+          width: 300,
+          height: 150,
+        }),
+      ],
+    });
+    const eq = createMepEquipment({
+      id: 'eq-fam-1',
+      levelId,
+      family: 'valve',
+      position: { x: 2000, y: 1000, z: 1200 },
+      width: 180,
+      depth: 80,
+      height: 120,
+      ports: [],
+    });
+
+    doc.execute(new AddCableTrayCommand(tray));
+    doc.execute(new AddMepFittingCommand(trans));
+    doc.execute(new AddMepEquipmentCommand(eq));
+
+    // 1. CableTray.style -> UpdateCableTrayCommand -> Undo
+    const { rerender } = render(
+      <MepInspector elementId="ct-style-1" state={doc.getState()} onExecute={(c) => doc.execute(c)} />,
+    );
+    const styleSelect = screen.getByTestId('mep-cabletray-style-select') as HTMLSelectElement;
+    expect(styleSelect.value).toBe('ladder');
+    fireEvent.change(styleSelect, { target: { value: 'perforated' } });
+    expect(doc.getState().cableTrays?.['ct-style-1']?.style).toBe('perforated');
+    doc.undo();
+    expect(doc.getState().cableTrays?.['ct-style-1']?.style).toBe('ladder');
+
+    // 2. MepFitting.eccentricAlignment -> UpdateMepFittingCommand -> Undo
+    rerender(
+      <MepInspector elementId="fit-trans-1" state={doc.getState()} onExecute={(c) => doc.execute(c)} />,
+    );
+    const eccSelect = screen.getByTestId('mep-fitting-eccentric-select') as HTMLSelectElement;
+    expect(eccSelect.value).toBe('center');
+    fireEvent.change(eccSelect, { target: { value: 'flat_top' } });
+    expect(doc.getState().mepFittings?.['fit-trans-1']?.eccentricAlignment).toBe('flat_top');
+    doc.undo();
+    expect(doc.getState().mepFittings?.['fit-trans-1']?.eccentricAlignment).toBeUndefined();
+
+    // 3. MepEquipment.family -> UpdateMepEquipmentCommand -> Undo
+    const spyExec = vi.fn((c) => doc.execute(c));
+    rerender(<MepInspector elementId="eq-fam-1" state={doc.getState()} onExecute={spyExec} />);
+    expect(screen.getByText('Clapet anti-retour')).toBeDefined();
+    expect(screen.getByText('Grille de soufflage')).toBeDefined();
+    expect(screen.getByText('Boîte de dérivation')).toBeDefined();
+
+    const famSelect = screen.getByTestId('mep-equipment-family-select') as HTMLSelectElement;
+    fireEvent.change(famSelect, { target: { value: 'check_valve' } });
+    expect(spyExec).toHaveBeenCalledWith(expect.any(UpdateMepEquipmentCommand));
+    expect(doc.getState().mepEquipments?.['eq-fam-1']?.family).toBe('check_valve');
+    doc.undo();
+    expect(doc.getState().mepEquipments?.['eq-fam-1']?.family).toBe('valve');
+
+    // Vérification explicite des types de commandes émis
+    const ctExec = vi.fn();
+    rerender(<MepInspector elementId="ct-style-1" state={doc.getState()} onExecute={ctExec} />);
+    fireEvent.change(screen.getByTestId('mep-cabletray-style-select'), { target: { value: 'perforated' } });
+    expect(ctExec).toHaveBeenCalledWith(expect.any(UpdateCableTrayCommand));
+
+    const fitExec = vi.fn();
+    rerender(<MepInspector elementId="fit-trans-1" state={doc.getState()} onExecute={fitExec} />);
+    fireEvent.change(screen.getByTestId('mep-fitting-eccentric-select'), { target: { value: 'flat_bottom' } });
+    expect(fitExec).toHaveBeenCalledWith(expect.any(UpdateMepFittingCommand));
   });
 });

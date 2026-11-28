@@ -14,6 +14,8 @@ import { DomainMeshFactory, type ComponentMeshFamily } from './rendering/DomainM
 import { ClashOverlayManager } from './rendering/ClashOverlayManager.js';
 import { SelectionHighlightManager } from './rendering/SelectionHighlightManager.js';
 import { CameraTransitionManager } from './rendering/CameraTransitionManager.js';
+import type { MepAssembly3D } from './mesh-generator/mep/assembly-types.js';
+import type { ComponentAssembly3D } from './components/types.js';
 
 export type { ComponentMeshFamily };
 
@@ -136,9 +138,14 @@ export class Scene3D {
     this.scene.add(this.directionalLight);
     this.scene.add(this.directionalLight.target);
 
-    // 5. Grille de sol horizontale XY (Z = 0)
+    // 5. Grille de sol horizontale XY (Z = 0) & matériaux partagés
     this.gridManager = new ArchitecturalGridManager(this.scene, gridSize, gridDivisions);
-    this.meshManager = new ArchitecturalMeshManager(this.scene);
+    this.domainFactory = new DomainMeshFactory(this.renderer);
+    this.meshManager = new ArchitecturalMeshManager(
+      this.scene,
+      this.domainFactory.getMepMaterialLibrary(),
+      this.domainFactory.getArchitecturalMaterialLibrary(),
+    );
     this.meshes = this.meshManager.getMeshesMap();
     this.clashOverlayManager = new ClashOverlayManager(this.scene);
     this.selectionHighlightManager = new SelectionHighlightManager();
@@ -154,7 +161,6 @@ export class Scene3D {
     // 7. Matériaux partagés par défaut et de domaine (ADR-050, ADR-072)
     this.defaultMaterial = createDefaultMaterial();
     this.highlightMaterial = this.selectionHighlightManager.getHighlightMaterial();
-    this.domainFactory = new DomainMeshFactory(this.renderer);
 
     // 8. Rendu à la demande sur interaction caméra
     // Compatible ADR-018 : pendant la rotation -> rendu direct, apres relachement -> AO plein
@@ -383,6 +389,12 @@ export class Scene3D {
   }
 
   public removeMepMesh(elementId: string): void { this.removeMesh(elementId); }
+  public addMepAssembly(a: MepAssembly3D): THREE.Mesh[] { return this.batchUpdate(() => this.meshManager.addMepAssembly(a, this.activeClippingPlane, this.sectionCapManager)); }
+  public updateMepAssembly(a: MepAssembly3D): THREE.Mesh[] { return this.batchUpdate(() => { this.removeMesh(a.elementId); return this.addMepAssembly(a); }); }
+  public addComponentAssembly(a: ComponentAssembly3D): THREE.Mesh[] { return this.batchUpdate(() => this.meshManager.addComponentAssembly(a, this.activeClippingPlane, this.sectionCapManager)); }
+  public updateComponentAssembly(a: ComponentAssembly3D): THREE.Mesh[] { return this.batchUpdate(() => { this.removeMesh(a.elementId); return this.addComponentAssembly(a); }); }
+  public addOpeningGroup(g: THREE.Group): THREE.Mesh[] { return this.batchUpdate(() => this.meshManager.addOpeningGroup(g, this.activeClippingPlane)); }
+  public updateOpeningGroup(g: THREE.Group): THREE.Mesh[] { return this.batchUpdate(() => { this.removeMesh(String(g.userData.elementId ?? g.name)); return this.addOpeningGroup(g); }); }
 
   /**
    * Applique ou retire la surbrillance de sélection sur les éléments spécifiés.
@@ -393,6 +405,7 @@ export class Scene3D {
   public setHighlight(ids: Iterable<string>): void {
     if (this.isDisposed) return;
     this.selectionHighlightManager.setHighlight(ids, this.meshes, this.defaultMaterial);
+    this.meshManager.setInstanceHighlight(ids);
     this.render();
   }
 
@@ -474,54 +487,23 @@ export class Scene3D {
     return res;
   }
 
+  private runIfActive(fn: () => void): void {
+    if (this.isDisposed) return;
+    fn();
+    this.render();
+  }
+
   /**
    * Ajoute ou met à jour une maquette IFC fédérée dans la scène 3D.
    */
-  public addFederatedModel(model: FederatedModelVisual): void {
-    if (this.isDisposed) return;
-    this.federatedManager.addModel(model);
-    this.render();
-  }
-
-  public removeFederatedModel(modelId: string): void {
-    if (this.isDisposed) return;
-    this.federatedManager.removeModel(modelId);
-    this.render();
-  }
-
-  public setFederatedModelVisibility(modelId: string, visible: boolean): void {
-    if (this.isDisposed) return;
-    this.federatedManager.setVisibility(modelId, visible);
-    this.render();
-  }
-
-  public setFederatedModelOpacity(modelId: string, opacity: number): void {
-    if (this.isDisposed) return;
-    this.federatedManager.setOpacity(modelId, opacity);
-    this.render();
-  }
-
-  public setFederatedModelWireframe(modelId: string, wireframe: boolean): void {
-    if (this.isDisposed) return;
-    this.federatedManager.setWireframe(modelId, wireframe);
-    this.render();
-  }
-
-  public setFederatedModelOffset(modelId: string, offset: { x: number; y: number; z: number }): void {
-    if (this.isDisposed) return;
-    this.federatedManager.setOffset(modelId, offset);
-    this.render();
-  }
-
-  public setFederatedSelection(modelId: string | null, expressId: number | null): void {
-    if (this.isDisposed) return;
-    this.federatedManager.setSelectedEntity(modelId, expressId);
-    this.render();
-  }
-
-  public getFederatedRootGroup(): THREE.Group {
-    return this.federatedManager.getRootGroup();
-  }
+  public addFederatedModel(model: FederatedModelVisual): void { this.runIfActive(() => this.federatedManager.addModel(model)); }
+  public removeFederatedModel(modelId: string): void { this.runIfActive(() => this.federatedManager.removeModel(modelId)); }
+  public setFederatedModelVisibility(modelId: string, visible: boolean): void { this.runIfActive(() => this.federatedManager.setVisibility(modelId, visible)); }
+  public setFederatedModelOpacity(modelId: string, opacity: number): void { this.runIfActive(() => this.federatedManager.setOpacity(modelId, opacity)); }
+  public setFederatedModelWireframe(modelId: string, wireframe: boolean): void { this.runIfActive(() => this.federatedManager.setWireframe(modelId, wireframe)); }
+  public setFederatedModelOffset(modelId: string, offset: { x: number; y: number; z: number }): void { this.runIfActive(() => this.federatedManager.setOffset(modelId, offset)); }
+  public setFederatedSelection(modelId: string | null, expressId: number | null): void { this.runIfActive(() => this.federatedManager.setSelectedEntity(modelId, expressId)); }
+  public getFederatedRootGroup(): THREE.Group { return this.federatedManager.getRootGroup(); }
 
   /**
    * Raycast sur les géométries de référence IFC fédérées.
@@ -554,12 +536,24 @@ export class Scene3D {
    * Exécute un lot de modifications géométriques sans déclencher de rendu intermédiaire.
    * Le rendu final n'est invoqué qu'une seule fois à la fin du callback.
    */
+  public getMepPoolStats(): { readonly pools: number; readonly instances: number } {
+    const pools = this.meshManager.getMepInstancePoolManager();
+    return { pools: pools.getPoolCount(), instances: pools.getTotalInstanceCount() };
+  }
+
+  public getArchitecturalPoolStats(): { readonly pools: number; readonly instances: number } {
+    const pools = this.meshManager.getComponentInstancePoolManager();
+    return { pools: pools.getPoolCount(), instances: pools.getTotalInstanceCount() };
+  }
+
   public batchUpdate<T>(callback: () => T): T {
     const wasBatching = this.isBatchUpdating;
     this.isBatchUpdating = true;
+    this.meshManager.beginInstanceBatch();
     try {
       return callback();
     } finally {
+      this.meshManager.endInstanceBatch();
       this.isBatchUpdating = wasBatching;
       if (!wasBatching) {
         this.render();
@@ -668,17 +662,10 @@ export class Scene3D {
    */
   public setRenderMode(mode: RenderMode): void {
     if (this.isDisposed) return;
+    this.domainFactory.setMepRenderMode(mode);
     this.environmentManager?.setRenderMode(mode);
-    if (this.postProcessingManager) {
-      this.postProcessingManager.setRenderMode(mode);
-    }
-    if (mode === 'ecorche') {
-      this.setBackground(0x181a1f, [0x303642, 0x222730]);
-    } else if (mode === 'realiste') {
-      this.setBackground(0x20242c, [0x444c5c, 0x2c3340]);
-    } else {
-      this.setBackground(0x262a33, [0x566070, 0x3a404c]);
-    }
+    this.postProcessingManager?.setRenderMode(mode);
+    this.gridManager.applyRenderModeBackground(this.scene, mode);
     this.render();
   }
 

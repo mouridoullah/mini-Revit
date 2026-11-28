@@ -2,25 +2,20 @@ import { useEffect, useRef, useState } from 'react';
 import {
   Scene3D,
   type RenderMode,
-  createWallMeshWithOpenings,
-  createOpeningPlaceholder,
   createDoorPlaceholderMaterial,
   createWindowPlaceholderMaterial,
-  createSlabMesh,
-  createStairMesh,
-  createRoofMesh,
-  createComponentMesh,
   solveWallJunctions,
   type WallInput,
-  type OpeningGeometryParams,
   type ClashOverlayItem,
   type FederatedModelVisual,
 } from '@tabax/view-3d';
-import { computeStairShaft, resolveWallGeometry } from '@tabax/core';
 import { useBimDocument } from '../hooks/useBimDocument.js';
 import { useResizeObserver } from '../hooks/useResizeObserver.js';
 import { Viewport3DToolbar } from './viewport-3d/Viewport3DToolbar.js';
 import { syncMepElements } from './viewport-3d/syncMepElements.js';
+import { syncArchitecturalComponents } from './viewport-3d/syncArchitecturalComponents.js';
+import { syncArchitecturalOpenings } from './viewport-3d/syncArchitecturalOpenings.js';
+import { syncArchitecturalStructure } from './viewport-3d/syncArchitecturalStructure.js';
 
 export interface Viewport3DProps {
   readonly isWhiteMode?: boolean;
@@ -67,6 +62,7 @@ export function Viewport3D({
   const selectionRef = useRef<readonly string[] | undefined>(selection);
 
   const [renderMode, setRenderMode] = useState<RenderMode>('technique');
+  const prevRenderModeRef = useRef<RenderMode>(renderMode);
   const [sunHour, setSunHour] = useState<number>(14);
   const [showEdges, setShowEdges] = useState<boolean>(true);
 
@@ -86,7 +82,7 @@ export function Viewport3D({
     if (sceneRef.current) {
       const scene = sceneRef.current.getScene();
       scene.traverse((obj) => {
-        if (obj.name.endsWith('-architectural-edges')) {
+        if (obj.name.endsWith('-architectural-edges') || obj.name.endsWith('-mep-edges')) {
           obj.visible = next;
         }
       });
@@ -177,7 +173,9 @@ export function Viewport3D({
     }
 
     // Calcul différentiel du dirty set incrémental (ADR-019 / Audit P1.6)
-    const isIncremental = lastChangedIds !== undefined && renderedElementIdsRef.current.size > 0;
+    const isModeChanged = prevRenderModeRef.current !== renderMode;
+    prevRenderModeRef.current = renderMode;
+    const isIncremental = !isModeChanged && lastChangedIds !== undefined && renderedElementIdsRef.current.size > 0;
     const dirtyElementIds = new Set<string>();
 
     if (isIncremental) {
@@ -206,52 +204,6 @@ export function Viewport3D({
         if (win) dirtyElementIds.add(win.hostWallId);
         const comp = components[id];
         if (comp?.placement?.hostWallId) dirtyElementIds.add(comp.placement.hostWallId);
-
-        // Invalidation ciblée de la grappe MEP connectée (Sous-phase 9.3.3)
-        const mepEl =
-          pipes[id] ?? ducts[id] ?? cableTrays[id] ?? mepFittings[id] ?? mepEquipments[id];
-        if (mepEl && state.mepConnectors) {
-          const portIds = new Set(mepEl.ports.map((p) => p.id));
-          for (const conn of Object.values(state.mepConnectors)) {
-            if (!conn) continue;
-            let otherPortId: string | null = null;
-            if (portIds.has(conn.portAId)) otherPortId = conn.portBId;
-            else if (portIds.has(conn.portBId)) otherPortId = conn.portAId;
-
-            if (otherPortId) {
-              for (const p of Object.values(pipes)) {
-                if (p.ports.some((port) => port.id === otherPortId)) {
-                  dirtyElementIds.add(p.id);
-                  break;
-                }
-              }
-              for (const f of Object.values(mepFittings)) {
-                if (f.ports.some((port) => port.id === otherPortId)) {
-                  dirtyElementIds.add(f.id);
-                  break;
-                }
-              }
-              for (const d of Object.values(ducts)) {
-                if (d.ports.some((port) => port.id === otherPortId)) {
-                  dirtyElementIds.add(d.id);
-                  break;
-                }
-              }
-              for (const ct of Object.values(cableTrays)) {
-                if (ct.ports.some((port) => port.id === otherPortId)) {
-                  dirtyElementIds.add(ct.id);
-                  break;
-                }
-              }
-              for (const eq of Object.values(mepEquipments)) {
-                if (eq.ports.some((port) => port.id === otherPortId)) {
-                  dirtyElementIds.add(eq.id);
-                  break;
-                }
-              }
-            }
-          }
-        }
 
         // Si un niveau a été modifié, tous ses éléments sont sales
         if (state.levels[id]) {
@@ -349,218 +301,24 @@ export function Viewport3D({
       }
     }
 
-    // 2b. Mise à jour ou ajout des murs percés de leurs ouvertures
-    for (const wall of Object.values(state.walls)) {
-      if (isIncremental && !dirtyElementIds.has(wall.id)) continue;
-      const wallType = state.wallTypes[wall.typeId];
-      if (!wallType) continue;
+    // 2. Murs, dalles, escaliers, toitures (LOD 350 en mode réaliste, maillages monolithiques en mode technique)
+    syncArchitecturalStructure(scene, state, dirtyElementIds, isIncremental, {
+      renderMode,
+      resolvedPolygonsByWallId,
+    });
 
-      const resolved = resolveWallGeometry(wall, state);
+    // 3. Menuiseries architecturales LOD 350 / LOD 200 (portes et fenêtres)
+    const openingDetail = renderMode === 'realiste' ? 'lod350' : 'lod200';
+    syncArchitecturalOpenings(scene, state, dirtyElementIds, isIncremental, {
+      detailLevel: openingDetail,
+      doorMaterial: doorMaterialRef.current ?? undefined,
+      windowMaterial: windowMaterialRef.current ?? undefined,
+    });
 
-      const openingParams: OpeningGeometryParams[] = resolved.openings.map((op) => ({
-        id: op.id,
-        kind: op.kind,
-        offsetAlong: op.offsetAlong,
-        width: op.width,
-        height: op.height,
-        sillHeight: op.sillHeight,
-      }));
+    // 4. Maillages 3D des composants architecturaux et mobilier LOD 350
+    syncArchitecturalComponents(scene, state, dirtyElementIds, isIncremental);
 
-      // Générer les tronçons solides découpés (murs percés 2.5D avec jonctions résolues)
-      const resolvedPoly = resolvedPolygonsByWallId.get(wall.id);
-      const pieces = createWallMeshWithOpenings({
-        wall,
-        wallType,
-        openings: openingParams,
-        elevation: resolved.zBase,
-        height: resolved.height,
-        topProfile: resolved.topProfile,
-        ...(resolvedPoly ? { polygon: resolvedPoly } : {}),
-      });
-
-      // Remplacement atomique de l'ensemble des tronçons solides du mur (ancien maillage libéré)
-      scene.updateMeshBatch(wall.id, pieces);
-    }
-
-    // 3. Placeholders 3D des portes (boîte bois)
-    const doorMat = doorMaterialRef.current ?? undefined;
-    for (const door of Object.values(doors)) {
-      if (isIncremental && !dirtyElementIds.has(door.id) && !dirtyElementIds.has(door.hostWallId))
-        continue;
-      const hostWall = state.walls[door.hostWallId];
-      if (!hostWall) continue;
-      const resolvedHost = resolveWallGeometry(hostWall, state);
-      const resolvedDoor = resolvedHost.openings.find((o) => o.id === door.id);
-      if (!resolvedDoor) continue;
-
-      const placeholder = createOpeningPlaceholder(
-        {
-          id: door.id,
-          kind: 'door',
-          offsetAlong: resolvedDoor.offsetAlong,
-          width: resolvedDoor.width,
-          height: resolvedDoor.height,
-          sillHeight: resolvedDoor.sillHeight,
-        },
-        hostWall,
-        resolvedHost.zBase,
-      );
-      const m = scene.updateMesh(placeholder, doorMat, {
-        ownsMaterial: false,
-        isSharedMaterial: true,
-      });
-      m.userData.ownsMaterial = false;
-      m.userData.isSharedMaterial = true;
-    }
-
-    // 4. Placeholders 3D des fenêtres (boîte vitrée translucide)
-    const winMat = windowMaterialRef.current ?? undefined;
-    for (const win of Object.values(windows)) {
-      if (isIncremental && !dirtyElementIds.has(win.id) && !dirtyElementIds.has(win.hostWallId))
-        continue;
-      const hostWall = state.walls[win.hostWallId];
-      if (!hostWall) continue;
-      const resolvedHost = resolveWallGeometry(hostWall, state);
-      const resolvedWin = resolvedHost.openings.find((o) => o.id === win.id);
-      if (!resolvedWin) continue;
-
-      const placeholder = createOpeningPlaceholder(
-        {
-          id: win.id,
-          kind: 'window',
-          offsetAlong: resolvedWin.offsetAlong,
-          width: resolvedWin.width,
-          height: resolvedWin.height,
-          sillHeight: resolvedWin.sillHeight,
-        },
-        hostWall,
-        resolvedHost.zBase,
-      );
-      const m = scene.updateMesh(placeholder, winMat, {
-        ownsMaterial: false,
-        isSharedMaterial: true,
-      });
-      m.userData.ownsMaterial = false;
-      m.userData.isSharedMaterial = true;
-    }
-
-    // 5. Placeholders et maillages 3D des dalles structurelles (avec trémies)
-    for (const slab of Object.values(slabs)) {
-      if (isIncremental && !dirtyElementIds.has(slab.id)) continue;
-      const slabType = state.slabTypes?.[slab.slabTypeId];
-      if (!slabType) continue;
-
-      const level = state.levels[slab.levelId];
-      const elevation = level?.elevation ?? 0;
-
-      // Dériver dynamiquement les trémies d'escaliers arrivant sur ce niveau (ADR-048 D5 & S2-5)
-      const stairShafts: { x: number; y: number }[][] = [];
-      for (const st of Object.values(stairs)) {
-        if (st.topLevelId === slab.levelId) {
-          const shaft = computeStairShaft(st, state, {
-            useHeadroomCutoff: true,
-            slabThickness: slabType.thickness,
-          });
-          stairShafts.push([...shaft]);
-        }
-      }
-
-      const slabMesh = createSlabMesh(
-        {
-          id: slab.id,
-          boundary: slab.boundary,
-          holes: slab.holes,
-          openings: [...(slab.openings ?? []), ...stairShafts],
-          baseOffset: slab.baseOffset,
-        },
-        slabType,
-        elevation,
-      );
-
-      if (slabMesh) {
-        scene.updateSlabMesh(slab.id, slabMesh);
-      }
-    }
-
-    // 6. Maillages 3D des escaliers paramétriques (maillage crénelé ADR-048 D4)
-    for (const stair of Object.values(stairs)) {
-      if (isIncremental && !dirtyElementIds.has(stair.id)) continue;
-      const stairType = state.stairTypes?.[stair.stairTypeId];
-      const bottomLevel = state.levels[stair.bottomLevelId];
-      const topLevel = state.levels[stair.topLevelId];
-      const bottomElevation = bottomLevel?.elevation ?? 0;
-      const topElevation = topLevel?.elevation ?? bottomElevation + 2800;
-
-      const stairMesh = createStairMesh(
-        {
-          id: stair.id,
-          start: stair.start,
-          end: stair.end,
-          widthOverride: stair.widthOverride,
-          bottomElevation,
-          topElevation,
-        },
-        stairType ? { width: stairType.width } : undefined,
-      );
-
-      if (stairMesh) {
-        scene.updateStairMesh(stair.id, stairMesh);
-      }
-    }
-
-    // 7. Maillages 3D des toitures (plates et 2 pans, ADR-053)
-    for (const roof of Object.values(roofs)) {
-      if (isIncremental && !dirtyElementIds.has(roof.id)) continue;
-      const roofType = state.roofTypes?.[roof.roofTypeId];
-      if (!roofType) continue;
-
-      const level = state.levels[roof.levelId];
-      const elevation = level?.elevation ?? 0;
-
-      const roofOpenings = Object.values(state.roofOpenings ?? {}).filter(
-        (op) => op.roofId === roof.id,
-      );
-
-      const roofMesh = createRoofMesh(
-        {
-          id: roof.id,
-          footprint: roof.footprint,
-          ridgeAxis: roof.ridgeAxis,
-          slopeOverrideDeg: roof.slopeOverrideDeg,
-          overhangOverride: roof.overhangOverrideMm,
-          baseOffset: roof.baseOffset,
-          elevation,
-          openings: roofOpenings.map((op) => ({
-            offsetU: op.offsetU,
-            offsetV: op.offsetV,
-            width: op.width,
-            height: op.height,
-          })),
-        },
-        roofType,
-      );
-
-      if (roofMesh) {
-        scene.updateRoofMesh(roof.id, roofMesh);
-      }
-    }
-
-    // 8. Maillages 3D des composants architecturaux et mobilier (Phase 8)
-    for (const comp of Object.values(components)) {
-      if (isIncremental && !dirtyElementIds.has(comp.id)) continue;
-      const compType = state.componentTypes?.[comp.typeId];
-      if (!compType) continue;
-
-      const level = state.levels[comp.levelId];
-      const elevation = level?.elevation ?? 0;
-
-      const compMesh = createComponentMesh(comp, compType, elevation);
-      if (compMesh) {
-        scene.updateComponentMesh(comp.id, compMesh, compType.family);
-      }
-    }
-
-    // 9. Maillages 3D des réseaux techniques MEP (Sous-phase 9.3.2)
+    // 5. Maillages 3D des réseaux techniques MEP (Sous-phase 9.3.2)
     syncMepElements(scene, state, dirtyElementIds, isIncremental);
 
       renderedElementIdsRef.current = currentElementIds;
@@ -571,7 +329,7 @@ export function Viewport3D({
         scene.setHighlight(currentSelection);
       }
     });
-  }, [state, lastChangedIds]);
+  }, [state, lastChangedIds, renderMode]);
 
   // Synchronisation de la surbrillance (partagée 2D ↔ 3D)
   useEffect(() => {

@@ -1,6 +1,6 @@
 {
   "name": "@tabax/web",
-  "version": "1.2.1",
+  "version": "1.3.0",
   "description": "Application web et interface de modélisation architecturale et d'ingénierie BIM pour Tabax",
   "private": true,
   "type": "module",

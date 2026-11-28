@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   createWallMesh,
   createWallMeshWithOpenings,
+  createWallSkirtingMesh,
+  createWallAssembly,
   createOpeningPlaceholder,
   createRoomFloorMesh,
   type WallGeometryParams,
@@ -402,5 +404,77 @@ describe('mesh-generator — Générateur de maillage 3D neutre pour view-3d', (
     expect(mesh.boundingBox.max.x).toBeCloseTo(3900, 4);
     expect(mesh.boundingBox.min.y).toBeCloseTo(100, 4);
     expect(mesh.boundingBox.max.y).toBeCloseTo(2900, 4);
+  });
+
+  it('createWallSkirtingMesh génère des plinthes interrompues aux portes et continues sous fenêtres', () => {
+    const wall: WallGeometryParams = {
+      id: 'wall_skirting_test',
+      start: { x: 0, y: 0 },
+      end: { x: 5000, y: 0 },
+    };
+    const wallType: WallTypeGeometryParams = {
+      thickness: 200,
+      height: 2800,
+    };
+    const door: OpeningGeometryParams = {
+      id: 'door_01',
+      kind: 'door',
+      offsetAlong: 1000,
+      width: 900,
+      height: 2100,
+      sillHeight: 0,
+    };
+    const win: OpeningGeometryParams = {
+      id: 'win_01',
+      kind: 'window',
+      offsetAlong: 3000,
+      width: 1200,
+      height: 1200,
+      sillHeight: 900,
+    };
+
+    const skirting = createWallSkirtingMesh({
+      wall,
+      wallType,
+      openings: [door, win],
+      elevation: 0,
+    });
+
+    expect(skirting).not.toBeNull();
+    // Doit avoir une hauteur de 80 mm (z: 0..80)
+    expect(skirting!.boundingBox.min.z).toBeCloseTo(0, 1);
+    expect(skirting!.boundingBox.max.z).toBeCloseTo(80, 1);
+    // Largeur englobant l'épaisseur du mur (200 mm) + 2x12 mm de plinthes
+    expect(skirting!.boundingBox.max.y - skirting!.boundingBox.min.y).toBeGreaterThanOrEqual(200);
+  });
+
+  it('createWallAssembly produit un assemblage LOD 350 avec plinthes et différenciation porteur/cloison', () => {
+    const wall: WallGeometryParams = {
+      id: 'wall_assembly_test',
+      start: { x: 0, y: 0 },
+      end: { x: 4000, y: 0 },
+    };
+    const wallType: WallTypeGeometryParams = {
+      thickness: 200,
+      height: 2800,
+    };
+
+    // Mur porteur
+    const bearingAssembly = createWallAssembly(
+      { wall, wallType, openings: [], elevation: 0 },
+      { detailLevel: 'lod350', isLoadBearing: true },
+    );
+    expect(bearingAssembly.category).toBe('wall');
+    expect(bearingAssembly.subType).toBe('load_bearing_wall');
+    expect(bearingAssembly.parts.some((p) => p.materialRole === 'concrete_structural')).toBe(true);
+    expect(bearingAssembly.parts.some((p) => p.materialRole === 'skirting_wood')).toBe(true);
+
+    // Mur cloison non porteur
+    const partitionAssembly = createWallAssembly(
+      { wall, wallType, openings: [], elevation: 0 },
+      { detailLevel: 'lod350', isLoadBearing: false },
+    );
+    expect(partitionAssembly.subType).toBe('partition_wall');
+    expect(partitionAssembly.parts.some((p) => p.materialRole === 'plaster_interior')).toBe(true);
   });
 });

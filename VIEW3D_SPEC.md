@@ -2,10 +2,10 @@
 
 ## Moteur de Visualisation 3D Impératif Three.js pour Mini-BIM
 
-**Version :** 0.1.0 (Phase 1.4)  
-**Date :** 13 Novembre 2026  
+**Version :** 1.3.0 (ADR-072, ADR-074 — Pipeline PBR, LOD 350 & InstancedMesh)  
+**Date :** 28 Novembre 2026  
 **Auteur :** Lead Software Architect & Computational Geometry Engineer  
-**Statut :** Spécifié, implémenté et certifié par tests automatisés
+**Statut :** Spécifié, implémenté et certifié par tests automatisés (v1.3.0)
 
 ---
 
@@ -403,5 +403,27 @@ export function createRoofMesh(
 Dans `createWallMeshWithOpenings`, la tête de mur accepte désormais un paramètre `topProfile: readonly Vec2[]`.
 - Si `topProfile` est trapézoïdal : les sommets supérieurs sont ajustés pour suivre la pente du versant unique.
 - Si `topProfile` est en chevron (3 sommets) : le prisme de tête est scindé en deux pans rejoignant l'arête de faîtage sans fente ni artefact.
+
+---
+
+## 11. Architecture LOD 350 & Instanciation GPU Partagée (ADR-074 — v1.3.0)
+
+### 11.1 Socle Géométrique Unifié (`mesh-generator/shared/primitives.ts`)
+- Centralise `BaseMeshAccumulator` (boîte chanfreinée étanche à 18 faces + 8 coins, cylindre lisse à UVs métriques `1 UV = 1 000 mm`, `composeMatrix4`).
+- Étendu sans duplication par `UvMeshAccumulator` (`mep/primitives.ts`) et `ArchitecturalMeshAccumulator` (`components/architectural-primitives.ts`).
+
+### 11.2 Pools GPU `InstancedMesh` (`InstancePoolBase.ts`)
+- `GenericInstancePoolManager<TProto, TRole>` mutualise l'allocation `THREE.InstancedMesh`, le *batching*, le picking raycast (`instanceId -> elementId`), la coloration de surbrillance, les plans de coupe et `dispose()` :
+  - `MepInstancePoolManager` : 8 prototypes MEP (`bolt_m10`, `flange_corner`, `pipe_clamp`, `threaded_rod`, `ladder_rung`, `cable_gland`, `cabinet_hinge`, `diffuser_blade`).
+  - `ComponentInstancePoolManager` : 5 prototypes architecturaux (`railing_post`, `door_handle`, `door_hinge`, `cabinet_pull`, `furniture_leg`).
+
+### 11.3 Bibliothèques PBR & Exclusion des Bouchons Stencil
+- `MepMaterialLibrary` et `ArchitecturalMaterialLibrary` fournissent les matériaux partagés (`isSharedMaterial: true`) indexés par `role::customColor` et synchronisés à chaud par `Scene3D.setRenderMode()`.
+- `ArchitecturalMeshManager` exclut strictement les vitrages (`glass_clear`, `glass_tinted`) et le mobilier/équipements de `SectionCapManager` afin de réserver les bouchons de coupe pleins aux volumes opaques d'enveloppe (`wall`, `slab`, `roof`).
+
+### 11.4 Assemblages LOD 350 Multi-Matériaux
+- **Enveloppe & Toitures :** `walls.ts` (plinthes `80 × 12 mm` interrompues aux portes), `slabs.ts` (multi-couches), `stairs.ts` (nez `+25 mm`, limons, garde-corps inox instancié), `roofs.ts` + `roof-details.ts` (faîtage zinc, rives, chéneaux, acrotères).
+- **Menuiseries & Équipements :** `openings-3d.ts` (`createWindowAssembly`, `createDoorAssembly` avec chambranles double face, joint d'ombre `3 mm`, goutte d'eau et béquille/charnières GPU) aligné sur `components/glazing.ts`, et les 15 composants (`sanitary.ts`, `kitchen.ts`, `furniture.ts`).
+
 
 

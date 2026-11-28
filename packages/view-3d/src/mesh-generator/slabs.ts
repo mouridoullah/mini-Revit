@@ -6,6 +6,16 @@ import {
   type Vec2,
 } from '@tabax/geometry';
 import type { SlabGeometryParams, SlabTypeGeometryParams } from './types.js';
+import {
+  ArchitecturalMeshAccumulator,
+  type Vec3D,
+} from '../components/architectural-primitives.js';
+import type {
+  ComponentAssembly3D,
+  ComponentAssemblyPart,
+  ComponentMaterialRole,
+  ComponentDetailLevel,
+} from '../components/types.js';
 
 /**
  * Génère le maillage 3D brut (RawMeshData) d'une dalle horizontale extrudée vers le bas
@@ -216,3 +226,102 @@ export function createSlabMesh(
     },
   };
 }
+
+export interface SlabAssemblyOptions {
+  readonly detailLevel?: ComponentDetailLevel;
+  readonly structureMaterial?: ComponentMaterialRole;
+  readonly finishMaterial?: ComponentMaterialRole;
+  readonly finishThickness?: number;
+}
+
+/**
+ * Génère l'assemblage 3D complet d'une dalle LOD 350 multi-couches :
+ * - Corps porteur en béton armé (face inférieure sous-plafond et flancs périphériques / trémies)
+ * - Revêtement de sol de surface supérieur noble (parquet chêne, carrelage ou chape lissée)
+ */
+export function createSlabAssembly(
+  slab: SlabGeometryParams,
+  slabType: SlabTypeGeometryParams,
+  elevation: number = 0,
+  options?: SlabAssemblyOptions,
+): ComponentAssembly3D | null {
+  const baseMesh = createSlabMesh(slab, slabType, elevation);
+  if (!baseMesh) return null;
+
+  const detailLevel = options?.detailLevel ?? 'lod350';
+  const structureMat = options?.structureMaterial ?? 'concrete_structural';
+  const finishMat = options?.finishMaterial ?? 'wood_oak';
+
+  if (detailLevel !== 'lod350') {
+    return {
+      elementId: slab.id,
+      category: 'slab',
+      family: 'slab',
+      subType: 'floor_slab',
+      parts: [
+        {
+          rawData: baseMesh,
+          materialRole: structureMat,
+        },
+      ],
+    };
+  }
+
+  // En LOD 350 : séparation structure béton + revêtement noble supérieur
+  const boundary2D = slab.boundary.map((p) => vec2(p.x, p.y));
+  const rawHoles = [...(slab.holes ?? []), ...(slab.openings ?? [])].map((h) =>
+    h.map((p) => vec2(p.x, p.y)),
+  );
+
+  let effective;
+  try {
+    effective = computeEffectiveSlabPolygon({
+      boundary: boundary2D,
+      holes: rawHoles,
+    });
+  } catch {
+    effective = { outer: boundary2D, holes: rawHoles };
+  }
+
+  const zSup = elevation + (slab.baseOffset ?? 0);
+  const zVec: Vec3D = { x: 0, y: 0, z: 1 };
+
+  const { vertices, indices: topIndices } = triangulatePolygonWithHoles(
+    effective.outer,
+    effective.holes,
+  );
+
+  const finishAcc = new ArchitecturalMeshAccumulator();
+  const zFinish = zSup + 1; // Légère surélévation pour éliminer tout z-fighting
+  for (const v of vertices) {
+    finishAcc.addVertex({ x: v.x, y: v.y, z: zFinish }, zVec, v.x / 1000, v.y / 1000);
+  }
+  for (let i = 0; i < topIndices.length; i += 3) {
+    const i0 = topIndices[i];
+    const i1 = topIndices[i + 1];
+    const i2 = topIndices[i + 2];
+    if (i0 !== undefined && i1 !== undefined && i2 !== undefined) {
+      finishAcc.addTriangle(i0, i1, i2);
+    }
+  }
+
+  const parts: ComponentAssemblyPart[] = [
+    {
+      rawData: baseMesh,
+      materialRole: structureMat,
+    },
+    {
+      rawData: finishAcc.toRawMeshData(`${slab.id}_finish`),
+      materialRole: finishMat,
+    },
+  ];
+
+  return {
+    elementId: slab.id,
+    category: 'slab',
+    family: 'slab',
+    subType: 'multi_layer_slab',
+    parts,
+  };
+}
+

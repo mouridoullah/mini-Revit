@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import * as THREE from 'three';
-import { createWindowGroup, createDoorGroup } from './openings-3d.js';
+import {
+  createWindowGroup,
+  createDoorGroup,
+  createWindowAssembly,
+  createDoorAssembly,
+} from './openings-3d.js';
 import type { OpeningGeometryParams, WallGeometryParams, WallTypeGeometryParams } from './types.js';
 
 describe('openings-3d (Menuiseries architecturales d exécution — ADR-072)', () => {
@@ -76,5 +81,46 @@ describe('openings-3d (Menuiseries architecturales d exécution — ADR-072)', (
     const handleMesh = meshes.find((m) => (m.material as THREE.MeshStandardMaterial).metalness > 0.8);
     expect(handleMesh).toBeDefined();
     expect((handleMesh!.material as THREE.MeshStandardMaterial).metalness).toBeGreaterThan(0.8);
+  });
+
+  it('génère les assemblages LOD 350 multi-matériaux avec chambranles double face, larmier et quincaillerie GPU instanciée', () => {
+    const winAssembly = createWindowAssembly(
+      {
+        id: 'win_lod350',
+        kind: 'window',
+        offsetAlong: 1500,
+        width: 1200,
+        height: 1400,
+        sillHeight: 900,
+      },
+      wall,
+      wallType,
+      0,
+    );
+    expect(winAssembly.parts.map((p) => p.materialRole)).toEqual(
+      expect.arrayContaining(['alu_anthracite', 'concrete_structural', 'glass_clear']),
+    );
+    // Double ouvrant >= 2 crémones / poignées GPU
+    expect(winAssembly.instances?.filter((i) => i.prototypeKey === 'door_handle').length).toBe(2);
+
+    const doorAssembly = createDoorAssembly(
+      {
+        id: 'door_lod350',
+        kind: 'door',
+        offsetAlong: 800,
+        width: 900,
+        height: 2100,
+        sillHeight: 0,
+      },
+      wall,
+      wallType,
+      0,
+    );
+    expect(doorAssembly.parts.map((p) => p.materialRole)).toEqual(
+      expect.arrayContaining(['alu_anthracite', 'wood_oak']),
+    );
+    // Béquille bilatérale (2) + 3 paumelles/charnières (3)
+    expect(doorAssembly.instances?.filter((i) => i.prototypeKey === 'door_handle').length).toBe(2);
+    expect(doorAssembly.instances?.filter((i) => i.prototypeKey === 'door_hinge').length).toBe(3);
   });
 });
