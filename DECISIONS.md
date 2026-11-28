@@ -1,7 +1,7 @@
 # REGISTRE DES DÉCISIONS D'ARCHITECTURE (ADR) — TABAX
 
 **Statut global :** Registre Officiel de Décisions Techniques  
-**Dernière mise à jour :** 26 novembre 2026
+**Dernière mise à jour :** 28 novembre 2026
 
 ---
 
@@ -82,6 +82,8 @@
 | **ADR-071** | Fidélité IFC4 Exacte (Toitures Inclinées, Escaliers Crénelés & MEP Natif), Déterminisme Absolu des GUIDs & Précision Métier du Moteur de Clash (Saison 3 - Étape 6 Volet B) | **Accepté**  | 22/11/2026 |
 | **ADR-072** | Rendu Photoréaliste PBR, Éclairage IBL Studio, Bouchons de Coupe Stencil & Scission Modulaire de @tabax/view-3d (Tabax v1.1.0) | **Accepté**  | 24/11/2026 |
 | **ADR-073** | Copilote BIM Agentique, Bac à Sable Transactionnel (`BimDocument.runTransaction`) & Inférence Hybride Sans Backend (Tabax v1.2.0) | **Accepté**  | 26/11/2026 |
+| **ADR-074** | Refonte Géométrique LOD 350 MEP, Architecture, Menuiseries & Instanciation GPU Partagée (Tabax v1.3.0) | **Accepté**  | 28/11/2026 |
+| **ADR-075** | Résolution Assistée des Conflits MEP 3D & Contraintes Gravitaires (Tabax v1.4.0 — pré-lot coudes en v1.3.0) | **Proposé**  | 28/11/2026 |
 
 ---
 
@@ -2991,6 +2993,25 @@ L'intégration d'un assistant IA dans Tabax (`v1.2.0`) doit exploiter la sépara
 ### Conséquences
 - Socle architectural implémenté et qualifié pour `v1.2.0` (**173 suites / 1 445 tests Vitest** sur 6 packages, **20 / 20 scénarios Playwright E2E**, `pnpm typecheck` et `pnpm lint` à **0 erreur**).
 - Préparation directe de la Phase 3 (Résolution MEP) et de la Phase 4 (Plan-to-BIM) sur un moteur transactionnel durci.
+
+---
+
+## ADR-074 : Refonte Géométrique LOD 350 MEP, Architecture, Menuiseries & Instanciation GPU Partagée (Tabax v1.3.0 — Accepté)
+
+*(Spécification détaillée dans [ADR-074-lod350-mep-architecture-pbr-instancing.md](docs/adr/ADR-074-lod350-mep-architecture-pbr-instancing.md).)*
+
+### Décisions
+1. **D1 — Moteur MEP LOD 350 & Sérialisation :** Support de `check_valve`, `air_diffuser`, `junction_box`, `CableTray.style` et `MepFitting.eccentricAlignment`, générateurs `MepAssembly3D` + `MepMaterialLibrary`, dépréciation formelle des 4 modules legacy MEP (`common.ts`, `equipment.ts`, `fittings.ts`, `batch.ts`) pour suppression en `v1.4.0`.
+2. **D2 — Enveloppe, Escaliers, Toitures, Menuiseries & 15 Composants LOD 350 :** Refonte multi-matériaux complète dans `@tabax/view-3d` (`walls.ts` avec plinthes 80×12 mm, `slabs.ts`, `stairs.ts`, `roofs.ts` scindé avec `roof-details.ts`, `openings-3d.ts` aligné sur `glazing.ts` avec chambranles double face, joint d'ombre 3 mm, appui goutte d'eau et béquille bilatérale).
+3. **D3 — Unification des Primitives & Pools GPU `InstancedMesh` Partagés :** Tronc commun `mesh-generator/shared/primitives.ts` (`BaseMeshAccumulator`) et moteur générique `GenericInstancePoolManager` (`InstancePoolBase.ts`) mutualisé entre `MepInstancePoolManager` et `ComponentInstancePoolManager` (`railing_post`, `door_handle`, `door_hinge`, `cabinet_pull`, `furniture_leg`), avec exclusion stricte des vitrages dans `SectionCapManager`.
+4. **D4 — Découplage `Viewport3D.tsx` & Pré-lot Anti-Faux-Positifs Coudes MEP :** Extraction des 4 synchroniseurs `sync*.ts` (`Viewport3D.tsx < 500 L`), préservation de `Scene3D.ts <= 800 L` (`ADR-072`) et intégration de `areLinearMepNaturallyConnected` dans `core/clash/classification/rules.ts`.
+
+---
+
+## ADR-075 : Résolution Assistée des Conflits MEP 3D & Contraintes Gravitaires (Proposé — Tabax v1.4.0)
+
+*(Spécification détaillée dans [ADR-075-assisted-mep-clash-resolution-and-bypass-routing.md](docs/adr/ADR-075-assisted-mep-clash-resolution-and-bypass-routing.md). Pré-lot d'exclusion des coudes directs livré par anticipation en `v1.3.0`.)*
+
 
 
 

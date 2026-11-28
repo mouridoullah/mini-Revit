@@ -21,7 +21,7 @@ import { UvMeshAccumulator } from './primitives.js';
 import { buildSafeFrame, pushPartIfNonEmpty, type MepAssemblyOptions } from './assembly-builder-helpers.js';
 
 function resolveFittingBodyRole(domain?: string, systemType?: string): MepMaterialRole {
-  if (domain === 'hvac') return 'galvanized_steel';
+  if (domain === 'hvac' || domain === 'electrical') return 'galvanized_steel';
   if (systemType === 'drainage_waste' || systemType === 'drainage_soil') return 'pvc_matte';
   return 'copper_brushed';
 }
@@ -128,8 +128,8 @@ export function createMepFittingAssembly3D(
         if (isRect) {
           const w1 = Math.max(20, port1.width ?? w0);
           const h1 = Math.max(20, port1.height ?? h0);
-          bodyAcc.addChamferedRectTube(p0, center, w0, h0, 3, true);
-          bodyAcc.addChamferedRectTube(center, p1, w1, h1, 3, true);
+          bodyAcc.addChamferedRectTube(p0, center, w0, h0, 3, false);
+          bodyAcc.addChamferedRectTube(center, p1, w1, h1, 3, false);
           appendRectFlangeWithInstances(
             bodyAcc,
             gasketAcc,
@@ -214,8 +214,8 @@ export function createMepFittingAssembly3D(
         if (isRect) {
           const bw = Math.max(20, port2.width ?? w0);
           const bh = Math.max(20, port2.height ?? h0);
-          bodyAcc.addChamferedRectTube(p0, p1, w0, h0, 3, true);
-          bodyAcc.addChamferedRectTube(center, p2, bw, bh, 3, true);
+          bodyAcc.addChamferedRectTube(p0, p1, w0, h0, 3, false);
+          bodyAcc.addChamferedRectTube(center, p2, bw, bh, 3, false);
           appendRectFlangeWithInstances(
             bodyAcc,
             gasketAcc,
@@ -247,7 +247,7 @@ export function createMepFittingAssembly3D(
             isLod350,
           );
           if (p3) {
-            bodyAcc.addChamferedRectTube(center, p3, bw, bh, 3, true);
+            bodyAcc.addChamferedRectTube(center, p3, bw, bh, 3, false);
             appendRectFlangeWithInstances(
               bodyAcc,
               gasketAcc,

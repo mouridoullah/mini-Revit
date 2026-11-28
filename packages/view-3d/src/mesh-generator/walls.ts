@@ -14,6 +14,16 @@ import type {
   WallTypeGeometryParams,
   WallWithOpeningsParams,
 } from './types.js';
+import {
+  ArchitecturalMeshAccumulator,
+  type Vec3D,
+} from '../components/architectural-primitives.js';
+import type {
+  ComponentAssembly3D,
+  ComponentAssemblyPart,
+  ComponentMaterialRole,
+  ComponentDetailLevel,
+} from '../components/types.js';
 
 function clipPolygonByHalfPlane(
   polygon: readonly Vec2[],
@@ -433,3 +443,162 @@ export function createWallMesh(
   });
   return meshes[0] ?? null;
 }
+
+export interface WallAssemblyOptions {
+  readonly detailLevel?: ComponentDetailLevel;
+  readonly isLoadBearing?: boolean;
+  readonly wallMaterial?: ComponentMaterialRole;
+  readonly skirtingMaterial?: ComponentMaterialRole;
+  readonly hasSkirting?: boolean;
+  readonly skirtingHeight?: number;
+  readonly skirtingThickness?: number;
+}
+
+/**
+ * Génère le maillage des plinthes décoratives d'un mur architectural LOD 350.
+ * Épouse la base du mur sur ses deux faces (+n et -n), tout en s'interrompant
+ * rigoureusement au droit des portes et passages au sol.
+ */
+export function createWallSkirtingMesh(
+  params: WallWithOpeningsParams,
+  options?: {
+    skirtingHeight?: number | undefined;
+    skirtingThickness?: number | undefined;
+  },
+): RawMeshData | null {
+  const dx = params.wall.end.x - params.wall.start.x;
+  const dy = params.wall.end.y - params.wall.start.y;
+  const len = Math.hypot(dx, dy);
+  if (len < 10) return null;
+
+  const ux = dx / len;
+  const uy = dy / len;
+  const nx = -uy;
+  const ny = ux;
+
+  const uDir: Vec3D = { x: ux, y: uy, z: 0 };
+  const nDir: Vec3D = { x: nx, y: ny, z: 0 };
+  const zVec: Vec3D = { x: 0, y: 0, z: 1 };
+
+  const elevation = params.elevation ?? 0;
+  const thickness = params.wallType.thickness;
+  const halfT = thickness / 2;
+  const skH = options?.skirtingHeight ?? 80;
+  const skT = options?.skirtingThickness ?? 12;
+
+  // Collecte des intervalles occupés par des ouvertures débouchant au sol (portes)
+  const doorIntervals: Array<[number, number]> = [];
+  if (params.openings) {
+    for (const op of params.openings) {
+      const isFloorOpening = op.kind === 'door' || (op.sillHeight ?? 0) <= 50;
+      if (isFloorOpening) {
+        const u0 = Math.max(0, Math.min(len, op.offsetAlong));
+        const u1 = Math.max(0, Math.min(len, op.offsetAlong + op.width));
+        if (u1 > u0) {
+          doorIntervals.push([u0, u1]);
+        }
+      }
+    }
+  }
+
+  // Fusion des intervalles de portes
+  doorIntervals.sort((a, b) => a[0] - b[0]);
+  const mergedDoors: Array<[number, number]> = [];
+  for (const interval of doorIntervals) {
+    const last = mergedDoors[mergedDoors.length - 1];
+    if (!last) {
+      mergedDoors.push(interval);
+    } else if (interval[0] <= last[1]) {
+      last[1] = Math.max(last[1], interval[1]);
+    } else {
+      mergedDoors.push(interval);
+    }
+  }
+
+  // Déduction des intervalles libres où poser les plinthes
+  const skirtingIntervals: Array<[number, number]> = [];
+  let curU = 0;
+  for (const [d0, d1] of mergedDoors) {
+    if (d0 > curU + 10) {
+      skirtingIntervals.push([curU, d0]);
+    }
+    curU = Math.max(curU, d1);
+  }
+  if (len > curU + 10) {
+    skirtingIntervals.push([curU, len]);
+  }
+
+  if (skirtingIntervals.length === 0) return null;
+
+  const acc = new ArchitecturalMeshAccumulator();
+  const zCenter = elevation + skH / 2;
+
+  for (const [u0, u1] of skirtingIntervals) {
+    const segLen = u1 - u0;
+    const uMid = (u0 + u1) / 2;
+    const midX = params.wall.start.x + ux * uMid;
+    const midY = params.wall.start.y + uy * uMid;
+
+    // Face avant (+n)
+    const centerFront: Vec3D = {
+      x: midX + nx * (halfT + skT / 2),
+      y: midY + ny * (halfT + skT / 2),
+      z: zCenter,
+    };
+    acc.addBeveledBox(centerFront, { x: segLen, y: skT, z: skH }, 2, uDir, nDir, zVec);
+
+    // Face arrière (-n)
+    const centerBack: Vec3D = {
+      x: midX - nx * (halfT + skT / 2),
+      y: midY - ny * (halfT + skT / 2),
+      z: zCenter,
+    };
+    acc.addBeveledBox(centerBack, { x: segLen, y: skT, z: skH }, 2, uDir, nDir, zVec);
+  }
+
+  return acc.toRawMeshData(`${params.wall.id}_skirting`);
+}
+
+/**
+ * Génère l'assemblage 3D complet d'un mur architectural LOD 350 :
+ * - Corps plein percé (ouvertures / biseaux) avec différenciation structurelle
+ *   (béton banché pour porteur vs plâtre intérieur pour cloison)
+ * - Plinthes décoratives coordonnées interrompues au niveau des portes
+ */
+export function createWallAssembly(
+  params: WallWithOpeningsParams,
+  options?: WallAssemblyOptions,
+): ComponentAssembly3D {
+  const wallPieces = createWallMeshWithOpenings(params);
+  const detailLevel = options?.detailLevel ?? 'lod350';
+  const isLoadBearing = options?.isLoadBearing ?? false;
+  const wallMatRole: ComponentMaterialRole =
+    options?.wallMaterial ?? (isLoadBearing ? 'concrete_structural' : 'plaster_interior');
+
+  const parts: ComponentAssemblyPart[] = wallPieces.map((piece) => ({
+    rawData: piece,
+    materialRole: wallMatRole,
+  }));
+
+  if (detailLevel === 'lod350' && options?.hasSkirting !== false) {
+    const skirtingMesh = createWallSkirtingMesh(params, {
+      skirtingHeight: options?.skirtingHeight,
+      skirtingThickness: options?.skirtingThickness,
+    });
+    if (skirtingMesh) {
+      parts.push({
+        rawData: skirtingMesh,
+        materialRole: options?.skirtingMaterial ?? 'skirting_wood',
+      });
+    }
+  }
+
+  return {
+    elementId: params.wall.id,
+    category: 'wall',
+    family: 'wall',
+    subType: isLoadBearing ? 'load_bearing_wall' : 'partition_wall',
+    parts,
+  };
+}
+

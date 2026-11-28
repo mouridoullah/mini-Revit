@@ -6,6 +6,7 @@
  */
 
 import * as THREE from 'three';
+import type { RenderMode } from './PostProcessingManager.js';
 
 export class ArchitecturalGridManager {
   private readonly gridHelper: THREE.GridHelper;
@@ -48,6 +49,16 @@ export class ArchitecturalGridManager {
       colors.setXYZ(index, color.r, color.g, color.b);
     }
     colors.needsUpdate = true;
+  }
+
+  public applyRenderModeBackground(scene: THREE.Scene, mode: RenderMode): void {
+    if (mode === 'ecorche') {
+      this.setBackground(scene, 0x181a1f, [0x303642, 0x222730]);
+    } else if (mode === 'realiste') {
+      this.setBackground(scene, 0x20242c, [0x444c5c, 0x2c3340]);
+    } else {
+      this.setBackground(scene, 0x262a33, [0x566070, 0x3a404c]);
+    }
   }
 
   public dispose(scene: THREE.Scene): void {

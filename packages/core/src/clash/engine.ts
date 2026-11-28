@@ -103,6 +103,7 @@ export function detectClashes(
         narrowRes.penetrationDepthMm,
         hardToleranceMm,
         state,
+        narrowRes.point,
       );
 
       if (classification === 'HARD_CLASH') {
@@ -145,6 +146,7 @@ export function detectClashes(
           clearanceRes.penetrationDepthMm,
           hardToleranceMm,
           state,
+          clearanceRes.point,
         );
 
         if (classification === 'CLEARANCE') {

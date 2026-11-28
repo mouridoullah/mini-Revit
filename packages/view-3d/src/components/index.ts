@@ -1,45 +1,77 @@
 import type { RawMeshData } from '@tabax/geometry';
-import type { ComponentMeshInput, ComponentTypeMeshInput } from './types.js';
-import { createSanitaryMesh, SANITARY_SUBTYPES } from './sanitary.js';
-import { createKitchenMesh, KITCHEN_SUBTYPES } from './kitchen.js';
-import { createFurnitureMesh } from './furniture.js';
-import { createGlazingMesh, GLAZING_SUBTYPES } from './glazing.js';
+import type {
+  ComponentMeshInput,
+  ComponentTypeMeshInput,
+  ComponentAssembly3D,
+  CreateComponentAssemblyOptions,
+} from './types.js';
+import { createSanitaryAssembly, SANITARY_SUBTYPES } from './sanitary.js';
+import { createKitchenAssembly, KITCHEN_SUBTYPES } from './kitchen.js';
+import { createFurnitureAssembly } from './furniture.js';
+import { createGlazingAssembly, GLAZING_SUBTYPES } from './glazing.js';
+import { mergeAssemblyParts } from './assembly-helper.js';
 
 /**
- * components/index — dispatcher et re-exports
+ * components/index — Dispatcher et ré-exports des composants LOD 200 / LOD 350
  *
- * Ce module est le point d'entree unique pour la generation de composants 3D.
- * Il remplace components-3d.ts (desormais shim de 20 lignes) et orchestre
- * les sous-modules sanitary, kitchen, furniture et glazing.
- *
- * Compatible ADR-026 (userData.elementId) et ADR-050 (materiaux partages).
+ * Point d'entrée unique pour la génération des assemblages 3D d'équipements et mobilier.
+ * Compatible ADR-026 (userData.elementId), ADR-050 (matériaux partagés) et ADR-072 (LOD 350).
  */
 
-export type { ComponentMeshInput, ComponentTypeMeshInput } from './types.js';
+export type {
+  ComponentMeshInput,
+  ComponentTypeMeshInput,
+  ComponentAssembly3D,
+  ComponentAssemblyPart,
+  ComponentInstanceAnchor,
+  ComponentInstancePrototypeKey,
+  ComponentMaterialRole,
+  ComponentDetailLevel,
+  CreateComponentAssemblyOptions,
+} from './types.js';
+export {
+  getAllArchitecturalPrototypes,
+  getArchitecturalPrototypeMesh,
+} from './architectural-prototypes.js';
 
-// Re-exports specialises
-export { createSanitaryMesh, SANITARY_SUBTYPES } from './sanitary.js';
-export { createKitchenMesh, KITCHEN_SUBTYPES } from './kitchen.js';
-export { createFurnitureMesh, FURNITURE_SUBTYPES } from './furniture.js';
-export { createGlazingMesh, GLAZING_SUBTYPES } from './glazing.js';
+// Ré-exports spécialisés
+export { createSanitaryAssembly, createSanitaryMesh, SANITARY_SUBTYPES } from './sanitary.js';
+export { createKitchenAssembly, createKitchenMesh, KITCHEN_SUBTYPES } from './kitchen.js';
+export { createFurnitureAssembly, createFurnitureMesh, FURNITURE_SUBTYPES } from './furniture.js';
+export { createGlazingAssembly, createGlazingMesh, GLAZING_SUBTYPES } from './glazing.js';
+export { mergeAssemblyParts } from './assembly-helper.js';
 
 /**
- * Dispatcher principal pour la creation du maillage 3D d'un composant architectural ou mobilier.
+ * Dispatcher principal pour la création de l'assemblage 3D multi-matériaux (LOD 350).
+ */
+export function createComponentAssembly(
+  comp: ComponentMeshInput,
+  compType: ComponentTypeMeshInput,
+  levelElevation = 0,
+  options?: CreateComponentAssemblyOptions,
+): ComponentAssembly3D | null {
+  const subType = compType.subType;
+  if ((SANITARY_SUBTYPES as readonly string[]).includes(subType)) {
+    return createSanitaryAssembly(comp, compType, levelElevation, options);
+  }
+  if ((KITCHEN_SUBTYPES as readonly string[]).includes(subType)) {
+    return createKitchenAssembly(comp, compType, levelElevation, options);
+  }
+  if ((GLAZING_SUBTYPES as readonly string[]).includes(subType)) {
+    return createGlazingAssembly(comp, compType, levelElevation, options);
+  }
+  return createFurnitureAssembly(comp, compType, levelElevation, options);
+}
+
+/**
+ * Dispatcher legacy pour la création d'un RawMeshData mono-matériau combiné (rétrocompatibilité).
  */
 export function createComponentMesh(
   comp: ComponentMeshInput,
   compType: ComponentTypeMeshInput,
-  levelElevation: number = 0,
+  levelElevation = 0,
 ): RawMeshData | null {
-  const subType = compType.subType;
-  if ((SANITARY_SUBTYPES as readonly string[]).includes(subType)) {
-    return createSanitaryMesh(comp, compType, levelElevation);
-  }
-  if ((KITCHEN_SUBTYPES as readonly string[]).includes(subType)) {
-    return createKitchenMesh(comp, compType, levelElevation);
-  }
-  if ((GLAZING_SUBTYPES as readonly string[]).includes(subType)) {
-    return createGlazingMesh(comp, compType, levelElevation);
-  }
-  return createFurnitureMesh(comp, compType, levelElevation);
+  const assembly = createComponentAssembly(comp, compType, levelElevation);
+  if (!assembly) return null;
+  return mergeAssemblyParts(assembly.parts, comp.id);
 }

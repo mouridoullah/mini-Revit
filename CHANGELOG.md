@@ -6,6 +6,41 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.3.0] - 2026-11-28
+
+### Vue d'ensemble
+Version mineure majeure dédiée à la **refonte géométrique LOD 350** des réseaux **MEP**, de l'**enveloppe architecturale**, des **menuiseries** et des **15 familles de composants & mobilier intérieur**, accompagnée de l'**instanciation GPU partagée (`THREE.InstancedMesh`)** et d'un pré-lot anti-faux-positifs sur les coudes MEP (`ADR-074`).
+
+### Ajouté
+- **Moteur MEP LOD 350 (`@tabax/core`, `@tabax/view-3d`) :**
+  - Extension du modèle avec `check_valve`, `air_diffuser`, `junction_box`, `CableTray.style` (`ladder`/`perforated`) et `MepFitting.eccentricAlignment` (`flat_top`/`flat_bottom`), avec round-trip JSON couvert dans `serialization.test.ts`.
+  - Assemblages multi-matériaux `MepAssembly3D` (`pipes.ts`, `ducts.ts`, `cable-trays.ts`, `fittings-assembly.ts`, `valves.ts`, `equipment-assembly.ts`), bibliothèque PBR `MepMaterialLibrary` et `MepInstancePoolManager` (8 prototypes unitaires GPU).
+  - Dépréciation officielle des 4 anciens générateurs MEP legacy (`mep/common.ts`, `mep/equipment.ts`, `mep/fittings.ts`, `mep/batch.ts`) pour suppression en `v1.4.0`.
+- **Architecture, Enveloppe & Composants Intérieurs LOD 350 (`@tabax/view-3d`) :**
+  - Escaliers (`stairs.ts`) avec paillasse plâtre, marches chêne à nez débordant (`+25 mm`), limons alu anthracite, main courante chêne et garde-corps inox à potelets instanciés sur GPU.
+  - Toitures (`roofs.ts` scindé avec `roof-details.ts`) : versants tuiles, faîtage zinc relevé, rives pignon et gouttières demi-rondes zinc avec descentes EP, ou toits plats béton/gravillons à couvertines alu.
+  - Dalles multi-couches (`slabs.ts`) et murs avec plinthes chanfreinées `80 × 12 mm` interrompues au droit des portes (`walls.ts`).
+  - Menuiseries hébergées refondues (`openings-3d.ts` : `createWindowAssembly`, `createDoorAssembly`) alignées sur `components/glazing.ts` : chambranles chanfreinés double face, joint d'ombre `3 mm`, appui avec goutte d'eau, vantail bois mouluré double face, béquille bilatérale et 3 paumelles en `InstancedMesh`.
+  - Refonte des 15 composants intérieurs (`sanitary.ts`, `kitchen.ts`, `furniture.ts`, `glazing.ts`) sous `ArchitecturalMaterialLibrary` (avec correction du parsing de clé `role::customColor` lors de `setRenderMode`).
+- **Socle Partagé & Instanciation GPU Architecturale :**
+  - Unification des primitives dans `mesh-generator/shared/primitives.ts` (`BaseMeshAccumulator`) partagé entre MEP et Architecture.
+  - Moteur générique `GenericInstancePoolManager` (`InstancePoolBase.ts`) mutualisé entre `MepInstancePoolManager` et `ComponentInstancePoolManager` (`railing_post`, `door_handle`, `door_hinge`, `cabinet_pull`, `furniture_leg`).
+  - Découplage complet de `Viewport3D.tsx` (`495 L`, `-197 L`) via `syncArchitecturalStructure.ts`, `syncArchitecturalOpenings.ts`, `syncArchitecturalComponents.ts` et `syncMepElements.ts` (`Scene3D.ts` ramené à `760 L < 800 L`, `ADR-072`).
+
+### Corrigé
+- **Faux positifs de clash sur coudes MEP (`@tabax/core/clash`) :** Ajout de `areLinearMepNaturallyConnected` dans `packages/core/src/clash/classification/rules.ts` (pré-lot anticipé d'`ADR-075`, renuméroté pour `v1.4.0`).
+- **Exclusion Stencil Buffer (`ArchitecturalMeshManager`) :** Les vitrages (`glass_clear`, `glass_tinted`) et le mobilier/équipements sont strictement exclus de `SectionCapManager`.
+
+### Qualification & Métrologie v1.3.0
+- **Suites Vitest :** **183 fichiers / 1 509 tests passés (100 %)** (`geometry`: 20 / 228, `core`: 53 / 570, `view-3d`: 27 / 173, `ai`: 5 / 30, `view-2d`: 19 / 155, `web`: 59 / 353).
+- **Scénarios E2E Playwright (`pnpm test:e2e`) :** **21 / 21 passés (100 %)** (`apps/web/e2e/smoke.spec.ts`, Chromium production, 0 erreur console).
+- **Vérification Statique (`pnpm typecheck`) :** **0 erreur** (`tsc --noEmit -p tsconfig.test.json` sur 6 packages).
+- **Qualité & Formatage (`pnpm lint`) :** **0 erreur, 0 avertissement** (ESLint 9).
+- **Build Production (`pnpm build`) :** **0 erreur** (6 packages TypeScript + bundle Vite `apps/web/dist`).
+- **Métrologie R+4 (`demo-immeuble-r4.json`, `T-FULL-R4-METROLOGY`) :** **410 pièces architecturales** et **1 197 pièces MEP** mutualisées dans **11 pools GPU `InstancedMesh`** (`6` Archi + `5` MEP), construction complète en `~2,1 s` avec `0` flottant non-fini.
+
+---
+
 ## [1.2.1] - 2026-11-26
 
 ### Vue d'ensemble

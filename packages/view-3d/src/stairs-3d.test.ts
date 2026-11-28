@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Scene3D } from './Scene3D.js';
-import { createStairMesh, type StairGeometryParams } from './mesh-generator.js';
+import { createStairMesh, createStairAssembly, type StairGeometryParams } from './mesh-generator.js';
 
 // Mock WebGLRenderer pour environnement headless / CI
 vi.mock('three', async (importOriginal) => {
@@ -247,6 +247,51 @@ describe('Phase 6.4 — Rendu 3D des Escaliers (packages/view-3d/src/stairs-3d.t
     expect(scene.getMeshes('stair_01').length).toBe(1);
 
     scene.removeStairMesh('stair_01');
+    expect(scene.getMeshes('stair_01').length).toBe(0);
+
+    scene.dispose();
+  });
+
+  it('T-STAIR-3D-06 : createStairAssembly — LOD 200 (1 part monolithique) vs LOD 350 (5 parts multi-matériaux)', () => {
+    // LOD 200
+    const lod200Assembly = createStairAssembly(baseStairParams, { width: 900 }, { detailLevel: 'lod200' });
+    expect(lod200Assembly).not.toBeNull();
+    expect(lod200Assembly!.parts).toHaveLength(1);
+    expect(lod200Assembly!.parts[0]!.materialRole).toBe('plaster_interior');
+
+    // LOD 350
+    const lod350Assembly = createStairAssembly(baseStairParams, { width: 900 }, { detailLevel: 'lod350' });
+    expect(lod350Assembly).not.toBeNull();
+    // 5 parties : structure, treads, stringers, handrail, guardrail
+    expect(lod350Assembly!.parts).toHaveLength(5);
+
+    const roles = lod350Assembly!.parts.map((p) => p.materialRole);
+    expect(roles).toContain('plaster_interior'); // structure paillasse
+    expect(roles).toContain('wood_oak'); // marches & main courante
+    expect(roles).toContain('alu_anthracite'); // limons
+    expect(roles).toContain('stainless_brushed'); // garde-corps poteaux & lisses
+
+    // Vérification du nez de marche débordant (+25 mm)
+    const treadsPart = lod350Assembly!.parts.find((p) => p.rawData.elementId.includes('treads'));
+    expect(treadsPart).toBeDefined();
+    expect(treadsPart!.rawData.boundingBox.max.x).toBeGreaterThan(baseStairParams.end.x);
+  });
+
+  it('T-STAIR-3D-07 : Scene3D — intégration et rendu de l’assemblage d’escalier LOD 350', () => {
+    const scene = new Scene3D(canvas);
+    const assembly = createStairAssembly(baseStairParams, { width: 900 }, { detailLevel: 'lod350' });
+    expect(assembly).not.toBeNull();
+
+    const meshes = scene.addComponentAssembly(assembly!);
+    expect(meshes.length).toBe(5);
+    expect(scene.getMeshes('stair_01').length).toBe(5);
+
+    // Mise à jour de l'assemblage
+    const updatedMeshes = scene.updateComponentAssembly(assembly!);
+    expect(updatedMeshes.length).toBe(5);
+    expect(scene.getMeshes('stair_01').length).toBe(5);
+
+    scene.removeMesh('stair_01');
     expect(scene.getMeshes('stair_01').length).toBe(0);
 
     scene.dispose();

@@ -6,6 +6,7 @@ import type {
   ClashCategory,
   ClashDiscipline,
   ClashClassification,
+  Vec3,
 } from '../types.js';
 import { isPointInPolygon, type Vec2 } from '@tabax/geometry';
 import { computeStairShaft } from '../../stairs.js';
@@ -55,13 +56,26 @@ export function isExcludedLegitimateContact(
   catA: ClashCategory,
   catB: ClashCategory,
   state: BimState,
+  clashPoint?: Vec3,
 ): boolean {
   if (idA === idB) return true;
 
-  // 1. Connexions MEP autorisées (MepConnector)
+  // 1. Connexions MEP autorisées (MepConnector direct ou à 2 sauts via nœud partagé)
   if (isMepCategory(catA) && isMepCategory(catB)) {
-    if (areMepElementsConnected(idA, idB, state)) {
+    if (areMepElementsConnected(idA, idB, state, clashPoint)) {
       return true;
+    }
+
+    // 1b. Segments linéaires MEP qui se rejoignent à leurs extrémités (coude direct / jonction naturelle)
+    if (
+      (catA === 'pipe' || catA === 'duct' || catA === 'cableTray') &&
+      (catB === 'pipe' || catB === 'duct' || catB === 'cableTray')
+    ) {
+      const elemA = state.pipes?.[idA] ?? state.ducts?.[idA] ?? state.cableTrays?.[idA];
+      const elemB = state.pipes?.[idB] ?? state.ducts?.[idB] ?? state.cableTrays?.[idB];
+      if (elemA && elemB && areLinearMepNaturallyConnected(elemA, elemB)) {
+        return true;
+      }
     }
   }
 
@@ -224,10 +238,11 @@ export function classifyClashInteraction(
   penetrationDepthMm: number,
   hardToleranceMm: number,
   state: BimState,
+  clashPoint?: Vec3,
 ): ClashClassification {
   if (idA === idB) return 'IGNORED';
 
-  if (isExcludedLegitimateContact(idA, idB, catA, catB, state)) {
+  if (isExcludedLegitimateContact(idA, idB, catA, catB, state, clashPoint)) {
     return 'LEGITIMATE_CONTACT';
   }
 
@@ -271,8 +286,45 @@ function doesElementOwnPort(elemId: ElementId, portId: ElementId, state: BimStat
   return false;
 }
 
-function areMepElementsConnected(idA: ElementId, idB: ElementId, state: BimState): boolean {
+function findPortOwner(portId: ElementId, state: BimState): ElementId | null {
+  if (state.mepFittings) {
+    for (const [id] of Object.entries(state.mepFittings)) {
+      if (doesElementOwnPort(id, portId, state)) return id;
+    }
+  }
+  if (state.pipes) {
+    for (const [id] of Object.entries(state.pipes)) {
+      if (doesElementOwnPort(id, portId, state)) return id;
+    }
+  }
+  if (state.ducts) {
+    for (const [id] of Object.entries(state.ducts)) {
+      if (doesElementOwnPort(id, portId, state)) return id;
+    }
+  }
+  if (state.cableTrays) {
+    for (const [id] of Object.entries(state.cableTrays)) {
+      if (doesElementOwnPort(id, portId, state)) return id;
+    }
+  }
+  if (state.mepEquipments) {
+    for (const [id] of Object.entries(state.mepEquipments)) {
+      if (doesElementOwnPort(id, portId, state)) return id;
+    }
+  }
+  return null;
+}
+
+function areMepElementsConnected(
+  idA: ElementId,
+  idB: ElementId,
+  state: BimState,
+  clashPoint?: Vec3,
+): boolean {
   if (!state.mepConnectors) return false;
+
+  const neighborsA = new Set<ElementId>();
+  const neighborsB = new Set<ElementId>();
 
   for (const conn of Object.values(state.mepConnectors)) {
     const raw = conn as unknown as {
@@ -289,6 +341,11 @@ function areMepElementsConnected(idA: ElementId, idB: ElementId, state: BimState
       return true;
     }
 
+    if (elemA === idA && elemB) neighborsA.add(elemB);
+    if (elemB === idA && elemA) neighborsA.add(elemA);
+    if (elemA === idB && elemB) neighborsB.add(elemB);
+    if (elemB === idB && elemA) neighborsB.add(elemA);
+
     // 2. Cas standard portAId / portBId
     const portIdA = raw.portAId ?? raw.portA?.id;
     const portIdB = raw.portBId ?? raw.portB?.id;
@@ -301,8 +358,65 @@ function areMepElementsConnected(idA: ElementId, idB: ElementId, state: BimState
       const reverseA = doesElementOwnPort(idA, portIdB, state);
       const reverseB = doesElementOwnPort(idB, portIdA, state);
       if (reverseA && reverseB) return true;
+
+      if (matchA) {
+        const owner = elemB ?? findPortOwner(portIdB, state);
+        if (owner) neighborsA.add(owner);
+      } else if (reverseA) {
+        const owner = elemA ?? findPortOwner(portIdA, state);
+        if (owner) neighborsA.add(owner);
+      }
+
+      if (matchB) {
+        const owner = elemA ?? findPortOwner(portIdA, state);
+        if (owner) neighborsB.add(owner);
+      } else if (reverseB) {
+        const owner = elemB ?? findPortOwner(portIdB, state);
+        if (owner) neighborsB.add(owner);
+      }
     }
   }
+
+  // 3. Cas à 2 sauts : idA et idB partagent un raccord ou nœud commun (ex: 2 tuyaux reliés au même coude)
+  for (const sharedId of neighborsA) {
+    if (neighborsB.has(sharedId)) {
+      const sharedFitting = state.mepFittings?.[sharedId];
+      const sharedEquipment = state.mepEquipments?.[sharedId];
+      const sharedNode = sharedFitting ?? sharedEquipment;
+
+      if (sharedNode) {
+        if (!clashPoint) {
+          return true;
+        }
+
+        let maxReach = 150;
+        const nodePos = sharedNode.position;
+        if (sharedNode.ports && sharedNode.ports.length > 0) {
+          for (const p of sharedNode.ports) {
+            const pdx = p.position.x - nodePos.x;
+            const pdy = p.position.y - nodePos.y;
+            const pdz = p.position.z - nodePos.z;
+            const dist = Math.sqrt(pdx * pdx + pdy * pdy + pdz * pdz);
+            const dim = p.diameter ?? Math.max(p.width ?? 0, p.height ?? 0);
+            maxReach = Math.max(maxReach, dist + dim * 1.5 + 50);
+          }
+        }
+
+        const distFromNode = Math.hypot(
+          clashPoint.x - nodePos.x,
+          clashPoint.y - nodePos.y,
+          clashPoint.z - nodePos.z,
+        );
+        if (distFromNode <= maxReach) {
+          return true;
+        }
+      } else {
+        // Nœud intermédiaire linéaire (deux raccords sur un même segment droit)
+        return true;
+      }
+    }
+  }
+
   return false;
 }
 
@@ -355,3 +469,34 @@ function isPointNearSegment(
   const d2 = (p.x - projX) * (p.x - projX) + (p.y - projY) * (p.y - projY);
   return d2 <= tolMm * tolMm;
 }
+
+interface LinearMepElement {
+  readonly start?: { readonly x: number; readonly y: number; readonly z?: number | undefined } | undefined;
+  readonly end?: { readonly x: number; readonly y: number; readonly z?: number | undefined } | undefined;
+  readonly diameter?: number | undefined;
+  readonly width?: number | undefined;
+  readonly height?: number | undefined;
+}
+
+function areLinearMepNaturallyConnected(
+  elemA: LinearMepElement,
+  elemB: LinearMepElement,
+): boolean {
+  if (!elemA || !elemB || !elemA.start || !elemA.end || !elemB.start || !elemB.end) return false;
+  const pA = [elemA.start, elemA.end];
+  const pB = [elemB.start, elemB.end];
+  const dimA = elemA.diameter ?? Math.max(elemA.width ?? 50, elemA.height ?? 50);
+  const dimB = elemB.diameter ?? Math.max(elemB.width ?? 50, elemB.height ?? 50);
+  const tol = Math.max(dimA, dimB) * 1.5 + 20;
+
+  for (const a of pA) {
+    const az = a.z ?? 0;
+    for (const b of pB) {
+      const bz = b.z ?? 0;
+      const dist = Math.hypot(a.x - b.x, a.y - b.y, az - bz);
+      if (dist <= tol) return true;
+    }
+  }
+  return false;
+}
+

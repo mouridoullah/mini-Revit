@@ -5,6 +5,18 @@ import {
   type Vec2,
 } from '@tabax/geometry';
 import type { StairGeometryParams, StairTypeGeometryParams } from './types.js';
+import {
+  ArchitecturalMeshAccumulator,
+  type Vec3D,
+} from '../components/architectural-primitives.js';
+import { composeMatrix4 } from './shared/primitives.js';
+import type {
+  ComponentAssembly3D,
+  ComponentAssemblyPart,
+  ComponentInstanceAnchor,
+  ComponentMaterialRole,
+  ComponentDetailLevel,
+} from '../components/types.js';
 
 /**
  * Génère le maillage 3D brut (RawMeshData) d'un escalier droit paramétrique (ADR-048).
@@ -310,3 +322,248 @@ export function createStairMesh(
     },
   };
 }
+
+export interface StairAssemblyOptions {
+  readonly detailLevel?: ComponentDetailLevel;
+  readonly treadThickness?: number;
+  readonly nosingOverhang?: number;
+  readonly treadMaterial?: ComponentMaterialRole;
+  readonly structureMaterial?: ComponentMaterialRole;
+  readonly handrailMaterial?: ComponentMaterialRole;
+  readonly guardrailMaterial?: ComponentMaterialRole;
+  readonly stringerMaterial?: ComponentMaterialRole;
+  readonly hasGuardrail?: boolean;
+  readonly hasStringers?: boolean;
+}
+
+/**
+ * Génère l'assemblage 3D complet d'un escalier LOD 350 multi-matériaux :
+ * - Corps porteur (paillasse / contremarches)
+ * - Girons / marches avec nez de marche débordant (+25 mm)
+ * - Limons latéraux biseautés
+ * - Garde-corps avec main courante profilée (+900 mm), poteaux et lisses inox
+ */
+export function createStairAssembly(
+  stair: StairGeometryParams,
+  stairType?: StairTypeGeometryParams,
+  options?: StairAssemblyOptions,
+): ComponentAssembly3D | null {
+  const baseMesh = createStairMesh(stair, stairType);
+  if (!baseMesh) return null;
+
+  const detailLevel = options?.detailLevel ?? 'lod350';
+  const structureMat = options?.structureMaterial ?? 'plaster_interior';
+
+  if (detailLevel !== 'lod350') {
+    return {
+      elementId: stair.id,
+      category: 'stair',
+      family: 'stair',
+      subType: 'straight',
+      parts: [
+        {
+          rawData: baseMesh,
+          materialRole: structureMat,
+        },
+      ],
+    };
+  }
+
+  const z0 = stair.bottomElevation ?? 0;
+  const z1 = stair.topElevation ?? z0 + 2800;
+  const deltaZ = z1 - z0;
+  const dx = stair.end.x - stair.start.x;
+  const dy = stair.end.y - stair.start.y;
+  const len = Math.hypot(dx, dy);
+  const width = stair.widthOverride ?? stairType?.width ?? 900;
+  const halfW = width / 2;
+
+  const numberOfSteps = Math.min(30, Math.max(3, Math.round(deltaZ / 175)));
+  const stepHeight = deltaZ / numberOfSteps;
+  const stepDepth = len / numberOfSteps;
+
+  const ux = dx / len;
+  const uy = dy / len;
+  const nx = -uy;
+  const ny = ux;
+
+  const uVec: Vec3D = { x: ux, y: uy, z: 0 };
+  const nVec: Vec3D = { x: nx, y: ny, z: 0 };
+  const zVec: Vec3D = { x: 0, y: 0, z: 1 };
+
+  const treadThickness = options?.treadThickness ?? 30;
+  const nosing = options?.nosingOverhang ?? 25;
+  const treadMat = options?.treadMaterial ?? 'wood_oak';
+  const stringerMat = options?.stringerMaterial ?? 'alu_anthracite';
+  const handrailMat = options?.handrailMaterial ?? 'wood_oak';
+  const guardrailMat = options?.guardrailMaterial ?? 'stainless_brushed';
+
+  const parts: ComponentAssemblyPart[] = [
+    {
+      rawData: baseMesh,
+      materialRole: structureMat,
+    },
+  ];
+  const instances: ComponentInstanceAnchor[] = [];
+
+  // 1. Marches individuelles avec nez de marche saillant (+nosing mm)
+  const treadsAcc = new ArchitecturalMeshAccumulator();
+  for (let i = 0; i < numberOfSteps; i++) {
+    const s0 = i * stepDepth;
+    const s1 = (i + 1) * stepDepth + nosing;
+    const treadDepth = s1 - s0;
+    const sMid = (s0 + s1) / 2;
+    const zTreadTop = z0 + (i + 1) * stepHeight;
+    const centerTread: Vec3D = {
+      x: stair.start.x + ux * sMid,
+      y: stair.start.y + uy * sMid,
+      z: zTreadTop - treadThickness / 2,
+    };
+    treadsAcc.addBeveledBox(
+      centerTread,
+      { x: treadDepth, y: width + 20, z: treadThickness },
+      4,
+      uVec,
+      nVec,
+      zVec,
+    );
+  }
+  parts.push({
+    rawData: treadsAcc.toRawMeshData(`${stair.id}_treads`),
+    materialRole: treadMat,
+  });
+
+  // 2. Limons latéraux (stringers)
+  if (options?.hasStringers !== false) {
+    const stringersAcc = new ArchitecturalMeshAccumulator();
+    const stringerWidth = 40;
+    const stringerHeight = 160;
+    const hypotIncline = Math.hypot(len, deltaZ);
+    const cosInc = len / hypotIncline;
+    const sinInc = deltaZ / hypotIncline;
+    const dirIncline: Vec3D = { x: ux * cosInc, y: uy * cosInc, z: sinInc };
+    const normIncline: Vec3D = { x: -ux * sinInc, y: -uy * sinInc, z: cosInc };
+
+    const centerInclineMid: Vec3D = {
+      x: stair.start.x + ux * (len / 2),
+      y: stair.start.y + uy * (len / 2),
+      z: z0 + deltaZ / 2,
+    };
+
+    // Limon gauche (+n) et limon droit (-n)
+    const leftCenter: Vec3D = {
+      x: centerInclineMid.x + nx * (halfW + stringerWidth / 2),
+      y: centerInclineMid.y + ny * (halfW + stringerWidth / 2),
+      z: centerInclineMid.z,
+    };
+    const rightCenter: Vec3D = {
+      x: centerInclineMid.x - nx * (halfW + stringerWidth / 2),
+      y: centerInclineMid.y - ny * (halfW + stringerWidth / 2),
+      z: centerInclineMid.z,
+    };
+
+    stringersAcc.addBeveledBox(
+      leftCenter,
+      { x: hypotIncline + 40, y: stringerWidth, z: stringerHeight },
+      3,
+      dirIncline,
+      nVec,
+      normIncline,
+    );
+    stringersAcc.addBeveledBox(
+      rightCenter,
+      { x: hypotIncline + 40, y: stringerWidth, z: stringerHeight },
+      3,
+      dirIncline,
+      nVec,
+      normIncline,
+    );
+
+    parts.push({
+      rawData: stringersAcc.toRawMeshData(`${stair.id}_stringers`),
+      materialRole: stringerMat,
+    });
+  }
+
+  // 3. Garde-corps (main courante, poteaux, lisses)
+  if (options?.hasGuardrail !== false) {
+    const guardrailAcc = new ArchitecturalMeshAccumulator();
+    const handrailAcc = new ArchitecturalMeshAccumulator();
+
+    const railOffsetN = halfW - 25;
+    const hypotIncline = Math.hypot(len, deltaZ);
+    const cosInc = len / hypotIncline;
+    const sinInc = deltaZ / hypotIncline;
+    const dirIncline: Vec3D = { x: ux * cosInc, y: uy * cosInc, z: sinInc };
+
+    const handrailHeight = 900;
+    const handrailCenter: Vec3D = {
+      x: stair.start.x + ux * (len / 2) + nx * railOffsetN,
+      y: stair.start.y + uy * (len / 2) + ny * railOffsetN,
+      z: z0 + deltaZ / 2 + handrailHeight,
+    };
+
+    // Main courante en profilé biseauté
+    handrailAcc.addBeveledBox(
+      handrailCenter,
+      { x: hypotIncline + 60, y: 50, z: 40 },
+      6,
+      dirIncline,
+      nVec,
+      zVec,
+    );
+
+    // Poteaux verticaux (baluster posts) mutualisés via GPU InstancedMesh
+    const postPositions = [0.05 * len, 0.5 * len, 0.95 * len];
+    for (const pLen of postPositions) {
+      const pZ = z0 + (pLen / len) * deltaZ;
+      const postBase: Vec3D = {
+        x: stair.start.x + ux * pLen + nx * railOffsetN,
+        y: stair.start.y + uy * pLen + ny * railOffsetN,
+        z: pZ,
+      };
+      instances.push({
+        prototypeKey: 'railing_post',
+        matrix: composeMatrix4(postBase, uVec, nVec, zVec, { x: 1, y: 1, z: handrailHeight }),
+        materialRole: guardrailMat,
+      });
+    }
+
+    // 2 lisses intermédiaires horizontales inox
+    const railHeights = [300, 600];
+    for (const rH of railHeights) {
+      const railCenter: Vec3D = {
+        x: stair.start.x + ux * (len / 2) + nx * railOffsetN,
+        y: stair.start.y + uy * (len / 2) + ny * railOffsetN,
+        z: z0 + deltaZ / 2 + rH,
+      };
+      guardrailAcc.addBeveledBox(
+        railCenter,
+        { x: hypotIncline, y: 16, z: 16 },
+        2,
+        dirIncline,
+        nVec,
+        zVec,
+      );
+    }
+
+    parts.push({
+      rawData: handrailAcc.toRawMeshData(`${stair.id}_handrail`),
+      materialRole: handrailMat,
+    });
+    parts.push({
+      rawData: guardrailAcc.toRawMeshData(`${stair.id}_guardrail`),
+      materialRole: guardrailMat,
+    });
+  }
+
+  return {
+    elementId: stair.id,
+    category: 'stair',
+    family: 'stair',
+    subType: 'straight',
+    parts,
+    ...(instances.length > 0 ? { instances } : {}),
+  };
+}
+

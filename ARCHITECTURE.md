@@ -1,7 +1,7 @@
 # ARCHITECTURE SYSTÈME — TABAX
 
 **Statut :** Spécification d'Architecture Validée  
-**Version :** 1.2.0 (26 novembre 2026)  
+**Version :** 1.3.0 (28 novembre 2026)  
 **Auteur :** Ingénieur Principal & Architecte Logiciel
 
 ---

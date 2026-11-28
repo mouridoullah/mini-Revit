@@ -1,125 +1,24 @@
 /**
- * mesh-generator/mep/primitives — Primitives procédurales chanfreinées avec UVs métriques (1 UV = 1 000 mm)
+ * mesh-generator/mep/primitives — Primitives MEP spécialisées (gaines chanfreinées, coudes, brides PN16, écrous, volants)
  *
- * Modules purement géométriques (zéro Three.js) produisant des RawMeshData étanches avec normales
- * unitaires exactes et coordonnées UV métriques adaptées aux textures PBR brossées/perforées.
+ * Étend BaseMeshAccumulator (shared/primitives) pour supprimer toute duplication des primitives de base.
  */
 
-import type { RawMeshData } from '@tabax/geometry';
 import {
+  BaseMeshAccumulator,
+  UV_SCALE,
   add,
   sub,
   scale,
+  dot,
   cross,
   len,
   normalize,
   computeOrthonormalBasis,
   type Vec3D,
-} from './common.js';
+} from '../shared/primitives.js';
 
-const UV_SCALE = 0.001; // 1 unité UV = 1 000 mm
-
-function dot(a: Vec3D, b: Vec3D): number {
-  return a.x * b.x + a.y * b.y + a.z * b.z;
-}
-
-export class UvMeshAccumulator {
-  private readonly positions: number[] = [];
-  private readonly normals: number[] = [];
-  private readonly uvs: number[] = [];
-  private readonly indices: number[] = [];
-  private minX = Infinity;
-  private minY = Infinity;
-  private minZ = Infinity;
-  private maxX = -Infinity;
-  private maxY = -Infinity;
-  private maxZ = -Infinity;
-
-  public addVertex(p: Vec3D, n: Vec3D, uCoord: number, vCoord: number): number {
-    this.positions.push(p.x, p.y, p.z);
-    this.normals.push(n.x, n.y, n.z);
-    this.uvs.push(uCoord, vCoord);
-    if (p.x < this.minX) this.minX = p.x;
-    if (p.x > this.maxX) this.maxX = p.x;
-    if (p.y < this.minY) this.minY = p.y;
-    if (p.y > this.maxY) this.maxY = p.y;
-    if (p.z < this.minZ) this.minZ = p.z;
-    if (p.z > this.maxZ) this.maxZ = p.z;
-    return this.positions.length / 3 - 1;
-  }
-
-  public addTriangle(i0: number, i1: number, i2: number): void {
-    this.indices.push(i0, i1, i2);
-  }
-
-  public addQuad(i0: number, i1: number, i2: number, i3: number): void {
-    this.indices.push(i0, i1, i2, i0, i2, i3);
-  }
-
-  private addOrientedQuadWithMetrics(
-    p0: Vec3D,
-    p1: Vec3D,
-    p2: Vec3D,
-    p3: Vec3D,
-    n: Vec3D,
-    uAxis: Vec3D,
-    vAxis: Vec3D,
-  ): void {
-    const pts = [p0, p1, p2, p3] as const;
-    const idx: number[] = [];
-    for (const p of pts) {
-      idx.push(this.addVertex(p, n, dot(p, uAxis) * UV_SCALE, dot(p, vAxis) * UV_SCALE));
-    }
-    this.addQuad(idx[0] ?? 0, idx[1] ?? 0, idx[2] ?? 0, idx[3] ?? 0);
-  }
-
-  private addFlatTri(a: Vec3D, b: Vec3D, c: Vec3D, expectedOut: Vec3D, uAxis: Vec3D, vAxis: Vec3D): void {
-    const rawN = cross(sub(b, a), sub(c, a));
-    const nLen = len(rawN);
-    if (nLen < 1e-8) return;
-    const n = normalize(rawN);
-    const flip = dot(n, expectedOut) < 0;
-    const finalN = flip ? scale(n, -1) : n;
-    const ia = this.addVertex(a, finalN, dot(a, uAxis) * UV_SCALE, dot(a, vAxis) * UV_SCALE);
-    const ib = this.addVertex(b, finalN, dot(b, uAxis) * UV_SCALE, dot(b, vAxis) * UV_SCALE);
-    const ic = this.addVertex(c, finalN, dot(c, uAxis) * UV_SCALE, dot(c, vAxis) * UV_SCALE);
-    if (flip) {
-      this.addTriangle(ia, ic, ib);
-    } else {
-      this.addTriangle(ia, ib, ic);
-    }
-  }
-
-  private addFlatQuad(
-    a: Vec3D,
-    b: Vec3D,
-    c: Vec3D,
-    d: Vec3D,
-    expectedOut: Vec3D,
-    uAxis: Vec3D,
-    vAxis: Vec3D,
-  ): void {
-    const rawN = cross(sub(b, a), sub(c, a));
-    const nLen = len(rawN);
-    if (nLen < 1e-8) return;
-    const n = normalize(rawN);
-    const flip = dot(n, expectedOut) < 0;
-    const finalN = flip ? scale(n, -1) : n;
-    const ia = this.addVertex(a, finalN, dot(a, uAxis) * UV_SCALE, dot(a, vAxis) * UV_SCALE);
-    const ib = this.addVertex(b, finalN, dot(b, uAxis) * UV_SCALE, dot(b, vAxis) * UV_SCALE);
-    const ic = this.addVertex(c, finalN, dot(c, uAxis) * UV_SCALE, dot(c, vAxis) * UV_SCALE);
-    const id = this.addVertex(d, finalN, dot(d, uAxis) * UV_SCALE, dot(d, vAxis) * UV_SCALE);
-    if (flip) {
-      this.addQuad(ia, id, ic, ib);
-    } else {
-      this.addQuad(ia, ib, ic, id);
-    }
-  }
-
-  /**
-   * Boîte orientée avec chanfreins à 45° sur les 12 arêtes et 8 coins (c = min(3 mm, 0.08 * minDim)).
-   * Retombe proprement sur une boîte plane UV si c < 0.25 mm.
-   */
+export class UvMeshAccumulator extends BaseMeshAccumulator {
   public addBeveledBox(
     center: Vec3D,
     width: number,
@@ -130,104 +29,7 @@ export class UvMeshAccumulator {
     w: Vec3D,
     chamferMm?: number,
   ): void {
-    if (width <= 0 || depth <= 0 || height <= 0) return;
-    const hx = width * 0.5;
-    const hy = depth * 0.5;
-    const hz = height * 0.5;
-    const minDim = Math.min(width, depth, height);
-    const c = Math.min(chamferMm ?? 3, minDim * 0.08, hx * 0.45, hy * 0.45, hz * 0.45);
-
-    const pt = (x: number, y: number, z: number) =>
-      add(center, add(scale(u, x), add(scale(v, y), scale(w, z))));
-
-    if (c < 0.25) {
-      // Boîte simple avec UVs métriques par face
-      const p = (sx: number, sy: number, sz: number) => pt(sx * hx, sy * hy, sz * hz);
-      this.addOrientedQuadWithMetrics(p(1, -1, -1), p(1, 1, -1), p(1, 1, 1), p(1, -1, 1), u, v, w);
-      this.addOrientedQuadWithMetrics(p(-1, 1, -1), p(-1, -1, -1), p(-1, -1, 1), p(-1, 1, 1), scale(u, -1), v, w);
-      this.addOrientedQuadWithMetrics(p(-1, 1, -1), p(1, 1, -1), p(1, 1, 1), p(-1, 1, 1), v, u, w);
-      this.addOrientedQuadWithMetrics(p(1, -1, -1), p(-1, -1, -1), p(-1, -1, 1), p(1, -1, 1), scale(v, -1), u, w);
-      this.addOrientedQuadWithMetrics(p(-1, -1, 1), p(1, -1, 1), p(1, 1, 1), p(-1, 1, 1), w, u, v);
-      this.addOrientedQuadWithMetrics(p(-1, 1, -1), p(1, 1, -1), p(1, -1, -1), p(-1, -1, -1), scale(w, -1), u, v);
-      return;
-    }
-
-    const ix = hx - c;
-    const iy = hy - c;
-    const iz = hz - c;
-
-    // 6 faces principales en retrait
-    this.addFlatQuad(pt(hx, -iy, -iz), pt(hx, iy, -iz), pt(hx, iy, iz), pt(hx, -iy, iz), u, v, w);
-    this.addFlatQuad(pt(-hx, iy, -iz), pt(-hx, -iy, -iz), pt(-hx, -iy, iz), pt(-hx, iy, iz), scale(u, -1), v, w);
-    this.addFlatQuad(pt(-ix, hy, -iz), pt(ix, hy, -iz), pt(ix, hy, iz), pt(-ix, hy, iz), v, u, w);
-    this.addFlatQuad(pt(ix, -hy, -iz), pt(-ix, -hy, -iz), pt(-ix, -hy, iz), pt(ix, -hy, iz), scale(v, -1), u, w);
-    this.addFlatQuad(pt(-ix, -iy, hz), pt(ix, -iy, hz), pt(ix, iy, hz), pt(-ix, iy, hz), w, u, v);
-    this.addFlatQuad(pt(-ix, iy, -hz), pt(ix, iy, -hz), pt(ix, -iy, -hz), pt(-ix, -iy, -hz), scale(w, -1), u, v);
-
-    // 4 chanfreins verticaux (parallèles à w)
-    for (const sx of [-1, 1]) {
-      for (const sy of [-1, 1]) {
-        const out = normalize(add(scale(u, sx), scale(v, sy)));
-        this.addFlatQuad(
-          pt(sx * hx, sy * iy, -iz),
-          pt(sx * ix, sy * hy, -iz),
-          pt(sx * ix, sy * hy, iz),
-          pt(sx * hx, sy * iy, iz),
-          out,
-          u,
-          w,
-        );
-      }
-    }
-
-    // 4 chanfreins parallèles à u (faces ±Y / ±Z)
-    for (const sy of [-1, 1]) {
-      for (const sz of [-1, 1]) {
-        const out = normalize(add(scale(v, sy), scale(w, sz)));
-        this.addFlatQuad(
-          pt(-ix, sy * hy, sz * iz),
-          pt(ix, sy * hy, sz * iz),
-          pt(ix, sy * iy, sz * hz),
-          pt(-ix, sy * iy, sz * hz),
-          out,
-          u,
-          v,
-        );
-      }
-    }
-
-    // 4 chanfreins parallèles à v (faces ±X / ±Z)
-    for (const sx of [-1, 1]) {
-      for (const sz of [-1, 1]) {
-        const out = normalize(add(scale(u, sx), scale(w, sz)));
-        this.addFlatQuad(
-          pt(sx * hx, -iy, sz * iz),
-          pt(sx * hx, iy, sz * iz),
-          pt(sx * ix, iy, sz * hz),
-          pt(sx * ix, -iy, sz * hz),
-          out,
-          v,
-          w,
-        );
-      }
-    }
-
-    // 8 triangles de coins
-    for (const sx of [-1, 1]) {
-      for (const sy of [-1, 1]) {
-        for (const sz of [-1, 1]) {
-          const out = normalize(add(scale(u, sx), add(scale(v, sy), scale(w, sz))));
-          this.addFlatTri(
-            pt(sx * hx, sy * iy, sz * iz),
-            pt(sx * ix, sy * hy, sz * iz),
-            pt(sx * ix, sy * iy, sz * hz),
-            out,
-            u,
-            v,
-          );
-        }
-      }
-    }
+    this.addBeveledBoxRaw(center, width, depth, height, u, v, w, chamferMm, 0.08);
   }
 
   /**
@@ -299,19 +101,14 @@ export class UvMeshAccumulator {
 
       const u0 = perim * UV_SCALE;
       const u1 = (perim + segLen) * UV_SCALE;
-      const v0 = 0;
-      const v1 = l * UV_SCALE;
 
-      const i0 = this.addVertex(pA1, normal, u0, v0);
-      const i1 = this.addVertex(pB1, normal, u1, v0);
-      const i2 = this.addVertex(pB2, normal, u1, v1);
-      const i3 = this.addVertex(pA2, normal, u0, v1);
+      const i0 = this.addVertex(pA1, normal, u0, 0);
+      const i1 = this.addVertex(pB1, normal, u1, 0);
+      const i2 = this.addVertex(pB2, normal, u1, l * UV_SCALE);
+      const i3 = this.addVertex(pA2, normal, u0, l * UV_SCALE);
 
-      if (flip) {
-        this.addQuad(i0, i3, i2, i1);
-      } else {
-        this.addQuad(i0, i1, i2, i3);
-      }
+      if (flip) this.addQuad(i0, i3, i2, i1);
+      else this.addQuad(i0, i1, i2, i3);
       perim += segLen;
     }
 
@@ -326,82 +123,12 @@ export class UvMeshAccumulator {
         for (let i = 0; i < nPts; i++) {
           const a = ring[i] ?? 0;
           const b = ring[(i + 1) % nPts] ?? 0;
-          if (reverse) {
-            this.addTriangle(ci, b, a);
-          } else {
-            this.addTriangle(ci, a, b);
-          }
+          if (reverse) this.addTriangle(ci, b, a);
+          else this.addTriangle(ci, a, b);
         }
       };
       addCap(p1, scale(axis, -1), true);
       addCap(p2, axis, false);
-    }
-  }
-
-  /**
-   * Cylindre lisse avec UVs métriques (u = arc circonférentiel en m, v = longueur en m).
-   */
-  public addSmoothCylinder(
-    p1: Vec3D,
-    p2: Vec3D,
-    radius: number,
-    segments = 24,
-    caps = true,
-  ): void {
-    const dir = sub(p2, p1);
-    const l = len(dir);
-    if (l < 1e-4 || radius <= 0) return;
-
-    const axis = normalize(dir);
-    const { u, v } = computeOrthonormalBasis(axis);
-    const circumference = 2 * Math.PI * radius;
-
-    const r1: number[] = [];
-    const r2: number[] = [];
-    for (let i = 0; i <= segments; i++) {
-      const theta = (2 * Math.PI * i) / segments;
-      const normal = add(scale(u, Math.cos(theta)), scale(v, Math.sin(theta)));
-      const offset = scale(normal, radius);
-      const uUv = (i / segments) * circumference * UV_SCALE;
-      r1.push(this.addVertex(add(p1, offset), normal, uUv, 0));
-      r2.push(this.addVertex(add(p2, offset), normal, uUv, l * UV_SCALE));
-    }
-
-    for (let i = 0; i < segments; i++) {
-      const a0 = r1[i] ?? 0;
-      const a1 = r1[i + 1] ?? 0;
-      const b1 = r2[i + 1] ?? 0;
-      const b0 = r2[i] ?? 0;
-      this.addQuad(a0, a1, b1, b0);
-    }
-
-    if (caps) {
-      const n1 = scale(axis, -1);
-      const c1 = this.addVertex(p1, n1, 0, 0);
-      const cap1: number[] = [];
-      for (let i = 0; i < segments; i++) {
-        const theta = (2 * Math.PI * i) / segments;
-        const dx = Math.cos(theta) * radius;
-        const dy = Math.sin(theta) * radius;
-        const wp = add(p1, add(scale(u, dx), scale(v, dy)));
-        cap1.push(this.addVertex(wp, n1, dx * UV_SCALE, dy * UV_SCALE));
-      }
-      for (let i = 0; i < segments; i++) {
-        this.addTriangle(c1, cap1[(i + 1) % segments] ?? 0, cap1[i] ?? 0);
-      }
-
-      const c2 = this.addVertex(p2, axis, 0, 0);
-      const cap2: number[] = [];
-      for (let i = 0; i < segments; i++) {
-        const theta = (2 * Math.PI * i) / segments;
-        const dx = Math.cos(theta) * radius;
-        const dy = Math.sin(theta) * radius;
-        const wp = add(p2, add(scale(u, dx), scale(v, dy)));
-        cap2.push(this.addVertex(wp, axis, dx * UV_SCALE, dy * UV_SCALE));
-      }
-      for (let i = 0; i < segments; i++) {
-        this.addTriangle(c2, cap2[i] ?? 0, cap2[(i + 1) % segments] ?? 0);
-      }
     }
   }
 
@@ -423,9 +150,7 @@ export class UvMeshAccumulator {
 
     let nPlane = cross(vStart, vEnd);
     if (len(nPlane) < 1e-5) {
-      const axis = normalize(vStart);
-      const basis = computeOrthonormalBasis(axis);
-      nPlane = basis.u;
+      nPlane = computeOrthonormalBasis(normalize(vStart)).u;
     } else {
       nPlane = normalize(nPlane);
     }
@@ -487,7 +212,6 @@ export class UvMeshAccumulator {
     const halfT = thickness * 0.5;
     const b = Math.min(bevelMm, halfT * 0.4, (outerR - innerR) * 0.3);
 
-    // Profil fermé en coupe radiale (r, z) CCW
     const profile: readonly [number, number][] = [
       [innerR, -halfT],
       [outerR - b, -halfT],
@@ -512,7 +236,6 @@ export class UvMeshAccumulator {
       for (let i = 0; i <= segments; i++) {
         const theta = (2 * Math.PI * i) / segments;
         const radial = add(scale(u, Math.cos(theta)), scale(v, Math.sin(theta)));
-        // Normale extérieure dans le plan (radial, dir)
         const norm = normalize(add(scale(radial, -dz), scale(dir, dr)));
         const pA = add(center, add(scale(radial, a[0]), scale(dir, a[1])));
         const pB = add(center, add(scale(radial, c[0]), scale(dir, c[1])));
@@ -593,7 +316,7 @@ export class UvMeshAccumulator {
   }
 
   /**
-   * Volant à rayons circulaire pour vannes DN > 50 (jante toroïdale segmentée + moyeu + N rayons).
+   * Volant à rayons circulaire pour vannes DN > 50.
    */
   public addHandwheel(
     center: Vec3D,
@@ -608,7 +331,6 @@ export class UvMeshAccumulator {
     const { u, v } = computeOrthonormalBasis(dir);
     const majorR = Math.max(rimRadius * 2, outerRadius - rimRadius);
 
-    // 1. Jante toroïdale
     const rings: number[][] = [];
     for (let i = 0; i <= ringSegments; i++) {
       const phi = (2 * Math.PI * i) / ringSegments;
@@ -639,7 +361,6 @@ export class UvMeshAccumulator {
       }
     }
 
-    // 2. Moyeu central
     this.addSmoothCylinder(
       sub(center, scale(dir, rimRadius * 1.3)),
       add(center, scale(dir, rimRadius * 1.3)),
@@ -648,7 +369,6 @@ export class UvMeshAccumulator {
       true,
     );
 
-    // 3. Rayons
     for (let s = 0; s < spokes; s++) {
       const ang = (2 * Math.PI * s) / spokes;
       const spokeDir = add(scale(u, Math.cos(ang)), scale(v, Math.sin(ang)));
@@ -660,28 +380,5 @@ export class UvMeshAccumulator {
         false,
       );
     }
-  }
-
-  public toRawMeshData(elementId: string, userData?: Record<string, unknown>): RawMeshData {
-    const safeMinX = this.minX === Infinity ? 0 : this.minX;
-    const safeMinY = this.minY === Infinity ? 0 : this.minY;
-    const safeMinZ = this.minZ === Infinity ? 0 : this.minZ;
-    const safeMaxX = this.maxX === -Infinity ? 0 : this.maxX;
-    const safeMaxY = this.maxY === -Infinity ? 0 : this.maxY;
-    const safeMaxZ = this.maxZ === -Infinity ? 0 : this.maxZ;
-
-    return {
-      positions: new Float32Array(this.positions),
-      normals: new Float32Array(this.normals),
-      uvs: new Float32Array(this.uvs),
-      indices: new Uint32Array(this.indices),
-      elementId,
-      role: 'full',
-      boundingBox: {
-        min: { x: safeMinX, y: safeMinY, z: safeMinZ },
-        max: { x: safeMaxX, y: safeMaxY, z: safeMaxZ },
-      },
-      userData,
-    };
   }
 }

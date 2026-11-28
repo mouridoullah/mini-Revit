@@ -149,6 +149,20 @@ describe('Générateurs procéduraux MepAssembly3D LOD 350 (Lot 2)', () => {
     });
     assertAssemblyValid(segElbow);
 
+    const elecElbow = createMepFittingAssembly3D({
+      id: 'fit_elec_elbow',
+      fittingType: 'elbow',
+      position: { x: 0, y: 0, z: 2500 },
+      domain: 'electrical',
+      systemType: 'power',
+      ports: [
+        { id: 'p0', position: { x: -200, y: 0, z: 2500 }, direction: { x: -1, y: 0, z: 0 }, shape: 'rectangular', width: 200, height: 60 },
+        { id: 'p1', position: { x: 0, y: 200, z: 2500 }, direction: { x: 0, y: 1, z: 0 }, shape: 'rectangular', width: 200, height: 60 },
+      ],
+    });
+    assertAssemblyValid(elecElbow);
+    expect(elecElbow.parts[0]?.materialRole).toBe('galvanized_steel');
+
     const rectTee = createMepFittingAssembly3D({
       id: 'fit_rect_tee',
       fittingType: 'tee',

@@ -9,6 +9,13 @@ import type {
   RoofTypeGeometryParams,
   GableRoofTypeGeometryParams,
 } from './types.js';
+import type { ComponentAssembly3D } from '../components/types.js';
+import {
+  createRoofAssemblyFromBase,
+  type RoofAssemblyOptions,
+} from './roof-details.js';
+
+export type { RoofAssemblyOptions };
 
 /**
  * Génère le maillage 3D brut (RawMeshData) d'une toiture (plate ou 2 pans).
@@ -439,3 +446,18 @@ export function createRoofMesh(
     },
   };
 }
+
+/**
+ * Génère l'assemblage 3D complet d'une toiture LOD 350 multi-matériaux (délègue les finitions à roof-details.ts).
+ */
+export function createRoofAssembly(
+  roof: RoofGeometryParams,
+  roofType: RoofTypeGeometryParams,
+  effectivePolygon?: { outer: readonly Vec2[]; holes: readonly (readonly Vec2[])[] },
+  options?: RoofAssemblyOptions,
+): ComponentAssembly3D | null {
+  const baseMesh = createRoofMesh(roof, roofType, effectivePolygon);
+  if (!baseMesh) return null;
+  return createRoofAssemblyFromBase(baseMesh, roof, roofType, effectivePolygon, options);
+}
+
